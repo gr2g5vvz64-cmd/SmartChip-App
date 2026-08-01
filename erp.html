@@ -3053,6 +3053,25 @@ function showOfflineQueueDetail(){
 // بلافاصله بعد از لود صفحه، وضعیت صف رو نشون بده
 updateDjangoSyncUI();
 
+// شماره‌ی ترتیبی بعدی مشتری (BDL-06) و شماره‌ی سفارش محموله (SC-...) — اول از Django،
+// اگه نشد از گوگل‌شیت قدیمی (fallback امن)
+async function getNextCustomerSeqFromDjango(customerName){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-customer-seq/', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:customerName})
+    });
+    if(res.ok) return await res.json();
+  }catch(e){}
+  return await sheetCall('getNextCustomerSeq',{customer:customerName});
+}
+async function getNextOrderNumberFromDjango(){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-order-number/');
+    if(res.ok) return await res.json();
+  }catch(e){}
+  return await sheetCall('getNextOrderNumber');
+}
+
 const DJANGO_REQUESTS_API_ERP = 'https://smartchip-backend.onrender.com/api/requests/requests/';
 
 function requestFromApiERP(d){
@@ -5144,7 +5163,7 @@ async function submitForeignOrderRow(reqId,itemIdx,qIdx){
   found.item.status='ordered_shipping';
 
   if(isConnected){
-    const codeRes = await sheetCall('getNextOrderNumber');
+    const codeRes = await getNextOrderNumberFromDjango();
     newShip.id = (codeRes&&codeRes.orderNumber) || ('SC-'+today.split('/')[0]+'-'+Date.now());
     const saved = await createShipmentInDjangoERP(newShip);
     if(saved) Object.assign(newShip, saved);
@@ -8869,7 +8888,7 @@ async function saveRequest(){
   const newId='REQ-'+Date.now();
   let customerSeq, displayNumber;
   if(isConnected){
-    const seqRes=await sheetCall('getNextCustomerSeq',{customer:c});
+    const seqRes=await getNextCustomerSeqFromDjango(c);
     customerSeq=(seqRes&&seqRes.customerSeq)||getNextCustomerSeq(c);
     displayNumber=(seqRes&&seqRes.displayNumber)||formatCustomerReqNumber(c,customerSeq);
   } else {
@@ -9048,7 +9067,7 @@ async function saveShipment(){
   renderDash();if(document.getElementById('page-shipments').classList.contains('active'))renderShipments();
   if(isConnected){
     const {id: idArg, ...shipDataNoId} = newShip; // id را عمداً حذف می‌کنیم تا سرور خودش بسازد
-    const codeRes = await sheetCall('getNextOrderNumber');
+    const codeRes = await getNextOrderNumberFromDjango();
     const finalCode = (codeRes&&codeRes.orderNumber) || newShip.id;
     const saved = await createShipmentInDjangoERP({...shipDataNoId, id:finalCode});
     if(saved){
@@ -9194,7 +9213,7 @@ async function resetShipmentForm(){
   document.getElementById('shNote').value='';
   document.getElementById('shCode').value='در حال دریافت شماره...';
   if(isConnected){
-    const res=await sheetCall('getNextOrderNumber');
+    const res=await getNextOrderNumberFromDjango();
     document.getElementById('shCode').value=(res&&res.orderNumber)?res.orderNumber:('SC-'+todayShamsiStr().split('/')[0]+'-001');
   } else {
     document.getElementById('shCode').value='SC-'+todayShamsiStr().split('/')[0]+'-001';

@@ -748,6 +748,17 @@ async function syncItemsToDjangoCRM(){
   }catch(e){ toast('❌ خطا: '+e.message); }
 }
 
+// شماره‌ی ترتیبی بعدی مشتری (BDL-06 و مشابه) — اول از Django، اگه نشد از گوگل‌شیت قدیمی
+async function getNextCustomerSeqFromDjango(customerName){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-customer-seq/', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:customerName})
+    });
+    if(res.ok) return await res.json();
+  }catch(e){}
+  return await sheetCall('getNextCustomerSeq',{customer:customerName});
+}
+
 async function fetchShipmentsFromDjango(){
   try{
     const res = await fetch(DJANGO_SHIPMENTS_API);
@@ -1260,7 +1271,7 @@ async function convertLeadToRequest(){
   const l=leads.find(x=>String(x.id)===String(editId));
   if(!l)return;
   if(!confirm(`یک درخواست جدید برای «${l.customer}» در ERP ساخته شود؟`))return;
-  const seqRes=await sheetCall('getNextCustomerSeq',{customer:l.customer});
+  const seqRes=await getNextCustomerSeqFromDjango(l.customer);
   const customerSeq=(seqRes&&seqRes.customerSeq)||1;
   const displayNumber=(seqRes&&seqRes.displayNumber)||`${l.customer}-001`;
   const savedReq = await createRequestInDjango({
@@ -1850,7 +1861,7 @@ async function __disabled_commitNewRow(customerName){
   renderTableView(); // نمایش فوری با کد موقت
   toast('⏳ در حال ثبت...');
   // ذخیره در بک‌گراند
-  const seqRes=await sheetCall('getNextCustomerSeq',{customer:customerName});
+  const seqRes=await getNextCustomerSeqFromDjango(customerName);
   const trackingCode=(seqRes&&seqRes.displayNumber)||`${customerName}-001`;
   const hIdx=l.history.length-1;
   l.history[hIdx].trackingCode=trackingCode;
@@ -4267,7 +4278,7 @@ async function submitQuickContact(){
   // اگر استعلام یا مالی (یا هردو با هم) تیک خورده، یک کد پیگیری واحد برای همین تماس بساز
   const needFollowup = !needMarket && !needForeign && !needFinanceFlag && !hasSample;
   {
-    const seqRes = await sheetCall('getNextCustomerSeq',{customer:lead.customer});
+    const seqRes = await getNextCustomerSeqFromDjango(lead.customer);
     const displayNumber = (seqRes&&seqRes.displayNumber)||`${lead.customer}-001`;
     const savedReq = await createRequestInDjango({
       date:date, customer:lead.customer,
