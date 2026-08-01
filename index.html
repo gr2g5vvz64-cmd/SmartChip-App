@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartChip — صفحه‌ی اصلی v2.3</title>
+<!--
+  ════════════════════════════════════════════════════
+  SmartChip Hub — تاریخچه نسخه‌ها
+  (نسخه‌بندی از همین‌جا شروع می‌شود)
+  ════════════════════════════════════════════════════
+  نسخه ۲.۳ — ۱۴۰۵/۰۴/۲۳
+    + این فایل (صفحه‌ی اصلی/هاب) تمام یک جلسه‌ی طولانی و پرتغییر
+      (ERP تا v16.1، CRM تا v15.5، Mobile تا v15.1) کاملاً فراموش
+      شده و دست‌نخورده مونده بود — برای همین شماره‌ی نسخه‌اش عوض
+      نمی‌شد با اینکه بقیه‌ی فایل‌ها زیاد عوض شده بودن.
+    + اصلاح شد: کامنت نسخه‌ی ERP در APP_URLS که خیلی قدیمی
+      (v14.6) مونده بود، به‌روز شد.
+  ════════════════════════════════════════════════════
+  نسخه ۲.۱ — ۱۴۰۵/۰۴/۱۸
+    + کلیک روی هر کاشی، در تب جدید مرورگر باز می‌شود — خود صفحه‌ی
+      اصلی همیشه باز و ثابت می‌ماند، لازم نیست هربار دوباره بازش کنی
+    + روی گوشی، زیر کاشی‌های ERP/CRM یک لینک کوچک «نسخه کامل دسکتاپ»
+      هم هست — برای وقتی که می‌خواهی نسخه‌ی کامل را (نه نسخه‌ی موبایلی)
+      روی گوشی هم باز کنی
+  نسخه ۲.۰ — ۱۴۰۵/۰۴/۱۸
+    + روی گوشی، کاشی‌های ERP و CRM خودکار به نسخه‌ی موبایلی می‌روند
+    + دکمه‌ی حالت شب/روز
+-->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+:root {
+  --bg:#0f1117; --surface:#1d212e; --card:#262b3d; --border:#363c54;
+  --accent:#f0a500; --accent2:#e8630a; --text:#f7f8fb; --muted:#a3aac4;
+  --green:#22c55e; --red:#ef4444;
+}
+html[data-theme="light"] {
+  --bg:#faf8f5; --surface:#ffffff; --card:#f2ede6; --border:#c8bfb0;
+  --accent:#c47f00; --accent2:#d4540a; --text:#1a0800; --muted:#5a4a3a;
+  --green:#16a34a; --red:#dc2626;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;display:flex;flex-direction:column;align-items:center;padding:50px 20px 20px;-webkit-font-smoothing:antialiased;}
+.logo{font-size:clamp(40px,8vw,72px);font-weight:800;letter-spacing:1px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;text-align:center;}
+.sub{font-size:13px;color:var(--muted);margin-bottom:32px;text-align:center;}
+.user-info{font-size:11px;color:var(--muted);margin-bottom:22px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;}
+.tiles{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:900px;}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 32px;width:200px;text-align:center;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--text);}
+@media(max-width:600px){
+  body{padding:30px 10px 16px;}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;width:100%;box-sizing:border-box;}
+  .tile{width:auto;padding:12px 8px;border-radius:12px;}
+}
+.tile:hover{border-color:var(--accent);transform:translateY(-3px);}
+.tile-icon{font-size:32px;margin-bottom:10px;}
+.tile-title{font-size:14px;font-weight:800;margin-bottom:4px;}
+.tile-desc{font-size:10px;color:var(--muted);}
+@media(max-width:600px){
+  .tile-icon{font-size:24px;margin-bottom:6px;}
+  .tile-title{font-size:12px;margin-bottom:2px;}
+  .tile-desc{font-size:9px;}
+}
+.access-denied{text-align:center;max-width:420px;}
+.access-denied-icon{font-size:48px;margin-bottom:16px;}
+</style>
+<script>
+  if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
+</script>
+</head>
+<body>
+
+<button id="themeToggleBtn" onclick="toggleTheme()" style="position:fixed;top:18px;left:18px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--text);font-family:'Vazirmatn',sans-serif;cursor:pointer;z-index:50;" title="تغییر حالت شب/روز">🌙 حالت روز</button>
+
+<div class="logo">SmartChip</div>
+<div class="sub">پلتفرم یکپارچه شرکت اسمارت‌چیپ الکترونیک</div>
+<div style="font-size:9px;color:var(--muted);margin-bottom:30px;">v2.3</div>
+
+<div id="loadingState"><div style="color:var(--muted);font-size:13px;">در حال بررسی دسترسی...</div></div>
+
+<div id="emailFormState" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:320px;">
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;text-align:center;">ایمیلت رو وارد کن</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:14px;text-align:center;">همان ایمیلی که مدیر برایت ثبت کرده</div>
+  <input id="emailFormInput" type="email" placeholder="name@gmail.com" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:13px;outline:none;direction:ltr;text-align:left;margin-bottom:8px;" onkeydown="if(event.key==='Enter')submitEmailForm()"/>
+  <div id="emailFormError" style="color:var(--red);font-size:11px;margin-bottom:10px;display:none;"></div>
+  <button onclick="submitEmailForm()" style="width:100%;background:var(--accent);color:#1a1206;border:none;border-radius:10px;padding:11px;font-family:'Vazirmatn',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">ورود</button>
+</div>
+
+<div id="mainState" style="display:none;">
+  <div class="user-info" id="userInfoText"></div>
+  <div class="tiles" id="tilesContainer"></div>
+</div>
+
+<div id="deniedState" style="display:none;" class="access-denied">
+  <div class="access-denied-icon">🔒</div>
+  <div style="font-size:15px;font-weight:700;margin-bottom:8px;">دسترسی نداری</div>
+  <div style="font-size:12px;color:var(--muted)" id="deniedMsg"></div>
+</div>
+
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxGpCDZQcaoTTw-QEAv0E_r_lgYSjVlgdGwb8J2TKcV3PzOo9pSeG3Nm_iwEb9FD52A/exec';
+
+// ── حالت شب/روز ──
+function applyThemeButtonLabel(){
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  const btn=document.getElementById('themeToggleBtn');
+  if(btn) btn.textContent=isLight?'☀️ حالت شب':'🌙 حالت روز';
+}
+function toggleTheme(){
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('smartchip_theme','dark');
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    localStorage.setItem('smartchip_theme','light');
+  }
+  applyThemeButtonLabel();
+}
+applyThemeButtonLabel();
+
+// ▼▼▼ آدرس‌های واقعی هر بخش را اینجا بگذار (بعد از میزبانی هرکدام، مثلاً GitHub Pages) ▼▼▼
+const APP_URLS = {
+  erp: 'erp.html',                 // تدارکات/بازرگانی/مالی/ردیابی محموله — نسخه‌ی فعلی: v16.1
+  crm: 'crm.html',                 // پیجویی فروش (جدید/در تماس/مثبت/منفی)
+  priceList: 'pricelist.html',     // ماشین‌حساب قیمت‌دهی — Apps Script کاملاً جدا
+  staffAdmin: 'staff-admin.html',  // فقط برای مدیر — افزودن/حذف کارمند
+  guide: 'راهنمای-کامل-SmartChip.html', // راهنمای کامل پلتفرم
+};
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+// اگر از گوشی باز شده، کاشی‌های ERP و CRM به نسخه‌ی موبایلی (mobile.html) می‌روند —
+// چون erp.html/crm.html برای صفحه‌ی دسکتاپ طراحی شده‌اند، نه گوشی.
+// Price List و مدیریت کارمندان معادل موبایلی ندارند، پس همیشه دسکتاپی باز می‌شوند.
+function isMobileDevice(){
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+if(isMobileDevice()){
+  APP_URLS.erp='mobile.html';
+  APP_URLS.crm='mobile.html';
+}
+
+// نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
+const ROLE_TILES = {
+  admin:   ['erp','crm','priceList','staffAdmin','guide'],
+  sales:   ['crm','priceList','guide'],
+  ops:     ['erp','guide'],
+  finance: ['erp','guide'],
+};
+const TILE_META = {
+  erp:      {icon:'🏭', title:'ERP', desc:'تدارکات، بازرگانی، مالی، ردیابی محموله'},
+  crm:      {icon:'📞', title:'CRM فروش', desc:'پیجویی و ثبت تماس با مشتری'},
+  priceList:{icon:'💰', title:'Price List', desc:'ماشین‌حساب قیمت‌دهی قطعات'},
+  staffAdmin:{icon:'👥', title:'مدیریت کارمندان', desc:'افزودن/حذف دسترسی نیروها'},
+  guide:    {icon:'📖', title:'راهنمای پلتفرم', desc:'آموزش کامل CRM، ERP، ماشین‌حساب و موبایل'},
+};
+if(isMobileDevice()){
+  TILE_META.erp.desc='نسخه‌ی موبایل — ثبت سریع و مشاهده وضعیت';
+  TILE_META.crm.desc='نسخه‌ی موبایل — همراه با لیدهای فروش';
+}
+
+async function sheetCall(action, data={}){
+  try{
+    const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(JSON.stringify(data))+'&t='+Date.now();
+    const res=await fetch(url,{method:'GET'});
+    return await res.json();
+  }catch(e){ return null; }
+}
+function roleLabel(role){
+  return {admin:'مدیر', sales:'فروش', ops:'تدارکات/بازرگانی', finance:'مالی'}[role] || role || '—';
+}
+
+// شناسایی ساده با ایمیل — یک‌بار پرسیده می‌شود و در همان مرورگر نگه داشته می‌شود
+function getStoredEmail(){ return localStorage.getItem('smartchip_user_email')||''; }
+function setStoredEmail(e){ localStorage.setItem('smartchip_user_email', e); }
+function clearStoredEmail(){ localStorage.removeItem('smartchip_user_email'); }
+let _emailFormResolve=null;
+function ensureUserEmail(){
+  return new Promise((resolve)=>{
+    const stored=getStoredEmail();
+    if(stored && stored.includes('@')){ resolve(stored); return; }
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('emailFormState').style.display='block';
+    _emailFormResolve=resolve;
+  });
+}
+function submitEmailForm(){
+  const val=(document.getElementById('emailFormInput').value||'').trim().toLowerCase();
+  const errEl=document.getElementById('emailFormError');
+  if(!val || !val.includes('@')){
+    errEl.textContent='⚠ یک ایمیل معتبر وارد کن';
+    errEl.style.display='block';
+    return;
+  }
+  errEl.style.display='none';
+  setStoredEmail(val);
+  document.getElementById('emailFormState').style.display='none';
+  document.getElementById('loadingState').style.display='block';
+  if(_emailFormResolve) _emailFormResolve(val);
+}
+
+async function getCurrentUserInfoFromDjangoOrSheet(email){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    if(res.status===404){
+      return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+    }
+    if(res.ok){
+      const d = await res.json();
+      if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
+      return { email, name:d.name||'', role:d.role||'', isStaff:true };
+    }
+  }catch(e){ /* مشکل شبکه — به fallback گوگل‌شیت برمی‌گردیم */ }
+  return await sheetCall('getCurrentUserInfo', { email });
+}
+
+async function init(){
+  const email=await ensureUserEmail();
+  if(!email){
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('deniedState').style.display='block';
+    document.getElementById('deniedMsg').textContent='بدون ایمیل نمی‌توان ادامه داد';
+    return;
+  }
+  const userInfo=await getCurrentUserInfoFromDjangoOrSheet(email);
+  document.getElementById('loadingState').style.display='none';
+  if(!userInfo || !userInfo.isStaff){
+    document.getElementById('deniedState').style.display='block';
+    document.getElementById('deniedMsg').innerHTML=((userInfo&&userInfo.error)||'ارتباط با سرور برقرار نشد — مطمئن شو لینک Apps Script درست تنظیم شده')+
+      '<br><br><a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);font-size:11px;">تغییر ایمیل</a>';
+    return;
+  }
+  document.getElementById('mainState').style.display='block';
+  document.getElementById('userInfoText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
+  const allowedTiles=ROLE_TILES[userInfo.role]||[];
+  const isMob = isMobileDevice();
+  document.getElementById('tilesContainer').innerHTML=allowedTiles.map(key=>{
+    const m=TILE_META[key];
+    const desktopFallback=(isMob && (key==='erp'||key==='crm'))
+      ? `<a href="${key==='erp'?'erp.html':'crm.html'}" target="_blank" style="display:block;margin-top:4px;font-size:9px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ دسکتاپ</a>`
+      : '';
+    return `<div>
+      <a class="tile" href="${APP_URLS[key]}" target="_blank" style="display:block;">
+        <div class="tile-icon">${m.icon}</div>
+        <div class="tile-title">${m.title}</div>
+        <div class="tile-desc">${m.desc}</div>
+      </a>
+      ${desktopFallback}
+    </div>`;
+  }).join('') + (isMob ? `<div style="grid-column:1/-1;text-align:center;padding:14px 0 4px;"><a href="https://gr2g5vvz64-cmd.github.io/smartchip-app/" style="font-size:10px;color:var(--muted);text-decoration:underline;">🖥️ رفتن به نسخه کامل دسکتاپ</a></div>` : '')
+  || `<div style="color:var(--muted);font-size:12px;">برای نقش شما هیچ بخشی فعال نشده — با مدیر تماس بگیر</div>`;
+}
+init();
+</script>
+</body>
+</html>

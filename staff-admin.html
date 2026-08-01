@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartChip — مدیریت کارمندان v1.2</title>
+<!--
+  ════════════════════════════════════════════════════
+  SmartChip — مدیریت کارمندان — تاریخچه نسخه‌ها
+  (نسخه‌بندی از همین‌جا شروع می‌شود)
+  ════════════════════════════════════════════════════
+  نسخه ۱.۱ — ۱۴۰۵/۰۴/۱۸
+    + دکمه‌ی حالت شب/روز
+-->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+:root {
+  --bg:#0f1117; --surface:#1d212e; --card:#262b3d; --border:#363c54;
+  --accent:#f0a500; --accent2:#e8630a; --text:#f7f8fb; --muted:#a3aac4;
+  --green:#22c55e; --red:#ef4444;
+}
+html[data-theme="light"] {
+  --bg:#faf8f5; --surface:#ffffff; --card:#f2ede6; --border:#c8bfb0;
+  --accent:#c47f00; --accent2:#d4540a; --text:#1a0800; --muted:#5a4a3a;
+  --green:#16a34a; --red:#dc2626;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;-webkit-font-smoothing:antialiased;}
+.header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.logo-title{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.content{padding:24px;max-width:800px;margin:0 auto;}
+.btn{border:none;border-radius:10px;padding:9px 18px;font-family:'Vazirmatn',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+.btn-primary{background:var(--accent);color:#1a1206;}
+.btn-ghost{background:var(--card);color:var(--text);border:1px solid var(--border);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.add-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:10px;align-items:end;}
+@media (max-width:640px){.add-form{grid-template-columns:1fr;}}
+.form-control{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 11px;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:12px;outline:none;}
+.form-label{font-size:11px;color:var(--muted);margin-bottom:5px;display:block;}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+th{background:var(--card);font-size:11px;color:var(--muted);padding:10px;text-align:right;}
+td{padding:10px;font-size:12px;border-top:1px solid var(--border);}
+.access-denied{text-align:center;padding:80px 20px;}
+</style>
+<script>
+  if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
+</script>
+</head>
+<body>
+<div class="header"><div class="logo-title">👥 مدیریت کارمندان <span style="font-size:9px;color:var(--muted);font-weight:400;">v1.2</span></div><button id="themeToggleBtn" onclick="toggleTheme()" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:11px;color:var(--text);font-family:'Vazirmatn',sans-serif;cursor:pointer;" title="تغییر حالت شب/روز">🌙 حالت روز</button></div>
+<div class="content" id="mainContent" style="display:none;"></div>
+<div class="content" id="emailFormContent" style="display:none;text-align:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:320px;margin:60px auto 0;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">ایمیلت رو وارد کن</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">همان ایمیلی که مدیر برایت ثبت کرده</div>
+    <input id="emailFormInput" type="email" placeholder="name@gmail.com" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:13px;outline:none;direction:ltr;text-align:left;margin-bottom:8px;" onkeydown="if(event.key==='Enter')submitEmailForm()"/>
+    <div id="emailFormError" style="color:var(--red);font-size:11px;margin-bottom:10px;display:none;"></div>
+    <button onclick="submitEmailForm()" style="width:100%;background:var(--accent);color:#1a1206;border:none;border-radius:10px;padding:11px;font-family:'Vazirmatn',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">ورود</button>
+  </div>
+</div>
+<div class="content" id="deniedContent" style="display:none;">
+  <div class="access-denied">
+    <div style="font-size:40px;margin-bottom:14px;">🔒</div>
+    <div style="font-weight:700;margin-bottom:6px;">این صفحه فقط برای مدیر است</div>
+    <div style="font-size:12px;color:var(--muted)" id="deniedMsg"></div>
+  </div>
+</div>
+
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxGpCDZQcaoTTw-QEAv0E_r_lgYSjVlgdGwb8J2TKcV3PzOo9pSeG3Nm_iwEb9FD52A/exec';
+
+// ── حالت شب/روز ──
+function applyThemeButtonLabel(){
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  const btn=document.getElementById('themeToggleBtn');
+  if(btn) btn.textContent=isLight?'☀️ حالت شب':'🌙 حالت روز';
+}
+function toggleTheme(){
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('smartchip_theme','dark');
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    localStorage.setItem('smartchip_theme','light');
+  }
+  applyThemeButtonLabel();
+}
+applyThemeButtonLabel();
+const ROLE_LABELS={admin:'مدیر', sales:'فروش', ops:'تدارکات/بازرگانی', finance:'مالی'};
+
+async function sheetCall(action, data={}){
+  try{
+    const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(JSON.stringify(data))+'&t='+Date.now();
+    const res=await fetch(url,{method:'GET'});
+    return await res.json();
+  }catch(e){ return null; }
+}
+
+let staffList=[];
+
+function getStoredEmail(){ return localStorage.getItem('smartchip_user_email')||''; }
+function setStoredEmail(e){ localStorage.setItem('smartchip_user_email', e); }
+function clearStoredEmail(){ localStorage.removeItem('smartchip_user_email'); }
+let _emailFormResolve=null;
+function ensureUserEmail(){
+  return new Promise((resolve)=>{
+    const stored=getStoredEmail();
+    if(stored && stored.includes('@')){ resolve(stored); return; }
+    document.getElementById('emailFormContent').style.display='block';
+    _emailFormResolve=resolve;
+  });
+}
+function submitEmailForm(){
+  const val=(document.getElementById('emailFormInput').value||'').trim().toLowerCase();
+  const errEl=document.getElementById('emailFormError');
+  if(!val || !val.includes('@')){
+    errEl.textContent='⚠ یک ایمیل معتبر وارد کن';
+    errEl.style.display='block';
+    return;
+  }
+  errEl.style.display='none';
+  setStoredEmail(val);
+  document.getElementById('emailFormContent').style.display='none';
+  if(_emailFormResolve) _emailFormResolve(val);
+}
+async function getCurrentUserInfoFromDjangoOrSheet(email){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    if(res.status===404){
+      return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+    }
+    if(res.ok){
+      const d = await res.json();
+      if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
+      return { email, name:d.name||'', role:d.role||'', isStaff:true };
+    }
+  }catch(e){ /* مشکل شبکه — به fallback گوگل‌شیت برمی‌گردیم */ }
+  return await sheetCall('getCurrentUserInfo', { email });
+}
+async function init(){
+  const email=await ensureUserEmail();
+  if(!email){
+    document.getElementById('deniedContent').style.display='block';
+    document.getElementById('deniedMsg').textContent='بدون ایمیل نمی‌توان ادامه داد';
+    return;
+  }
+  const userInfo=await getCurrentUserInfoFromDjangoOrSheet(email);
+  if(!userInfo || !userInfo.isStaff || userInfo.role!=='admin'){
+    document.getElementById('deniedContent').style.display='block';
+    document.getElementById('deniedMsg').innerHTML=((userInfo&&userInfo.error)||'فقط نقش «مدیر» به این صفحه دسترسی دارد')+
+      '<br><br><a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);font-size:11px;">تغییر ایمیل</a>';
+    return;
+  }
+  document.getElementById('mainContent').style.display='block';
+  renderForm();
+  await loadStaff();
+}
+function renderForm(){
+  document.getElementById('mainContent').innerHTML=`
+    <div class="add-form">
+      <div><label class="form-label">ایمیل گوگل *</label><input class="form-control" id="newEmail" placeholder="name@gmail.com"/></div>
+      <div><label class="form-label">نام</label><input class="form-control" id="newName" placeholder="نام کارمند"/></div>
+      <div><label class="form-label">نقش</label>
+        <select class="form-control" id="newRole">
+          <option value="sales">فروش</option>
+          <option value="ops">تدارکات/بازرگانی</option>
+          <option value="finance">مالی</option>
+          <option value="admin">مدیر</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="addStaffMember()">+ افزودن</button>
+    </div>
+    <table>
+      <thead><tr><th>ایمیل</th><th>نام</th><th>نقش</th><th>فعال</th><th></th></tr></thead>
+      <tbody id="staffTableBody"></tbody>
+    </table>
+  `;
+}
+const DJANGO_STAFF_API = 'https://smartchip-backend.onrender.com/api/staff/staff/';
+async function loadStaff(){
+  try{
+    const res = await fetch(DJANGO_STAFF_API);
+    if(res.ok){ staffList = await res.json(); renderTable(); return; }
+  }catch(e){}
+  const res=await sheetCall('getStaffList');
+  staffList=(res&&res.staff)||[];
+  renderTable();
+}
+function renderTable(){
+  const el=document.getElementById('staffTableBody');
+  if(!staffList.length){el.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">هنوز کارمندی ثبت نشده</td></tr>';return;}
+  el.innerHTML=staffList.map(s=>`
+    <tr>
+      <td>${s.email}</td>
+      <td>${s.name||'—'}</td>
+      <td>${ROLE_LABELS[s.role]||s.role}</td>
+      <td><button class="btn btn-ghost btn-sm" style="color:${s.active?'var(--green)':'var(--red)'}" onclick="toggleStaffActive('${s.email}',${!s.active})">${s.active?'✅ فعال':'❌ غیرفعال'}</button></td>
+      <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeStaffMember('${s.email}')">حذف</button></td>
+    </tr>`).join('');
+}
+async function addStaffMember(){
+  const email=document.getElementById('newEmail').value.trim().toLowerCase();
+  const name=document.getElementById('newName').value.trim();
+  const role=document.getElementById('newRole').value;
+  if(!email||!email.includes('@')){alert('⚠ ایمیل معتبر وارد کن');return;}
+  try{
+    const res = await fetch(DJANGO_STAFF_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,name,role,active:true})});
+    if(!res.ok){ const err = await res.json().catch(()=>({})); alert(err.email ? 'این ایمیل قبلاً ثبت شده' : 'خطا در ثبت'); return; }
+  }catch(e){ alert('⚠️ اتصال به سرور برقرار نشد'); return; }
+  document.getElementById('newEmail').value='';
+  document.getElementById('newName').value='';
+  await loadStaff();
+}
+async function toggleStaffActive(email,active){
+  try{ await fetch(DJANGO_STAFF_API+encodeURIComponent(email)+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({active})}); }
+  catch(e){ alert('⚠️ اتصال به سرور برقرار نشد'); }
+  await loadStaff();
+}
+async function removeStaffMember(email){
+  if(!confirm(`دسترسی «${email}» کاملاً حذف شود؟`))return;
+  try{ await fetch(DJANGO_STAFF_API+encodeURIComponent(email)+'/', {method:'DELETE'}); }
+  catch(e){ alert('⚠️ اتصال به سرور برقرار نشد'); }
+  await loadStaff();
+}
+init();
+</script>
+</body>
+</html>

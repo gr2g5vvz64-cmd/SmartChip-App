@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>SmartChip · PRICE LIST v18</title>
+<!--
+  ════════════════════════════════════════════════════
+  SmartChip Price List — تاریخچه نسخه‌ها
+  (نسخه‌بندی از همین‌جا شروع می‌شود — قبل از این v16 بود بدون تاریخچه‌ی ثبت‌شده)
+  ════════════════════════════════════════════════════
+  نسخه ۱۷ — ۱۴۰۵/۰۴/۱۸
+    🔴 رفع باگ: دکمه‌ی «🖨 چاپ» صفحه‌ی سفید می‌داد به‌جای سبد پیش‌فاکتور —
+       یک قانون CSS اشتباه، همان پنلی که سبد توشه را هم مخفی می‌کرد
+    + بخش «بازار» (مرجع داخلی قیمت) در حالت چاپ مخفی می‌شود — فقط
+      سبد پیش‌فاکتور برای مشتری چاپ می‌شود
+    + هماهنگی زمان‌بندی با صفحه‌ی استعلامات ERP — دیتابیس کامل قطعات
+      (نه فقط نمونه‌ی کوچک) قبل از سرچ پارت‌نامبر لود می‌شود
+-->
+
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#C8BEA8;--surface:#FFF;--card:#FAF8F2;
+  --border:#A07818;--borderL:#C8A84C;
+  --gold:#8B6410;--goldL:#C9A84C;--goldBg:#FDF3DC;
+  --text:#1A1814;--muted:#555048;--sub:#888070;
+  --green:#2A7A4A;--blue:#1D4ED8;--red:#DC2626;
+  --sh:0 2px 8px rgba(140,100,20,.2),0 4px 20px rgba(140,100,20,.14);
+}
+body{background:var(--bg);color:var(--text);font-family:'Vazirmatn',Tahoma,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;direction:rtl;font-size:13px;padding:12px}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=range]{accent-color:var(--goldL);cursor:pointer;width:100%}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.frame{display:flex;gap:14px;width:fit-content;margin:0 auto;align-items:flex-start}
+.panel{height:930px;background:var(--bg);border:3px solid var(--border);border-radius:16px;box-shadow:0 8px 40px rgba(100,70,0,.3);display:flex;flex-direction:column;overflow:hidden;padding:8px;gap:8px}
+
+/* HEADER */
+.hdr{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:7px 13px;background:var(--surface);border:2.5px solid var(--border);border-radius:10px;box-shadow:var(--sh);flex-shrink:0}
+.logo{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--gold);border:2.5px solid var(--border);padding:4px 9px;border-radius:5px;background:var(--goldBg)}
+.hdr-title{font-size:15px;font-weight:700;color:var(--text)}
+.hdr-sub{font-size:11px;color:var(--muted)}
+.hdr-rates{display:flex;align-items:center;gap:8px;justify-content:center}
+.rate-lbl{font-size:11px;color:var(--gold);font-weight:700;white-space:nowrap}
+.ri{display:flex;align-items:center;gap:4px}
+.ri span{font-size:11px;color:var(--muted);white-space:nowrap}
+.hdr-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.date-badge{font-size:11px;color:var(--muted);background:var(--card);border:2px solid var(--borderL);padding:3px 9px;border-radius:8px;white-space:nowrap;font-weight:600}
+.icon-btn{width:33px;height:33px;border-radius:50%;border:2.5px solid var(--border);background:var(--goldBg);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;flex-shrink:0}
+.icon-btn:hover{background:var(--goldL);color:#fff}
+.icon-btn.syncing{animation:spin 1s linear infinite;opacity:.7;pointer-events:none}
+.icon-btn.ok{border-color:var(--green);background:#F0FAF4}
+.icon-btn.err{border-color:var(--red);background:#FFF5F5}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hdr-iw{display:flex;align-items:center;background:var(--goldBg);border:2px solid var(--borderL);border-radius:5px;overflow:hidden}
+.hdr-iw .sfx{padding:0 6px;color:var(--gold);font-size:11px;min-height:27px;display:flex;align-items:center;border-right:2px solid var(--borderL);font-weight:700}
+.hdr-iw input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;padding:3px 6px;font-family:'Vazirmatn',Tahoma,sans-serif;direction:ltr;text-align:left;width:72px}
+
+
+/* MAIN GRID */
+.calc-main{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0}
+.left-col{display:flex;flex-direction:column;gap:7px;min-height:0}
+.right-col{display:grid;grid-template-rows:1fr auto auto auto;gap:7px;min-height:0}
+.card{background:var(--surface);border:2.5px solid var(--border);border-radius:10px;padding:10px 13px;box-shadow:var(--sh)}
+.card.flex1{flex:1;min-height:0;overflow-y:auto}
+.sec{font-size:12px;letter-spacing:.08em;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:5px;font-weight:700}
+.sec::before{content:'';display:block;width:3px;height:12px;background:var(--goldL);border-radius:2px;flex-shrink:0}
+
+/* INPUTS */
+.lbl{font-size:11px;color:var(--muted);margin-bottom:4px;display:block;font-weight:500}
+.iw{display:flex;align-items:center;background:var(--card);border:2px solid var(--borderL);border-radius:6px;overflow:hidden;transition:border-color .15s}
+.iw:focus-within{border-color:var(--border)}
+.iw .pfx,.iw .sfx{padding:0 8px;color:var(--gold);font-size:12px;min-height:34px;display:flex;align-items:center;flex-shrink:0;background:var(--goldBg);font-weight:700}
+.iw .pfx{border-left:2px solid var(--borderL)}.iw .sfx{border-right:2px solid var(--borderL)}
+.iw input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;padding:6px 9px;font-family:'Vazirmatn',Tahoma,sans-serif;direction:ltr;text-align:left;min-width:0}
+
+/* SEARCH */
+.sw{position:relative}
+.si{width:100%;background:var(--card);border:2px solid var(--borderL);border-radius:6px;color:var(--text);font-size:13px;padding:7px 10px;outline:none;font-family:'Vazirmatn',Tahoma,sans-serif;direction:ltr;transition:border-color .15s}
+.si:focus{border-color:var(--border)}
+.dd{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:300;background:#fff;border:2.5px solid var(--border);border-radius:8px;overflow:hidden;max-height:160px;overflow-y:auto;box-shadow:0 8px 24px rgba(140,100,20,.2);display:none}
+.dd.show{display:block!important}
+.ddi{padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--borderL);display:flex;justify-content:space-between;font-size:12px}
+.ddi:hover{background:var(--goldBg)}
+.ddi .pn{direction:ltr;color:var(--text);font-weight:500}
+.dok{font-size:11px;font-weight:700}.dok.y{color:var(--green)}.dok.n{color:var(--red)}
+.dd-empty{padding:9px 10px;font-size:12px;color:var(--sub)}
+.sr{display:none;justify-content:space-between;align-items:center;padding:4px 9px;border-radius:5px;background:var(--goldBg);border:2px solid var(--border);margin-top:5px;font-size:11px}
+.s-ok{color:var(--green);font-weight:700}.s-no{color:var(--red);font-weight:700}
+
+/* CURRENCY */
+.cur-tgl{display:flex;gap:5px;margin-bottom:7px}
+.cb{flex:1;padding:5px;border-radius:5px;border:2px solid var(--borderL);background:var(--card);color:var(--muted);font-size:12px;cursor:pointer;font-family:'Vazirmatn',Tahoma,sans-serif;transition:all .15s;font-weight:500}
+.cb.active{border-color:var(--border);background:var(--goldBg);color:var(--gold);font-weight:700}
+
+/* SHIP */
+.ship-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
+.shb{padding:4px 9px;border-radius:13px;border:2px solid var(--borderL);background:var(--card);color:var(--muted);font-size:11px;cursor:pointer;font-family:'Vazirmatn',Tahoma,sans-serif;transition:all .15s}
+.shb.active{border-color:var(--border);background:var(--goldBg);color:var(--gold);font-weight:700}
+
+/* SLIDER */
+.sl-wrap{margin-bottom:9px}
+.sl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.sl-lbl{font-size:11px;color:var(--muted);font-weight:500}
+.sl-val{font-size:14px;font-weight:700}
+.sl-foot{display:flex;justify-content:space-between;margin-top:2px}
+.sl-foot span{font-size:10px;color:var(--sub)}
+.sl-total{font-size:11px;color:var(--muted);background:var(--goldBg);border:1.5px solid var(--borderL);border-radius:4px;padding:3px 8px;margin-top:4px;text-align:center;direction:ltr;display:none}
+.sl-total span{color:var(--gold);font-weight:700}
+
+/* WEIGHT */
+.wtr{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
+.wtb{padding:4px 10px;border-radius:5px;border:2px solid var(--borderL);background:var(--card);color:var(--muted);font-size:11px;cursor:pointer;font-family:'Vazirmatn',Tahoma,sans-serif;font-weight:600;transition:all .15s}
+.wtb.active{border-color:var(--border);background:var(--goldBg);color:var(--gold)}
+.wt{width:100%;border-collapse:collapse;font-size:12px}
+.wt td{padding:4px 8px;border-bottom:1px solid var(--borderL)}
+.wt tr:nth-child(odd) td{background:var(--goldBg)}
+.wt .wk{color:var(--muted);width:55%;font-weight:500}.wt .wv{color:var(--text);font-weight:700;direction:ltr;text-align:left}
+.nok{background:#FFF5F5;border:2.5px solid #FCA5A5;border-radius:7px;padding:7px 10px}
+.nok-t{font-size:11px;color:var(--red);font-weight:700;margin-bottom:5px}
+.nok-g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.nok-c{background:#fff;border:1.5px solid #FCA5A5;border-radius:5px;padding:6px 9px}
+.nok-cl{font-size:10px;color:var(--red);font-weight:700;margin-bottom:3px}
+.nok-v{font-size:15px;font-weight:700;direction:ltr}
+.carton-box{background:var(--goldBg);border:2px solid var(--borderL);border-radius:6px;padding:6px 9px;margin-top:7px;display:none}
+.carton-t{font-size:11px;color:var(--gold);font-weight:700;margin-bottom:5px}
+
+/* WEIGHT CALC */
+.wc{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:5px;font-size:12px;margin-bottom:2px}
+.wc.alt{background:var(--card)}
+.wc.hi{background:var(--goldBg);border:2px solid var(--border)}
+.wc .wk{color:var(--muted);font-weight:500}
+.wc .wv{font-weight:700;direction:ltr;color:var(--text)}
+.wc.hi .wv{color:var(--gold)}
+
+/* RESULT */
+.rp{background:linear-gradient(160deg,#1C1608,#0A0900);border:2.5px solid #A07818;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.rp-t{font-size:10px;letter-spacing:.15em;color:#8A7030;text-align:center;font-weight:700;margin-bottom:2px}
+.rp-fin{text-align:center;padding:6px 0;border-bottom:1px solid #2A2010}
+.rp-fl{font-size:10px;color:#8A7030;margin-bottom:2px}
+.rp-fp{font-size:22px;font-weight:700;color:#E2C97E;direction:ltr;line-height:1}
+.rp-fc{font-size:10px;color:#5A4A20;margin-top:2px}
+.rp-ft{font-size:10px;color:#B8A050;direction:ltr;margin-top:3px;display:none}
+.rr{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;border-radius:4px}
+.rr.alt{background:rgba(255,255,255,.03)}
+.rr .rl{font-size:11px;color:#907060}
+.rr .rv{font-size:11px;color:#D0C8B0;direction:ltr;font-weight:600}
+.rr.hl{background:rgba(200,168,76,.1);border:1px solid rgba(200,168,76,.2)}
+.rr.hl .rl{color:#B09040}.rr.hl .rv{color:#E2C97E;font-weight:700}
+.rr.bl .rv{color:#7BAEF0}.rr.gc .rv{color:#C9A84C}
+.rp-div{height:1px;background:#2A2010;margin:2px 0}
+.rp-part{text-align:center;font-size:10px;color:#4A4030;direction:ltr;padding-top:4px;border-top:1px solid #1A1410;word-break:break-all;line-height:1.5}
+.add-btn{width:44px;height:44px;border-radius:50%;border:2.5px solid #C9A84C;background:rgba(200,168,76,.15);color:#E2C97E;cursor:pointer;font-size:20px;font-weight:700;transition:all .2s;display:flex;align-items:center;justify-content:center;margin:6px auto 0;flex-shrink:0}
+.add-btn:hover{background:rgba(200,168,76,.35);transform:scale(1.1);box-shadow:0 3px 12px rgba(200,168,76,.3)}
+.add-btn.added{background:rgba(42,122,74,.25);border-color:#4CAF7A;color:#4CAF7A}
+
+
+
+/* CART */
+.cart-hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 13px;background:var(--surface);border:2.5px solid var(--border);border-radius:10px;box-shadow:var(--sh);flex-shrink:0}
+.cart-title{font-size:15px;font-weight:700}
+.cart-sub{font-size:11px;color:var(--muted)}
+.cbtn{padding:6px 13px;border-radius:17px;border:2.5px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;font-family:'Vazirmatn',Tahoma,sans-serif;transition:all .2s}
+.cbtn-print{background:var(--goldBg);color:var(--gold)}
+.cbtn-print:hover{background:var(--goldL);color:#fff}
+.cbtn-reset{background:#FFF5F5;color:var(--red);border-color:var(--red)}
+.cbtn-reset:hover{background:var(--red);color:#fff}
+.cart-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.cart-summary{display:grid;grid-template-columns:1fr 1fr;gap:7px;flex-shrink:0}
+.sum-card{background:var(--surface);border:2.5px solid var(--border);border-radius:9px;padding:9px 12px;text-align:center;box-shadow:var(--sh)}
+.sum-lbl{font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:500}
+.sum-val{font-size:16px;font-weight:700;color:var(--gold)}
+.sum-unit{font-size:10px;color:var(--sub);margin-top:1px}
+.cart-table-wrap{flex:1;min-height:0;overflow-y:auto;background:var(--surface);border:2.5px solid var(--border);border-radius:10px;box-shadow:var(--sh)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:7px 8px;background:var(--goldBg);color:var(--gold);font-weight:700;font-size:10px;letter-spacing:.04em;border-bottom:2.5px solid var(--border);text-align:center;white-space:nowrap;position:sticky;top:0;z-index:1}
+td{padding:6px 8px;border-bottom:1px solid var(--borderL);text-align:center;vertical-align:middle;font-size:11px}
+tr:nth-child(even) td{background:var(--card)}
+tr:hover td{background:var(--goldBg)}
+td.part{text-align:right;direction:ltr;font-weight:700;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.num{direction:ltr;font-weight:600;color:var(--text)}
+td.fp{color:var(--gold);font-weight:700;font-size:12px;direction:ltr}
+td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
+.del-btn{background:none;border:1.5px solid #FCA5A5;color:var(--red);border-radius:4px;padding:2px 7px;cursor:pointer;font-size:10px;transition:all .15s}
+.del-btn:hover{background:var(--red);color:#fff}
+.foot-row td{background:linear-gradient(90deg,#1C1608,#0A0900)!important;color:#E2C97E!important;font-weight:700;font-size:12px;border-top:2.5px solid var(--border)!important;direction:ltr}
+.foot-lbl{color:#8A7030!important;font-size:10px!important;font-weight:500!important;text-align:right!important;direction:rtl!important}
+.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--sub);gap:10px}
+.cart-empty .ei{font-size:40px}
+.cart-empty p{font-size:13px}
+.empty{text-align:center;color:var(--sub);font-size:12px;padding:10px 0}
+
+/* SYNC STATUS */
+.sync-status{font-size:10px;color:var(--muted);text-align:center;padding:3px 0;display:none}
+
+
+/* ─── MARKET LINKS ─── */
+.market-card{background:var(--surface);border:2.5px solid var(--border);border-radius:10px;padding:10px 13px;box-shadow:var(--sh);flex-shrink:0}
+.market-circles{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+.mcirc{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:9px;font-weight:700;color:var(--gold);cursor:pointer;transition:all .2s;text-align:center;line-height:1.2;padding:4px;overflow:hidden}
+.mcirc:hover{border-color:var(--border);background:var(--goldL);color:#fff;transform:scale(1.08);box-shadow:0 3px 10px rgba(140,100,20,.3)}
+.mcirc img{width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:2px}
+.market-note{width:100%;background:var(--card);border:2px solid var(--borderL);border-radius:6px;padding:6px 8px;font-size:12px;font-family:'Vazirmatn',Tahoma,sans-serif;color:var(--text);resize:none;outline:none;direction:rtl;min-height:50px;transition:border-color .15s}
+.market-note:focus{border-color:var(--border)}
+
+
+/* ─── MARKET PANEL ─── */
+.mcirc-lg{width:52px;height:52px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;transition:all .2s;overflow:hidden;flex-shrink:0;position:relative}
+.mcirc-lg:hover{border-color:var(--border);transform:scale(1.08);box-shadow:0 3px 10px rgba(140,100,20,.25)}
+.mcirc-lg img{width:36px;height:36px;border-radius:50%;object-fit:contain;background:#fff;padding:2px}
+.mcirc-lg span{display:none;align-items:center;justify-content:center;text-align:center;font-size:9px;font-weight:700;color:var(--gold);line-height:1.3;width:100%;height:100%}
+.market-note{width:100%;background:var(--card);border:2px solid var(--borderL);border-radius:6px;padding:6px 8px;font-size:12px;font-family:'Vazirmatn',Tahoma,sans-serif;color:var(--text);direction:rtl;outline:none}
+.market-note:focus{border-color:var(--border)}
+
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff!important;padding:0!important;display:block!important}
+  .frame{display:block!important;width:100%!important}
+  .panel:first-child{display:none!important}
+  .panel:last-child{display:block!important;width:100%!important;height:auto!important;border:none!important;box-shadow:none!important;padding:10px!important}
+  #marketRefBox{display:none!important}
+  .cart-btns{display:none!important}
+  .del-btn{display:none!important}
+  .dd{display:none!important}
+}
+</style>
+</head>
+<body>
+<div class="frame">
+
+<!-- ═══ ماشین‌حساب ═══ -->
+<div class="panel" style="width:756px;flex-shrink:0">
+  <div class="hdr">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo">SMARTCHIP</div>
+      <div><div class="hdr-title">PRICE LIST</div><div class="hdr-sub">ماشین‌حساب قیمت‌گذاری <span style="opacity:.6">v17</span></div></div>
+    </div>
+    <div class="hdr-rates">
+      <span class="rate-lbl">نرخ ارز</span>
+      <div class="ri"><span>¥=</span><div class="hdr-iw"><input type="text" id="cnyRate" placeholder="—" oninput="fmtHdrInput(this);calc()" style="direction:ltr;text-align:left"><div class="sfx">﷼</div></div></div>
+      <div class="ri"><span>$=</span><div class="hdr-iw"><input type="text" id="usdRate" placeholder="—" oninput="fmtHdrInput(this);calc()" style="direction:ltr;text-align:left"><div class="sfx">﷼</div></div></div>
+    </div>
+    <div class="hdr-actions">
+      <div class="date-badge" id="dateBadge"></div>
+      <button class="icon-btn" id="syncBtn" onclick="syncFromSheet()" title="همگام‌سازی با شیت">🔄</button>
+      <button class="icon-btn" onclick="takeScreenshot()" title="اسکرین‌شات">📸</button>
+    </div>
+  </div>
+  <div class="sync-status" id="syncStatus"></div>
+  <div style="font-size:10px;color:var(--sub);text-align:center;padding:1px 0" id="syncCountdown"></div>
+
+  <div class="calc-main">
+    <div class="left-col">
+      <div class="card">
+        <div class="sec">کالا و تعداد</div>
+        <label class="lbl">جستجوی پارت نامبر</label>
+        <div class="sw">
+          <input type="text" id="searchInput" class="si" placeholder="تایپ کنید..." oninput="onSearch()" onfocus="showDrop()" onblur="setTimeout(hideDrop,300)" autocomplete="off">
+          <div class="dd" id="dropdown"></div>
+        </div>
+        <div class="sr" id="statusRow"><span style="font-size:10px;color:var(--muted)">وضعیت</span><span id="statusText"></span></div>
+        <div style="margin-top:7px">
+          <label class="lbl">تعداد سفارش</label>
+          <div class="iw"><input type="text" id="qty" placeholder="1" oninput="fmtInlineInput(this);calc()" style="direction:ltr;text-align:left"><div class="sfx">عدد</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec">قیمت خرید</div>
+        <div class="cur-tgl">
+          <button class="cb active" id="btnCNY" onclick="setCur('CNY')">¥ یوان</button>
+          <button class="cb" id="btnUSD" onclick="setCur('USD')">$ دلار</button>
+        </div>
+        <label class="lbl" id="buyLabel">قیمت واحد به یوان</label>
+        <div class="iw"><div class="pfx" id="buyPrefix">¥</div><input type="number" id="buyPrice" placeholder="0.00" step="0.01" oninput="calc()" style="direction:ltr;text-align:left"></div>
+      </div>
+      <div class="card">
+        <div class="sec">حمل‌ونقل</div>
+        <div class="ship-tabs">
+          <button class="shb" onclick="setShip(this)">اکسپرس</button>
+          <button class="shb active" onclick="setShip(this)">هوایی</button>
+          <button class="shb" onclick="setShip(this)">دریایی</button>
+          <button class="shb" onclick="setShip(this)">ریلی</button>
+          <button class="shb" onclick="setShip(this)">لنجی</button>
+        </div>
+        <label class="lbl">نرخ حمل (هر kg)</label>
+        <div class="iw">
+          <input type="text" id="shipRateDisplay" placeholder="0" oninput="onShipInput(this)" style="direction:ltr;text-align:left">
+          <div class="sfx">﷼/kg</div>
+        </div>
+        <input type="hidden" id="shipRate">
+      </div>
+      <div class="card" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+        <div class="sec">سودها</div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-lbl">سود تامین‌کننده</span><span class="sl-val" id="supVal" style="color:var(--blue)">6٪</span></div>
+          <input type="range" min="0" max="12" value="6" id="supSlider" oninput="document.getElementById('supVal').textContent=this.value+'٪';calc()" style="accent-color:#1D4ED8">
+          <div class="sl-foot"><span>0٪</span><span>12٪</span></div>
+          <div class="sl-total" id="supTotalBox">سود کل ت.: <span id="supTotal">—</span> ﷼</div>
+        </div>
+        <div class="sl-wrap" style="margin-bottom:0">
+          <div class="sl-head"><span class="sl-lbl">سود اسمارت‌چیپ</span><span class="sl-val" id="scVal" style="color:var(--gold)">30٪</span></div>
+          <input type="range" min="0" max="100" value="30" id="scSlider" oninput="document.getElementById('scVal').textContent=this.value+'٪';calc()">
+          <div class="sl-foot"><span>0٪</span><span>100٪</span></div>
+          <div class="sl-total" id="scTotalBox">سود کل SC: <span id="scTotal">—</span> ﷼</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="card flex1">
+        <div class="sec">اطلاعات وزن از شیت</div>
+        <div id="weightSection"><div class="empty">ابتدا کالا را انتخاب کنید</div></div>
+        <div class="carton-box" id="cartonBox">
+          <div class="carton-t">➕ وزن کارتن اضافی (kg)</div>
+          <div class="iw"><input type="number" id="cartonWeight" placeholder="0.000" oninput="calc()" style="direction:ltr;text-align:left"><div class="sfx">kg</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec">محاسبه وزن حمل</div>
+        <div id="weightCalcSection"><div class="empty">—</div></div>
+      </div>
+      <div class="rp">
+        <div class="rp-t">نتیجه محاسبات</div>
+        <div class="rp-fin">
+          <div class="rp-fl">قیمت نهایی هر عدد</div>
+          <div class="rp-fp" id="r_final">—</div>
+          <div class="rp-fc">ریال</div>
+          <div class="rp-ft" id="r_total"></div>
+        </div>
+        <div>
+          <div class="rr alt"><span class="rl">قیمت خرید (ریالی)</span><span class="rv" id="r_buy">—</span></div>
+          <div class="rr bl"><span class="rl" id="r_supLbl">سود تامین‌کننده</span><span class="rv" id="r_sup">—</span></div>
+          <div class="rp-div"></div>
+          <div class="rr alt"><span class="rl">هزینه حمل هر عدد</span><span class="rv" id="r_ship">—</span></div>
+          <div class="rp-div"></div>
+          <div class="rr hl"><span class="rl">جمع پایه</span><span class="rv" id="r_base">—</span></div>
+          <div class="rr gc"><span class="rl" id="r_scLbl">سود اسمارت‌چیپ</span><span class="rv" id="r_sc">—</span></div>
+        </div>
+        <div class="rp-part" id="r_partName"></div>
+        <button class="add-btn" id="addBtn" onclick="addToCart()" title="افزودن به سبد پیش‌فاکتور">🛒</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ سبد ═══ -->
+<div class="panel" style="width:756px;flex-shrink:0;display:flex;flex-direction:column;gap:0;padding:8px">
+  <!-- بازار: ارتفاع ۸.۵cm = ~322px -->
+  <div id="marketRefBox" style="height:322px;flex-shrink:0;background:var(--surface);border:2.5px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+    <div style="font-size:11px;letter-spacing:.1em;color:var(--gold);font-weight:700;display:flex;align-items:center;gap:5px">
+      <span style="display:block;width:3px;height:11px;background:var(--goldL);border-radius:2px"></span>
+      قیمت و سورس بازار
+    </div>
+    <!-- ۶ دایره در یک خط افقی -->
+    <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:nowrap">
+      <a href="https://micmodshop.ir/" target="_blank" title="MicMod Shop" style="width:48px;height:48px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;flex-shrink:0;overflow:hidden">
+        <img src="https://micmodshop.ir/favicon.ico" style="width:32px;height:32px;border-radius:50%;object-fit:contain" onerror="this.outerHTML='<span style=font-size:8px;color:#8B6410;font-weight:700;text-align:center>Mic<br>Mod</span>'">
+      </a>
+      <a href="https://www.javanelec.com/" target="_blank" title="جوان الکترونیک" style="width:48px;height:48px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;flex-shrink:0;overflow:hidden">
+        <img src="https://www.javanelec.com/favicon.ico" style="width:32px;height:32px;border-radius:50%;object-fit:contain" onerror="this.outerHTML='<span style=font-size:8px;color:#8B6410;font-weight:700;text-align:center>جوان</span>'">
+      </a>
+      <a href="https://isee.sisoog.com/" target="_blank" title="iSee Sisoog" style="width:48px;height:48px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;flex-shrink:0;overflow:hidden">
+        <img src="https://isee.sisoog.com/favicon.ico" style="width:32px;height:32px;border-radius:50%;object-fit:contain" onerror="this.outerHTML='<span style=font-size:8px;color:#8B6410;font-weight:700;text-align:center>iSee</span>'">
+      </a>
+      <a href="https://www.denizetc.com/" target="_blank" title="Deniz ETC" style="width:48px;height:48px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;flex-shrink:0;overflow:hidden">
+        <img src="https://www.denizetc.com/favicon.ico" style="width:32px;height:32px;border-radius:50%;object-fit:contain" onerror="this.outerHTML='<span style=font-size:8px;color:#8B6410;font-weight:700;text-align:center>Dnz</span>'">
+      </a>
+      <a href="https://voltatech.ir/" target="_blank" title="Volta Tech" style="width:48px;height:48px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;flex-shrink:0;overflow:hidden">
+        <img src="https://voltatech.ir/favicon.ico" style="width:32px;height:32px;border-radius:50%;object-fit:contain" onerror="this.outerHTML='<span style=font-size:8px;color:#8B6410;font-weight:700;text-align:center>Vlta</span>'">
+      </a>
+      <a href="https://eshop.eca.ir/" target="_blank" title="ECA Shop" style="width:48px;height:48px;border-radius:50%;border:2.5px solid var(--borderL);background:var(--goldBg);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .2s;flex-shrink:0;overflow:hidden">
+        <img src="https://eshop.eca.ir/favicon.ico" style="width:32px;height:32px;border-radius:50%;object-fit:contain" onerror="this.outerHTML='<span style=font-size:8px;color:#8B6410;font-weight:700;text-align:center>ECA</span>'">
+      </a>
+    </div>
+    <!-- کادر توضیحات -->
+    <div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:500">یادداشت قیمت بازار</div>
+    <textarea id="marketNote" placeholder="قیمت یا توضیحات بازار را اینجا بنویسید..." style="flex:1;width:100%;background:var(--card);border:2px solid var(--borderL);border-radius:6px;padding:7px 9px;font-size:12px;font-family:'Vazirmatn',Tahoma,sans-serif;color:var(--text);direction:rtl;resize:none;outline:none;line-height:1.6"></textarea>
+  </div>
+
+  <!-- سبد -->
+  <div class="cart-hdr">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="logo">SMARTCHIP</div>
+      <div><div class="cart-title">سبد پیش‌فاکتور</div><div class="cart-sub">آیتم‌های محاسبه‌شده</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="date-badge" id="dateBadge2"></div>
+      <button class="cbtn cbtn-print" onclick="window.print()">🖨 چاپ</button>
+      <button class="cbtn cbtn-print" onclick="takeCartScreenshot()">📸 اسکرین‌شات</button>
+      <button class="cbtn cbtn-reset" onclick="resetCart()">🗑 ریست</button>
+    </div>
+  </div>
+  <div class="cart-body">
+    <div class="cart-summary" id="cartSummary" style="display:none">
+      <div class="sum-card"><div class="sum-lbl">تعداد اقلام</div><div class="sum-val" id="s_items">0</div><div class="sum-unit">قلم</div></div>
+      <div class="sum-card"><div class="sum-lbl">جمع کل فروش</div><div class="sum-val" id="s_total">—</div><div class="sum-unit">ریال</div></div>
+    </div>
+    <div class="cart-table-wrap"><div id="cartContent"></div></div>
+  </div>
+</div>
+</div>
+
+<script>
+const API="https://script.google.com/macros/s/AKfycbzdGtRkgjtNFrcgQ_sxNx5H2aQFBebMeKbBKSuDmvEVUbNf5jJAYYHZW7i4ak1Z_ETL/exec";
+const EMBEDDED=[{"status": "✅ OK", "part": "LED GREEN 1206 @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 3000, "m": 84, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "LED RED 1206 @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 3000, "m": 86, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "NTC 10D-9 @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 500, "s": 286, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "DIODE 1N4007 SMA @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 2000, "m": 186, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "UF4007/US1M SMA @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 2000, "m": 192, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "PIN FUSE METAL BULK @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 1000, "s": 32, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "FUSE 6.3A 5*20 GLASS SLOW BLOW BULK @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 300, "s": 216, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "DIODE ZENER 12V MINIMELF @", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 2500, "m": 114, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "PHOENIX DF2EDGR-5.08-3P MALE RIGHT@", "g": 1, "h": 1.022, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 650, "s": 664, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "PHOENIX MX2EDGK-5.08-2PIN FEMALE @", "g": 1, "h": 2.56, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 500, "s": 1338, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "TER ZB128R -5.0-6PIN", "g": 1, "h": 6.8, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 200, "s": 1378, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "REMOTE 6KEY B PLUS CR1220 @", "g": 1, "h": 12.1, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "BS66F350C 44LQFP", "g": 2, "h": 0.25, "i": 1600, "j": 2014, "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "HT7A6322 8SOP", "g": 1, "h": 0.072, "i": 1000, "j": 156, "k": "", "l": "", "m": "", "n": "", "o": 100, "p": 15.6, "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "EL817S1(C)(TU)-F @", "g": 1, "h": 0.25, "i": "", "j": "", "k": "", "l": 1500, "m": 675, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "RXB22 433MHZ", "g": 1, "h": 1.5, "i": 600, "j": 1168, "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "BS66F340C 28SSOP", "g": 1, "h": 0.2, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": 2000, "p": 660, "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "BS84B06A-3 SOP-20", "g": 1, "h": 0.5, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": 38, "p": 36, "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "RES 1K 0805", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 5000, "m": 142, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "RES 1K 1206", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 5000, "m": 145, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "RES 1K 2010", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 4000, "m": 222, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "CAP 1N 50V 0805", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 4000, "m": 160, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "DIODE 1N4148 SMD", "g": "", "h": "", "i": "", "j": "", "k": "", "l": 2500, "m": 115, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "MOC3063 DIP-6", "g": 1, "h": 0.4, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": 50, "p": 43, "q": 23, "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "VS1838", "g": 1, "h": 0.6, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 250, "s": 156, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "REG 7805 TO-220", "g": 1, "h": 1.7, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": 50, "p": 123, "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "MQ-2", "g": 1, "h": 3.8, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 100, "s": 380, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "BUZZER 85DB", "g": 1, "h": 1.3, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 100, "s": 140, "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "KF103-5.0 2PIN NBKFA", "g": 1, "h": 2.3, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "KF103-5.0 3PIN NBKFA", "g": 1, "h": 3.5, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "KF103-5.0 4PIN NBKFA", "g": 1, "h": 4.7, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "ANTENNA GSM ST 5CM", "g": 1, "h": 4.2, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "TL431 SOT-23", "g": 162, "h": 13, "i": "", "j": "", "k": "", "l": 3000, "m": 92, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "PIC18F46K22-I/P", "g": 1, "h": 6.7, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "SIM800C", "g": 1, "h": 1.4, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "FUSE 20A 5*20 GLASS", "g": "", "h": "", "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": 100, "u": 73.2, "v": ""}, {"status": "✅ OK", "part": "RES 10OHM 1W", "g": "", "h": "", "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": 1000, "u": 471, "v": ""}, {"status": "✅ OK", "part": "BT137-600E", "g": 1, "h": 1.9, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": 50, "p": 132, "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "XTALL 20.000000MHZ HC-49 SMD", "g": 5, "h": 3.4, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "ATMEGA8A-PU", "g": 1, "h": 2.1, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "STM32G0B0RET6", "g": 1, "h": 0.4, "i": 160, "j": 226, "k": 162, "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "Battery CR2025", "g": 1, "h": 2.3, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "BT138B-600E", "g": 1, "h": 1.3, "i": "", "j": "", "k": "", "l": 800, "m": 1450, "n": "", "o": "", "p": "", "q": "", "r": "", "s": "", "t": "", "u": "", "v": ""}, {"status": "✅ OK", "part": "FUSE HOLDER BLX", "g": 1, "h": 1.78, "i": "", "j": "", "k": "", "l": "", "m": "", "n": "", "o": "", "p": "", "q": "", "r": 500, "s": 878, "t": "", "u": "", "v": ""}];
+const COL_LABELS={"e": "ستون E", "f": "ستون F", "g": "(Unit) عدد", "h": "Weight (g)", "i": "(Pack) سینی", "j": "Weight (g)", "k": "وزن هر سینی", "l": "(Tube) حلقه", "m": "Weight (g)", "n": "وزن هر حلقه", "o": "(Reel) ریل", "p": "Weight (g)", "q": "وزن هر ریل", "r": "(BAG) کیسه", "s": "Weight (g)", "t": "(BOX) جعبه", "u": "Weight (g)", "v": "وزن هر جعبه"};
+const GROUPS=[{"key": "GH", "label": "Unit", "wCol": "h"}, {"key": "IJK", "label": "Pack", "wCol": "j"}, {"key": "LMN", "label": "Tube", "wCol": "m"}, {"key": "OPQ", "label": "Reel", "wCol": "p"}, {"key": "RS", "label": "BAG", "wCol": "s"}, {"key": "TUV", "label": "BOX", "wCol": "u"}];
+const GCOLS={"GH": ["g", "h"], "IJK": ["i", "j", "k"], "LMN": ["l", "m", "n"], "OPQ": ["o", "p", "q"], "RS": ["r", "s"], "TUV": ["t", "u", "v"]};
+
+// داده‌ها — ابتدا از embedded، بعد از شیت جایگزین میشه
+let rows=[...EMBEDDED]; let sel=null, activeGrp=null, buyCur="CNY", lastCalc={};
+
+// سبد — ذخیره در متغیر (نه localStorage که داخل Claude کار نمیکنه)
+// روی مرورگر خودت localStorage پایدارتره
+let cart=[];
+try{ cart=JSON.parse(localStorage.getItem('sc_cart')||'[]'); }catch{}
+
+// تاریخ شمسی
+const dateStr=(()=>{try{return new Intl.DateTimeFormat('fa-IR',{year:'numeric',month:'long',day:'numeric',calendar:'persian'}).format(new Date());}catch{return new Date().toLocaleDateString('fa-IR');}})();
+document.getElementById('dateBadge').textContent=dateStr;
+document.getElementById('dateBadge2').textContent=dateStr;
+
+function gv(r,c){const v=r[c];return(v!==undefined&&v!==null&&v!=="")? v:null;}
+function fmt(n,d=0){if(!n&&n!==0)return"—";return Number(n).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});}
+
+function onShipInput(el){
+  let raw=el.value.replace(/,/g,"");
+  if(!raw||isNaN(raw)){document.getElementById('shipRate').value="";calc();return;}
+  document.getElementById('shipRate').value=raw;
+  let p=el.selectionStart,ol=el.value.length;
+  el.value=parseFloat(raw).toLocaleString("en-US");
+  el.selectionStart=el.selectionEnd=p+(el.value.length-ol);
+  calc();
+}
+
+// ─── SYNC از Django (قبلاً از یه گوگل‌شیت کاملاً جدا می‌خوند — الان یکی شد با بقیه‌ی سیستم) ───
+const DJANGO_ITEMS_API = "https://smartchip-backend.onrender.com/api/items/weights/";
+async function syncFromSheet(){
+  const btn=document.getElementById('syncBtn');
+  const status=document.getElementById('syncStatus');
+  btn.classList.add('syncing');
+  status.style.display='block';
+  status.textContent='در حال بارگذاری از سرور (ممکنه چند ثانیه طول بکشه)...';
+  status.style.color='var(--muted)';
+  try{
+    const res=await fetch(DJANGO_ITEMS_API);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(data&&Array.isArray(data)&&data.length>0){
+      rows = data.map(d=>({
+        status: '✅ OK', part: d.part_number,
+        g: d.unit_qty||'', h: d.unit_weight||'', i: d.pack_qty||'', j: d.pack_weight||'',
+        k: d.pack_weight_per_unit||'', l: d.tube_qty||'', m: d.tube_weight||'', n: d.tube_weight_per_unit||'',
+        o: d.reel_qty||'', p: d.reel_weight||'', q: d.reel_weight_per_unit||'',
+        r: d.bag_qty||'', s: d.bag_weight||'', t: d.box_qty||'', u: d.box_weight||'', v: d.box_weight_per_unit||''
+      }));
+      window._priceSyncDone=true; console.log('Sync OK, rows:', rows.length);
+      btn.classList.remove('syncing');
+      btn.classList.add('ok');
+      btn.textContent='✅';
+      status.textContent='✅ '+data.length+' ردیف بارگذاری شد';
+      status.style.color='var(--green)';
+      setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},4000);
+      return;
+    }
+    throw new Error('empty data');
+  }catch(e){
+    console.error('Sync failed:',e.message);
+    btn.classList.remove('syncing');
+    btn.classList.add('err');
+    btn.textContent='❌';
+    status.textContent='❌ اتصال ناموفق ('+e.message+')';
+    status.style.color='var(--red)';
+    setTimeout(()=>{btn.classList.remove('err');btn.textContent='🔄';status.style.display='none';},5000);
+  }
+}
+
+async function takeScreenshot(){
+  if(typeof html2canvas!=='undefined'){
+    // پانل ماشین‌حساب (اولین .panel در صفحه)
+    const target=document.querySelector('.panel');
+    const c=await html2canvas(target,{scale:2,useCORS:true});
+
+    // اسم فایل: پارت نامبر + تاریخ
+    const partName=(sel&&sel.part)?String(sel.part).trim():'بدون-نام';
+    const safePartName=partName.replace(/[\/\\:*?"<>|]/g,'-').replace(/\s+/g,'_').substring(0,60);
+    const now=new Date();
+    const dateStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const timeStr=String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+    const filename=`SmartChip_${safePartName}_${dateStr}_${timeStr}.png`;
+
+    const a=document.createElement('a');
+    a.download=filename;
+    a.href=c.toDataURL();
+    a.click();
+  } else window.print();
+}
+
+async function takeCartScreenshot(){
+  if(typeof html2canvas!=='undefined'){
+    // پانل سبد (آخرین .panel در صفحه)
+    const panels=document.querySelectorAll('.panel');
+    const target=panels[panels.length-1];
+    const c=await html2canvas(target,{scale:2,useCORS:true});
+
+    const now=new Date();
+    const dateStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const timeStr=String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+    const filename=`SmartChip_PreInvoice_${dateStr}_${timeStr}.png`;
+
+    const a=document.createElement('a');
+    a.download=filename;
+    a.href=c.toDataURL();
+    a.click();
+  } else window.print();
+}
+
+// ─── SEARCH ───
+function onSearch(){
+  const term=document.getElementById('searchInput').value.trim().toLowerCase();
+  const dd=document.getElementById('dropdown');
+  if(!term){dd.innerHTML='';dd.classList.remove('show');return;}
+  console.log('Search in rows:', rows.length);
+  // lazy sync: اگه هنوز از شیت لود نشده بود، اول sync کن
+  if(!window._priceSyncDone){
+    const dd=document.getElementById('dropdown');
+    dd.innerHTML='<div class="dd-empty">در حال بارگذاری لیست آیتم‌ها از شیت...</div>';
+    dd.classList.add('show');
+    syncFromSheet().then(function(){window._priceSyncDone=true;onSearch();});
+    return;
+  }
+  const hits=rows.filter(r=>String(r.part||'').toLowerCase().includes(term)).slice(0,25);
+  dd.innerHTML=hits.length===0
+    ?'<div class="dd-empty">نتیجه‌ای یافت نشد</div>'
+    :hits.map(r=>{
+      const ok=(r.status||'').includes('OK');
+      const i=rows.indexOf(r);
+      return `<div class="ddi" onmousedown="pick(${i})"><span class="pn">${String(r.part||'')}</span><span class="dok ${ok?'y':'n'}">${ok?'✓ OK':'✗'}</span></div>`;
+    }).join('');
+  dd.classList.add('show');
+}
+function showDrop(){const dd=document.getElementById('dropdown');if(dd.innerHTML&&dd.innerHTML.trim())dd.classList.add('show');}
+function hideDrop(){document.getElementById('dropdown').classList.remove('show');}
+
+function pick(i){
+  sel=rows[i];
+  document.getElementById('searchInput').value=sel.part||'';
+  document.getElementById('dropdown').classList.remove('show');
+  const ok=(sel.status||'').includes('OK');
+  document.getElementById('statusRow').style.display='flex';
+  document.getElementById('statusText').innerHTML=ok?'<span class="s-ok">✓ تأیید شده</span>':'<span class="s-no">✗ تأیید نشده</span>';
+  document.getElementById('cartonBox').style.display='block';
+  document.getElementById('addBtn').textContent='🛒';
+  document.getElementById('addBtn').className='add-btn';
+  renderWeight(ok);
+  calc();
+}
+
+// ─── WEIGHT RENDER ───
+function renderWeight(ok){
+  const ws=document.getElementById('weightSection');
+  if(!sel){ws.innerHTML='<div class="empty">انتخاب نشده</div>';return;}
+  if(!ok){
+    // دو دسته E و F به صورت تب
+    const ve=gv(sel,'e'), vf=gv(sel,'f');
+    console.log('renderWeight NOT-OK branch. sel.e=',sel.e,'sel.f=',sel.f,'ve=',ve,'vf=',vf);
+    const availEF=[];
+    if(ve!==null) availEF.push({key:'E', label:'MM', val:ve});
+    if(vf!==null) availEF.push({key:'F', label:'AI', val:vf});
+    if(!activeGrp||!['E','F'].includes(activeGrp)) activeGrp=availEF.length>0?availEF[0].key:'E';
+    const tabs=availEF.map(d=>
+      `<button class="wtb${d.key===activeGrp?' active':''}" onclick="setEFGrp('${d.key}')">${d.label}</button>`
+    ).join('');
+    const activeEF=availEF.find(d=>d.key===activeGrp);
+    ws.innerHTML=`
+      <div style="font-size:10px;color:var(--red);font-weight:700;margin-bottom:6px">⚠ تأیید نشده</div>
+      <div class="wtr">${tabs}</div>
+      <table class="wt" id="weightTable">
+        <tr><td class="wk">${activeEF?activeEF.label:'—'}</td><td class="wv">${activeEF?activeEF.val:'—'}</td></tr>
+      </table>`;
+    return;
+  }
+  const avail=GROUPS.filter(g=>gv(sel,g.wCol)!==null);
+  if(!avail.length){
+    // ستون‌های G تا V خالی — از E و F استفاده کن
+    const ve=gv(sel,'e'), vf=gv(sel,'f');
+    const availEF=[];
+    if(ve!==null) availEF.push({key:'E', label:'MM (E)', val:ve});
+    if(vf!==null) availEF.push({key:'F', label:'AI (F)', val:vf});
+    if(!availEF.length){ws.innerHTML='<div class="empty">داده وزن یافت نشد</div>';return;}
+    if(!activeGrp||!['E','F'].includes(activeGrp)) activeGrp=availEF[0].key;
+    const tabs=availEF.map(d=>
+      `<button class="wtb${d.key===activeGrp?' active':''}" onclick="setEFGrp('${d.key}')">${d.label}</button>`
+    ).join('');
+    const activeEF=availEF.find(d=>d.key===activeGrp);
+    ws.innerHTML=`
+      <div style="font-size:10px;color:#fbbf24;font-weight:700;margin-bottom:6px">⚠ اطلاعات G-V موجود نیست — از ${activeGrp==='E'?'MM (E)':'AI (F)'} استفاده می‌شود</div>
+      <div class="wtr">${tabs}</div>
+      <table class="wt"><tr><td class="wk">${activeEF?activeEF.label:'—'}</td><td class="wv">${activeEF?activeEF.val:'—'} گرم</td></tr></table>`;
+    return;
+  }
+  // اگر activeGrp هنوز معتبره نگه دار، وگرنه اول
+  if(!activeGrp||!avail.find(g=>g.key===activeGrp)) activeGrp=avail[0].key;
+  buildWeightTabs(avail);
+}
+
+function buildWeightTabs(avail){
+  const ws=document.getElementById('weightSection');
+  const tabs=avail.map(g=>
+    `<button class="wtb${g.key===activeGrp?' active':''}" onclick="setGrp('${g.key}')">${g.label}</button>`
+  ).join('');
+  const cols=GCOLS[activeGrp]||[];
+  const trows=cols.map(c=>{
+    const v=gv(sel,c);
+    return v!==null?`<tr><td class="wk">${COL_LABELS[c]||c}</td><td class="wv">${v}</td></tr>`:'';
+  }).join('');
+  ws.innerHTML=`<div class="wtr" id="weightTabs">${tabs}</div><table class="wt" id="weightTable">${trows}</table>`;
+}
+
+
+// ─── تغییر دسته E/F (وقتی OK نیست) ───
+function setEFGrp(k){
+  activeGrp=k;
+  const ve=gv(sel,'e'), vf=gv(sel,'f');
+  const availEF=[];
+  if(ve!==null) availEF.push({key:'E', label:'MM', val:ve});
+  if(vf!==null) availEF.push({key:'F', label:'AI', val:vf});
+  // آپدیت تب‌ها
+  document.querySelectorAll('.wtb').forEach(b=>{
+    const d=availEF.find(x=>x.label===b.textContent);
+    b.classList.toggle('active', d&&d.key===k);
+  });
+  // آپدیت جدول
+  const activeEF=availEF.find(d=>d.key===k);
+  const tbl=document.getElementById('weightTable');
+  if(tbl && activeEF){
+    tbl.innerHTML=`<tr><td class="wk">${activeEF.label}</td><td class="wv">${activeEF.val}</td></tr>`;
+  }
+  calc();
+}
+
+// ─── تغییر دسته وزن — اصلاح اصلی ───
+function setGrp(k){
+  activeGrp=k; // اول activeGrp رو ست کن
+  // فقط جدول و تب‌ها آپدیت کن بدون rebuild کامل
+  document.querySelectorAll('.wtb').forEach(b=>{
+    const g=GROUPS.find(x=>x.label===b.textContent);
+    b.classList.toggle('active', g&&g.key===k);
+  });
+  const cols=GCOLS[k]||[];
+  const tbl=document.getElementById('weightTable');
+  if(tbl){
+    tbl.innerHTML=cols.map(c=>{
+      const v=gv(sel,c);
+      return v!==null?`<tr><td class="wk">${COL_LABELS[c]||c}</td><td class="wv">${v}</td></tr>`:'';
+    }).join('');
+  }
+  calc(); // حالا calc با activeGrp درست حساب میکنه
+}
+
+// ─── وزن به kg ───
+function getWeightKg(){
+  if(!sel)return null;
+  const ok=(sel.status||'').includes('OK');
+  if(!ok){
+    // وقتی OK نیست — از تب انتخابی (E یا F) بخون
+    // هر دو وزن یه عدد به گرم هستن → ÷ 1000
+    let v=null;
+    if(activeGrp==='F'){
+      v=gv(sel,'f');
+    } else {
+      // پیش‌فرض E
+      v=gv(sel,'e');
+      if(v===null) v=gv(sel,'f'); // fallback به F
+    }
+    return v!==null?parseFloat(v)/1000:null;
+  }
+  if(!activeGrp)return null;
+  const n=c=>{const v=gv(sel,c);return v!==null&&v!==''?parseFloat(v):NaN;};
+  let weightG=NaN, countInPack=NaN;
+
+  // فرمول: وزن کل بسته ÷ تعداد در بسته ÷ 1000 = kg هر قطعه
+  if(activeGrp==='GH'){
+    weightG=n('h'); countInPack=n('g');
+  } else if(activeGrp==='IJK'){
+    weightG=n('j'); countInPack=n('i');
+  } else if(activeGrp==='LMN'){
+    weightG=n('m'); countInPack=n('l');
+  } else if(activeGrp==='OPQ'){
+    weightG=n('p'); countInPack=n('o');
+  } else if(activeGrp==='RS'){
+    weightG=n('s'); countInPack=n('r');
+  } else if(activeGrp==='TUV'){
+    weightG=n('u'); countInPack=n('t');
+  } else if(activeGrp==='E'){
+    // fallback به E
+    const ve=gv(sel,'e');
+    return ve!==null?parseFloat(ve)/1000:null;
+  } else if(activeGrp==='F'){
+    // fallback به F
+    const vf=gv(sel,'f');
+    return vf!==null?parseFloat(vf)/1000:null;
+  }
+
+  if(isNaN(weightG)){
+    // اگه گروه انتخابی داده نداشت، fallback به E/F
+    const ve=gv(sel,'e');
+    const vf=gv(sel,'f');
+    const v=ve!==null?ve:vf;
+    return v!==null?parseFloat(v)/1000:null;
+  }
+  // اگه تعداد بسته موجود نبود، فرض کن 1 (یعنی وزن مستقیم یه عدده)
+  const count = (!isNaN(countInPack) && countInPack>0) ? countInPack : 1;
+  return (weightG / count) / 1000;
+}
+
+// ─── CALC ───
+function calc(){
+  const cny=parseFloat((document.getElementById('cnyRate').value||'').replace(/,/g,''))||0;
+  const usd=parseFloat((document.getElementById('usdRate').value||'').replace(/,/g,''))||0;
+
+  const buy=parseFloat((document.getElementById('buyPrice').value||'').replace(/,/g,''))||0;
+  const qty=Math.max(parseFloat((document.getElementById('qty').value||'').replace(/,/g,''))||1,1);
+  const sr=parseFloat(document.getElementById('shipRate').value)||0;
+  const supPct=parseInt(document.getElementById('supSlider').value)||0;
+  const scPct=parseInt(document.getElementById('scSlider').value)||0;
+  const cartonEl=document.getElementById('cartonWeight');
+  const cartonKg=cartonEl?parseFloat((cartonEl.value||'').replace(/,/g,''))||0:0;
+  const shipMode=document.querySelector('.shb.active')?.textContent||'هوایی';
+
+  const rate=buyCur==='CNY'?cny:usd;
+  const buyIRR=buy*rate;
+  const supProfit=buyIRR*(supPct/100);
+
+  // وزن قطعه از شیت (kg)
+  const wKg=getWeightKg();
+
+  // ── فرمول حمل اصلاح‌شده ──
+  // حمل قطعه هر عدد = (wKg × sr)  ← وزن یه عدد × نرخ
+  const shipPiece = wKg!==null ? wKg*sr : 0;
+  // حمل کارتن هر عدد = (cartonKg ÷ qty) × sr
+  const shipCarton = cartonKg>0 ? (cartonKg/qty)*sr : 0;
+  // جمع حمل هر عدد
+  const shipPP = shipPiece + shipCarton;
+
+  // نمایش محاسبه وزن
+  const wcs=document.getElementById('weightCalcSection');
+  if(wKg!==null||cartonKg>0){
+    let h='';
+    if(wKg!==null){
+      h+=`<div class="wc alt"><span class="wk">وزن هر قطعه</span><span class="wv">${fmt(wKg*1000,4)} g</span></div>`;
+      h+=`<div class="wc alt"><span class="wk">وزن هر قطعه</span><span class="wv">${fmt(wKg,6)} kg</span></div>`;
+      h+=`<div class="wc alt"><span class="wk">حمل هر قطعه</span><span class="wv">${fmt(shipPiece)} ﷼</span></div>`;
+    }
+    if(cartonKg>0){
+      h+=`<div class="wc alt"><span class="wk">سهم کارتن/عدد</span><span class="wv">${fmt(cartonKg/qty,4)} kg</span></div>`;
+      h+=`<div class="wc alt"><span class="wk">حمل کارتن/عدد</span><span class="wv">${fmt(shipCarton)} ﷼</span></div>`;
+    }
+    h+=`<div class="wc hi"><span class="wk">حمل هر عدد</span><span class="wv">${fmt(shipPP)} ﷼</span></div>`;
+    wcs.innerHTML=h;
+  } else {
+    wcs.innerHTML='<div class="empty">کالا یا وزن انتخاب نشده</div>';
+  }
+
+  // قیمت نهایی
+  const base=buyIRR+supProfit+shipPP;
+  const scProfit=base*(scPct/100);
+  const final=base+scProfit;
+  const supTotal=supProfit*qty;
+  const scTotal=scProfit*qty;
+
+  // سود کل زیر اسلایدر
+  const supBox=document.getElementById('supTotalBox');
+  const scBox=document.getElementById('scTotalBox');
+  if(supTotal>0){supBox.style.display='block';document.getElementById('supTotal').textContent=fmt(supTotal);}
+  else supBox.style.display='none';
+  if(scTotal>0){scBox.style.display='block';document.getElementById('scTotal').textContent=fmt(scTotal);}
+  else scBox.style.display='none';
+
+  document.getElementById('r_supLbl').textContent=`سود تامین‌کننده (${supPct}٪)`;
+  document.getElementById('r_scLbl').textContent=`سود اسمارت‌چیپ (${scPct}٪)`;
+  document.getElementById('r_buy').textContent=buyIRR>0?fmt(buyIRR)+' ﷼':'—';
+  document.getElementById('r_sup').textContent=supProfit>0?fmt(supProfit)+' ﷼':'—';
+  document.getElementById('r_ship').textContent=shipPP>0?fmt(shipPP)+' ﷼':'—';
+  document.getElementById('r_base').textContent=base>0?fmt(base)+' ﷼':'—';
+  document.getElementById('r_sc').textContent=scProfit>0?fmt(scProfit)+' ﷼':'—';
+  document.getElementById('r_final').textContent=final>0?fmt(final):'—';
+  window.lastFinalPriceRial=final; // برای دکمه‌ی «ارسال قیمت به استعلام» — مقدار خام (نه فرمت‌شده)
+  const tot=document.getElementById('r_total');
+  if(final>0&&qty>1){tot.style.display='block';tot.textContent=`جمع ${qty} عدد: ${fmt(final*qty)} ﷼`;}
+  else tot.style.display='none';
+  document.getElementById('r_partName').textContent=sel?sel.part:'';
+
+  lastCalc={part:sel?sel.part:'',qty,buyCur,buyPrice:buy,buyIRR,supPct,supProfit,supTotal,shipMode,shipRate:sr,shipPP,scPct,scProfit,scTotal,base,final,totalPrice:final*qty,cartonKg,wKg:wKg||0,activeGrp};
+}
+
+function setCur(c){
+  buyCur=c;
+  document.getElementById('btnCNY').classList.toggle('active',c==='CNY');
+  document.getElementById('btnUSD').classList.toggle('active',c==='USD');
+  document.getElementById('buyLabel').textContent=`قیمت واحد به ${c==='CNY'?'یوان':'دلار'}`;
+  document.getElementById('buyPrefix').textContent=c==='CNY'?'¥':'$';
+  calc();
+}
+function setShip(btn){document.querySelectorAll('.shb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');calc();}
+
+// ─── CART ───
+function saveCart(){
+  try{localStorage.setItem('sc_cart',JSON.stringify(cart));}catch{}
+  renderCart();
+}
+
+function addToCart(){
+  if(!lastCalc.final||lastCalc.final<=0){alert('ابتدا محاسبه را تکمیل کنید');return;}
+  cart.push({...lastCalc,id:Date.now()});
+  saveCart();
+  const btn=document.getElementById('addBtn');
+  btn.textContent='✅';btn.className='add-btn added';
+  setTimeout(()=>{
+    btn.textContent='🛒';
+    btn.className='add-btn';
+    resetCalcForm();
+  },1500);
+}
+
+function resetCalcForm(){
+  // ریست همه فیلدها
+  sel=null; activeGrp=null; lastCalc={};
+  document.getElementById('searchInput').value='';
+  document.getElementById('qty').value='';
+  document.getElementById('buyPrice').value='';
+  document.getElementById('shipRate').value='';
+  document.getElementById('shipRateDisplay').value='';
+  const cw=document.getElementById('cartonWeight');
+  if(cw) cw.value='';
+  // ریست نمایش
+  document.getElementById('statusRow').style.display='none';
+  document.getElementById('weightSection').innerHTML='<div class="empty">ابتدا کالا را انتخاب کنید</div>';
+  document.getElementById('weightCalcSection').innerHTML='<div class="empty">—</div>';
+  document.getElementById('cartonBox').style.display='none';
+  document.getElementById('dropdown').innerHTML='';
+  document.getElementById('dropdown').classList.remove('show');
+  document.getElementById('r_partName').textContent='';
+  // ریست نتیجه
+  ['r_final','r_buy','r_sup','r_ship','r_base','r_sc'].forEach(id=>{
+    document.getElementById(id).textContent='—';
+  });
+  document.getElementById('r_total').style.display='none';
+  document.getElementById('supTotalBox').style.display='none';
+  document.getElementById('scTotalBox').style.display='none';
+  // فوکوس روی سرچ
+  document.getElementById('searchInput').focus();
+}
+
+function deleteItem(idx){cart.splice(idx,1);saveCart();}
+
+function resetCart(){
+  if(cart.length===0)return;
+  if(!confirm('همه آیتم‌ها پاک شوند؟'))return;
+  cart=[];saveCart();
+}
+
+function renderCart(){
+  const container=document.getElementById('cartContent');
+  const summary=document.getElementById('cartSummary');
+  if(cart.length===0){
+    summary.style.display='none';
+    container.innerHTML=`<div class="cart-empty"><div class="ei">🛒</div><p>سبد خالی است</p><p style="font-size:11px;margin-top:5px;color:var(--sub)">از ماشین‌حساب آیتم اضافه کنید</p></div>`;
+    return;
+  }
+  summary.style.display='grid';
+  let totalSale=0;
+  cart.forEach(it=>totalSale+=(it.totalPrice||0));
+  document.getElementById('s_items').textContent=cart.length;
+  document.getElementById('s_total').textContent=fmt(totalSale);
+
+  const trows=cart.map((it,i)=>`
+    <tr>
+      <td style="color:var(--sub);font-size:10px">${i+1}</td>
+      <td class="part" title="${it.part}">${it.part||'—'}</td>
+      <td class="num">${fmt(it.qty)}</td>
+      <td class="num">${it.buyCur==='CNY'?'¥':'$'}${fmt(it.buyPrice,2)}</td>
+      <td class="num">${fmt(it.buyIRR)}﷼</td>
+      <td class="num" style="color:var(--blue)">${it.supPct}٪</td>
+      <td class="num">${it.shipMode||'—'}</td>
+      <td class="num">${fmt(it.shipPP)}﷼</td>
+      <td class="num" style="color:var(--gold)">${it.scPct}٪</td>
+      <td class="fp">${fmt(it.final)}﷼</td>
+      <td class="tp">${fmt(it.totalPrice)}﷼</td>
+      <td><button class="del-btn" onclick="deleteItem(${i})">✕</button></td>
+    </tr>`).join('');
+
+  container.innerHTML=`<table>
+    <thead><tr>
+      <th>#</th><th>پارت نامبر</th><th>تعداد</th><th>خرید</th><th>خرید ﷼</th>
+      <th>سود ت.</th><th>نوع حمل</th><th>حمل/عدد</th><th>SC٪</th>
+      <th>قیمت/عدد</th><th>جمع کل</th><th></th>
+    </tr></thead>
+    <tbody>${trows}</tbody>
+    <tfoot><tr class="foot-row">
+      <td colspan="10" class="foot-lbl">جمع کل پیش‌فاکتور</td>
+      <td class="tp" style="font-size:13px">${fmt(totalSale)}﷼</td>
+      <td></td>
+    </tr></tfoot>
+  </table>`;
+}
+
+
+
+// ─── فرمت ۳ رقم ۳ رقم ───
+function fmtHdrInput(el) {
+  let raw = el.value.replace(/,/g, '');
+  if (!raw || isNaN(raw) || raw === '') return;
+  let num = parseFloat(raw);
+  if (isNaN(num)) return;
+  let p = el.selectionStart, ol = el.value.length;
+  el.value = num.toLocaleString('en-US');
+  el.selectionStart = el.selectionEnd = Math.max(0, p + (el.value.length - ol));
+}
+
+function fmtInlineInput(el) {
+  let raw = el.value.replace(/,/g, '');
+  if (!raw || isNaN(raw) || raw === '') return;
+  let num = parseFloat(raw);
+  if (isNaN(num)) return;
+  let p = el.selectionStart, ol = el.value.length;
+  el.value = num.toLocaleString('en-US');
+  el.selectionStart = el.selectionEnd = Math.max(0, p + (el.value.length - ol));
+}
+
+
+// ── نکته مهم برای sync ──
+// اگه sync کار نمیکنه، به Apps Script برو و این رو اضافه کن:
+// function doGet(e) {
+//   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Verified_Weights");
+//   const data = sheet.getDataRange().getValues();
+//   ... (کد فعلیت)
+//   return ContentService.createTextOutput(JSON.stringify(result))
+//     .setMimeType(ContentService.MimeType.JAVASCRIPT);  // <-- JAVASCRIPT نه JSON
+// }
+
+// init
+renderCart();
+// اگر این صفحه از یک ردیف استعلام باز شده، فوری یه پیام «در حال بارگذاری» نشان بده —
+// چون باید صبر کنیم تا کل دیتابیس قطعات (نه فقط نمونه‌ی embedded) بیاد
+const _earlyParams=new URLSearchParams(window.location.search);
+if(_earlyParams.get('returnId')){
+  const _loadingBanner=document.createElement('div');
+  _loadingBanner.id='estelamatLoadingBanner';
+  _loadingBanner.style.cssText='position:fixed;top:0;left:0;right:0;background:#1D4ED8;color:#fff;text-align:center;padding:8px;font-size:13px;font-weight:700;z-index:999;font-family:inherit;';
+  _loadingBanner.textContent='⏳ در حال بارگذاری دیتابیس کامل قطعات...';
+  document.body.prepend(_loadingBanner);
+  document.body.style.paddingTop='38px';
+}
+// بارگذاری خودکار از شیت — initEstelamatLink باید صبر کند تا این تمام شود،
+// چون داده‌ی embedded فقط یک نمونه‌ی کوچک است، نه کل ۳۲هزار ردیف واقعی —
+// قبلاً initEstelamatLink زودتر از رسیدن داده‌ی کامل اجرا می‌شد و برای همین
+// اکثر پارت‌نامبرهای واقعی پیدا نمی‌شدند
+(async function(){
+  await syncFromSheet();
+  const _lb=document.getElementById('estelamatLoadingBanner');
+  if(_lb) _lb.remove();
+  initEstelamatLink();
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// اتصال به صفحه‌ی استعلامات خارج — اگر این صفحه از یک ردیف استعلام باز شده
+// (یعنی پارامترهای partNumber/qty/returnId در URL هستند)، خودکار همان
+// پارت‌نامبر و تعداد و قیمت تامین‌کننده را پر می‌کند، و یک دکمه‌ی «ارسال
+// قیمت به استعلام» نشان می‌دهد که نتیجه‌ی نهایی را به همان ردیف برمی‌گرداند.
+// ══════════════════════════════════════════════════════════════════
+function initEstelamatLink(){
+  const params=new URLSearchParams(window.location.search);
+  const partNumber=params.get('partNumber');
+  const qtyParam=params.get('qty');
+  const buyPriceParam=params.get('buyPrice');
+  const returnId=params.get('returnId');
+  if(!returnId) return; // این صفحه به‌صورت مستقل و معمولی باز شده — هیچ تغییری لازم نیست
+
+  // نوار اعلام «حالت استعلام»
+  const banner=document.createElement('div');
+  banner.style.cssText='position:fixed;top:0;left:0;right:0;background:#1D4ED8;color:#fff;text-align:center;padding:8px;font-size:13px;font-weight:700;z-index:999;font-family:inherit;';
+  banner.textContent='🔗 حالت استعلام — این محاسبه به یک ردیف در صفحه‌ی استعلامات خارج وصل است';
+  document.body.prepend(banner);
+  document.body.style.paddingTop='38px';
+
+  // جست‌وجو و انتخاب خودکار پارت‌نامبر (تطبیق نزدیک، نه فقط دقیق)
+  if(partNumber){
+    const term=partNumber.trim().toLowerCase();
+    let idx=rows.findIndex(r=>String(r.part||'').toLowerCase()===term);
+    if(idx===-1) idx=rows.findIndex(r=>String(r.part||'').toLowerCase().includes(term));
+    if(idx!==-1) pick(idx);
+  }
+  if(qtyParam){
+    document.getElementById('qty').value=qtyParam;
+  }
+  if(buyPriceParam){
+    document.getElementById('buyPrice').value=buyPriceParam;
+  }
+  calc();
+
+  // دکمه‌ی ثابت «ارسال قیمت به استعلام»
+  const btn=document.createElement('button');
+  btn.textContent='✅ ارسال قیمت به استعلام';
+  btn.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;border:none;border-radius:12px;padding:12px 26px;font-size:14px;font-weight:700;cursor:pointer;z-index:999;font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,.25);';
+  btn.onclick=function(){
+    const rial=window.lastFinalPriceRial||0;
+    if(!rial||rial<=0){ alert('⚠ اول محاسبه را کامل کن — قیمت نهایی هنوز صفر است'); return; }
+    const cnyRateVal=parseFloat((document.getElementById('cnyRate').value||'').toString().replace(/,/g,''))||0;
+    const yuan=cnyRateVal>0?(rial/cnyRateVal):0;
+    if(window.opener){
+      window.opener.postMessage({type:'priceListResult', returnId, priceRial:rial, priceYuan:yuan}, '*');
+      btn.textContent='✅ ارسال شد — این تب را می‌توانی ببندی';
+      btn.style.background='#374151';
+      btn.disabled=true;
+    } else {
+      alert('⚠ تب اصلی استعلامات پیدا نشد — احتمالاً بسته شده. این صفحه را ببند و دوباره از روی همان ردیف باز کن');
+    }
+  };
+  document.body.appendChild(btn);
+}
+
+// ── همگام‌سازی خودکار هر ۶۰ دقیقه ──
+setInterval(async () => {
+  await syncFromSheet();
+}, 60 * 60 * 1000);
+
+// نمایش تایمر countdown تا sync بعدی
+let nextSyncMin = 60;
+setInterval(() => {
+  nextSyncMin--;
+  if(nextSyncMin <= 0) nextSyncMin = 60;
+  const el = document.getElementById('syncCountdown');
+  if(el) el.textContent = 'همگام‌سازی بعدی: ' + nextSyncMin + ' دقیقه دیگر';
+}, 60 * 1000);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
