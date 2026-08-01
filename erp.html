@@ -2583,10 +2583,10 @@ async function loadFromSheet() {
     if(djangoChqRet) chequesReturned = djangoChqRet;
     if(djangoPaidChq) paidCheques = djangoPaidChq;
     // ۷ ماژول باقیمانده — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    const [djangoWh, djangoOutbound, djangoAddr, djangoFeedback, djangoUrgent, djangoFinTasks, djangoFsp] = await Promise.all([
+    const [djangoWh, djangoOutbound, djangoAddr, djangoFeedback, djangoUrgent, djangoFinTasks, djangoFsp, djangoDPurch] = await Promise.all([
       fetchWarehouseItemsFromDjango(), fetchOutboundPackingsFromDjango(), fetchCustomerAddressesFromDjango(),
       fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango(),
-      fetchForeignSupplierPerformanceFromDjango()
+      fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango()
     ]);
     if(djangoWh) warehouseItems = djangoWh;
     if(djangoOutbound) outboundPackings = djangoOutbound;
@@ -2595,6 +2595,7 @@ async function loadFromSheet() {
     if(djangoUrgent) urgentShipRequests = djangoUrgent;
     if(djangoFinTasks) financeTasks = djangoFinTasks;
     if(djangoFsp) foreignSupplierPerformance = djangoFsp;
+    if(djangoDPurch) domesticPurchaseArchive = djangoDPurch;
 
     // ── ذخیره در localStorage برای بار بعد (آنی) ──
     try{
@@ -3452,6 +3453,26 @@ async function addForeignSupplierPerformanceInDjango(f){
   })}, 'ثبت عملکرد تامین‌کننده '+f.id);
   if(r.queued) toast('🟡 عملکرد تامین‌کننده در صف ماند');
   return r.ok ? fspFromApi(r.data) : null;
+}
+
+// ── بایگانی خرید داخل — شناسه رشته‌ای، از کلاینت ──
+const DJANGO_DPURCH_API = 'https://smartchip-backend.onrender.com/api/ops/domestic-purchase-archive/';
+function dPurchFromApi(d){
+  return {id:d.id, reqId:d.req_id||'', displayNumber:d.display_number||'', customer:d.customer||'',
+    name:d.name||'', qty:d.qty||'', supplier:d.supplier||'', price:d.price||'', purchaseDate:d.purchase_date||''};
+}
+async function fetchDomesticPurchaseArchiveFromDjango(){
+  try{ const res=await fetch(DJANGO_DPURCH_API); if(!res.ok) return null;
+    return (await res.json()).map(dPurchFromApi);
+  }catch(e){ return null; }
+}
+async function addDomesticPurchaseInDjango(p){
+  const r = await djangoFetch(DJANGO_DPURCH_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+    id:p.id, req_id:p.reqId||'', display_number:p.displayNumber||'', customer:p.customer||'',
+    name:p.name||'', qty:String(p.qty||''), supplier:p.supplier||'', price:String(p.price||''), purchase_date:p.purchaseDate||''
+  })}, 'ثبت بایگانی خرید '+p.id);
+  if(r.queued) toast('🟡 بایگانی خرید در صف ماند');
+  return r.ok ? dPurchFromApi(r.data) : null;
 }
 
 async function fetchChequesReceivedFromDjangoERP(){
@@ -5261,7 +5282,7 @@ async function markCollected(reqId,itemIdx){
   await persistEstelamatChange(r);
   renderDomesticDeliv();
   renderWarehouse();
-  if(isConnected) await sheetCall('addDomesticPurchase',domesticPurchaseArchive[0]);
+  if(isConnected) await addDomesticPurchaseInDjango(domesticPurchaseArchive[0]);
 }
 
 let curDomesticPurchaseArchiveSearch='';
