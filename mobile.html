@@ -2233,7 +2233,6 @@ function openMEstelamatTickSheet(){
   mEstItems=(ceCurEntry.procurementParts&&ceCurEntry.procurementParts.items)?JSON.parse(JSON.stringify(ceCurEntry.procurementParts.items)):[];
   while(mEstItems.length<5) mEstItems.push({name:'',qty:'',needMarket:false,needForeign:false});
   renderMEstRows();
-  document.getElementById('mEstFinNeed').checked=!!(ceCurEntry.procurementParts&&ceCurEntry.procurementParts.needFinance);
   openSheet('estelamattick');
 }
 function renderMEstRows(){
@@ -2282,7 +2281,9 @@ async function saveMEstelamatTick(){
   const l=leads.find(x=>String(x.id)===String(leadId));
   if(!l)return;
   const filled=mEstItems.filter(it=>it.name&&it.name.trim()&&it.qty&&(it.needMarket||it.needForeign));
-  const needFinance=document.getElementById('mEstFinNeed').checked;
+  // نیاز مالی از رو تیک‌های واقعی تب «استعلام مالی» محاسبه می‌شه (نه یه چک‌باکس واحد که دیگه وجود نداره)
+  const finKeys=['mfin_sendInvoice','mfin_sendProforma','mfin_getCheque','mfin_sayyadiReg','mfin_sendStatement','mfin_getStatement','mfin_sendSheba','mfin_getSheba'];
+  const needFinance=finKeys.some(id=>{const el=document.getElementById(id); return el&&el.checked;});
   const needMarket=filled.some(it=>it.needMarket);
   const needForeign=filled.some(it=>it.needForeign);
   ceCurEntry.procurementParts={

@@ -1046,6 +1046,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <div id="djangoSyncDot" style="width:7px;height:7px;border-radius:50%;background:#22c55e;transition:background .3s"></div>
         <span id="djangoSyncStatus">🟢 متصل به سرور</span>
       </div>
+      <div id="userChip" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;"></div>
       <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="manualRefresh()" title="دریافت آخرین اطلاعات از Google Sheets">🔄 بروزرسانی</button>
       <button class="btn btn-ghost btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="تغییر بین حالت شب و روز">🌙 حالت روز</button>
       <button class="btn btn-ghost btn-sm" id="notifBtn" onclick="enableNotifications()" title="فعال‌سازی نوتیفیکیشن مرورگر برای یادآوری و موارد فورس">🔔 فعال‌سازی نوتیف</button>
@@ -6399,14 +6400,14 @@ function closeDetail(){
 
 // ── درخواست‌ها ──
 async function deleteCurrentRequest(){
-  if(!curDetailReqId){ toast('هیچ درخواستی انتخاب نشده'); return; }
+  if(!openReqId){ toast('هیچ درخواستی انتخاب نشده'); return; }
   if(!confirm('این درخواست حذف شود؟')) return;
-  const idx=requests.findIndex(r=>String(r.id)===String(curDetailReqId));
+  const idx=requests.findIndex(r=>String(r.id)===String(openReqId));
   if(idx>-1) requests.splice(idx,1);
-  closeModal('requestDetail');
+  closeModal('modalRequest');
   renderReqs();
   toast('✅ درخواست حذف شد');
-  await deleteRequestInDjango(curDetailReqId);
+  await deleteRequestInDjango(openReqId);
 }
 
 // ── تدارکات ──
@@ -6441,7 +6442,7 @@ function addProcurementQuickRow(){
 // این تابع قبلاً هیچ‌جا تعریف نشده بود با اینکه ۶ جای کد صداش می‌زدن — برای همین ویرایش
 // درخواست‌های دارای آیتم تدارکات همیشه کرش می‌کرد و مودال باز نمی‌شد.
 function renderProcurementQuickRows(){
-  const cont=document.getElementById('procurementQuickRows');
+  const cont=document.getElementById('reqProcurementRowsContainer');
   if(!cont) return;
   if(!currentReqProcurementItems || !currentReqProcurementItems.length){
     currentReqProcurementItems=[{name:'',qty:'',needMarket:false,needForeign:false}];

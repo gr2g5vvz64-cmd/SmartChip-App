@@ -2825,7 +2825,7 @@ async function saveRecurring(){
     closeModal('modalRecurring');
     resetRecurringForm();
     renderRecurring();
-    if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+    if(document.getElementById('calendarView').classList.contains('active')) renderCal();
     return;
   }
 
@@ -2837,7 +2837,7 @@ async function saveRecurring(){
   closeModal('modalRecurring');
   resetRecurringForm();
   renderRecurring();
-  if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+  if(document.getElementById('calendarView').classList.contains('active')) renderCal();
 }
 
 
@@ -2944,7 +2944,7 @@ async function saveFreeReminder(){
     }
     closeModal('freereminder');
     renderFreeReminders();
-    if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+    if(document.getElementById('calendarView').classList.contains('active')) renderCal();
     toast('✅ یادآوری ویرایش شد');
     return;
   }
@@ -2955,7 +2955,7 @@ async function saveFreeReminder(){
   freeReminders.unshift(savedRem);
   closeModal('freereminder');
   renderFreeReminders();
-  if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+  if(document.getElementById('calendarView').classList.contains('active')) renderCal();
   toast('✅ یادآوری ثبت شد');
 }
 
@@ -2964,7 +2964,7 @@ async function toggleFreeReminderDone(id){
   if(!r)return;
   r.done=!r.done;
   renderFreeReminders();
-  if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+  if(document.getElementById('calendarView').classList.contains('active')) renderCal();
   await updateFreeReminderInDjango(r.id, r);
 }
 
@@ -2972,7 +2972,7 @@ async function deleteFreeReminder(id){
   if(!confirm('آیا از حذف این یادآوری مطمئنی؟'))return;
   freeReminders=freeReminders.filter(x=>String(x.id)!==String(id));
   renderFreeReminders();
-  if(document.getElementById('page-calendar').classList.contains('active')) renderCal();
+  if(document.getElementById('calendarView').classList.contains('active')) renderCal();
   toast('🗑️ یادآوری حذف شد');
   await deleteFreeReminderInDjango(id);
 }
