@@ -3152,7 +3152,9 @@ function shipmentFromApiERP(d){
     partName:d.part_name||'', partQty:d.part_qty||'', proforma:d.proforma||'',
     sentToClearance:!!d.sent_to_clearance, clearedToWarehouse:!!d.cleared_to_warehouse,
     warehousedDate:d.warehoused_date||'', resolved:!!d.resolved,
-    resolveReason:d.resolve_reason||'', resolveNote:d.resolve_note||'' };
+    resolveReason:d.resolve_reason||'', resolveNote:d.resolve_note||'',
+    supplierStatus:d.supplier_status||'', supplierStatusUpdatedAt:d.supplier_status_updated_at||'',
+    supplierNotified:!!d.supplier_notified };
 }
 function shipmentToApiERP(s){
   return { code:s.id, supplier:s.supplier||'', desc:s.desc||'', order_date:s.orderDate||'',
@@ -4937,7 +4939,7 @@ function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
   // وقتی آیتم از مرحله‌ی استعلام/تأمین خارج رفته (سفارش ثبت شده/رسیده/تحویل شده)، دیگر
   // جدول ۴ ردیفه نشان داده نمی‌شود — طبق گفته‌ی کاربر، آیتم باید از این بخش خارج شود
   const beyondQuoting=item.status==='ordered_shipping'||item.status==='arrived'||item.status==='delivered_to_customer';
-  const FOREIGN_SUPPLIERS=["SMART CHIP","MI'AD","KALAFI","NAMA"];
+  const FOREIGN_SUPPLIERS=getForeignSupplierNames();
 
   let tableHTML='';
   if(!beyondQuoting){
@@ -7505,49 +7507,94 @@ async function sendBotInviteIfNeeded(ship){
 }
 
 // نمایش وضعیت اتصال‌ها در ERP
+// چک اینکه یه اسم، مشتری عادیه یا تأمین‌کننده‌ی خارج (بر اساس صنف تو جدول مشتریان)
+function isForeignSupplierName(name){
+  const cm = (customerMaster||[]).find(c=>c.name===name);
+  const cat = (cm&&cm.category||'').replace(/[\s\u200c]+/g,'');
+  return cat.includes('تامینکنندهخارج') || cat.includes('تأمینکنندهخارج');
+}
+// لیست داینامیک تأمین‌کنندگان خارج — از رو صنف تو جدول مشتریان (نه لیست ثابت قدیمی)
+function getForeignSupplierNames(){
+  return (customerMaster||[]).filter(c=>{
+    const cat=(c.category||'').replace(/[\s\u200c]+/g,'');
+    return cat.includes('تامینکنندهخارج') || cat.includes('تأمینکنندهخارج');
+  }).map(c=>c.name);
+}
+
 function renderBotStatusPanel(){
   const el = document.getElementById('botStatusPanel');
   if(!el) return;
-  const connected   = botInvites.filter(b=>b.telegramConnected||b.baleConnected);
-  const pending     = botInvites.filter(b=>!b.telegramConnected&&!b.baleConnected);
-  // مشتریانی که اصلاً دعوت‌نامه نرفته
-  const allCustomers= [...new Set(shipments.filter(s=>!['delivered','canceled'].includes(s.status)).map(s=>s.customer).filter(Boolean))];
-  const notInvited  = allCustomers.filter(c=>!botInvites.find(b=>b.customer===c));
-  el.innerHTML = `
+
+  // همه‌ی اسم‌های مرتبط با محموله‌های فعال — هم از ستون مشتری، هم از ستون تأمین‌کننده
+  const allRelatedCustomers = [...new Set(shipments.filter(s=>!['delivered','canceled'].includes(s.status)).map(s=>s.customer).filter(Boolean))];
+  const allRelatedSuppliers = [...new Set(shipments.filter(s=>!['delivered','canceled'].includes(s.status)).map(s=>s.supplier).filter(Boolean))];
+
+  function buildSection(names, isSupplier){
+    const invites = botInvites.filter(b=>names.includes(b.customer) || (isSupplier ? isForeignSupplierName(b.customer) : !isForeignSupplierName(b.customer)));
+    const connected = invites.filter(b=>b.telegramConnected||b.baleConnected);
+    const pending = invites.filter(b=>!b.telegramConnected&&!b.baleConnected);
+    const notInvited = names.filter(n=>!botInvites.find(b=>b.customer===n));
+    return {connected, pending, notInvited};
+  }
+
+  const custData = buildSection(allRelatedCustomers, false);
+  const supData = buildSection(allRelatedSuppliers, true);
+
+  function renderBlock(title, icon, data){
+    return `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
       <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--green)">${connected.length}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--green)">${data.connected.length}</div>
         <div style="font-size:10px;color:var(--muted)">🟢 وصل شده</div>
       </div>
       <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--yellow)">${pending.length}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--yellow)">${data.pending.length}</div>
         <div style="font-size:10px;color:var(--muted)">🟡 منتظر تأیید</div>
       </div>
       <div style="background:rgba(156,163,175,.08);border:1px solid rgba(156,163,175,.3);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--muted)">${notInvited.length}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--muted)">${data.notInvited.length}</div>
         <div style="font-size:10px;color:var(--muted)">⚪ دعوت نشده</div>
       </div>
     </div>
-    ${pending.length?`<div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:6px">🟡 منتظر START:</div>
-    ${pending.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
+    ${data.pending.length?`<div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:6px">🟡 منتظر START:</div>
+    ${data.pending.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
       <span style="font-weight:700">${b.customer}</span>
       <span style="color:var(--muted)">دعوت: ${b.inviteDate}</span>
       <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto"
         onclick="resendBotInvite('${b.customer.replace(/'/g,"\\'")}')">📱 ارسال واتس‌اپ</button>
     </div>`).join('')}`:''}
-    ${connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px">🟢 وصل شده‌ها:</div>
-    ${connected.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
+    ${data.connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px">🟢 وصل شده‌ها:</div>
+    ${data.connected.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
       <span style="font-weight:700">${b.customer}</span>
       ${b.telegramConnected?'<span style="color:#0088cc;font-size:10px">✈️ تلگرام</span>':''}
       ${b.baleConnected?'<span style="color:#0070e0;font-size:10px">💙 بله</span>':''}
       <span style="color:var(--muted);font-size:10px">${b.connectedDate||''}</span>
     </div>`).join('')}`:''}
-    ${notInvited.length?`<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;margin-top:10px">⚪ دعوت‌نشده‌ها:</div>
-    ${notInvited.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
+    ${data.notInvited.length?`<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;margin-top:10px">⚪ دعوت‌نشده‌ها:</div>
+    ${data.notInvited.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
       <span style="font-weight:700">${c}</span>
       <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto"
         onclick="sendBotInviteWhatsApp('${c.replace(/'/g,"\\'")}')">📱 دعوت با واتس‌اپ</button>
     </div>`).join('')}`:''}`;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);">
+      <button class="bot-cat-tab active" id="botCatTabCustomers" onclick="switchBotCatTab('customers')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;">👥 مشتریان</button>
+      <button class="bot-cat-tab" id="botCatTabSuppliers" onclick="switchBotCatTab('suppliers')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;">🚚 تأمین‌کنندگان خارج</button>
+    </div>
+    <div id="botCatBodyCustomers">${renderBlock('مشتریان','👥',custData)}</div>
+    <div id="botCatBodySuppliers" style="display:none;">${renderBlock('تأمین‌کنندگان خارج','🚚',supData)}</div>
+  `;
+}
+
+function switchBotCatTab(which){
+  const isCust = which==='customers';
+  document.getElementById('botCatBodyCustomers').style.display = isCust?'block':'none';
+  document.getElementById('botCatBodySuppliers').style.display = isCust?'none':'block';
+  const tc = document.getElementById('botCatTabCustomers'), ts = document.getElementById('botCatTabSuppliers');
+  tc.style.color = isCust?'var(--accent)':'var(--muted)'; tc.style.borderBottomColor = isCust?'var(--accent)':'transparent';
+  ts.style.color = isCust?'var(--muted)':'var(--accent)'; ts.style.borderBottomColor = isCust?'transparent':'var(--accent)';
 }
 
 function resendBotInvite(customerName){
@@ -9965,7 +10012,7 @@ function renderShipmentGantt(fullList){
   function sv(d){ if(!d) return 0; const p=fa2en(d).replace(/-/g,'').replace(/\//g,''); return parseInt(p)||0; }
   const statusColor={ordered:'#2a78d6',transit:'#1baf7a',customs:'#eda100',delayed:'#e34948',shipped:'#1baf7a'};
   const statusLabel={ordered:'سفارش شده',transit:'در راه',customs:'در گمرک',shipped:'ارسال شده',delayed:'تأخیر',delivered:'تحویل شده'};
-  const FOREIGN_SUPPLIERS=["SMART CHIP","MI'AD","KALAFI","NAMA"];
+  const FOREIGN_SUPPLIERS=getForeignSupplierNames();
 
   // ── تب‌های تامین‌کننده — شمارش هرکدوم روی کل لیست (نه فیلترشده) ──
   const supplierCounts={};
