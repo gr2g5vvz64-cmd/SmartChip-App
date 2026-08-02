@@ -1863,6 +1863,34 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 </div>
 
+<!-- PACKING BUILDER MODAL — انتخاب چندتایی آیتم‌های انبار برای ساخت یه پکینگ -->
+<div class="modal-overlay" id="modalPackingBuilder" onclick="closeModalOut(event,'modalPackingBuilder')">
+  <div class="modal" style="width:640px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="modal-hdr"><div class="modal-title" id="packBuilderTitle">📦 ساخت پکینگ جدید</div><button class="close-btn" onclick="closeModal('modalPackingBuilder')">✕</button></div>
+    <div style="overflow-y:auto;flex:1;padding:4px 2px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">هر آیتمی که آماده‌ی پکینگه (وزن شده، هنوز کامل پک نشده) رو تیک بزن — به‌محض تیک، خودکار وارد این پکینگ می‌شه.</div>
+      <div id="packBuilderList"></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:10px;">
+      <label style="display:flex;align-items:center;gap:7px;margin-bottom:10px;cursor:pointer;">
+        <input type="checkbox" id="packBuilderInvoiceOk" style="width:16px;height:16px;accent-color:var(--green);"/>
+        <span style="font-size:12px;font-weight:700">🧾 فاکتور این پکینگ صادر شد</span>
+      </label>
+      <button class="btn btn-primary" style="width:100%;background:var(--green);border-color:var(--green);" id="packBuilderSubmitBtn"
+        onclick="finalizePackingFromModal()">📦 ثبت پکینگ و فاکتور</button>
+    </div>
+  </div>
+</div>
+
+<!-- PACKING PRINT MODAL — نمای قابل‌پرینت پکینگ ساخته‌شده -->
+<div class="modal-overlay" id="modalPackingPrint" onclick="closeModalOut(event,'modalPackingPrint')">
+  <div class="modal" style="width:520px">
+    <div class="modal-hdr"><div class="modal-title">🖨️ پکینگ آماده‌ی پرینت</div><button class="close-btn" onclick="closeModal('modalPackingPrint')">✕</button></div>
+    <div id="packPrintContent" style="padding:6px;"></div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="doPrintPacking()">🖨️ پرینت</button><button class="btn btn-ghost" onclick="closeModal('modalPackingPrint')">بستن</button></div>
+  </div>
+</div>
+
 <!-- DATE PICKER MODAL — تقویم شمسی برای انتخاب تاریخ سفارش -->
 <div class="modal-overlay" id="modalDatePicker" onclick="closeModalOut(event,'modalDatePicker')">
   <div class="modal" style="width:380px">
@@ -5995,14 +6023,8 @@ function renderWarehouse(){
               <button class="action-btn" style="font-size:10px;padding:3px 8px;" onclick="fixWarehouseQty('${wid}')">ثبت تعداد</button>
             </div>`:
             fullyPacked?`<div style="text-align:center;font-size:10.5px;color:var(--green);font-weight:700;padding:6px 0;">✅ کامل پک شد</div>`:
-            `<div style="display:flex;align-items:center;gap:6px;justify-content:center;">
-              <input type="checkbox" ${isChecked?'checked':''} style="width:15px;height:15px;accent-color:#60a5fa;"
-                onchange="toggleDraftItem('${wid}',this.checked)"/>
-              <input type="text" inputmode="numeric" id="draftQty_${wid}" value="${draftQty!==undefined?fn(draftQty):fn(remaining)}"
-                onchange="updateDraftQty('${wid}',this.value)" ${isChecked?'':'disabled'}
-                style="width:70px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);text-align:center;font-size:11px"/>
-              <span style="font-size:9px;color:var(--muted)">از ${fn(remaining)}</span>
-            </div>`}
+            isChecked?`<div style="text-align:center;font-size:10.5px;color:#60a5fa;font-weight:700;padding:6px 0;">📦 تو مودال پکینگ انتخاب شده</div>`:
+            `<div style="text-align:center;font-size:10px;color:var(--muted);padding:6px 0;">آماده — از دکمه‌ی «📦 ساخت پکینگ جدید» بالای گروه استفاده کن</div>`}
         </div>
         <div style="background:${c3};border:1px solid ${c3Border};border-radius:10px;padding:8px;text-align:center;">
           <div style="font-size:9px;color:var(--muted);font-weight:800;margin-bottom:5px;">۳. ارسال</div>
@@ -6011,26 +6033,6 @@ function renderWarehouse(){
             `<div style="font-size:10px;color:var(--muted);">هنوز پک نشده</div>`}
         </div>
       </div>
-    </div>`;
-  };
-
-  const packingBoxHTML = prefix => {
-    const draft = curPackDraft[prefix]||{};
-    const draftIds = Object.keys(draft);
-    if(!draftIds.length) return '';
-    const draftItems = draftIds.map(id=>({w:warehouseItems.find(x=>x.id===id), qty:draft[id]})).filter(x=>x.w);
-    const totalQty = draftItems.reduce((s,x)=>s+x.qty,0);
-    return `<div style="background:rgba(96,165,250,.06);border:2px dashed rgba(96,165,250,.35);border-radius:12px;padding:12px;margin:10px 0;">
-      <div style="font-size:11px;font-weight:800;color:#60a5fa;margin-bottom:8px;">📦 پکینگ در حال ساخت — ${fn(draftItems.length)} قلم، ${fn(totalQty)} عدد</div>
-      <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">
-        ${draftItems.map(x=>`${x.w.displayNumber} — ${x.w.name} × ${fn(x.qty)}`).join('<br>')}
-      </div>
-      <label style="display:flex;align-items:center;gap:7px;margin-bottom:9px;cursor:pointer;">
-        <input type="checkbox" id="packInvoiceOk_${prefix}" style="width:15px;height:15px;accent-color:var(--green);"/>
-        <span style="font-size:11px;font-weight:700">🧾 فاکتور این پکینگ صادر شد</span>
-      </label>
-      <button class="btn btn-primary btn-sm" style="width:100%;background:var(--green);border-color:var(--green);"
-        onclick="finalizePacking('${prefix}')">📦 ثبت پکینگ و فاکتور</button>
     </div>`;
   };
 
@@ -6045,6 +6047,7 @@ function renderWarehouse(){
             <span style="font-size:10px;color:var(--muted);margin-right:8px;">${(p.items||[]).map(it=>it.name+' ×'+fn(it.qty)).join('، ')}</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;">
+            <button class="action-btn" style="font-size:10px;color:var(--accent);border-color:rgba(240,165,0,.3)" onclick="openPackingPrintModal('${p.id}')" title="پرینت پکینگ">🖨️</button>
             ${p.sent?
               `<span style="font-size:10px;color:var(--green);font-weight:700">✅ ارسال شد — ${p.sentDate||''}</span>`:
               `${addrBtnForWH(p.id,p.customer)}
@@ -6058,12 +6061,13 @@ function renderWarehouse(){
   el.innerHTML = buildUrgentShipBannerHTML() + prefixes.map(prefix=>{
     const items=groups[prefix];
     const customerName=items[0].customer||'';
+    const readyCount = items.filter(w=>w.weighed && Math.max(0,(w.qtyTotal||0)-(w.qtySent||0))>0).length;
     return `<div style="margin-bottom:22px;">
-      <div style="font-size:12.5px;font-weight:800;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
-        📌 ${prefix} — ${customerName} (${fn(items.length)} ردیف)
+      <div style="font-size:12.5px;font-weight:800;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <span>📌 ${prefix} — ${customerName} (${fn(items.length)} ردیف)</span>
+        ${readyCount>0?`<button class="action-btn" style="font-size:11px;padding:4px 10px;margin-right:auto;background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.35)" onclick="openPackingBuilderModal('${prefix.replace(/'/g,"\\'")}')">📦 ساخت پکینگ جدید (${fn(readyCount)} آماده)</button>`:''}
       </div>
       ${items.map(rowHTML).join('')}
-      ${packingBoxHTML(prefix)}
       ${packingsListHTML(prefix)}
     </div>`;
   }).join('');
@@ -6095,6 +6099,84 @@ async function tickWeighed(whId, checked){
 }
 
 // تیک‌زدن یه ردیف برای اضافه‌شدن به پکینگِ در حال ساخت (استیت موقت مرورگر، تا ثبت نهایی)
+let _packBuilderPrefix = null;
+
+function openPackingBuilderModal(prefix){
+  _packBuilderPrefix = prefix;
+  document.getElementById('packBuilderTitle').textContent = `📦 ساخت پکینگ جدید — ${prefix}`;
+  document.getElementById('packBuilderInvoiceOk').checked = false;
+  renderPackingBuilderList();
+  openModal('packingBuilder');
+}
+
+function renderPackingBuilderList(){
+  const prefix = _packBuilderPrefix;
+  const el = document.getElementById('packBuilderList');
+  if(!el) return;
+  // فقط آیتم‌های همون گروه که وزن شدن و هنوز کامل پک نشدن
+  const available = warehouseItems.filter(w=>{
+    if(getDisplayPrefix(w.displayNumber)!==prefix) return false;
+    if(!w.weighed) return false;
+    const remaining = Math.max(0,(w.qtyTotal||0)-(w.qtySent||0));
+    return remaining>0;
+  });
+  if(!available.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px;">آیتم آماده‌ای برای پکینگ نیست</div>'; return; }
+  const draft = curPackDraft[prefix]||{};
+  el.innerHTML = available.map(w=>{
+    const wid=w.id.replace(/'/g,"\\'");
+    const remaining=Math.max(0,(w.qtyTotal||0)-(w.qtySent||0));
+    const checked = draft[w.id]!==undefined;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--surface);border:1px solid ${checked?'rgba(34,197,94,.4)':'var(--border)'};border-radius:10px;margin-bottom:6px;cursor:pointer;">
+      <input type="checkbox" ${checked?'checked':''} style="width:16px;height:16px;accent-color:var(--green);flex-shrink:0;"
+        onchange="toggleDraftItem('${wid}',this.checked);renderPackingBuilderList();"/>
+      <div style="flex:1;">
+        <div style="font-size:11.5px;font-weight:700;">${w.name||'—'}</div>
+        <div style="font-size:10px;color:var(--muted);">مانده: ${fn(remaining)} عدد</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+async function finalizePackingFromModal(){
+  const prefix = _packBuilderPrefix;
+  await finalizePacking(prefix);
+  // اگه finalizePacking موفق بود، draft خالی می‌شه — یعنی پکینگ ساخته شد
+  if(!curPackDraft[prefix]){
+    closeModal('modalPackingBuilder');
+    const lastPk = outboundPackings[outboundPackings.length-1];
+    if(lastPk && lastPk.customerPrefix===prefix) openPackingPrintModal(lastPk.id);
+  }
+}
+
+// ── نمای پرینت پکینگ ──
+function openPackingPrintModal(pkId){
+  const p = outboundPackings.find(x=>x.id===pkId);
+  if(!p){ toast('پکینگ پیدا نشد'); return; }
+  const totalQty = (p.items||[]).reduce((s,it)=>s+(it.qty||0),0);
+  document.getElementById('packPrintContent').innerHTML = `
+    <div id="packPrintArea" style="background:#fff;color:#111;padding:20px;border-radius:8px;font-family:Tahoma,sans-serif;">
+      <div style="text-align:center;font-weight:800;font-size:16px;margin-bottom:4px;">برگه‌ی پکینگ — SmartChip</div>
+      <div style="text-align:center;font-size:11px;color:#555;margin-bottom:14px;">کد پکینگ: ${p.id} | تاریخ: ${p.createdDate||''}</div>
+      <div style="font-size:13px;margin-bottom:10px;"><strong>مشتری:</strong> ${p.customer||p.customerPrefix||'—'}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:#eee;"><th style="border:1px solid #ccc;padding:6px;">کد پیگیری</th><th style="border:1px solid #ccc;padding:6px;">نام قطعه</th><th style="border:1px solid #ccc;padding:6px;">تعداد</th></tr>
+        ${(p.items||[]).map(it=>`<tr><td style="border:1px solid #ccc;padding:6px;text-align:center;">${it.displayNumber||'—'}</td><td style="border:1px solid #ccc;padding:6px;">${it.name||'—'}</td><td style="border:1px solid #ccc;padding:6px;text-align:center;">${fn(it.qty)}</td></tr>`).join('')}
+        <tr style="font-weight:800;"><td colspan="2" style="border:1px solid #ccc;padding:6px;text-align:left;">جمع کل</td><td style="border:1px solid #ccc;padding:6px;text-align:center;">${fn(totalQty)}</td></tr>
+      </table>
+      <div style="margin-top:16px;font-size:11px;color:#555;">فاکتور صادر شده: ${p.invoiceDone?'✅ بله':'❌ خیر'}</div>
+    </div>`;
+  openModal('packingPrint');
+}
+
+function doPrintPacking(){
+  const content = document.getElementById('packPrintArea');
+  if(!content) return;
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>پکینگ</title></head><body>${content.outerHTML}</body></html>`);
+  w.document.close();
+  setTimeout(()=>{ w.print(); }, 300);
+}
+
 function toggleDraftItem(whId, checked){
   const w = warehouseItems.find(x=>x.id===whId);
   if(!w) return;
@@ -6126,7 +6208,7 @@ function updateDraftQty(whId, val){
 async function finalizePacking(prefix){
   const draft = curPackDraft[prefix];
   if(!draft || !Object.keys(draft).length){ toast('⚠ چیزی برای پکینگ انتخاب نشده'); return; }
-  const okEl = document.getElementById('packInvoiceOk_'+prefix);
+  const okEl = document.getElementById('packBuilderInvoiceOk');
   if(!okEl || !okEl.checked){ toast('⚠ اول تیک «فاکتور این پکینگ صادر شد» رو بزن'); return; }
   const items=[]; let customer='';
   for(const whId of Object.keys(draft)){
