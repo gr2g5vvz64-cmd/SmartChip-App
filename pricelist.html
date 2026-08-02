@@ -243,7 +243,7 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
     </div>
     <div class="hdr-actions">
       <div class="date-badge" id="dateBadge"></div>
-      <button class="icon-btn" id="syncBtn" onclick="syncFromSheet()" title="همگام‌سازی با شیت">🔄</button>
+      <button class="icon-btn" id="syncBtn" onclick="syncFromSheet()" title="همگام‌سازی کامل و مستقیم با گوگل‌شیت (نه فقط کش)">🔄</button>
       <button class="icon-btn" onclick="takeScreenshot()" title="اسکرین‌شات">📸</button>
     </div>
   </div>
@@ -293,10 +293,19 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
       <div class="card" style="flex:1;display:flex;flex-direction:column;justify-content:center">
         <div class="sec">سودها</div>
         <div class="sl-wrap">
+          <div class="sup-src-radio" style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="radio" name="supSrc" value="purchase" id="supSrcPurchase" checked onchange="calc()"> از خرید (به مشتری اضافه می‌شود)
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="radio" name="supSrc" value="smartchip" id="supSrcSC" onchange="calc()"> از سود اسمارت‌چیپ (به مشتری اضافه نمی‌شود)
+            </label>
+          </div>
           <div class="sl-head"><span class="sl-lbl">سود تامین‌کننده</span><span class="sl-val" id="supVal" style="color:var(--blue)">6٪</span></div>
           <input type="range" min="0" max="12" value="6" id="supSlider" oninput="document.getElementById('supVal').textContent=this.value+'٪';calc()" style="accent-color:#1D4ED8">
           <div class="sl-foot"><span>0٪</span><span>12٪</span></div>
           <div class="sl-total" id="supTotalBox">سود کل ت.: <span id="supTotal">—</span> ﷼</div>
+          <div class="sl-total" id="supFromSCBox" style="display:none;color:var(--gold);">سهم ت. از سود SC: <span id="supFromSCTotal">—</span> ﷼ (به قیمت مشتری اضافه نشده)</div>
         </div>
         <div class="sl-wrap" style="margin-bottom:0">
           <div class="sl-head"><span class="sl-lbl">سود اسمارت‌چیپ</span><span class="sl-val" id="scVal" style="color:var(--gold)">30٪</span></div>
@@ -434,16 +443,33 @@ function onShipInput(el){
   calc();
 }
 
-// ─── SYNC از Django (قبلاً از یه گوگل‌شیت کاملاً جدا می‌خوند — الان یکی شد با بقیه‌ی سیستم) ───
+// ─── SYNC مستقیم از گوگل‌شیت (نه فقط از کش Django) — دقیقاً مثل دکمه‌ی ERP/CRM/موبایل ───
+const MAIN_SHEET_URL = "https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec";
 const DJANGO_ITEMS_API = "https://smartchip-backend.onrender.com/api/items/weights/";
+const DJANGO_ITEMS_SYNC_API = "https://smartchip-backend.onrender.com/api/items/sync/";
+
 async function syncFromSheet(){
   const btn=document.getElementById('syncBtn');
   const status=document.getElementById('syncStatus');
   btn.classList.add('syncing');
   status.style.display='block';
-  status.textContent='در حال بارگذاری از سرور (ممکنه چند ثانیه طول بکشه)...';
+  status.textContent='در حال خواندن مستقیم از گوگل‌شیت (ممکنه کمی طول بکشه، ۳۲هزار+ ردیفه)...';
   status.style.color='var(--muted)';
   try{
+    // ۱. مستقیم از گوگل‌شیت بخون (نه از کش Django)
+    const gRes = await fetch(MAIN_SHEET_URL+'?action=getAllItemWeights&t='+Date.now());
+    const gData = await gRes.json();
+    const items = gData && gData.items;
+    if(!items || !items.length) throw new Error('چیزی از گوگل‌شیت خونده نشد');
+
+    status.textContent=`در حال ارسال ${items.length} ردیف به سرور...`;
+    // ۲. بفرست به Django تا آپدیت بشه
+    const sRes = await fetch(DJANGO_ITEMS_SYNC_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items})});
+    const sData = await sRes.json();
+    if(!sData.ok) throw new Error('ارسال به سرور ناموفق بود');
+
+    status.textContent='در حال بارگذاری نسخه‌ی تازه...';
+    // ۳. حالا از Django (که تازه آپدیت شد) بخون تو همین صفحه
     const res=await fetch(DJANGO_ITEMS_API);
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
@@ -459,18 +485,18 @@ async function syncFromSheet(){
       btn.classList.remove('syncing');
       btn.classList.add('ok');
       btn.textContent='✅';
-      status.textContent='✅ '+data.length+' ردیف بارگذاری شد';
+      status.textContent=`✅ همگام‌سازی کامل شد — ${sData.created||0} جدید، ${sData.updated||0} آپدیت، جمعاً ${data.length} ردیف بارگذاری شد`;
       status.style.color='var(--green)';
-      setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},4000);
+      setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},5000);
       return;
     }
-    throw new Error('empty data');
+    throw new Error('بارگذاری نهایی ناموفق بود');
   }catch(e){
     console.error('Sync failed:',e.message);
     btn.classList.remove('syncing');
     btn.classList.add('err');
     btn.textContent='❌';
-    status.textContent='❌ اتصال ناموفق ('+e.message+')';
+    status.textContent='❌ ناموفق ('+e.message+')';
     status.style.color='var(--red)';
     setTimeout(()=>{btn.classList.remove('err');btn.textContent='🔄';status.style.display='none';},5000);
   }
@@ -724,6 +750,7 @@ function calc(){
   const qty=Math.max(parseFloat((document.getElementById('qty').value||'').replace(/,/g,''))||1,1);
   const sr=parseFloat(document.getElementById('shipRate').value)||0;
   const supPct=parseInt(document.getElementById('supSlider').value)||0;
+  const supFromSC=document.getElementById('supSrcSC').checked; // true = سود از سود اسمارت‌چیپ (نه از خرید)
   const scPct=parseInt(document.getElementById('scSlider').value)||0;
   const cartonEl=document.getElementById('cartonWeight');
   const cartonKg=cartonEl?parseFloat((cartonEl.value||'').replace(/,/g,''))||0:0;
@@ -731,7 +758,10 @@ function calc(){
 
   const rate=buyCur==='CNY'?cny:usd;
   const buyIRR=buy*rate;
-  const supProfit=buyIRR*(supPct/100);
+  // سود تامین‌کننده از خرید: به قیمت پایه (و در نتیجه قیمت نهایی مشتری) اضافه می‌شه.
+  // سود تامین‌کننده از سود اسمارت‌چیپ: اصلاً به قیمت پایه اضافه نمی‌شه — بعداً از خودِ سود
+  // اسمارت‌چیپ (scProfit) کسر می‌شه و فقط جدا نمایش داده می‌شه، به مشتری اضافه نمی‌شه.
+  const supProfit = supFromSC ? 0 : buyIRR*(supPct/100);
 
   // وزن قطعه از شیت (kg)
   const wKg=getWeightKg();
@@ -769,14 +799,20 @@ function calc(){
   const final=base+scProfit;
   const supTotal=supProfit*qty;
   const scTotal=scProfit*qty;
+  // سهم تامین‌کننده از سود اسمارت‌چیپ (فقط وقتی حالت «از اسمارت‌چیپ» فعاله) — اطلاعاتیه، به مشتری اضافه نمی‌شه
+  const supFromSCAmount = supFromSC ? scProfit*(supPct/100) : 0;
+  const supFromSCTotal = supFromSCAmount*qty;
 
   // سود کل زیر اسلایدر
   const supBox=document.getElementById('supTotalBox');
   const scBox=document.getElementById('scTotalBox');
+  const supFromSCBox=document.getElementById('supFromSCBox');
   if(supTotal>0){supBox.style.display='block';document.getElementById('supTotal').textContent=fmt(supTotal);}
   else supBox.style.display='none';
   if(scTotal>0){scBox.style.display='block';document.getElementById('scTotal').textContent=fmt(scTotal);}
   else scBox.style.display='none';
+  if(supFromSC && supFromSCAmount>0){supFromSCBox.style.display='block';document.getElementById('supFromSCTotal').textContent=fmt(supFromSCTotal);}
+  else supFromSCBox.style.display='none';
 
   document.getElementById('r_supLbl').textContent=`سود تامین‌کننده (${supPct}٪)`;
   document.getElementById('r_scLbl').textContent=`سود اسمارت‌چیپ (${scPct}٪)`;
@@ -792,7 +828,7 @@ function calc(){
   else tot.style.display='none';
   document.getElementById('r_partName').textContent=sel?sel.part:'';
 
-  lastCalc={part:sel?sel.part:'',qty,buyCur,buyPrice:buy,buyIRR,supPct,supProfit,supTotal,shipMode,shipRate:sr,shipPP,scPct,scProfit,scTotal,base,final,totalPrice:final*qty,cartonKg,wKg:wKg||0,activeGrp};
+  lastCalc={part:sel?sel.part:'',qty,buyCur,buyPrice:buy,buyIRR,supPct,supProfit,supTotal,supFromSC,supFromSCAmount,supFromSCTotal,shipMode,shipRate:sr,shipPP,scPct,scProfit,scTotal,base,final,totalPrice:final*qty,cartonKg,wKg:wKg||0,activeGrp};
 }
 
 function setCur(c){
