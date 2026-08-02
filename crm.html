@@ -1925,7 +1925,26 @@ async function updateTableEntry(leadId,hIdx,field,value){
     if(!l.history[hIdx].closedDate) l.history[hIdx].closedDate=new Date().toISOString();
   }
   await reliableUpdateLead({id:leadId,history:l.history});
-  toast('✅ ذخیره شد');
+  // اگه این ردیف کنسل شد و دلیل هم نوشته شد و کد پیگیری داره (یعنی به سفارش واقعی رسیده بود)،
+  // آبشار کامل رو تو Django بزن — درخواست/محموله/انبار، هرچی با این کد پیوند داره کنسل بشه
+  if(field==='cancelReason' && value && value.trim() && l.history[hIdx].canceled && l.history[hIdx].trackingCode){
+    try{
+      const res = await fetch('https://smartchip-backend.onrender.com/api/requests/cancel-by-tracking-code/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({trackingCode:l.history[hIdx].trackingCode, reason:value.trim()})
+      });
+      const d = await res.json();
+      if(d.ok){
+        const parts=[];
+        if(d.request) parts.push('درخواست');
+        if(d.shipments) parts.push(d.shipments+' محموله');
+        if(d.warehouseItems) parts.push(d.warehouseItems+' آیتم انبار');
+        toast(parts.length ? `✅ کنسل شد در: ${parts.join('، ')}` : '✅ کنسل شد (رکورد دیگه‌ای مرتبط پیدا نشد)');
+      }
+    }catch(e){ toast('⚠️ کنسلی لید ثبت شد ولی آبشار به ERP ناموفق بود — دستی چک کن'); }
+  } else {
+    toast('✅ ذخیره شد');
+  }
   if(field==='completed'||field==='cancelReason') renderTableView(); // این دو فیلد، تعیین‌کننده‌ی بایگانی‌شدن هستند
 }
 // پیگیری بعدی — نوشتن متن، خودکار تاریخ پاسخ هم امروز می‌خورد
