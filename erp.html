@@ -3005,17 +3005,22 @@ async function trySyncOfflineQueue(){
   _djangoSyncing = true;
   const remaining = [];
   let succeeded = 0;
+  let dropped = 0;
   for(const item of q){
     try{
       const res = await fetch(item.url, {method:item.method, headers:{'Content-Type':'application/json'}, body:item.body});
-      if(!res.ok) throw new Error('failed');
-      succeeded++;
+      if(res.ok){ succeeded++; continue; }
+      // ۴۰۴/۴۰۰/۴۲۲ یعنی این درخواست هیچ‌وقت موفق نمی‌شه (مثلاً شناسه‌ی خراب) — به‌جای
+      // اینکه تا ابد تو صف بمونه و هر ۳۰ ثانیه بی‌فایده retry بشه، حذفش می‌کنیم
+      if([400,404,422].includes(res.status)){ dropped++; continue; }
+      throw new Error('failed');
     }catch(e){
       remaining.push(item);
     }
   }
   setOfflineQueue(remaining);
   _djangoSyncing = false;
+  if(dropped > 0) console.warn(`🗑️ ${dropped} مورد نامعتبر از صف آفلاین حذف شد (هیچ‌وقت موفق نمی‌شدن)`);
   if(succeeded > 0){
     toast(`✅ ${succeeded} مورد از صف آفلاین با موفقیت به سرور ارسال شد`);
     // بعد از sync موفق، بهتره داده‌های محلی رو یه‌بار تازه کنیم
@@ -6304,7 +6309,7 @@ function renderShipments(){
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">
           <button class="action-btn" style="font-size:10px;padding:3px 2px;color:var(--accent);${pl?'background:rgba(240,165,0,.12);':''}" onclick="openPackingModal('${sid}')" title="${pl?'ویرایش پکینگ '+pl.id:'ایجاد پکینگ لیست'}">📦</button>
-          <button class="action-btn" style="font-size:10px;padding:3px 2px;color:${s.sentToClearance?'var(--green)':'#a78bfa'};${s.sentToClearance?'background:rgba(34,197,94,.08);':''}" onclick="${s.sentToClearance?'':"sendToSingleClearance('${sid}')"}" title="${s.sentToClearance?'در صف ترخیص':'ارسال تکی به ترخیص'}">📋</button>
+          <button class="action-btn" style="font-size:10px;padding:3px 2px;color:${s.sentToClearance?'var(--green)':'#a78bfa'};${s.sentToClearance?'background:rgba(34,197,94,.08);':''}" onclick="${s.sentToClearance?'':`sendToSingleClearance('${sid}')`}" title="${s.sentToClearance?'در صف ترخیص':'ارسال تکی به ترخیص'}">📋</button>
         </div>
       </td>    </tr>`;
   }).join('');
