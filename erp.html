@@ -6265,7 +6265,7 @@ function updateWarehouseSLABadges(){
 function exportShipmentsXlsx(){
   if(typeof XLSX === 'undefined'){ toast('⏳ لیبری اکسل هنوز لود نشده — چند ثانیه صبر کن'); return; }
   // همان فیلترهای renderShipments رو اعمال کن
-  let list = shipments.filter(s => s.status !== 'delivered' && s.status !== 'canceled');
+  let list = shipments.filter(s => s.status !== 'delivered' && s.status !== 'canceled' && !s.sentToClearance);
   const search = (document.getElementById('shipSearchQ')||{value:''}).value.trim();
   const filterStatus = (document.getElementById('shipFilterStatus')||{value:''}).value;
   if(filterStatus) list = list.filter(s => s.status === filterStatus);
@@ -6312,7 +6312,8 @@ function exportShipmentsXlsx(){
 
 function renderShipments(){
   renderShipArchive();
-  let list = shipments.filter(s => s.status !== 'delivered' && s.status !== 'canceled');
+  setBadge('clearanceBadge', shipments.filter(s=>s.sentToClearance && !s.clearedToWarehouse).length);
+  let list = shipments.filter(s => s.status !== 'delivered' && s.status !== 'canceled' && !s.sentToClearance);
   const search = (document.getElementById('shipSearchQ') || {value:''}).value.trim();
   const filterStatus = (document.getElementById('shipFilterStatus') || {value:''}).value;
   if(filterStatus) list = list.filter(s => s.status === filterStatus);
@@ -9493,7 +9494,7 @@ function searchProcurementQuickRowAC(inputEl,idx){
 
 function searchShipArchive(v){curShipArchiveSearch=v;renderShipArchive();}
 function renderShipArchive(){
-  let list=(shipments||[]).filter(s=>s.status==='delivered');
+  let list=(shipments||[]).filter(s=>s.status==='delivered' || s.sentToClearance);
   const countEl=document.getElementById('shipArchiveCount');
   if(countEl) countEl.textContent=`(${fn(list.length)} مورد)`;
   if(curShipArchiveSearch){
