@@ -1227,7 +1227,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div id="shipList"></div>
 
       <div class="sec-hdr" style="margin-top:30px;cursor:pointer" onclick="toggleArchive('ship')">
-        <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی (تحویل‌شده) <span id="shipArchiveCount" style="font-size:11px"></span></div>
+        <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی (ترخیص + تحویل‌شده) <span id="shipArchiveCount" style="font-size:11px"></span></div>
         <span id="shipArchiveChevron" style="color:var(--muted)">›</span>
       </div>
       <div id="shipArchiveBox" style="display:none;">
@@ -1236,6 +1236,16 @@ textarea.form-control{resize:vertical;min-height:70px;}
             <div class="search-box"><span>🔍</span><input type="text" placeholder="جستجو در بایگانی: تامین‌کننده، شرح، تعداد..." oninput="searchShipArchive(this.value)"/></div>
           </div>
           <div id="shipArchiveList"></div>
+        </div>
+      </div>
+
+      <div class="sec-hdr" style="margin-top:16px;cursor:pointer" onclick="toggleArchive('pack')">
+        <div class="sec-title" style="color:var(--muted)">📦 بایگانی پکینگ‌های ارسال‌شده <span id="packArchiveCount" style="font-size:11px"></span></div>
+        <span id="packArchiveChevron" style="color:var(--muted)">›</span>
+      </div>
+      <div id="packArchiveBox" style="display:none;">
+        <div class="tbl-wrap" style="opacity:.85">
+          <div id="packArchiveList"></div>
         </div>
       </div>
     </div>
@@ -1286,8 +1296,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <div class="sec-title">🛃 ترخیص</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;">
-        <button class="fpill active" id="clrTabPL" onclick="showClearanceTab('pl')">📦 پکینگ‌ها</button>
-        <button class="fpill" id="clrTabSingle" onclick="showClearanceTab('single')">📋 آیتم‌های تکی</button>
+        <button class="fpill active" id="clrTabPL" onclick="showClearanceTab('pl')">📦 پکینگ‌ها <span id="clrTabPLCount" style="font-size:9px;background:rgba(240,165,0,.2);padding:1px 6px;border-radius:10px;margin-right:3px;"></span></button>
+        <button class="fpill" id="clrTabSingle" onclick="showClearanceTab('single')">📋 آیتم‌های تکی <span id="clrTabSingleCount" style="font-size:9px;background:rgba(240,165,0,.2);padding:1px 6px;border-radius:10px;margin-right:3px;"></span></button>
       </div>
       <div id="clearanceContent"></div>
     </div>
@@ -5765,6 +5775,11 @@ function showClearanceTab(tab){
 function renderClearance(){
   const el = document.getElementById('clearanceContent');
   if(!el) return;
+  // شمارنده‌ی هر دو تب — همیشه محاسبه می‌شه، حتی اگه الان تو اون تب نباشی
+  const activePLsCount = packingLists.filter(pl => pl.status !== 'warehoused' && pl.status !== 'canceled').length;
+  const singlesCount = shipments.filter(s => s.sentToClearance && s.status!=='canceled' && !s.clearedToWarehouse && !packingLists.some(pl=>(pl.items||[]).includes(s.id))).length;
+  setBadge('clrTabPLCount', activePLsCount);
+  setBadge('clrTabSingleCount', singlesCount);
   if(curClearanceTab === 'pl'){
     const activePLs = packingLists.filter(pl => pl.status !== 'warehoused' && pl.status !== 'canceled');
     if(!activePLs.length){ el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">پکینگ فعالی وجود ندارد</div></div>'; return; }
@@ -5963,6 +5978,7 @@ function getDisplayPrefix(dn){
 }
 
 function renderWarehouse(){
+  renderPackArchive();
   const el = document.getElementById('warehouseContent');
   if(!el) return;
   if(!warehouseItems.length){ el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏭</div><div class="empty-text">هنوز چیزی وارد انبار نشده</div></div>'; return; }
@@ -6037,7 +6053,7 @@ function renderWarehouse(){
   };
 
   const packingsListHTML = prefix => {
-    const list = outboundPackings.filter(p=>p.customerPrefix===prefix);
+    const list = outboundPackings.filter(p=>p.customerPrefix===prefix && !p.sent);
     if(!list.length) return '';
     return list.map(p=>`
       <div style="background:var(--card);border:1px solid ${p.sent?'rgba(34,197,94,.3)':'rgba(168,85,247,.3)'};border-radius:10px;padding:10px;margin-bottom:8px;">
@@ -9493,6 +9509,24 @@ function searchProcurementQuickRowAC(inputEl,idx){
 }
 
 function searchShipArchive(v){curShipArchiveSearch=v;renderShipArchive();}
+function renderPackArchive(){
+  const list=(outboundPackings||[]).filter(p=>p.sent);
+  const countEl=document.getElementById('packArchiveCount');
+  if(countEl) countEl.textContent=`(${fn(list.length)} مورد)`;
+  const el=document.getElementById('packArchiveList');
+  if(!el) return;
+  list.sort((a,b)=>(b.sentISO||'').localeCompare(a.sentISO||''));
+  el.innerHTML=list.length?list.map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;">
+      <div style="flex:1;min-width:0">
+        <strong>${p.id}</strong> — ${p.customer||p.customerPrefix||'—'}
+        <span style="color:var(--muted);">— ${(p.items||[]).map(it=>it.name+' ×'+fn(it.qty)).join('، ')}</span>
+      </div>
+      <span style="color:var(--green);font-weight:700;white-space:nowrap;">✅ ${p.sentDate||''}</span>
+      <button class="action-btn" style="font-size:10px;color:var(--accent);border-color:rgba(240,165,0,.3)" onclick="openPackingPrintModal('${p.id}')" title="پرینت">🖨️</button>
+    </div>`).join(''):'<div style="padding:16px;text-align:center;color:var(--muted);font-size:11px;">هنوز پکینگی ارسال نشده</div>';
+}
+
 function renderShipArchive(){
   let list=(shipments||[]).filter(s=>s.status==='delivered' || s.sentToClearance);
   const countEl=document.getElementById('shipArchiveCount');
