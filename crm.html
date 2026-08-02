@@ -593,6 +593,15 @@ async function createRequestInDjango(data){
     return requestFromApi(await res.json());
   }catch(e){ console.error('خطای ساخت درخواست در Django:', e); return null; }
 }
+// آپدیت قطعات (parts) یه درخواست موجود — برای وقتی که استعلام یه درخواست از قبل ساخته‌شده
+// ویرایش می‌شه (آیتم/تعداد جدید اضافه می‌شه) و باید تو ERP هم دیده بشه، نه فقط تو Lead
+async function updateRequestPartsInDjango(id, parts){
+  try{
+    const res = await fetch(DJANGO_REQUESTS_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({parts})});
+    if(!res.ok){ console.error('خطای آپدیت قطعات درخواست در Django: HTTP', res.status); return null; }
+    return requestFromApi(await res.json());
+  }catch(e){ console.error('خطای آپدیت قطعات درخواست در Django:', e); return null; }
+}
 async function fetchRequestsFromDjango(){
   try{
     const res = await fetch(DJANGO_REQUESTS_API);
@@ -2306,6 +2315,20 @@ async function saveEstelamatTick(){
       toast(`✅ درخواست با کد ${entry.trackingCode} در ERP ساخته شد`);
     } else {
       toast('❌ ساخت درخواست ناموفق بود');
+    }
+  } else if(entry.linkedRequestId){
+    // درخواست از قبل تو ERP ساخته شده — آیتم‌های جدید/ویرایش‌شده رو هم به همون درخواست بفرست
+    const updated = await updateRequestPartsInDjango(entry.linkedRequestId, {
+      needMarket:entry.procurementParts.needMarket, needForeign:entry.procurementParts.needForeign,
+      needFinance:entry.procurementParts.needFinance, marketItems:entry.procurementParts.marketItems,
+      foreignItems:entry.procurementParts.foreignItems, finance:entry.procurementParts.finance
+    });
+    if(updated){
+      const idx=cachedRequests.findIndex(r=>String(r.id)===String(entry.linkedRequestId));
+      if(idx>-1) cachedRequests[idx]=updated;
+      toast('✅ ذخیره شد و در ERP هم به‌روز شد');
+    } else {
+      toast('⚠️ تو CRM ذخیره شد ولی آپدیت ERP ناموفق بود — دستی چک کن');
     }
   } else {
     toast('✅ ذخیره شد');
