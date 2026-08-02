@@ -227,6 +227,12 @@ html[data-theme="light"] .crm-table td select{color:#0f1828;font-weight:500;}
   </div>
 </div>
 
+<!-- نشونگر بارگذاری — تا وقتی همه‌ی داده‌ها (لیدها، درخواست‌ها، محموله‌ها، ...) کامل نرسیدن نمایش داده می‌شه -->
+<div id="crmLoadingState" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:13px;">
+  <div style="font-size:32px;">⏳</div>
+  <div>در حال بارگذاری اطلاعات CRM...</div>
+</div>
+
 <!-- ساختار اصلی اپ — سایدبار + محتوا، عیناً مثل ERP -->
 <div class="app" id="appLayout" style="display:none;">
   <aside class="sidebar">
@@ -868,16 +874,32 @@ function submitEmailForm(){
   document.getElementById('emailFormContent').style.display='none';
   if(_emailFormResolve) _emailFormResolve(val);
 }
+async function getCurrentUserInfoFromDjangoOrSheet(email){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    if(res.status===404){
+      return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+    }
+    if(res.ok){
+      const d = await res.json();
+      if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
+      return { email, name:d.name||'', role:d.role||'', isStaff:true };
+    }
+  }catch(e){ /* مشکل شبکه — به fallback گوگل‌شیت برمی‌گردیم */ }
+  return await sheetCall('getCurrentUserInfo', { email });
+}
 async function init(){
   const email=await ensureUserEmail();
   if(!email){
+    document.getElementById('crmLoadingState').style.display='none';
     document.getElementById('accessDeniedContent').style.display='block';
     document.getElementById('accessDeniedMsg').textContent='بدون ایمیل نمی‌توان ادامه داد';
     document.getElementById('userChipText').textContent='دسترسی ندارید';
     return;
   }
-  const userInfo=await sheetCall('getCurrentUserInfo',{email});
+  const userInfo=await getCurrentUserInfoFromDjangoOrSheet(email);
   if(!userInfo || !userInfo.isStaff){
+    document.getElementById('crmLoadingState').style.display='none';
     document.getElementById('accessDeniedContent').style.display='block';
     document.getElementById('accessDeniedMsg').innerHTML=((userInfo&&userInfo.error)||'ارتباط با سرور برقرار نشد')+
       '<br><br><a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);font-size:11px;">تغییر ایمیل</a>';
@@ -886,43 +908,62 @@ async function init(){
   }
   currentUser=userInfo;
   document.getElementById('userChipText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
-  document.getElementById('appLayout').style.display='flex';
   // درخواست‌های موازی — یادآوری‌ها هم اضافه شدند
-  const [whRes, pkRes] = await Promise.all([
-    sheetCall('getWarehouseItems'),
-    sheetCall('getOutboundPackings')
-  ]);
+  try{
+    const [whRes, pkRes] = await Promise.all([
+      sheetCall('getWarehouseItems'),
+      sheetCall('getOutboundPackings')
+    ]);
+    cachedWarehouseItems=(whRes&&whRes.items)||[];
+    cachedOutboundPackings=(pkRes&&pkRes.packings)||[];
+  }catch(e){ console.error('خطای بارگذاری انبار/پکینگ:', e); }
   // چک‌ها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۲۳ مهاجرت)
-  const [djangoChqRec, djangoPaidChq] = await Promise.all([
-    fetchChequesReceivedFromDjango(), fetchPaidChequesFromDjango()
-  ]);
-  chequesReceived = djangoChqRec || [];
-  paidCheques = djangoPaidChq || [];
+  try{
+    const [djangoChqRec, djangoPaidChq] = await Promise.all([
+      fetchChequesReceivedFromDjango(), fetchPaidChequesFromDjango()
+    ]);
+    chequesReceived = djangoChqRec || [];
+    paidCheques = djangoPaidChq || [];
+  }catch(e){ console.error('خطای بارگذاری چک‌ها:', e); }
   // محموله‌ها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۲۰ مهاجرت)
-  const djangoShipments = await fetchShipmentsFromDjango();
-  shipments = djangoShipments || [];
-  cachedWarehouseItems=(whRes&&whRes.items)||[];
-  cachedOutboundPackings=(pkRes&&pkRes.packings)||[];
+  try{
+    const djangoShipments = await fetchShipmentsFromDjango();
+    shipments = djangoShipments || [];
+  }catch(e){ console.error('خطای بارگذاری محموله‌ها:', e); }
   // درخواست‌های فروش — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۱۶ مهاجرت)
-  const djangoRequests = await fetchRequestsFromDjango();
-  cachedRequests = djangoRequests || [];
+  try{
+    const djangoRequests = await fetchRequestsFromDjango();
+    cachedRequests = djangoRequests || [];
+  }catch(e){ console.error('خطای بارگذاری درخواست‌ها:', e); }
   // لیدها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۱۲ مهاجرت)
-  const djangoLeads = await fetchLeadsFromDjango();
-  leads = djangoLeads || [];
+  try{
+    const djangoLeads = await fetchLeadsFromDjango();
+    leads = djangoLeads || [];
+    console.log('✅ لیدها بارگذاری شد:', leads.length, 'مورد');
+  }catch(e){ console.error('❌ خطای بارگذاری لیدها:', e); }
   // مشتریان — دیگر از گوگل‌شیت نمی‌آید، از بک‌اند واقعی Django می‌آید (مرحله ۳ مهاجرت)
-  const djangoCustomers = await fetchCustomersFromDjango();
-  customerMaster = djangoCustomers || [];
+  try{
+    const djangoCustomers = await fetchCustomersFromDjango();
+    customerMaster = djangoCustomers || [];
+  }catch(e){ console.error('خطای بارگذاری مشتریان:', e); }
   // وصول مطالبات — دیگر از گوگل‌شیت نمی‌آید، از بک‌اند واقعی Django می‌آید
-  const djangoDebtCases = await fetchDebtCasesFromDjango();
-  debtCases = djangoDebtCases || [];
+  try{
+    const djangoDebtCases = await fetchDebtCasesFromDjango();
+    debtCases = djangoDebtCases || [];
+  }catch(e){ console.error('خطای بارگذاری وصول مطالبات:', e); }
   // یادآوری آزاد/دوره‌ای — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۷ مهاجرت)
-  const [djangoFreeRem, djangoRecurring] = await Promise.all([
-    fetchFreeRemindersFromDjango(), fetchRecurringRemindersFromDjango()
-  ]);
-  freeReminders = djangoFreeRem || [];
-  recurringReminders = djangoRecurring || [];
+  try{
+    const [djangoFreeRem, djangoRecurring] = await Promise.all([
+      fetchFreeRemindersFromDjango(), fetchRecurringRemindersFromDjango()
+    ]);
+    freeReminders = djangoFreeRem || [];
+    recurringReminders = djangoRecurring || [];
+  }catch(e){ console.error('خطای بارگذاری یادآوری‌ها:', e); }
   // شماره‌ی بعدی ID یادآوری دوره‌ای
   if(recurringReminders.length) nextRecId=Math.max(...recurringReminders.map(r=>Number(String(r.id).replace(/\D/g,''))||0))+1;
+  // الان همه‌ی داده‌ها (لیدها، درخواست‌ها، محموله‌ها، ...) واقعاً رسیدن — تازه الان صفحه رو نشون بده
+  document.getElementById('crmLoadingState').style.display='none';
+  document.getElementById('appLayout').style.display='flex';
   postLoadInit();
 }
 function roleLabel(role){
@@ -936,7 +977,10 @@ function renderToolbar(){
       <div class="tbl-wrap" style="margin-bottom:22px;">
         <div class="tbl-hdr">
           <div class="sec-title">🔔 یادآوری‌های آزاد</div>
-          <button class="btn btn-primary btn-sm" onclick="openFreeReminderForm()">+ یادآوری آزاد جدید</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" style="color:#f0a500;border-color:rgba(240,165,0,.35);" onclick="openTomorrowPlanForm()">📝 برنامه‌ی فردا</button>
+            <button class="btn btn-primary btn-sm" onclick="openFreeReminderForm()">+ یادآوری آزاد جدید</button>
+          </div>
         </div>
         <div id="freeRemBody"></div>
       </div>
@@ -2865,6 +2909,7 @@ const FREE_REM_CATEGORIES=[
   {key:'personal',  icon:'🙂', label:'شخصی'},
   {key:'order',     icon:'📦', label:'سفارش'},
   {key:'followup',  icon:'🔁', label:'پیگیری'},
+  {key:'tomorrow',  icon:'📝', label:'برنامه‌ی فردا'},
 ];
 let curFreeRemCategory='personal'; // پیش‌فرض فرم
 function renderFreeRemCategoryPills(){
@@ -2893,6 +2938,21 @@ function openFreeReminderForm(presetDate){
   document.getElementById('freeRemModalTitle').textContent='🔔 یادآوری آزاد جدید';
   document.getElementById('freeRemSaveBtn').textContent='ثبت یادآوری';
   curFreeRemCategory='personal';
+  renderFreeRemCategoryPills();
+  openModal('freereminder');
+}
+
+// میان‌بر «+ برنامه‌ی فردا» — دقیقاً همون فرم یادآوری آزاد، فقط از قبل با تاریخ فردا و
+// دسته‌ی «برنامه‌ی فردا» پر شده؛ فیلد مشتری عمداً خالی می‌مونه (کار شخصی، نه کار مشتری خاص)
+function openTomorrowPlanForm(){
+  document.getElementById('freeRemEditId').value='';
+  document.getElementById('freeRemCust').value='';
+  document.getElementById('freeRemDesc').value='';
+  document.getElementById('freeRemDate').value=addDaysToShamsi(todayShamsiStr(),1);
+  document.getElementById('freeRemEndDate').value='';
+  document.getElementById('freeRemModalTitle').textContent='📝 برنامه‌ی فردا';
+  document.getElementById('freeRemSaveBtn').textContent='ثبت برنامه';
+  curFreeRemCategory='tomorrow';
   renderFreeRemCategoryPills();
   openModal('freereminder');
 }
