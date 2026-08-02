@@ -5678,7 +5678,7 @@ async function savePackingList(){
 
 // ارسال تکی به ترخیص (بدون پکینگ)
 async function sendToSingleClearance(shipId){
-  const s = findShipment(shipId);
+  const s = await findShipment(shipId);
   if(!s){ toast('سفارش پیدا نشد'); return; }
   if(s.sentToClearance){ toast('این آیتم قبلاً به ترخیص فرستاده شده'); return; }
   s.sentToClearance = true;
@@ -5689,8 +5689,8 @@ async function sendToSingleClearance(shipId){
 }
 
 // رفع مشکل آیتم قرمز (که در پکینگ مانده)
-function resolveRedItem(shipId){
-  const s = findShipment(shipId);
+async function resolveRedItem(shipId){
+  const s = await findShipment(shipId);
   if(!s) return;
   const opts = ['گم‌شده در مسیر','فراموش‌شده در پکینگ توسط تامین‌کننده','مشکل گمرکی','ارسال در محموله‌ی بعدی','لغو سفارش'];
   const div = document.createElement('div');
@@ -5708,7 +5708,7 @@ function resolveRedItem(shipId){
 async function applyResolve(shipId, div){
   const opt = div.querySelector('input[name="resolveOpt"]:checked');
   if(!opt){ toast('علت رو انتخاب کن'); return; }
-  const s = findShipment(shipId);
+  const s = await findShipment(shipId);
   if(!s) return;
   s.resolveReason = opt.value;
   s.resolveNote = div.querySelector('#resolveNote').value.trim();
@@ -5777,7 +5777,7 @@ function renderClearance(){
 }
 
 async function toggleClearanceItem(shipId, checked){
-  const s = findShipment(shipId);
+  const s = await findShipment(shipId);
   if(!s) return;
   s.clearedToWarehouse = checked;
   await updateShipmentInDjangoERP(s);
@@ -5804,14 +5804,26 @@ function checkAllPLItems(plId){
 // پیدا کردن محموله با شناسه — مقاوم در برابر فاصله‌ی اضافه یا اختلاف بزرگ/کوچیکی حروف
 // (که می‌تونه از ویرایش دستی تو گوگل‌شیت پیش بیاد و باعث بشه «سفارش پیدا نشد» نشون بده
 // درحالی‌که محموله واقعاً وجود داره)
-function findShipment(shipId){
+async function findShipment(shipId){
   const target = String(shipId||'').trim();
   let s = shipments.find(x=>String(x.id)===String(shipId));
   if(s) return s;
   s = shipments.find(x=>String(x.id).trim()===target);
   if(s) return s;
   const targetLower = target.toLowerCase();
-  return shipments.find(x=>String(x.id).trim().toLowerCase()===targetLower);
+  s = shipments.find(x=>String(x.id).trim().toLowerCase()===targetLower);
+  if(s) return s;
+  // تو حافظه‌ی محلی نبود (احتمالاً کش هنوز به‌روز نشده) — مستقیم از Django بگیر
+  try{
+    const res = await fetch(DJANGO_SHIPMENTS_API_ERP+encodeURIComponent(target)+'/');
+    if(res.ok){
+      const fresh = shipmentFromApiERP(await res.json());
+      const idx = shipments.findIndex(x=>String(x.id).trim().toLowerCase()===targetLower);
+      if(idx>-1) shipments[idx]=fresh; else shipments.push(fresh);
+      return fresh;
+    }
+  }catch(e){ /* شبکه قطع بود — بی‌خطر، پایین همون null برمی‌گرده */ }
+  return null;
 }
 function extractShipQty(s){
   if(s.partQty!==undefined && s.partQty!==null && s.partQty!=='') return parseIntFa(String(s.partQty).replace(/,/g,''))||0;
@@ -5872,7 +5884,7 @@ async function movePLToWarehouse(plId){
   whItems.forEach(w=>{ if(w.customer && !doneCustomers.has(w.customer)){ doneCustomers.add(w.customer); autoNotifyWH(w.id,'warehouse'); } });
 }
 async function moveSingleToWarehouse(shipId){
-  const s = findShipment(shipId);
+  const s = await findShipment(shipId);
   if(!s) return;
   s.clearedToWarehouse = true;
   s.warehousedDate = todayShamsiStr();
@@ -6580,8 +6592,8 @@ function getCustomerMobile(customerName){
   return cm ? (cm.mobile||'') : '';
 }
 
-function notifyWhatsApp(shipId, msgType){
-  const s = findShipment(shipId);
+async function notifyWhatsApp(shipId, msgType){
+  const s = await findShipment(shipId);
   if(!s){ toast('سفارش پیدا نشد'); return; }
   const phone = getCustomerMobile(s.customer).replace(/\D/g,'').replace(/^0/,'98');
   if(!phone){ toast('⚠️ شماره موبایل '+s.customer+' در شیت مشتریان نیست (ستون Y)'); return; }
@@ -6591,7 +6603,7 @@ function notifyWhatsApp(shipId, msgType){
 }
 
 async function notifySMS(shipId, msgType){
-  const s = findShipment(shipId);
+  const s = await findShipment(shipId);
   if(!s){ toast('سفارش پیدا نشد'); return; }
   const phone = getCustomerMobile(s.customer);
   if(!phone){ toast('⚠️ شماره موبایل '+s.customer+' در شیت مشتریان نیست (ستون Y)'); return; }
@@ -7260,7 +7272,7 @@ function calGoToday(){ initCal(); if(typeof renderCal==='function') renderCal();
 
 // اطلاع‌رسانی هوشمند — اولویت: تلگرام → بله → پیامک
 async function smartNotify(shipId, msgType){
-  const s = findShipment(shipId);
+  const s = await findShipment(shipId);
   if(!s){ toast('سفارش پیدا نشد'); return; }
   const msg = MSG_TEMPLATES[msgType](s);
   toast('⏳ در حال ارسال...');
@@ -7348,8 +7360,8 @@ async function autoNotifyWH(whId, msgType){
 // ══════════════════════════════════════════════════════════════════
 // ویرایش وضعیت محموله
 // ══════════════════════════════════════════════════════════════════
-function openShipStatusModal(shipId){
-  const s = findShipment(shipId);
+async function openShipStatusModal(shipId){
+  const s = await findShipment(shipId);
   if(!s){ toast('سفارش پیدا نشد'); return; }
   const sid = shipId;
   const modal = document.getElementById('modalShipStatus');
