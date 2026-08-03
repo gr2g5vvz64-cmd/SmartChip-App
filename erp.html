@@ -688,9 +688,7 @@ td[style*="color:var(--muted)"], .kpi-sub, .reminder-meta, .empty-text{color:var
 .nav-group.collapsed .ng-arrow{transform:rotate(-90deg);}
 .nav-group.collapsed .ng-summary{display:inline-block;}
 .nav-group.collapsed .ng-arrow{margin-right:0;}
-.nav-group-items{overflow:visible;max-height:none;}
-.nav-group-label{cursor:default;}
-.nav-group-label .ng-arrow{display:none;}
+.nav-group-items{overflow:hidden;transition:max-height .25s ease;}
 .nav-item{display:flex;align-items:center;gap:9px;padding:10px 10px;border-radius:10px;cursor:pointer;color:#eef0f7;font-size:14px;font-weight:500;font-family:'Vazirmatn',sans-serif;transition:all .15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:right;}
 html[data-theme="light"] .nav-item{color:#2d1800;}
 html[data-theme="light"] .nav-item.active{color:var(--accent);}
@@ -3988,6 +3986,8 @@ function renderForcePriorityBox(){
 
 function renderDash(){
   updateNavBadges();
+  updateNavGroupSummaries();
+  if(!window._navGroupsRestored){ window._navGroupsRestored=true; restoreNavGroupStates(); }
   const follow=requests.filter(r=>r.status==='follow').length;
   const overdue=requests.filter(r=>r.status==='overdue').length;
   const done=requests.filter(r=>r.status==='done').length;
@@ -7840,19 +7840,36 @@ async function toggleAddressActive(id, active){
 
 // ══ اکوردئون سایدبار ══
 function toggleNavGroup(id){
-  // آکاردئون غیرفعال شد — همه گروه‌ها همیشه باز هستند
-  return;
+  const grp = document.getElementById(id);
+  const key = id.replace('ng-','');
+  const items = document.getElementById('ngi-'+key);
+  if(!grp || !items) return;
+  const willCollapse = !grp.classList.contains('collapsed');
+  grp.classList.toggle('collapsed', willCollapse);
+  items.style.maxHeight = willCollapse ? '0' : items.scrollHeight+'px';
+  // بعد از باز شدن، وقتی محتواش عوض شد (مثلاً یه صفحه رو باز کردی)، ارتفاع نامحدود کن تا هیچ‌وقت بریده نشه
+  if(!willCollapse) setTimeout(()=>{ if(!grp.classList.contains('collapsed')) items.style.maxHeight='none'; }, 260);
+  const states = JSON.parse(localStorage.getItem('navGroupStates')||'{}');
+  states[id] = willCollapse;
+  localStorage.setItem('navGroupStates', JSON.stringify(states));
 }
 
 function restoreNavGroupStates(){
-  // آکاردئون غیرفعال شده — همه گروه‌ها را باز نگه می‌داریم
+  const states = JSON.parse(localStorage.getItem('navGroupStates')||'{}');
   document.querySelectorAll('.nav-group[id]').forEach(grp=>{
-    grp.classList.remove('collapsed');
-    const key = grp.id.replace('ng-','');
+    const id = grp.id;
+    const key = id.replace('ng-','');
     const items = document.getElementById('ngi-'+key);
-    if(items) items.style.maxHeight = 'none';
+    if(!items) return;
+    if(states[id] === true){
+      grp.classList.add('collapsed');
+      items.style.maxHeight = '0';
+    } else {
+      grp.classList.remove('collapsed');
+      items.style.maxHeight = 'none';
+    }
   });
-  return;
+  updateNavGroupSummaries();
 }
 function __oldRestoreNavGroupStates_unused(){
   const states = JSON.parse(localStorage.getItem('navGroupStates')||'{}');
@@ -7888,6 +7905,23 @@ function updateNavGroupSummaries(){
   const retCheques = (chequesReturned||[]).filter(c=>c.status!=='done').length;
   const el4=document.getElementById('ngs-finance');
   if(el4) el4.textContent = retCheques ? retCheques+' برگشتی' : '';
+
+  // شمارنده‌ی عددی جمعی هر گروه — خودکار از رو مجموع شمارنده‌های تک‌تک آیتم‌های داخل همون گروه
+  // (همون nbadge هایی که هرجای دیگه‌ی کد با setBadge پر می‌شن) — نیازی به منطق دستی جدا نداره
+  document.querySelectorAll('.nav-group[id]').forEach(grp=>{
+    const key = grp.id.replace('ng-','');
+    const itemsContainer = document.getElementById('ngi-'+key);
+    const badgeEl = document.getElementById('ngb-'+key);
+    if(!itemsContainer || !badgeEl) return;
+    let sum = 0;
+    itemsContainer.querySelectorAll('.nbadge').forEach(b=>{
+      if(b.style.display === 'none') return;
+      const n = parseInt(String(b.textContent).replace(/[^\d]/g,''))||0;
+      sum += n;
+    });
+    if(sum>0){ badgeEl.textContent = fn(sum); badgeEl.style.display=''; }
+    else badgeEl.style.display='none';
+  });
 }
 
 function renderChequesReceived(){
