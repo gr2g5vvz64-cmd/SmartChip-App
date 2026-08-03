@@ -602,6 +602,20 @@ async function updateRequestPartsInDjango(id, parts){
     return requestFromApi(await res.json());
   }catch(e){ console.error('خطای آپدیت قطعات درخواست در Django:', e); return null; }
 }
+// اطلاع‌رسانی به تأمین‌کنندگان خارج (تلگرام/بله) برای هر آیتم استعلام — بی‌خطر و بی‌صدا
+// اگه شبکه قطع بود یا خطا داد (چون این فقط یه اطلاع‌رسانی جانبیه، نه خودِ ذخیره‌سازی)
+async function notifyForeignSuppliersForItems(requestId, trackingCode, items, realIdxList){
+  if(!items || !items.length) return;
+  for(let i=0;i<items.length;i++){
+    const realIdx = realIdxList ? realIdxList[i] : i;
+    try{
+      await fetch('https://smartchip-backend.onrender.com/api/bot/notify-foreign-inquiry/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({requestId, trackingCode, itemIdx:realIdx, partName:items[i].name, qty:items[i].qty})
+      });
+    }catch(e){ console.error('اطلاع‌رسانی تامین‌کننده خارج ناموفق بود:', e); }
+  }
+}
 async function fetchRequestsFromDjango(){
   try{
     const res = await fetch(DJANGO_REQUESTS_API);
@@ -2313,6 +2327,7 @@ async function saveEstelamatTick(){
       entry.linkedRequestId=savedReq.id;
       entry.estelamatSentDate=new Date().toISOString(); // شروع شمارش SLA پاسخگویی تدارکات/بازرگانی
       toast(`✅ درخواست با کد ${entry.trackingCode} در ERP ساخته شد`);
+      notifyForeignSuppliersForItems(savedReq.id, entry.trackingCode, entry.procurementParts.foreignItems);
     } else {
       toast('❌ ساخت درخواست ناموفق بود');
     }
@@ -2327,6 +2342,11 @@ async function saveEstelamatTick(){
       const idx=cachedRequests.findIndex(r=>String(r.id)===String(entry.linkedRequestId));
       if(idx>-1) cachedRequests[idx]=updated;
       toast('✅ ذخیره شد و در ERP هم به‌روز شد');
+      // فقط آیتم‌هایی که هنوز هیچ قیمتی ندارن (تازه اضافه شدن) رو اطلاع بده — تا تامین‌کننده اسپم نشه
+      // (اندیس واقعیشون تو آرایه‌ی کامل نگه داشته می‌شه، نه اندیس تو لیست فیلترشده)
+      const allForeign=entry.procurementParts.foreignItems||[];
+      const freshWithIdx=allForeign.map((it,idx)=>({it,idx})).filter(x=>!x.it.quotes||!x.it.quotes.length);
+      notifyForeignSuppliersForItems(entry.linkedRequestId, entry.trackingCode, freshWithIdx.map(x=>x.it), freshWithIdx.map(x=>x.idx));
     } else {
       toast('⚠️ تو CRM ذخیره شد ولی آپدیت ERP ناموفق بود — دستی چک کن');
     }
