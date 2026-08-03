@@ -3170,8 +3170,10 @@ function debtStatusLabel(c){
 function renderDebtsView(){
   const el=document.getElementById('debtsView');
   if(!el) return;
-  const active=(debtCases||[]).filter(c=>!c.financeApproved);
-  const closed=(debtCases||[]).filter(c=>c.financeApproved);
+  // فقط پرونده‌هایی که از ERP به فروش ارجاع شدن (assignedTo پر باشه) اینجا دیده می‌شن —
+  // تا وقتی ارجاع نزده باشن، فقط تو ERP دیده می‌شن، نه تو CRM
+  const active=(debtCases||[]).filter(c=>!c.financeApproved && c.assignedTo);
+  const closed=(debtCases||[]).filter(c=>c.financeApproved && c.assignedTo);
   const cardHTML=c=>{
     const {collected,remaining}=debtCaseTotals(c);
     const st=debtStatusLabel(c);

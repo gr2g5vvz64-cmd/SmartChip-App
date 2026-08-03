@@ -1872,6 +1872,18 @@ textarea.form-control{resize:vertical;min-height:70px;}
 </div>
 
 <!-- PACKING BUILDER MODAL — انتخاب چندتایی آیتم‌های انبار برای ساخت یه پکینگ -->
+<!-- NEW DEBT CASE MODAL -->
+<div class="modal-overlay" id="modalNewDebtCase" onclick="closeModalOut(event,'modalNewDebtCase')">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr"><div class="modal-title">💳 ثبت پرونده‌ی جدید وصول مطالبات</div><button class="close-btn" onclick="closeModal('modalNewDebtCase')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">نام مشتری *</label><input class="form-control" id="debtCaseCustomerInput" placeholder="نام مشتری..."/></div>
+      <div class="form-group form-full"><label class="form-label">مبلغ کل بدهی (تومان) *</label><input class="form-control" id="debtCaseAmountInput" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 50000000"/></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveNewDebtCase()">ثبت پرونده</button><button class="btn btn-ghost" onclick="closeModal('modalNewDebtCase')">انصراف</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalPackingBuilder" onclick="closeModalOut(event,'modalPackingBuilder')">
   <div class="modal" style="width:640px;max-height:85vh;display:flex;flex-direction:column;">
     <div class="modal-hdr"><div class="modal-title" id="packBuilderTitle">📦 ساخت پکینگ جدید</div><button class="close-btn" onclick="closeModal('modalPackingBuilder')">✕</button></div>
@@ -2619,10 +2631,10 @@ async function loadFromSheet() {
     if(djangoChqRet) chequesReturned = djangoChqRet;
     if(djangoPaidChq) paidCheques = djangoPaidChq;
     // ۷ ماژول باقیمانده — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    const [djangoWh, djangoOutbound, djangoAddr, djangoFeedback, djangoUrgent, djangoFinTasks, djangoFsp, djangoDPurch] = await Promise.all([
+    const [djangoWh, djangoOutbound, djangoAddr, djangoFeedback, djangoUrgent, djangoFinTasks, djangoFsp, djangoDPurch, djangoDebts] = await Promise.all([
       fetchWarehouseItemsFromDjango(), fetchOutboundPackingsFromDjango(), fetchCustomerAddressesFromDjango(),
       fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango(),
-      fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango()
+      fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango(), fetchDebtCasesFromDjango()
     ]);
     if(djangoWh) warehouseItems = djangoWh;
     if(djangoOutbound) outboundPackings = djangoOutbound;
@@ -2632,6 +2644,7 @@ async function loadFromSheet() {
     if(djangoFinTasks) financeTasks = djangoFinTasks;
     if(djangoFsp) foreignSupplierPerformance = djangoFsp;
     if(djangoDPurch) domesticPurchaseArchive = djangoDPurch;
+    if(djangoDebts) debtCases = djangoDebts;
 
     // ── ذخیره در localStorage برای بار بعد (آنی) ──
     try{
@@ -3912,14 +3925,23 @@ function showPage(p){
     'deptfeedback-tadarokat':'بازخورد — تدارکات','deptfeedback-bazargani':'بازخورد — بازرگانی',
     'deptfeedback-mali':'بازخورد — مالی','deptfeedback-anbar':'بازخورد — انبار',
     feedbackdash:'عملکرد واحدها (بازخورد)',
-    checks:'چک‌ها',invoices:'صورتحساب‌ها',chequesreceived:'چک‌های دریافتی',chequesreturned:'چک‌های برگشتی',shipments:'ردیابی محموله‌ها',foreigndeliv:'تحویل بار خارج',domesticdeliv:'جمع‌آوری کالا',tasks:'ارجاع کار به بخش‌ها',reminders:'یادآوری‌ها',calendar:'تقویم ایران و چین'};
+    checks:'چک‌ها',invoices:'صورتحساب‌ها',chequesreceived:'چک‌های دریافتی',chequesreturned:'چک‌های برگشتی',chequespaid:'چک‌های پرداختی',shipments:'ردیابی محموله‌ها',foreigndeliv:'تحویل بار خارج',domesticdeliv:'جمع‌آوری کالا',tasks:'ارجاع کار به بخش‌ها',reminders:'یادآوری‌ها',calendar:'تقویم ایران و چین'};
   document.getElementById('pageTitle').textContent=titles[p]||p;
-  const btns=document.querySelectorAll('.nav-item');
-  btns.forEach(btn=>{
-    const oc=btn.getAttribute('onclick')||'';
-    const m=oc.match(/showPage\('([^']+)'\)/);
-    if(m && m[1]===p) btn.classList.add('active');
-  });
+  // ⚠️ فیکس مهم: قبلاً با regex رو متن onclick هر دکمه تطبیق می‌داد که در شرایط خاص
+  // (چیدمان تغییرکرده، رندر مجدد وسط کلیک) ممکن بود کلاس active رو رو دکمه‌ی
+  // اشتباه (مثلاً ردیف بغلی) بذاره. الان مستقیم از رو خودِ دکمه‌ای که واقعاً
+  // کلیک شده (document.activeElement) استفاده می‌کنیم — قابل‌اعتمادتره.
+  const clickedBtn = document.activeElement;
+  if(clickedBtn && clickedBtn.classList && clickedBtn.classList.contains('nav-item')){
+    clickedBtn.classList.add('active');
+  } else {
+    // fallback برای فراخوانی‌های برنامه‌ای (نه کلیک واقعی کاربر) — همون regex قدیمی
+    document.querySelectorAll('.nav-item').forEach(btn=>{
+      const oc=btn.getAttribute('onclick')||'';
+      const m=oc.match(/showPage\('([^']+)'\)/);
+      if(m && m[1]===p) btn.classList.add('active');
+    });
+  }
   if(p==='dashboard')     renderDash();
   if(p==='requests')      renderReqs();
   if(p==='pipeline')      renderPipeline();
@@ -5977,6 +5999,127 @@ function getDisplayPrefix(dn){
   return dn.split('-')[0] || dn;
 }
 
+// ══════════════════════════════════════════════════════════════
+// وصول مطالبات — این صفحه قبلاً فقط یه جعبه‌ی خالی بود، الان کامل شد
+// ══════════════════════════════════════════════════════════════
+const DJANGO_DEBTS_API = 'https://smartchip-backend.onrender.com/api/debts/cases/';
+function debtCaseFromApi(d){
+  return {id:d.id, customer:d.customer||'', totalDebt:d.total_debt||0, startDate:d.start_date||'',
+    createdDate:d.created_date||'', createdBy:d.created_by||'', assignedTo:d.assigned_to||'',
+    handoffDate:d.handoff_date||'', financeLog:d.finance_log||[], salesLog:d.sales_log||[],
+    salesClosedTick:!!d.sales_closed_tick, salesClosedDate:d.sales_closed_date||'',
+    financeApproved:!!d.finance_approved, financeApprovedDate:d.finance_approved_date||'',
+    collected:d.collected||0, remaining:d.remaining!==undefined?d.remaining:d.total_debt};
+}
+async function fetchDebtCasesFromDjango(){
+  try{ const res=await fetch(DJANGO_DEBTS_API); if(!res.ok) return null;
+    return (await res.json()).map(debtCaseFromApi);
+  }catch(e){ return null; }
+}
+async function createDebtCaseInDjango(data){
+  try{
+    const res = await djangoFetch(DJANGO_DEBTS_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      customer:data.customer, total_debt:data.totalDebt, start_date:data.startDate,
+      created_date:todayShamsiStr(), created_by:(currentUser&&currentUser.name)||''
+    })}, 'ساخت پرونده مطالبات '+data.customer);
+    return res.ok ? debtCaseFromApi(res.data) : null;
+  }catch(e){ return null; }
+}
+async function updateDebtCaseInDjango(id, patch){
+  try{
+    const res = await djangoFetch(DJANGO_DEBTS_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)}, 'آپدیت پرونده مطالبات '+id);
+    if(res.queued){ toast('🟡 در صف ماند'); return null; }
+    return res.ok ? debtCaseFromApi(res.data) : null;
+  }catch(e){ return null; }
+}
+
+function openNewDebtCaseModal(){
+  document.getElementById('debtCaseCustomerInput').value='';
+  document.getElementById('debtCaseAmountInput').value='';
+  openModal('newDebtCase');
+}
+async function saveNewDebtCase(){
+  const customer=document.getElementById('debtCaseCustomerInput').value.trim();
+  const amount=parseIntFa(document.getElementById('debtCaseAmountInput').value)||0;
+  if(!customer||!amount){ toast('⚠ نام مشتری و مبلغ الزامیه'); return; }
+  const created = await createDebtCaseInDjango({customer, totalDebt:amount, startDate:todayShamsiStr()});
+  if(created){
+    debtCases.unshift(created);
+    closeModal('modalNewDebtCase');
+    renderDebtCasesERP();
+    toast('✅ پرونده ثبت شد');
+  } else toast('❌ ثبت ناموفق بود');
+}
+
+async function addDebtCollectionLog(id){
+  const amountStr = prompt('چقدر از این مطالبه وصول شد؟ (تومان)');
+  if(!amountStr) return;
+  const amount = parseIntFa(amountStr)||0;
+  if(!amount){ toast('⚠ مبلغ نامعتبر'); return; }
+  const note = prompt('یادداشت (اختیاری):') || '';
+  const dc = debtCases.find(d=>String(d.id)===String(id));
+  if(!dc) return;
+  const log = [...dc.financeLog, {date:todayShamsiStr(), amount, note}];
+  const updated = await updateDebtCaseInDjango(id, {finance_log:log});
+  if(updated){
+    const idx=debtCases.findIndex(d=>String(d.id)===String(id));
+    debtCases[idx]=updated;
+    renderDebtCasesERP();
+    toast('✅ ثبت شد');
+  }
+}
+
+async function handoffDebtCaseToSales(id){
+  if(!confirm('این پرونده به کارشناس فروش (برای پیگیری در CRM) ارجاع بشه؟')) return;
+  const updated = await updateDebtCaseInDjango(id, {
+    assigned_to: (currentUser&&currentUser.name)||'کارشناس فروش', handoff_date: todayShamsiStr()
+  });
+  if(updated){
+    const idx=debtCases.findIndex(d=>String(d.id)===String(id));
+    debtCases[idx]=updated;
+    renderDebtCasesERP();
+    toast('✅ به فروش ارجاع شد — الان تو CRM هم دیده می‌شه');
+  }
+}
+
+function renderDebtCasesERP(){
+  const el = document.getElementById('debtCasesContentERP');
+  if(!el) return;
+  const open = (debtCases||[]).filter(d=>d.remaining>0);
+  const closed = (debtCases||[]).filter(d=>d.remaining<=0);
+  setBadge('debtCaseBadgeERP', open.length);
+
+  const rowHTML = d => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:13px;">${d.customer}</strong>
+        <span style="font-size:11px;color:${d.remaining>0?'var(--red)':'var(--green)'};font-weight:800;">
+          مانده: ${fn(d.remaining)} تومان
+        </span>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">
+        کل بدهی: ${fn(d.totalDebt)} — وصول‌شده: ${fn(d.collected)} — شروع: ${d.startDate||'—'}
+        ${d.assignedTo?` — <span style="color:var(--accent)">ارجاع به: ${d.assignedTo} (${d.handoffDate})</span>`:''}
+      </div>
+      ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">
+        ${d.financeLog.map(l=>`• ${l.date} — ${fn(l.amount)} تومان ${l.note?'— '+l.note:''}`).join('<br>')}
+      </div>`:''}
+      <div style="display:flex;gap:6px;">
+        ${d.remaining>0?`<button class="action-btn" style="font-size:10px;" onclick="addDebtCollectionLog('${d.id}')">💰 ثبت وصولی</button>`:''}
+        ${!d.assignedTo?`<button class="action-btn" style="font-size:10px;color:var(--accent);" onclick="handoffDebtCaseToSales('${d.id}')">📤 ارجاع به فروش (CRM)</button>`:''}
+      </div>
+    </div>`;
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="sec-title">💳 وصول مطالبات — ${fn(open.length)} پرونده‌ی باز</div>
+      <button class="btn btn-primary btn-sm" onclick="openNewDebtCaseModal()">+ ثبت پرونده جدید</button>
+    </div>
+    ${open.length?open.map(rowHTML).join(''):'<div style="text-align:center;color:var(--muted);padding:20px;">پرونده‌ی بازی نیست</div>'}
+    ${closed.length?`<div class="sec-title" style="color:var(--muted);margin-top:20px;">🗄️ بایگانی (تسویه‌شده) — ${fn(closed.length)} مورد</div>${closed.map(rowHTML).join('')}`:''}
+  `;
+}
+
 function renderWarehouse(){
   renderPackArchive();
   const el = document.getElementById('warehouseContent');
@@ -7156,7 +7299,7 @@ function renderPaidCheques(){
 
   const today = todayShamsiStr();
   const rows = list.map(chq=>{
-    const cid = (chq.id||'').replace(/'/g,"\'");
+    const cid = String(chq.id||'').replace(/'/g,"\'");
     const st  = PAID_CHQ_STATUS[chq.status]||PAID_CHQ_STATUS.pending;
     const amFmt = chq.amount?Number(String(chq.amount).replace(/,/g,'')).toLocaleString('fa-IR'):'—';
     // تعداد روز تا سررسید
@@ -7938,7 +8081,7 @@ function renderChequesReceived(){
     const amFmt=c.amount?Number(String(c.amount).replace(/,/g,'')).toLocaleString('fa-IR'):'—';
     const dueDiff=c.dueDate?daysLeft(c.dueDate):99;
     const dueColor=c.returned?'var(--red)':dueDiff<0?'var(--red)':dueDiff<=7?'var(--yellow)':'var(--text)';
-    const cid=(c.id||'').replace(/'/g,"\'");
+    const cid=String(c.id||'').replace(/'/g,"\'");
     return `<tr>
       <td style="${td}font-weight:700">${c.rowNumber||'—'}</td>
       <td style="${td}">${(c.dateReceived||'—').split('T')[0]}</td>
@@ -9668,7 +9811,7 @@ function searchChqRetCustAC(val){
   }
   dd.style.display='block';
   dd.innerHTML=res.map(function(c){
-    var cid=(c.id||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    var cid=String(c.id||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
     return '<div data-id="'+cid+'" onmousedown="chqRetSelectCust(this)" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">'
       +'<strong>'+(c.customer||'')+'</strong>'
       +' <span style="color:var(--muted)">— '+(c.amount||'')+' ریال'+(c.dueDate?' | سررسید: '+c.dueDate:'')+'</span>'
@@ -9721,7 +9864,7 @@ function renderChequesReturned(){
     return;
   }
   container.innerHTML = list.map(function(c){
-    const cid=(c.id||'').replace(/'/g,"\\'");
+    const cid=String(c.id||'').replace(/'/g,"\\'");
     const resBadge = c.resolutionStatus==='refunded' ? '<span style="color:#4ade80;font-weight:700;">✅ استرداد شد</span>'
       : c.resolutionStatus==='cashed' ? '<span style="color:#38bdf8;font-weight:700;">🏦 پاس شد</span>'
       : '<span style="color:#f87171;font-weight:700;">⏳ حل‌نشده</span>';
