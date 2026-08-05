@@ -1188,23 +1188,106 @@ async function sheetCall(action, data={}){
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// اتصال لیدها به Django — همون الگوی CRM
+// ══════════════════════════════════════════════════════════════
+const DJANGO_LEADS_API_M = 'https://smartchip-backend.onrender.com/api/leads/leads/';
+function leadToApiPartialM(l){
+  const out = {};
+  if('customer' in l) out.customer = l.customer||'';
+  if('phone' in l) out.phone = l.phone||'';
+  if('status' in l) out.status = l.status||'new';
+  if('note' in l) out.note = l.note||'';
+  if('assignee' in l) out.assignee = l.assignee||'';
+  if('date' in l) out.date = l.date||'';
+  if('editedAt' in l) out.edited_at = l.editedAt||'';
+  if('convertedRequestId' in l) out.converted_request_id = l.convertedRequestId||'';
+  if('trackingCode' in l) out.tracking_code = l.trackingCode||'';
+  if('history' in l) out.history = l.history||[];
+  return out;
+}
+function leadFromApiM(d){
+  return { id:d.id, customer:d.customer||'', phone:d.phone||'', status:d.status||'new',
+    note:d.note||'', assignee:d.assignee||'', date:d.date||'', editedAt:d.edited_at||'',
+    convertedRequestId:d.converted_request_id||'', trackingCode:d.tracking_code||'',
+    history:d.history||[] };
+}
+async function fetchLeadsFromDjangoM(){
+  try{ const res=await fetch(DJANGO_LEADS_API_M); if(!res.ok) return null;
+    return (await res.json()).map(leadFromApiM);
+  }catch(e){ return null; }
+}
+
+// ══════════════════════════════════════════════════════════════
+// اتصال درخواست‌های فروش به Django — همون الگوی ERP
+// ══════════════════════════════════════════════════════════════
+const DJANGO_REQUESTS_API_M = 'https://smartchip-backend.onrender.com/api/requests/requests/';
+async function createRequestInDjangoM(newReq, parts){
+  try{
+    const res = await fetch(DJANGO_REQUESTS_API_M, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      id:newReq.id, date:newReq.date, customer:newReq.customer, assignee:newReq.assignee, desc:newReq.desc,
+      status:newReq.status, deadline:newReq.deadline, notes:newReq.note?[newReq.note]:[], reminder:newReq.reminder,
+      force:!!newReq.force, parts:parts, customer_seq:newReq.customerSeq, display_number:newReq.displayNumber,
+      created_at:new Date().toISOString()
+    })});
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ console.error('خطای ساخت درخواست در Django:', e); return null; }
+}
+async function updateRequestFieldInDjangoM(id, patch){
+  try{
+    const res = await fetch(DJANGO_REQUESTS_API_M+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ console.error('خطای آپدیت درخواست در Django:', e); return null; }
+}
+async function getNextCustomerSeqFromDjangoM(customerName){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-customer-seq/', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:customerName})
+    });
+    if(res.ok) return await res.json();
+  }catch(e){}
+  return await sheetCall('getNextCustomerSeq',{customer:customerName});
+}
+
 // ذخیره‌ی مطمئن لید — همون منطق crm.html: چک می‌کنه سرور واقعاً ذخیره کرد یا نه، اگه
-// شکست خورد یه بار دیگه امتحان می‌کنه، و اگه بازم شکست خورد صریح هشدار می‌ده
+// شکست خورد یه بار دیگه امتحان می‌کنه، و اگه بازم شکست خورد صف آفلاین
 async function reliableUpdateLead(data){
   if(!isConnected) return {skipped:true};
-  let res = await sheetCall('updateLead', data);
-  if(!res || res.error) res = await sheetCall('updateLead', data);
-  if(!res || res.error){
-    toast('🚨 هشدار: ذخیره‌ی این لید در گوگل‌شیت ناموفق بود — لطفاً دوباره امتحان کن.');
+  if(!data || !data.id) return {error:'no id'};
+  const payload = leadToApiPartialM(data);
+  const attempt = async()=>{
+    try{
+      const res = await fetch(DJANGO_LEADS_API_M+data.id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+      if(!res.ok) return null;
+      return leadFromApiM(await res.json());
+    }catch(e){ return null; }
+  };
+  let res = await attempt();
+  if(!res) res = await attempt();
+  if(!res){
+    queueOfflineRequestM(DJANGO_LEADS_API_M+data.id+'/', 'PATCH', JSON.stringify(payload), 'آپدیت لید '+(data.customer||data.id));
+    toast('🟡 اتصال قطع بود — این تغییر در صف ماند و خودکار ارسال می‌شود');
+    return {queued:true, ...data};
   }
   return res;
 }
 async function reliableAddLead(data){
   if(!isConnected) return {skipped:true};
-  let res = await sheetCall('addLead', data);
-  if(!res || !res.id) res = await sheetCall('addLead', data);
+  const payload = leadToApiPartialM(data);
+  const attempt = async()=>{
+    try{
+      const res = await fetch(DJANGO_LEADS_API_M, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+      if(!res.ok) return null;
+      return leadFromApiM(await res.json());
+    }catch(e){ return null; }
+  };
+  let res = await attempt();
+  if(!res || !res.id) res = await attempt();
   if(!res || !res.id){
-    toast('🚨 هشدار: ثبت لید جدید در گوگل‌شیت ناموفق بود — لطفاً دوباره امتحان کن.');
+    toast('🚨 هشدار: ثبت لید جدید در Django ناموفق بود — لطفاً دوباره امتحان کن یا دستی بررسی کن.');
+    return res||{};
   }
   return res;
 }
@@ -1582,15 +1665,15 @@ async function submitRequest(){
 
   let customerSeq='', displayNumber='';
   if(isConnected){
-    const seqRes=await sheetCall('getNextCustomerSeq',{customer:c});
+    const seqRes=await getNextCustomerSeqFromDjangoM(c);
     if(seqRes){ customerSeq=seqRes.customerSeq; displayNumber=seqRes.displayNumber; }
   }
 
-  const newReq={id:'REQ-'+Date.now(),date,customer:c,assignee:document.getElementById('rAssign').value,desc:d,status,deadline:date,note:'',reminder:'',force,source:'mobile',partsJson:JSON.stringify(parts),customerSeq,displayNumber};
+  const newReq={id:'REQ-'+Date.now(),date,customer:c,assignee:document.getElementById('rAssign').value,desc:d,status,deadline:date,note:'',reminder:'',force,source:'mobile',customerSeq,displayNumber};
   closeSheet('request');
   resetRequestFormMobile();
   if(isConnected){
-    await sheetCall('addRequest',newReq);
+    await createRequestInDjangoM(newReq, parts);
 
     // ── هم‌زمان یک لید متناظر در CRM هم بساز/آپدیت کن — تا در جدول CRM هم دیده بشه ──
     try{
@@ -1640,7 +1723,15 @@ async function submitOrder(){
   document.getElementById('oEtaDays').value='';
   document.getElementById('oDate').value='';
   if(isConnected){
-    await sheetCall('addShipment',newShip);
+    try{
+      await fetch('https://smartchip-backend.onrender.com/api/shipments/shipments/', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+          code:newShip.id, supplier:newShip.supplier, desc:newShip.desc, order_date:newShip.orderDate,
+          send_date:newShip.sendDate, eta:newShip.eta, method:newShip.method, status:'ordered',
+          note:newShip.note, source:newShip.source, progress:0
+        })
+      });
+    }catch(e){ console.error('خطای ثبت محموله در Django:', e); }
     toast('✅ سفارش ثبت شد');
   } else {
     toast('⚠️ وصل نیست — دوباره تلاش کن');
@@ -1822,9 +1913,13 @@ async function cancelRequestMobile(reqId){
   renderViewStatus();
   toast('❌ درخواست کنسل شد');
   if(isConnected){
-    await sheetCall('updateRequest',{id:r.id, field:'status', value:'canceled'});
-    await sheetCall('updateRequest',{id:r.id, field:'partsJson', value:JSON.stringify(r.parts)});
-    try{ await sheetCall('archiveLeadByRequestId',{requestId:r.id, cancelReason:'کنسل شده از موبایل'}); }catch(archErr){}
+    await updateRequestFieldInDjangoM(r.id, {status:'canceled', parts:r.parts});
+    try{
+      await fetch('https://smartchip-backend.onrender.com/api/requests/archive-lead-by-tracking-code/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({trackingCode:r.displayNumber, reason:'کنسل شده از موبایل'})
+      });
+    }catch(archErr){}
   }
 }
 function searchFrCustAC(val){
@@ -1981,7 +2076,7 @@ async function openContactEntrySheet(leadId,hIdx){
   document.getElementById('ceLeadId').value=leadId;
   const isNew=(hIdx===undefined||hIdx===null||!l.history||!l.history[hIdx]);
   if(isNew){
-    const seqRes=await sheetCall('getNextCustomerSeq',{customer:l.customer});
+    const seqRes=await getNextCustomerSeqFromDjangoM(l.customer);
     const trackingCode=(seqRes&&seqRes.displayNumber)||`${l.customer}-001`;
     ceCurEntry={
       trackingCode, date:new Date().toISOString(), conversationType:'', note:'',
@@ -2322,13 +2417,12 @@ async function saveMEstelamatTick(){
   };
   if(!ceCurEntry.linkedRequestId && (needMarket||needForeign||needFinance)){
     const newId='REQ-'+Date.now();
-    await sheetCall('addRequest',{
+    const savedReq = await createRequestInDjangoM({
       id:newId, date:todayShamsiStr(), customer:l.customer,
       assignee:currentUserName||'', desc:`از CRM فروش — ${ceCurEntry.note||'بدون یادداشت'}`,
       status:'new', deadline:'', note:'', reminder:'', force:false, source:'crm-sales',
-      partsJson: JSON.stringify({needMarket,needForeign,needFinance,marketItems:ceCurEntry.procurementParts.marketItems,foreignItems:ceCurEntry.procurementParts.foreignItems,finance:ceCurEntry.procurementParts.finance}),
-      customerSeq:0, displayNumber:ceCurEntry.trackingCode, createdAt:new Date().toISOString()
-    });
+      customerSeq:0, displayNumber:ceCurEntry.trackingCode
+    }, {needMarket,needForeign,needFinance,marketItems:ceCurEntry.procurementParts.marketItems,foreignItems:ceCurEntry.procurementParts.foreignItems,finance:ceCurEntry.procurementParts.finance});
     ceCurEntry.linkedRequestId=newId;
     ceCurEntry.estelamatSentDate=new Date().toISOString();
     toast(`✅ درخواست ${ceCurEntry.trackingCode} در ERP ساخته شد`);
@@ -2386,7 +2480,12 @@ async function submitFreeReminder(){
   document.getElementById('frDate').value='';
   document.getElementById('frEndDate').value='';
   if(isConnected){
-    await sheetCall('addFreeReminder',newRem);
+    try{
+      await fetch(DJANGO_FREEREM_API_M, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        id:newRem.id, customer:newRem.customer, desc:newRem.desc, date:newRem.date,
+        end_date:newRem.endDate, category:newRem.category, done:false
+      })});
+    }catch(e){ console.error('خطای ثبت یادآوری در Django:', e); }
     toast('✅ یادآوری ثبت شد');
     loadSummary();
   } else {
@@ -2543,13 +2642,20 @@ async function submitTask(){
 }
 
 // ══════════════════════════════════════════════════════════════════
+async function getNextOrderNumberFromDjangoM(){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-order-number/');
+    if(res.ok) return await res.json();
+  }catch(e){}
+  return await sheetCall('getNextOrderNumber');
+}
 // ORDER FORM PREP (auto order number)
 // ══════════════════════════════════════════════════════════════════
 async function prepareOrderForm(){
   document.getElementById('oCode').value='در حال دریافت شماره...';
   document.getElementById('oDate').value=todayShamsiStr();
   if(isConnected){
-    const res=await sheetCall('getNextOrderNumber');
+    const res=await getNextOrderNumberFromDjangoM();
     document.getElementById('oCode').value=(res&&res.orderNumber)?res.orderNumber:('SC-'+todayShamsiStr().split('/')[0]+'-001');
   } else {
     document.getElementById('oCode').value='SC-'+todayShamsiStr().split('/')[0]+'-001';
@@ -2566,6 +2672,57 @@ let paidCheques=[]; // چک‌های پرداختی — همون مشکل
 let cachedFreeReminders=[]; // برای نمایش روی تقویم موبایل — قبلاً اصلاً لود نمی‌شد (همان دلیل ندیدن یادآوری‌های دسکتاپ)
 let cachedRecurring=[]; // یادآوری‌های دوره‌ای — ثبت‌شده در دسکتاپ، فقط نمایش در موبایل
 
+function requestFromApiM(d){
+  return { id:d.id, date:d.date||'', customer:d.customer||'', assignee:d.assignee||'',
+    desc:d.desc||'', status:d.status||'pending', deadline:d.deadline||'',
+    notes:d.notes||[], reminder:d.reminder||null, force:!!d.force, source:d.source||'',
+    parts:d.parts||null, completedDate:d.completed_date||null, customerSeq:d.customer_seq||null,
+    displayNumber:d.display_number||null, createdAt:d.created_at_shamsi||null,
+    cancelReason:d.cancel_reason||null };
+}
+function shipmentFromApiM(d){
+  return { id:d.code, supplier:d.supplier||'', desc:d.desc||'', orderDate:d.order_date||'',
+    sendDate:d.send_date||'', eta:d.eta||'', eta2:d.eta2||'', method:d.method||'',
+    status:d.status||'', progress:d.progress||0, note:d.note||'', source:d.source||'',
+    reqId:d.req_id||undefined, itemIdx:d.item_idx!==null?d.item_idx:undefined,
+    displayNumber:d.display_number||'', customer:d.customer||'',
+    partName:d.part_name||'', partQty:d.part_qty||'', proforma:d.proforma||'',
+    sentToClearance:!!d.sent_to_clearance, clearedToWarehouse:!!d.cleared_to_warehouse,
+    warehousedDate:d.warehoused_date||'' };
+}
+function taskFromApiM(d){
+  return { id:d.id, dept:d.dept||'sales', title:d.title||'', desc:d.desc||'',
+    priority:d.priority||'medium', deadline:d.deadline||'', customer:d.customer||'',
+    status:d.status||'pending', date:d.date||'', force:!!d.force, completedDate:d.completed_date||'' };
+}
+async function fetchRequestsFromDjangoM(){
+  try{ const res=await fetch(DJANGO_REQUESTS_API_M); if(!res.ok) return null; return (await res.json()).map(requestFromApiM); }catch(e){ return null; }
+}
+async function fetchShipmentsFromDjangoM(){
+  try{ const res=await fetch('https://smartchip-backend.onrender.com/api/shipments/shipments/'); if(!res.ok) return null; return (await res.json()).map(shipmentFromApiM); }catch(e){ return null; }
+}
+async function fetchTasksFromDjangoM(){
+  try{ const res=await fetch('https://smartchip-backend.onrender.com/api/worklog/tasks/'); if(!res.ok) return null; return (await res.json()).map(taskFromApiM); }catch(e){ return null; }
+}
+
+function chqReceivedFromApiM(d){
+  return { id:d.id, rowNumber:d.row_number, dateReceived:d.date_received||'', transferor:d.transferor||'',
+    bank:d.bank||'', branchCode:d.branch_code||'', sayyadNumber:d.sayyad_number||'', serial:d.serial||'',
+    dueDate:d.due_date||'', amount:d.amount||'', customer:d.customer||'', recipient:d.recipient||'',
+    returned:!!d.returned, resolutionStatus:d.resolution_status||'' };
+}
+function paidChqFromApiM(d){
+  return { id:d.id, serial:d.serial||'', bank:d.bank||'', beneficiary:d.beneficiary||'',
+    amount:d.amount||'', issueDate:d.issue_date||'', dueDate:d.due_date||'', status:d.status||'pending',
+    note:d.note||'' };
+}
+async function fetchChequesReceivedFromDjangoM(){
+  try{ const res=await fetch('https://smartchip-backend.onrender.com/api/finance/cheques-received/'); if(!res.ok) return null; return (await res.json()).map(chqReceivedFromApiM); }catch(e){ return null; }
+}
+async function fetchPaidChequesFromDjangoM(){
+  try{ const res=await fetch('https://smartchip-backend.onrender.com/api/finance/paid-cheques/'); if(!res.ok) return null; return (await res.json()).map(paidChqFromApiM); }catch(e){ return null; }
+}
+
 let mobileTodayRemCount = 0;
 let mobileForceCount = 0;
 async function loadSummary(){
@@ -2578,19 +2735,19 @@ async function loadSummary(){
     return;
   }
 
-  const [rRes,tRes,sRes,djangoRecurring,djangoFreeRem,chqRes,pchqRes] = await Promise.all([
-    sheetCall('getRequests'), sheetCall('getTasks'), sheetCall('getShipments'),
+  const [djangoRequests,djangoTasks,djangoShipments,djangoRecurring,djangoFreeRem,djangoChqRec,djangoPaidChq] = await Promise.all([
+    fetchRequestsFromDjangoM(), fetchTasksFromDjangoM(), fetchShipmentsFromDjangoM(),
     fetchRecurringRemindersFromDjangoM(), fetchFreeRemindersFromDjangoM(),
-    sheetCall('getChequesReceived'), sheetCall('getPaidCheques')
+    fetchChequesReceivedFromDjangoM(), fetchPaidChequesFromDjangoM()
   ]);
-  const requests=(rRes&&rRes.requests)||[];
-  const tasks=(tRes&&tRes.tasks)||[];
+  const requests=djangoRequests||[];
+  const tasks=djangoTasks||[];
   cachedRequests=requests;
-  cachedShipments=(sRes&&sRes.shipments)||[];
+  cachedShipments=djangoShipments||[];
   cachedRecurring=djangoRecurring||[];
   cachedFreeReminders=djangoFreeRem||[];
-  chequesReceived=(chqRes&&chqRes.cheques)||[];
-  paidCheques=(pchqRes&&pchqRes.paidCheques)||[];
+  chequesReceived=djangoChqRec||[];
+  paidCheques=djangoPaidChq||[];
 
   const todaySv=shamsiDateSortVal(todayShamsiStr());
   const tomorrowSv=shamsiDateSortVal(addDaysToShamsi(todayShamsiStr(),1));
@@ -2958,8 +3115,8 @@ async function fetchCustomersFromDjangoM(){
   }catch(e){ console.warn('⚠️ اتصال به Django برای مشتریان ناموفق بود:', e); return null; }
 }
 async function loadMasters(){
-  const [djangoCustomers, iRes, lRes] = await Promise.all([
-    fetchCustomersFromDjangoM(), sheetCall('getItemMaster'), sheetCall('getLeads')
+  const [djangoCustomers, iRes, djangoLeads] = await Promise.all([
+    fetchCustomersFromDjangoM(), sheetCall('getItemMaster'), fetchLeadsFromDjangoM()
   ]);
   if(djangoCustomers){
     customerMaster = djangoCustomers;
@@ -2968,8 +3125,8 @@ async function loadMasters(){
     const cRes = await sheetCall('getCustomerMaster');
     if(cRes&&cRes.customerMaster) customerMaster=cRes.customerMaster;
   }
+  if(djangoLeads){ leads=djangoLeads; updateMobileMorningBadge(); }
   if(iRes&&iRes.items) itemMaster=iRes.items;
-  if(lRes&&lRes.leads){ leads=lRes.leads; updateMobileMorningBadge(); }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3002,6 +3159,21 @@ function submitEmailForm(){
   document.getElementById('accessCheckingState').style.display='block';
   if(_emailFormResolve) _emailFormResolve(val);
 }
+async function getCurrentUserInfoFromDjangoOrSheet(email){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    if(res.status===404){
+      return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+    }
+    if(res.ok){
+      const d = await res.json();
+      if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
+      return { email, name:d.name||'', role:d.role||'', isStaff:true };
+    }
+  }catch(e){ /* مشکل شبکه — به fallback گوگل‌شیت برمی‌گردیم */ }
+  return await sheetCall('getCurrentUserInfo', { email });
+}
+
 async function init(){
   const email=await ensureUserEmail();
   if(!email){
@@ -3010,7 +3182,7 @@ async function init(){
     document.getElementById('accessDeniedMsgMobile').textContent='بدون ایمیل نمی‌توان ادامه داد';
     return;
   }
-  const userInfo=await sheetCall('getCurrentUserInfo',{email});
+  const userInfo=await getCurrentUserInfoFromDjangoOrSheet(email);
   if(!userInfo || !userInfo.isStaff){
     document.getElementById('accessCheckingState').style.display='none';
     document.getElementById('accessDeniedState').style.display='block';
@@ -3049,14 +3221,14 @@ async function refreshMobileData(showFeedback){
   if(showFeedback && btn) btn.innerHTML='⏳';
   try{
     await loadSummary();
-    const [djangoCustomers, lRes] = await Promise.all([fetchCustomersFromDjangoM(), sheetCall('getLeads')]);
+    const [djangoCustomers, djangoLeads] = await Promise.all([fetchCustomersFromDjangoM(), fetchLeadsFromDjangoM()]);
     if(djangoCustomers){
       customerMaster = djangoCustomers;
     } else {
       const cRes = await sheetCall('getCustomerMaster');
       if(cRes&&cRes.customerMaster) customerMaster=cRes.customerMaster;
     }
-    if(lRes&&lRes.leads) leads=lRes.leads;
+    if(djangoLeads) leads=djangoLeads;
     if(showFeedback) toast('✅ به‌روز شد');
   }catch(err){
     if(showFeedback) toast('❌ خطا در رفرش');
@@ -3233,7 +3405,15 @@ async function sendBotInviteWhatsAppM(customerName){
   const cm=(customerMaster||[]).find(c=>c.name===customerName)||{};
   if(!cm.mobile){ toast('⚠️ موبایل مشتری در شیت نیست'); return; }
   if(!isConnected){ toast('⚠️ برای ساخت لینک دعوت به اتصال سرور نیاز است'); return; }
-  const res = await sheetCall('saveBotInvite',{customer:customerName, mobile:cm.mobile, channel:'whatsapp'});
+  // ⚠️ حتماً از Django بساز، نه گوگل‌شیت — چون وب‌هوک تلگرام/بله به Django وصله
+  let res;
+  try{
+    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-invite/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({customer:customerName, mobile:cm.mobile, orderId:''})
+    });
+    res = await httpRes.json();
+  }catch(e){ toast('⚠️ ساخت دعوت‌نامه ناموفق بود — اتصال به سرور رو چک کن'); return; }
   if(!res || !res.id){ toast('⚠️ ساخت دعوت‌نامه ناموفق بود'); return; }
   const inviteId = res.id;
   const phone=cm.mobile.replace(/\D/g,'').replace(/^0/,'98');

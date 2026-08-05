@@ -6910,15 +6910,8 @@ async function notifyWhatsApp(shipId, msgType){
 }
 
 async function notifySMS(shipId, msgType){
-  const s = await findShipment(shipId);
-  if(!s){ toast('سفارش پیدا نشد'); return; }
-  const phone = getCustomerMobile(s.customer);
-  if(!phone){ toast('⚠️ شماره موبایل '+s.customer+' در شیت مشتریان نیست (ستون Y)'); return; }
-  const msg = MSG_TEMPLATES[msgType](s);
-  toast('⏳ در حال ارسال پیامک...');
-  const res = await sheetCall('sendSMS', { phone, message: msg });
-  if(res && res.ok) toast('✅ پیامک به '+s.customer+' ارسال شد');
-  else toast('❌ خطا در ارسال: '+(res&&res.error||'ناشناس'));
+  // پیامک مستقیم دیگه پشتیبانی نمی‌شه (کاوه‌نگار حذف شد) — از اطلاع‌رسانی هوشمند (تلگرام/بله) استفاده می‌کنیم
+  await smartNotify(shipId, msgType);
 }
 
 // برای warehouse (whId به جای shipId)
@@ -7052,12 +7045,8 @@ function orderPopupWA(){
 }
 
 async function orderPopupSMS(){
-  const pop = document.getElementById('orderConfirmPopup');
-  if(!pop) return;
-  toast('⏳ در حال ارسال پیامک...');
-  const res = await sheetCall('sendSMS',{phone: pop._phone, message: pop._msg});
-  pop.remove();
-  toast(res&&res.ok ? '✅ پیامک ارسال شد' : '❌ خطا: '+(res?.error||''));
+  // پیامک مستقیم دیگه پشتیبانی نمی‌شه (کاوه‌نگار حذف شد) — واتساپ جایگزینش شده
+  orderPopupWA();
 }
 
 
@@ -7583,11 +7572,15 @@ async function smartNotify(shipId, msgType){
   if(!s){ toast('سفارش پیدا نشد'); return; }
   const msg = MSG_TEMPLATES[msgType](s);
   toast('⏳ در حال ارسال...');
-  const res = await sheetCall('sendSmartNotification',{
-    customer: s.customer, message: msg
-  });
+  let res = null;
+  try{
+    const r = await fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:s.customer, message:msg})
+    });
+    res = await r.json();
+  }catch(e){ res = {sent:null, error:'خطای شبکه'}; }
   if(res && res.sent){
-    const icons = {telegram:'📨 تلگرام', bale:'💙 بله', sms:'📱 پیامک'};
+    const icons = {telegram:'📨 تلگرام', bale:'💙 بله'};
     toast(`✅ پیام از طریق ${icons[res.sent]||res.sent} ارسال شد`);
   } else if(res && res.error){
     toast('⚠️ '+res.error+' — از واتساپ استفاده کنید');
@@ -7641,15 +7634,18 @@ async function autoNotify(ship, msgType){
   if(!ship||!ship.customer) return;
   const msg = MSG_TEMPLATES[msgType](ship);
   // ارسال در پس‌زمینه — بدون block کردن UI
-  sheetCall('sendSmartNotification',{ customer:ship.customer, message:msg })
+  fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:ship.customer, message:msg})
+  })
+    .then(r=>r.json())
     .then(res=>{
       if(res && res.sent){
-        const icons={telegram:'📨 تلگرام',bale:'💙 بله',sms:'📱 پیامک'};
+        const icons={telegram:'📨 تلگرام',bale:'💙 بله'};
         toast(`✅ پیام از طریق ${icons[res.sent]||res.sent} ارسال شد`);
       } else if(res && res.error){
         // هیچ کانالی نداشت — فقط یه هشدار آروم
         console.warn('autoNotify: '+res.error);
-        toast('⚠️ '+ship.customer+' — کانال ارتباطی در شیت ثبت نشده');
+        toast('⚠️ '+ship.customer+' — کانال ارتباطی وصل نیست');
       }
     })
     .catch(e=>console.warn('autoNotify error:', e));
