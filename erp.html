@@ -7910,7 +7910,9 @@ function renderBotStatusPanel(){
   const custData = buildSection(allRelatedCustomers, false);
   const supData = buildSection(allRelatedSuppliers, true);
 
-  function renderBlock(title, icon, data){
+  function renderBlock(title, icon, data, isSupplier){
+    const inviteFn = isSupplier ? 'sendSupplierBotInviteWhatsApp' : 'sendBotInviteWhatsApp';
+    const resendFn = isSupplier ? 'resendSupplierBotInvite' : 'resendBotInvite';
     return `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
       <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;text-align:center">
@@ -7931,7 +7933,7 @@ function renderBotStatusPanel(){
       <span style="font-weight:700">${b.customer}</span>
       <span style="color:var(--muted)">دعوت: ${b.inviteDate}</span>
       <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto"
-        onclick="resendBotInvite('${b.customer.replace(/'/g,"\\'")}')">📱 ارسال واتس‌اپ</button>
+        onclick="${resendFn}('${b.customer.replace(/'/g,"\\'")}')">📱 ارسال واتس‌اپ</button>
     </div>`).join('')}`:''}
     ${data.connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px">🟢 وصل شده‌ها:</div>
     ${data.connected.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
@@ -7944,7 +7946,7 @@ function renderBotStatusPanel(){
     ${data.notInvited.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
       <span style="font-weight:700">${c}</span>
       <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto"
-        onclick="sendBotInviteWhatsApp('${c.replace(/'/g,"\\'")}')">📱 دعوت با واتس‌اپ</button>
+        onclick="${inviteFn}('${c.replace(/'/g,"\\'")}')">📱 دعوت با واتس‌اپ</button>
     </div>`).join('')}`:''}`;
   }
 
@@ -7953,8 +7955,8 @@ function renderBotStatusPanel(){
       <button class="bot-cat-tab active" id="botCatTabCustomers" onclick="switchBotCatTab('customers')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;">👥 مشتریان</button>
       <button class="bot-cat-tab" id="botCatTabSuppliers" onclick="switchBotCatTab('suppliers')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;">🚚 تأمین‌کنندگان خارج</button>
     </div>
-    <div id="botCatBodyCustomers">${renderBlock('مشتریان','👥',custData)}</div>
-    <div id="botCatBodySuppliers" style="display:none;">${renderBlock('تأمین‌کنندگان خارج','🚚',supData)}</div>
+    <div id="botCatBodyCustomers">${renderBlock('مشتریان','👥',custData,false)}</div>
+    <div id="botCatBodySuppliers" style="display:none;">${renderBlock('تأمین‌کنندگان خارج','🚚',supData,true)}</div>
   `;
 }
 
@@ -10601,6 +10603,49 @@ function buildBotInviteMessage(customerName, inviteId){
     +'📱 بله: https://ble.ir/SmartChip_ir_bot?start='+inviteId+'\n\n'
     +'⚠️ توجه: فقط باز کردن لینک کافی نیست — حتماً باید دکمه‌ی Start را لمس کنید تا ثبت شوید.\n\n'
     +'با تشکر — اسمارت‌چیپ';
+}
+async function sendSupplierBotInviteWhatsApp(supplierName){
+  var cm=(customerMaster||[]).find(function(c){return c.name===supplierName;})||{};
+  if(!cm.mobile){ toast('⚠️ موبایل تأمین‌کننده در شیت مشتریان نیست'); return; }
+  var existing = (botInvites||[]).find(function(b){return b.customer===supplierName;});
+  var inviteId = existing && existing.id;
+  if(!inviteId){
+    var res;
+    try{
+      var httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-supplier-invite/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({supplier:supplierName})
+      });
+      res = await httpRes.json();
+    }catch(e){ toast('⚠️ ساخت دعوت‌نامه ناموفق بود — اتصال به سرور رو چک کن'); return; }
+    if(!res || !res.id){ toast('⚠️ ساخت دعوت‌نامه ناموفق بود'); return; }
+    inviteId = res.id;
+    var msg = res.message;
+    botInvites = (botInvites||[]).filter(function(b){return b.customer!==supplierName;});
+    botInvites.push({id:inviteId, customer:supplierName, mobile:cm.mobile||'', inviteDate:todayShamsiStr(), telegramConnected:false, baleConnected:false});
+    var phone=cm.mobile.replace(/\D/g,'').replace(/^0/,'98');
+    var url='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);
+    window.open(url,'_blank');
+    toast('📱 واتس‌اپ باز شد — پیام آماده است، فقط دکمه‌ی ارسال را بزن');
+    return;
+  }
+  // دعوت‌نامه از قبل بوده — فقط دوباره متن رو با همون شناسه بساز و واتساپ رو باز کن
+  toast('⚠️ این تأمین‌کننده قبلاً دعوت شده — از «resendSupplierBotInvite» استفاده کن');
+}
+function resendSupplierBotInvite(supplierName){
+  var cm=(customerMaster||[]).find(function(c){return c.name===supplierName;})||{};
+  var existing = (botInvites||[]).find(function(b){return b.customer===supplierName;});
+  if(!existing || !cm.mobile){ toast('⚠️ اطلاعات کافی نیست'); return; }
+  var msg = 'شرکت '+supplierName+' عزیز،\n'
+    +'از این پس، سفارش‌ها و استعلام‌های قیمتی که به شما اختصاص داده می‌شود، از همین طریق (تلگرام/بله) برایتان ارسال خواهد شد.\n\n'
+    +'برای فعال‌سازی، لطفاً یکی از دو بات زیر را باز کنید و روی دکمه‌ی «Start» بزنید:\n'
+    +'📱 تلگرام: https://t.me/SmartChip_ir_bot?start='+existing.id+'\n'
+    +'📱 بله: https://ble.ir/SmartChip_ir_bot?start='+existing.id+'\n\n'
+    +'⚠️ توجه: فقط باز کردن لینک کافی نیست — حتماً باید دکمه‌ی Start را لمس کنید.\n\n'
+    +'با تشکر — اسمارت‌چیپ';
+  var phone=cm.mobile.replace(/\D/g,'').replace(/^0/,'98');
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
+  toast('📱 واتس‌اپ باز شد');
 }
 async function sendBotInviteWhatsApp(customerName){
   var cm=(customerMaster||[]).find(function(c){return c.name===customerName;})||{};
