@@ -1751,7 +1751,10 @@ function renderTableView(){
     const rowCats=getRowFilterCats(e);
     const matchesFilter = rowCats.some(c=>tableFilterState[c]);
     const dimStyle = matchesFilter ? '' : 'opacity:.4;';
-    return `<tr style="${dimStyle}">
+    const rowSrs = getSalesResponseSla(e);
+    const rowSev = (rowSrs && rowSrs.overdue) ? severityColorByDaysOverdue((rowSrs.hoursElapsed-24)/24) : null;
+    const borderStyle = rowSev ? `border-right:4px solid ${rowSev.color};` : '';
+    return `<tr style="${dimStyle}${borderStyle}">
       <td style="width:90px">
         <div style="font-size:12px;font-weight:800;color:var(--accent)">${e.trackingCode||'—'}</div>
         <div style="font-size:9px;color:var(--muted);margin-top:2px">${e.date?toShamsiCompact(e.date):''}</div>
@@ -1804,7 +1807,7 @@ function renderTableView(){
       <td style="min-width:210px">
         <input value="${(e.nextFollowUpText||'').replace(/"/g,'&quot;')}" placeholder="متن پیگیری بعدی..." onchange="updateNextFollowUp('${r.leadId}',${r.hIdx},this.value)"/>
         ${e.nextFollowUpDate?`<div style="font-size:9px;color:var(--accent);margin-top:2px;">پاسخ: ${e.nextFollowUpDate}</div>`:''}
-        ${(()=>{ const srs=getSalesResponseSla(e); if(!srs) return ''; return `<div style="font-size:9px;margin-top:2px;font-weight:700;color:${srs.overdue?'var(--red)':'var(--yellow)'}">${srs.overdue?'⚠️ پاسخ فروش تأخیر دارد!':'⏳ پاسخ فروش'} ${fn(srs.hoursElapsed)}/۲۴س</div>`; })()}
+        ${(()=>{ const srs=getSalesResponseSla(e); if(!srs) return ''; const sev=srs.overdue?severityColorByDaysOverdue((srs.hoursElapsed-24)/24):null; return `<div style="font-size:9px;margin-top:2px;font-weight:700;color:${srs.overdue?sev.color:'var(--yellow)'}">${srs.overdue?sev.icon+' پاسخ فروش تأخیر دارد!':'⏳ پاسخ فروش'} ${fn(srs.hoursElapsed)}/۲۴س</div>`; })()}
       </td>
       <td style="min-width:95px;width:95px">
         ${(()=>{
@@ -2460,6 +2463,13 @@ function getSlaStatus(entry){
 // SLA پاسخگویی خودِ کارشناس فروش به مشتری — کاملاً جدا از SLA تدارکات/بازرگانی،
 // همیشه ۲۴ ساعت، مستقل از اینکه استعلام تیک خورده یا نه. تا وقتی سطر باز است
 // و هیچ پیگیری‌ای ثبت نشده، ساعت می‌گذرد.
+// رنگ با شدت — به‌جای یه قرمز ثابت، هرچی بیشتر عقب بیفتیم رنگ تیره‌تر می‌شه
+function severityColorByDaysOverdue(daysOverdue){
+  if(daysOverdue<=2) return {color:'#f0a500', icon:'⚠️'};
+  if(daysOverdue<=7) return {color:'#ef4444', icon:'⚠️'};
+  if(daysOverdue<=14) return {color:'#dc2626', icon:'⚠️'};
+  return {color:'#991b1b', icon:'🔥'};
+}
 function getSalesResponseSla(entry){
   if(entry.completed || entry.canceled) return null; // بسته شده — دیگر مهم نیست
   const hasResponded=entry.nextFollowUpText && entry.nextFollowUpText.trim();

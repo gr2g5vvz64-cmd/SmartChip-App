@@ -10463,13 +10463,16 @@ function renderShipmentGantt(fullList){
 
     // ── رنگ نوار بر اساس زمان سپری‌شده (نه صرفاً وضعیت دستی) — دقیقاً مطابق نمودار قبلی ──
     // سبز: هنوز به وعده‌ی اول نرسیده | زرد: از وعده‌ی اول رد شده | قرمز: نزدیک وعده‌ی دوم
-    // قرمز پررنگ + شمارنده: از وعده‌ی دوم هم رد شده
+    // از وعده‌ی دوم رد شده: ۴ سطح شدت (نه فقط یه قرمز ثابت) — تا فرق ۱ روز و ۲۰ روز دیده بشه
     const daysToEta1 = e1Sv ? diffShamsiDays(today, s.eta) : null;
     const daysToEta2 = e2Sv ? diffShamsiDays(today, s.eta2||s.eta) : null;
-    let barColor, overdueDays=null;
+    let barColor, overdueDays=null, severityTier=0, isCritical=false;
     if(daysToEta2!==null && daysToEta2<0){
-      barColor='#dc2626'; // قرمز پررنگ — از وعده‌ی دوم رد شده
       overdueDays=Math.abs(daysToEta2);
+      if(overdueDays<=2){ barColor='#f0a500'; severityTier=1; }
+      else if(overdueDays<=7){ barColor='#ef4444'; severityTier=2; }
+      else if(overdueDays<=14){ barColor='#dc2626'; severityTier=3; }
+      else { barColor='#991b1b'; severityTier=4; isCritical=true; }
     } else if(daysToEta1!==null && daysToEta1<0){
       // از وعده‌ی اول رد شده — هرچی به وعده‌ی دوم نزدیک‌تر، قرمزتر
       barColor = (daysToEta2!==null && daysToEta2<=3) ? '#e34948' : '#eda100';
@@ -10478,13 +10481,14 @@ function renderShipmentGantt(fullList){
     }
 
     const dLeft=daysToEta1;
-    const dLabel = overdueDays!==null ? `⚠️ ${fn(overdueDays)} روز از وعده‌ی دوم گذشته`
+    const dLabel = overdueDays!==null ? `${isCritical?'🔥 ':'⚠️ '}${fn(overdueDays)} روز از وعده‌ی دوم گذشته`
       : dLeft===null?'—':dLeft<0?`${fn(Math.abs(dLeft))} روز از وعده‌ی اول گذشته`:dLeft===0?'امروز می‌رسد':`${fn(dLeft)} روز دیگر`;
-    const dColor = overdueDays!==null ? '#dc2626' : (dLeft===null?'var(--muted)':dLeft<0?'#eda100':dLeft<=7?'#eda100':'#1baf7a');
+    const dColor = overdueDays!==null ? barColor : (dLeft===null?'var(--muted)':dLeft<0?'#eda100':dLeft<=7?'#eda100':'#1baf7a');
     // رنگ هر نقطه بر اساس رد شدن یا نشدن از اون تاریخ
     const eta1Passed = todaySv >= e1Sv;
     const eta2Passed = todaySv >= e2Sv;
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;${overdueDays!==null?'border-color:#dc2626;':''}">
+    const pulseStyle = isCritical ? 'animation:overdueCriticalPulse 2s ease-in-out infinite;' : '';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px;${overdueDays!==null?`border-color:${barColor};`:''}${pulseStyle}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:4px;">
         <div style="min-width:0;">
           <div style="font-size:11.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.id||''}</div>
@@ -10511,13 +10515,14 @@ function renderShipmentGantt(fullList){
   }).join('');
 
   return `<div style="background:var(--surface,var(--bg));border:0.5px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+    <style>@keyframes overdueCriticalPulse{0%,100%{box-shadow:0 0 0 0 rgba(153,27,27,0);} 50%{box-shadow:0 0 0 3px rgba(239,68,68,.25);}}</style>
     <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
       <span>🗓</span> خط زمانی محموله‌ها — به تفکیک تامین‌کننده
     </div>
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;">${tabsHTML}</div>
     ${list.length ? `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">${cardsHTML}</div>` : `<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">موردی برای این تامین‌کننده نیست</div>`}
     <div style="display:flex;gap:14px;flex-wrap:wrap;padding-top:10px;border-top:0.5px solid var(--border);margin-top:8px;">
-      ${[['#1baf7a','وقت داریم'],['#eda100','کمتر از ۷ روز مونده'],['#e34948','از موعد رد شده']].map(([c,l])=>`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);"><span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block;"></span>${l}</span>`).join('')}
+      ${[['#1baf7a','وقت داریم'],['#eda100','کمتر از ۷ روز مونده'],['#f0a500','۱-۲ روز از وعده دوم'],['#ef4444','۳-۷ روز عقب'],['#dc2626','۸-۱۴ روز عقب'],['#991b1b','🔥 ۱۵+ روز — بحرانی']].map(([c,l])=>`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);"><span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block;"></span>${l}</span>`).join('')}
     </div>
   </div>`;
 }
