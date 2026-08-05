@@ -997,22 +997,37 @@ function renderToolbar(){
     <div id="morningView"></div>
     <div id="kanbanBoard" style="display:none!important" class="kanban-board" style="display:none;"></div>
     <div id="remindersView" style="display:none;padding:16px;">
-      <div class="tbl-wrap" style="margin-bottom:22px;">
-        <div class="tbl-hdr">
-          <div class="sec-title">🔔 یادآوری‌های آزاد</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-ghost btn-sm" style="color:#f0a500;border-color:rgba(240,165,0,.35);" onclick="openTomorrowPlanForm()">📝 برنامه‌ی فردا</button>
-            <button class="btn btn-primary btn-sm" onclick="openFreeReminderForm()">+ یادآوری آزاد جدید</button>
+      <div class="tbl-wrap" style="margin-bottom:14px;">
+        <div class="tbl-hdr" style="cursor:pointer;" onclick="toggleRemAccordion('tomorrow')">
+          <div class="sec-title">📝 برنامه‌ی فردا <span id="remTomorrowCount" style="font-size:11px;color:var(--muted)"></span></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary btn-sm" style="background:#f0a500;border-color:#f0a500;" onclick="event.stopPropagation();openTomorrowPlanForm()">+ برنامه‌ی فردا</button>
+            <span id="remTomorrowArrow" style="color:var(--muted)">‹</span>
           </div>
         </div>
-        <div id="freeRemBody"></div>
+        <div id="remTomorrowBox" style="display:none;"><div id="tomorrowRemBody"></div></div>
       </div>
-      <div class="tbl-wrap" style="margin-bottom:22px;">
-        <div class="tbl-hdr">
-          <div class="sec-title">🔁 یادآوری‌های دوره‌ای</div>
-          <button class="btn btn-primary btn-sm" onclick="resetRecurringForm();openModal('recurring')">+ یادآوری دوره‌ای جدید</button>
+
+      <div class="tbl-wrap" style="margin-bottom:14px;">
+        <div class="tbl-hdr" style="cursor:pointer;" onclick="toggleRemAccordion('recurring')">
+          <div class="sec-title">🔁 یادآوری‌های دوره‌ای <span id="remRecurringCount" style="font-size:11px;color:var(--muted)"></span></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();resetRecurringForm();openModal('recurring')">+ یادآوری دوره‌ای جدید</button>
+            <span id="remRecurringArrow" style="color:var(--muted)">‹</span>
+          </div>
         </div>
-        <div id="recurringBody"></div>
+        <div id="remRecurringBox" style="display:none;"><div id="recurringBody"></div></div>
+      </div>
+
+      <div class="tbl-wrap" style="margin-bottom:22px;">
+        <div class="tbl-hdr" style="cursor:pointer;" onclick="toggleRemAccordion('free')">
+          <div class="sec-title">🔔 یادآوری‌های آزاد <span id="remFreeCount" style="font-size:11px;color:var(--muted)"></span></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openFreeReminderForm()">+ یادآوری آزاد جدید</button>
+            <span id="remFreeArrow" style="color:var(--muted)">‹</span>
+          </div>
+        </div>
+        <div id="remFreeBox" style="display:none;"><div id="freeRemBody"></div></div>
       </div>
       <div class="tbl-wrap">
         <div class="tbl-hdr"><div class="sec-title">🔔 یادآوری‌های مرتبط با درخواست‌ها</div></div>
@@ -2840,6 +2855,8 @@ function renderRecurring(){
   const el=document.getElementById('recurringBody');
   if(!el)return;
   const active=recurringReminders.filter(r=>!r.canceled);
+  const cntEl=document.getElementById('remRecurringCount');
+  if(cntEl) cntEl.textContent = active.length?`(${active.length})`:'';
   if(!active.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔁</div><div class="empty-text">یادآوری دوره‌ای ندارید</div></div>`;return;}
 
   const todayKeyVal=shamsiDateSortVal(todayShamsiStr());
@@ -3113,14 +3130,55 @@ async function deleteFreeReminder(id){
 function emptyBox(icon, emptyMsg){
   return `<div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-text">${emptyMsg}</div></div>`;
 }
+// اکاردئون سه‌بخشی یادآوری‌ها — برنامه‌ی فردا / دوره‌ای / آزاد، هرکدوم جدا باز و بسته می‌شه
+let _remAccordionOpen = {tomorrow:true, recurring:false, free:false};
+function toggleRemAccordion(key){
+  _remAccordionOpen[key] = !_remAccordionOpen[key];
+  const box = document.getElementById('rem'+key.charAt(0).toUpperCase()+key.slice(1)+'Box');
+  const arrow = document.getElementById('rem'+key.charAt(0).toUpperCase()+key.slice(1)+'Arrow');
+  if(box) box.style.display = _remAccordionOpen[key] ? 'block' : 'none';
+  if(arrow) arrow.textContent = _remAccordionOpen[key] ? '⌄' : '‹';
+}
+function initRemAccordionUI(){
+  Object.keys(_remAccordionOpen).forEach(key=>{
+    const box = document.getElementById('rem'+key.charAt(0).toUpperCase()+key.slice(1)+'Box');
+    const arrow = document.getElementById('rem'+key.charAt(0).toUpperCase()+key.slice(1)+'Arrow');
+    if(box) box.style.display = _remAccordionOpen[key] ? 'block' : 'none';
+    if(arrow) arrow.textContent = _remAccordionOpen[key] ? '⌄' : '‹';
+  });
+}
+
+function renderTomorrowPlan(){
+  const el=document.getElementById('tomorrowRemBody');
+  if(!el) return;
+  let list=freeReminders.filter(r=>r.category==='tomorrow');
+  list.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
+  const open=list.filter(r=>!r.done), done=list.filter(r=>r.done);
+  document.getElementById('remTomorrowCount').textContent = open.length?`(${open.length} باز)`:'';
+  if(!list.length){ el.innerHTML=emptyBox('📝','کار فردایی ثبت نشده'); return; }
+  function rowHTML(r){
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(42,47,74,.4);font-size:12px;${r.done?'opacity:.55':''}">
+      <span style="font-size:18px">${r.done?'✅':'📝'}</span>
+      <div style="flex:1;${r.done?'text-decoration:line-through':''}">${r.desc}</div>
+      <span style="font-size:11px;color:var(--muted)">${r.date}</span>
+      <button class="action-btn" onclick="toggleFreeReminderDone('${r.id}')">${r.done?'بازکردن':'✅ انجام شد'}</button>
+      <button class="action-btn" onclick="editFreeReminder('${r.id}')">✏️</button>
+      <button class="action-btn" style="color:var(--red)" onclick="deleteFreeReminder('${r.id}')">🗑️</button>
+    </div>`;
+  }
+  el.innerHTML=open.map(rowHTML).join('')+done.map(rowHTML).join('');
+}
+
 function renderFreeReminders(){
   const el=document.getElementById('freeRemBody');
   if(!el)return;
-  let list=[...freeReminders];
+  // «کار فردا» جای جدا و اختصاصی خودش رو داره (renderTomorrowPlan) — اینجا دیگه نشون داده نمی‌شه
+  let list=freeReminders.filter(r=>r.category!=='tomorrow');
   list.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
   const open=list.filter(r=>!r.done);
   const done=list.filter(r=>r.done);
   const todaySv=shamsiDateSortVal(todayShamsiStr());
+  document.getElementById('remFreeCount').textContent = open.length?`(${open.length} باز)`:'';
   if(!list.length){el.innerHTML=emptyBox('🔔','یادآوری آزادی ثبت نشده — با دکمه «+ یادآوری آزاد جدید» شروع کن');return;}
   function rowHTML(r){
     const sv=shamsiDateSortVal(r.date);
@@ -3379,6 +3437,8 @@ async function confirmDebtClosedByFinance(){
 }
 
 function renderReminders(){
+  initRemAccordionUI();
+  renderTomorrowPlan();
   renderRecurring();
   renderFreeReminders();
   const w=requests.filter(r=>r.reminder);

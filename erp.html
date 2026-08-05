@@ -4014,7 +4014,7 @@ function renderDash(){
   const overdue=requests.filter(r=>r.status==='overdue').length;
   const done=requests.filter(r=>r.status==='done').length;
   const openReqCount=requests.filter(r=>!['done','canceled'].includes(r.status)).length;
-  const activeShips=shipments.filter(s=>!['delivered','canceled'].includes(s.status)).length;
+  const activeShips=shipments.filter(s=>!['delivered','canceled'].includes(s.status) && !s.sentToClearance).length;
   const pendTasks=tasks.filter(t=>t.status==='pending'||t.status==='inprogress').length;
   document.getElementById('kF').textContent=follow;
   document.getElementById('kO').textContent=overdue;
@@ -4057,10 +4057,7 @@ function renderDash(){
     });
   });
   setBadge('procBadge', Object.keys(custNeedMap).length);
-  const pendingForeignDelivCount=requests.reduce((sum,r)=>{
-    if(!r.parts||!r.parts.needForeign) return sum;
-    return sum+(r.parts.foreignItems||[]).filter(it=>it.status!=='delivered_to_customer'&&it.status!=='notfound'&&it.status!=='canceled_customer').length;
-  },0);
+  const pendingForeignDelivCount = buildForeignNeedRows().filter(r=>r.resolved<r.totalItems).length;
   setBadge('foreignDelivBadge',pendingForeignDelivCount);
   const pendingDomesticDelivCount=requests.reduce((sum,r)=>{
     if(!r.parts||!r.parts.needMarket) return sum;
