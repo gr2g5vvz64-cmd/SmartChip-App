@@ -3428,6 +3428,10 @@ async function sendBotInviteWhatsAppM(customerName){
   toast('📱 واتس‌اپ باز شد');
 }
 
+function fspFromApiM(d){
+  return {id:d.id, supplier:d.supplier||'', itemName:d.item_name||'', approvedPrice:d.approved_price||'',
+    result:d.result||'', date:d.date||'', customer:d.customer||'', reqId:d.req_id||''};
+}
 // ── ۲. داشبورد بازرگانی ──
 async function openBazDashSheetM(){
   closeSheet('erpHub');
@@ -3436,8 +3440,8 @@ async function openBazDashSheetM(){
   openSheet('subFeature');
   if(isConnected && !foreignSupplierPerformance.length){
     try{
-      const res=await sheetCall('getForeignSupplierPerformance');
-      if(res&&res.foreignSupplierPerformance) foreignSupplierPerformance=res.foreignSupplierPerformance;
+      const res=await fetch('https://smartchip-backend.onrender.com/api/ops/foreign-supplier-performance/');
+      if(res.ok) foreignSupplierPerformance=(await res.json()).map(fspFromApiM);
     }catch(e){}
   }
   renderBazDashM();
