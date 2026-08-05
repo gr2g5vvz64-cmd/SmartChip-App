@@ -1911,12 +1911,31 @@ textarea.form-control{resize:vertical;min-height:70px;}
 
 <!-- PACKING BUILDER MODAL — انتخاب چندتایی آیتم‌های انبار برای ساخت یه پکینگ -->
 <!-- NEW DEBT CASE MODAL -->
+<!-- DEBT COLLECTION LOG MODAL -->
+<div class="modal-overlay" id="modalDebtCollection" onclick="closeModalOut(event,'modalDebtCollection')">
+  <div class="modal" style="width:400px">
+    <div class="modal-hdr"><div class="modal-title">💰 ثبت وصولی</div><button class="close-btn" onclick="closeModal('modalDebtCollection')">✕</button></div>
+    <div class="form-grid">
+      <input type="hidden" id="debtCollectionCaseId"/>
+      <div class="form-group form-full"><label class="form-label">مبلغ وصول‌شده (تومان) *</label><input class="form-control" id="debtCollectionAmount" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 10000000"/></div>
+      <div class="form-group form-full"><label class="form-label">تاریخ دریافت</label><input class="form-control" id="debtCollectionDate" placeholder="پیش‌فرض: امروز" readonly onfocus="openDatePicker('debtCollectionDate')"/></div>
+      <div class="form-group form-full"><label class="form-label">حرف/توضیح مشتری (اختیاری)</label><textarea class="form-control" id="debtCollectionNote" rows="2" placeholder="مثلاً: قول داد باقی رو تا آخر ماه بده..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveDebtCollectionLog()">ثبت</button><button class="btn btn-ghost" onclick="closeModal('modalDebtCollection')">انصراف</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalNewDebtCase" onclick="closeModalOut(event,'modalNewDebtCase')">
   <div class="modal" style="width:420px">
     <div class="modal-hdr"><div class="modal-title">💳 ثبت پرونده‌ی جدید وصول مطالبات</div><button class="close-btn" onclick="closeModal('modalNewDebtCase')">✕</button></div>
     <div class="form-grid">
-      <div class="form-group form-full"><label class="form-label">نام مشتری *</label><input class="form-control" id="debtCaseCustomerInput" placeholder="نام مشتری..."/></div>
+      <div class="form-group form-full" style="position:relative">
+        <label class="form-label">نام مشتری *</label>
+        <input class="form-control" id="debtCaseCustomerInput" placeholder="تایپ کن، از لیست انتخاب کن..." oninput="searchDebtCustAutocomplete(this.value)" autocomplete="off"/>
+        <div id="debtCustAutocompleteList" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;z-index:50;margin-top:4px;"></div>
+      </div>
       <div class="form-group form-full"><label class="form-label">مبلغ کل بدهی (تومان) *</label><input class="form-control" id="debtCaseAmountInput" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 50000000"/></div>
+      <div class="form-group form-full"><label class="form-label">از کِی این بدهی مونده؟ (تاریخ شروع)</label><input class="form-control" id="debtCaseStartDateInput" placeholder="پیش‌فرض: امروز" readonly onfocus="openDatePicker('debtCaseStartDateInput')"/></div>
     </div>
     <div class="modal-footer"><button class="btn btn-primary" onclick="saveNewDebtCase()">ثبت پرونده</button><button class="btn btn-ghost" onclick="closeModal('modalNewDebtCase')">انصراف</button></div>
   </div>
@@ -6137,66 +6156,119 @@ async function createDebtCaseInDjango(data){
       customer:data.customer, total_debt:data.totalDebt, start_date:data.startDate,
       created_date:todayShamsiStr(), created_by:(currentUser&&currentUser.name)||''
     })}, 'ساخت پرونده مطالبات '+data.customer);
-    return res.ok ? debtCaseFromApi(res.data) : null;
-  }catch(e){ return null; }
+    if(res.ok) return {success:true, data:debtCaseFromApi(res.data)};
+    if(res.queued) return {queued:true};
+    return {success:false};
+  }catch(e){ return {success:false}; }
 }
 async function updateDebtCaseInDjango(id, patch){
   try{
     const res = await djangoFetch(DJANGO_DEBTS_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)}, 'آپدیت پرونده مطالبات '+id);
-    if(res.queued){ toast('🟡 در صف ماند'); return null; }
-    return res.ok ? debtCaseFromApi(res.data) : null;
-  }catch(e){ return null; }
+    if(res.queued) return {queued:true};
+    return res.ok ? {success:true, data:debtCaseFromApi(res.data)} : {success:false};
+  }catch(e){ return {success:false}; }
+}
+
+function searchDebtCustAutocomplete(val){
+  const box=document.getElementById('debtCustAutocompleteList');
+  if(!val||val.trim().length<1){box.style.display='none';return;}
+  const q=normalizeFa(val);
+  const matches=rankCustomerMatches(q, customerMaster).slice(0,100);
+  if(!matches.length){box.style.display='none';return;}
+  box.innerHTML=matches.map(c=>`
+    <div onclick="pickDebtCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+      <strong>${c.name}</strong>
+      ${c.category?`<span style="color:var(--muted);font-size:10px;margin-right:8px">${c.category}</span>`:''}
+    </div>`).join('');
+  box.style.display='block';
+}
+function pickDebtCustomer(name){
+  document.getElementById('debtCaseCustomerInput').value=name;
+  document.getElementById('debtCustAutocompleteList').style.display='none';
 }
 
 function openNewDebtCaseModal(){
   document.getElementById('debtCaseCustomerInput').value='';
   document.getElementById('debtCaseAmountInput').value='';
+  document.getElementById('debtCaseStartDateInput').value=todayShamsiStr();
   openModal('newDebtCase');
 }
 async function saveNewDebtCase(){
   const customer=document.getElementById('debtCaseCustomerInput').value.trim();
   const amount=parseIntFa(document.getElementById('debtCaseAmountInput').value)||0;
+  const startDate=document.getElementById('debtCaseStartDateInput').value.trim()||todayShamsiStr();
   if(!customer||!amount){ toast('⚠ نام مشتری و مبلغ الزامیه'); return; }
-  const created = await createDebtCaseInDjango({customer, totalDebt:amount, startDate:todayShamsiStr()});
-  if(created){
-    debtCases.unshift(created);
+  const btn=document.querySelector('#modalNewDebtCase .btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='در حال ثبت...';}
+  const result = await createDebtCaseInDjango({customer, totalDebt:amount, startDate});
+  if(btn){btn.disabled=false;btn.textContent='ثبت پرونده';}
+  if(result.success){
+    debtCases.unshift(result.data);
     closeModal('modalNewDebtCase');
     renderDebtCasesERP();
     toast('✅ پرونده ثبت شد');
-  } else toast('❌ ثبت ناموفق بود');
+  } else if(result.queued){
+    // سرور کند بود (مثلاً تازه از خواب بیدار شده) — ولی تو صف افتاد و خودکار ثبت می‌شه
+    closeModal('modalNewDebtCase');
+    toast('🟡 سرور کند بود — پرونده در صف ماند و ظرف چند لحظه خودکار ثبت می‌شه (رفرش کن تا ببینیش)');
+  } else {
+    toast('❌ ثبت ناموفق بود — دوباره امتحان کن');
+  }
 }
 
-async function addDebtCollectionLog(id){
-  const amountStr = prompt('چقدر از این مطالبه وصول شد؟ (تومان)');
-  if(!amountStr) return;
-  const amount = parseIntFa(amountStr)||0;
+function openDebtCollectionModal(id){
+  document.getElementById('debtCollectionCaseId').value=id;
+  document.getElementById('debtCollectionAmount').value='';
+  document.getElementById('debtCollectionDate').value=todayShamsiStr();
+  document.getElementById('debtCollectionNote').value='';
+  openModal('debtCollection');
+}
+async function saveDebtCollectionLog(){
+  const id = document.getElementById('debtCollectionCaseId').value;
+  const amount = parseIntFa(document.getElementById('debtCollectionAmount').value)||0;
+  const date = document.getElementById('debtCollectionDate').value.trim()||todayShamsiStr();
+  const note = document.getElementById('debtCollectionNote').value.trim();
   if(!amount){ toast('⚠ مبلغ نامعتبر'); return; }
-  const note = prompt('یادداشت (اختیاری):') || '';
   const dc = debtCases.find(d=>String(d.id)===String(id));
   if(!dc) return;
-  const log = [...dc.financeLog, {date:todayShamsiStr(), amount, note}];
-  const updated = await updateDebtCaseInDjango(id, {finance_log:log});
-  if(updated){
+  const log = [...dc.financeLog, {date, amount, note}];
+  const result = await updateDebtCaseInDjango(id, {finance_log:log});
+  if(result.success){
     const idx=debtCases.findIndex(d=>String(d.id)===String(id));
-    debtCases[idx]=updated;
+    debtCases[idx]=result.data;
+    closeModal('modalDebtCollection');
     renderDebtCasesERP();
     toast('✅ ثبت شد');
+  } else if(result.queued){
+    closeModal('modalDebtCollection');
+    toast('🟡 سرور کند بود — در صف ماند، ظرف چند لحظه خودکار ثبت می‌شه (رفرش کن تا ببینیش)');
+  } else {
+    toast('⚠️ ذخیره ناموفق بود — دوباره امتحان کن');
   }
 }
 
 async function handoffDebtCaseToSales(id){
   if(!confirm('این پرونده به کارشناس فروش (برای پیگیری در CRM) ارجاع بشه؟')) return;
-  const updated = await updateDebtCaseInDjango(id, {
+  const result = await updateDebtCaseInDjango(id, {
     assigned_to: (currentUser&&currentUser.name)||'کارشناس فروش', handoff_date: todayShamsiStr()
   });
-  if(updated){
+  if(result.success){
     const idx=debtCases.findIndex(d=>String(d.id)===String(id));
-    debtCases[idx]=updated;
+    debtCases[idx]=result.data;
     renderDebtCasesERP();
     toast('✅ به فروش ارجاع شد — الان تو CRM هم دیده می‌شه');
+  } else if(result.queued){
+    toast('🟡 سرور کند بود — در صف ماند، ظرف چند لحظه خودکار ثبت می‌شه (رفرش کن تا ببینیش)');
+  } else {
+    toast('⚠️ ارجاع ناموفق بود — دوباره امتحان کن');
   }
 }
 
+let _debtArchiveOpen = false;
+function toggleDebtArchive(){
+  _debtArchiveOpen = !_debtArchiveOpen;
+  renderDebtCasesERP();
+}
 function renderDebtCasesERP(){
   const el = document.getElementById('debtCasesContentERP');
   if(!el) return;
@@ -6204,7 +6276,13 @@ function renderDebtCasesERP(){
   const closed = (debtCases||[]).filter(d=>d.remaining<=0);
   setBadge('debtCaseBadgeERP', open.length);
 
-  const rowHTML = d => `
+  const rowHTML = d => {
+    const durationTxt = (d.remaining<=0 && d.startDate) ? (()=>{
+      const lastLogDate = (d.financeLog&&d.financeLog.length) ? d.financeLog[d.financeLog.length-1].date : d.startDate;
+      const days = diffShamsiDays(d.startDate, lastLogDate);
+      return days!==null ? `<span style="color:${days>30?'var(--red)':days>10?'var(--accent)':'var(--green)'};font-weight:700;">⏱ ${fn(Math.abs(days))} روز طول کشید تا تسویه شد</span>` : '';
+    })() : '';
+    return `
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:13px;">${d.customer}</strong>
@@ -6216,14 +6294,16 @@ function renderDebtCasesERP(){
         کل بدهی: ${fn(d.totalDebt)} — وصول‌شده: ${fn(d.collected)} — شروع: ${d.startDate||'—'}
         ${d.assignedTo?` — <span style="color:var(--accent)">ارجاع به: ${d.assignedTo} (${d.handoffDate})</span>`:''}
       </div>
-      ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">
-        ${d.financeLog.map(l=>`• ${l.date} — ${fn(l.amount)} تومان ${l.note?'— '+l.note:''}`).join('<br>')}
+      ${durationTxt?`<div style="font-size:10.5px;margin-bottom:8px;">${durationTxt}</div>`:''}
+      ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px;">
+        ${d.financeLog.map(l=>`💰 ${l.date} — ${fn(l.amount)} تومان${l.note?` — «${l.note}»`:''}`).join('<br>')}
       </div>`:''}
       <div style="display:flex;gap:6px;">
-        ${d.remaining>0?`<button class="action-btn" style="font-size:10px;" onclick="addDebtCollectionLog('${d.id}')">💰 ثبت وصولی</button>`:''}
+        ${d.remaining>0?`<button class="action-btn" style="font-size:10px;" onclick="openDebtCollectionModal('${d.id}')">💰 ثبت وصولی</button>`:''}
         ${!d.assignedTo?`<button class="action-btn" style="font-size:10px;color:var(--accent);" onclick="handoffDebtCaseToSales('${d.id}')">📤 ارجاع به فروش (CRM)</button>`:''}
       </div>
     </div>`;
+  };
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -6231,7 +6311,11 @@ function renderDebtCasesERP(){
       <button class="btn btn-primary btn-sm" onclick="openNewDebtCaseModal()">+ ثبت پرونده جدید</button>
     </div>
     ${open.length?open.map(rowHTML).join(''):'<div style="text-align:center;color:var(--muted);padding:20px;">پرونده‌ی بازی نیست</div>'}
-    ${closed.length?`<div class="sec-title" style="color:var(--muted);margin-top:20px;">🗄️ بایگانی (تسویه‌شده) — ${fn(closed.length)} مورد</div>${closed.map(rowHTML).join('')}`:''}
+    <div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;" onclick="toggleDebtArchive()">
+      <span class="sec-title" style="color:var(--muted);margin:0;">🗄️ بایگانی (تسویه‌شده) — ${fn(closed.length)} مورد</span>
+      <span style="color:var(--muted);font-size:11px;">${_debtArchiveOpen?'▲ بستن':'▼ نمایش روند و تاریخچه'}</span>
+    </div>
+    ${_debtArchiveOpen ? (closed.length?closed.map(rowHTML).join(''):'<div style="text-align:center;color:var(--muted);padding:16px;font-size:11px;">هنوز هیچ پرونده‌ای تسویه نشده</div>') : ''}
   `;
 }
 
