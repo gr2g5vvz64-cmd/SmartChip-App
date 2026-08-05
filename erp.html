@@ -3198,6 +3198,18 @@ async function fetchRequestsFromDjangoERP(){
 // معادل کامل تابع سرور updateRequest(data) قدیمی — همون قرارداد {field,value,...} رو
 // می‌فهمه، فقط به‌جای گوگل‌شیت، PATCH درست رو به Django می‌فرسته. این یعنی ۲۸ جای کد که
 // از این الگو استفاده می‌کردن، تقریباً بدون تغییر کار می‌کنن.
+async function createRequestInDjango(newReq, parts){
+  try{
+    const res = await fetch(DJANGO_REQUESTS_API_ERP, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      id:newReq.id, date:newReq.date, customer:newReq.customer, assignee:newReq.assignee, desc:newReq.desc,
+      status:newReq.status, deadline:newReq.deadline, notes:newReq.notes||[], reminder:newReq.reminder,
+      force:!!newReq.force, parts:parts, customer_seq:newReq.customerSeq, display_number:newReq.displayNumber,
+      created_at:newReq.createdAt, completed_date:newReq.completedDate||''
+    })});
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ console.error('خطای ساخت درخواست در Django:', e); return null; }
+}
 async function updateRequestInDjango(id, data){
   const patch = {};
   if(data.field==='status'){
@@ -9287,9 +9299,9 @@ async function saveRequest(){
     if(openReqId===r.id) openDetail(r.id);
     if(isConnected){
       await reliableUpdateRequestParts(r.id, parts, {statusValue:status,customer:c,desc:d,assignee:r.assignee,force:force});
-      toast('✅ درخواست ویرایش شد و در Google Sheets ذخیره شد');
+      toast('✅ درخواست ویرایش شد و ذخیره شد');
     } else {
-      toast('⚠️ ویرایش شد ولی به Google Sheets وصل نیست — موقت است');
+      toast('⚠️ ویرایش شد ولی به سرور وصل نیست — موقت است');
     }
     return;
   }
@@ -9311,14 +9323,11 @@ async function saveRequest(){
   resetRequestForm();
   renderDash();renderReqs();
   if(isConnected){
-    await sheetCall('addRequest',{
-      id:newReq.id,date:newReq.date,customer:newReq.customer,assignee:newReq.assignee,desc:newReq.desc,
-      status:newReq.status,deadline:newReq.deadline,note:newReq.notes[0]||'',reminder:newReq.reminder||'',force:newReq.force,
-      partsJson:JSON.stringify(parts),customerSeq:newReq.customerSeq,displayNumber:newReq.displayNumber,createdAt:newReq.createdAt
-    });
-    toast(`✅ ثبت شد با شماره ${displayNumber}`);
+    const created = await createRequestInDjango(newReq, parts);
+    if(created) toast(`✅ ثبت شد با شماره ${displayNumber}`);
+    else toast(`⚠️ ثبت محلی شد ولی ارسال به سرور ناموفق بود — بعداً sync کن`);
   } else {
-    toast('⚠️ ثبت شد ولی به Google Sheets وصل نیست — موقت است');
+    toast('⚠️ ثبت شد ولی به سرور وصل نیست — موقت است');
   }
 }
 
@@ -10073,7 +10082,10 @@ async function cancelRequest(id){
       await reliableUpdateRequestParts(r.id, r.parts);
       // بایگانی کردن لید متناظر در CRM — تا از جدول فعال به بایگانی بره
       try{
-        await sheetCall('archiveLeadByRequestId',{requestId:r.id, cancelReason:r.cancelReason||'کنسل شده از ERP'});
+        await fetch('https://smartchip-backend.onrender.com/api/requests/archive-lead-by-tracking-code/', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({trackingCode:r.displayNumber, reason:r.cancelReason||'کنسل شده از ERP'})
+        });
       }catch(archErr){ /* بی‌خطر — اگه لید متناظر نبود یا خطا داد، خود کنسلی درخواست هنوز انجام شده */ }
       // کنسل محموله‌های مرتبط در شیت
       for(var si=0; si<linkedShipments.length; si++){
