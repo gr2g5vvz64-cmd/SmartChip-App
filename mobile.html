@@ -351,6 +351,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <button onclick="enableNotifications()" title="فعال‌سازی نوتیف" style="background:var(--card);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;font-size:11px;display:flex;align-items:center;justify-content:center;">🔔</button>
 </div>
 
+<!-- ══ نوار پالس — کمتر کلیک، بیشتر دیدن. فقط می‌خونه، هیچ تابع موجودی رو دست نمی‌زنه ══ -->
+<div id="pulseBar" style="display:flex;gap:6px;padding:6px 12px 10px;overflow-x:auto;white-space:nowrap;"></div>
+
 <div class="content">
 
   <!-- وضعیت سریع: یادآوری‌های امروز/فردا + موارد فورس در یک کارت فشرده -->
@@ -2723,6 +2726,58 @@ async function fetchPaidChequesFromDjangoM(){
   try{ const res=await fetch('https://smartchip-backend.onrender.com/api/finance/paid-cheques/'); if(!res.ok) return null; return (await res.json()).map(paidChqFromApiM); }catch(e){ return null; }
 }
 
+// ══════════════════════════════════════════════════════════════
+// نوار پالس — «کمتر کلیک، بیشتر دیدن». فقط می‌خونه (read-only)، هیچ تابع
+// یا داده‌ی موجودی رو دست نمی‌زنه. با <bdi> از قاطی‌شدن فارسی/انگلیسی جلوگیری می‌کنه.
+// ══════════════════════════════════════════════════════════════
+function pulsePillM(count, label, color, onclickFn){
+  if(count<=0) return '';
+  const colors = {red:['#ef4444','rgba(239,68,68,.1)','rgba(239,68,68,.25)'],
+    amber:['#f0a500','rgba(240,165,0,.1)','rgba(240,165,0,.25)'],
+    teal:['#2dd4bf','rgba(45,212,191,.1)','rgba(45,212,191,.25)']};
+  const [fg,bg,bd] = colors[color]||colors.amber;
+  return `<div onclick="${onclickFn}" style="display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:9px;font-size:11px;white-space:nowrap;cursor:pointer;flex-shrink:0;color:${fg};background:${bg};border:1px solid ${bd};">
+    <span style="font-family:monospace;font-weight:800;font-size:12px;"><bdi>${count}</bdi></span> ${label}
+  </div>`;
+}
+function renderPulseBar(){
+  const el = document.getElementById('pulseBar');
+  if(!el) return;
+  try{
+    const todayStr = todayShamsiStr();
+    let overdue=0, todayFollow=0;
+    (leads||[]).forEach(l=>{
+      (l.history||[]).forEach(h=>{
+        const archived = h.completed || (h.canceled && (h.cancelReason||'').trim());
+        if(archived) return;
+        const hasResp = (h.nextFollowUpText||'').trim();
+        const hrs = h.date ? (Date.now()-new Date(h.date).getTime())/3600000 : 0;
+        if(!hasResp && hrs>24) overdue++;
+        if(h.nextFollowUpDate===todayStr) todayFollow++;
+      });
+    });
+
+    const todayJ = jdToS(gToJD(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate()));
+    const todayJD = sToJD(todayJ.y, todayJ.m, todayJ.d);
+    let etaRisk = 0;
+    (cachedShipments||[]).forEach(s=>{
+      if(['delivered','canceled'].includes(s.status) || !s.eta2) return;
+      const m = (s.eta2||'').match(/^(\d+)\/(\d+)\/(\d+)$/);
+      if(!m) return;
+      const days = sToJD(+m[1],+m[2],+m[3]) - todayJD;
+      if(days>=0 && days<=5) etaRisk++;
+    });
+
+    const pills = [
+      pulsePillM(overdue, 'بی‌جواب &gt;۲۴س', 'red', "openSheet('crmHub')"),
+      pulsePillM(todayFollow, 'پیگیری امروز', 'amber', "openSheet('crmHub')"),
+      pulsePillM(etaRisk, 'محدوده خطر ETA', 'amber', "openSheet('crmHub')"),
+    ].filter(Boolean);
+
+    el.innerHTML = pills.length ? pills.join('') : '';
+  }catch(e){ console.warn('renderPulseBar error:', e); }
+}
+
 let mobileTodayRemCount = 0;
 let mobileForceCount = 0;
 async function loadSummary(){
@@ -2786,6 +2841,7 @@ async function loadSummary(){
   });
   mobileForceCount = items.length;
   renderMobileHeroCard();
+  renderPulseBar();
 
   if(!items.length){sumEl.innerHTML=`<div class="summary-empty">✅ مورد فورس فعالی نیست</div>`;return;}
   sumEl.innerHTML=items.map(it=>summaryRowHTML(it.icon,it.title,`${it.label} — ${it.sub}`)).join('');

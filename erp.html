@@ -1087,6 +1087,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <button class="btn btn-primary btn-sm" onclick="openModal('task')">+ ارجاع کار</button>
     </div>
   </div>
+  <!-- ══ نوار پالس — کمتر کلیک، بیشتر دیدن. فقط از داده‌های همین صفحه می‌خونه، هیچ تابع موجودی رو دست نمی‌زنه ══ -->
+  <div id="pulseBar" style="display:flex;gap:8px;padding:9px 20px;background:var(--surface,#0d1120);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;"></div>
   <div class="content">
 
     <!-- ══ DASHBOARD ══ -->
@@ -4069,9 +4071,62 @@ function renderForcePriorityBox(){
   ].join('');
 }
 
+// ══════════════════════════════════════════════════════════════
+// نوار پالس — «کمتر کلیک، بیشتر دیدن». فقط می‌خونه (read-only)، هیچ تابع
+// یا داده‌ی موجودی رو دست نمی‌زنه. با <bdi> از قاطی‌شدن فارسی/انگلیسی جلوگیری می‌کنه.
+// ══════════════════════════════════════════════════════════════
+function pulsePill(count, label, color, onclickFn){
+  if(count<=0) return '';
+  const colors = {red:['#ef4444','rgba(239,68,68,.1)','rgba(239,68,68,.25)'],
+    amber:['#f0a500','rgba(240,165,0,.1)','rgba(240,165,0,.25)'],
+    teal:['#2dd4bf','rgba(45,212,191,.1)','rgba(45,212,191,.25)'],
+    blue:['#60a5fa','rgba(59,130,246,.1)','rgba(59,130,246,.25)']};
+  const [fg,bg,bd] = colors[color]||colors.amber;
+  return `<div onclick="${onclickFn}" style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:10px;font-size:11.5px;white-space:nowrap;cursor:pointer;flex-shrink:0;color:${fg};background:${bg};border:1px solid ${bd};">
+    <span style="font-family:monospace;font-weight:800;font-size:13px;"><bdi>${fn(count)}</bdi></span> ${label}
+  </div>`;
+}
+function renderPulseBar(){
+  const el = document.getElementById('pulseBar');
+  if(!el) return;
+  try{
+    const todayJ = jdToS(gToJD(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate()));
+    const todayJD = sToJD(todayJ.y, todayJ.m, todayJ.d);
+
+    const overdueReq = (requests||[]).filter(r=>!['done','canceled'].includes(r.status) &&
+      ['overdue'].includes(r.status)).length;
+    const openReq = (requests||[]).filter(r=>!['done','canceled'].includes(r.status)).length;
+
+    let etaRisk = 0;
+    (shipments||[]).forEach(s=>{
+      if(['delivered','canceled'].includes(s.status) || !s.eta2) return;
+      const m = s.eta2.match(/^(\d+)\/(\d+)\/(\d+)$/);
+      if(!m) return;
+      const days = sToJD(+m[1],+m[2],+m[3]) - todayJD;
+      if(days>=0 && days<=5) etaRisk++;
+    });
+
+    const clearanceQueue = (shipments||[]).filter(s=>s.sentToClearance && !s.clearedToWarehouse).length;
+    const packReady = (outboundPackings||[]).filter(p=>!p.sent).length;
+    const debtOpen = (debtCases||[]).filter(d=>(d.remaining!==undefined?d.remaining:d.totalDebt)>0).length;
+
+    const pills = [
+      pulsePill(overdueReq, 'پاسخ عقب‌افتاده', 'red', "showPage('requests')"),
+      pulsePill(openReq, 'درخواست باز', 'amber', "showPage('requests')"),
+      pulsePill(etaRisk, 'محدوده خطر ETA', 'amber', "showPage('shipments')"),
+      pulsePill(clearanceQueue, 'در صف ترخیص', 'blue', "showPage('clearance')"),
+      pulsePill(packReady, 'پکینگ آماده ارسال', 'teal', "showPage('warehouse')"),
+      pulsePill(debtOpen, 'پرونده مطالبات باز', 'blue', "showPage('debtcases')"),
+    ].filter(Boolean);
+
+    el.innerHTML = pills.length ? pills.join('') : '<div style="font-size:11px;color:var(--muted);padding:4px 0;">✅ همه‌چیز آرومه — کاری فوری نیست</div>';
+  }catch(e){ console.warn('renderPulseBar error:', e); }
+}
+
 function renderDash(){
   updateNavBadges();
   updateNavGroupSummaries();
+  renderPulseBar();
   if(!window._navGroupsRestored){ window._navGroupsRestored=true; restoreNavGroupStates(); }
   const follow=requests.filter(r=>r.status==='follow').length;
   const overdue=requests.filter(r=>r.status==='overdue').length;

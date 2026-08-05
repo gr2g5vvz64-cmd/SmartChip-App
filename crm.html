@@ -308,6 +308,8 @@ html[data-theme="light"] .crm-table td select{color:#0f1828;font-weight:500;}
       <button class="btn btn-ghost btn-sm" onclick="syncItemsToDjangoCRM()" title="همگام‌سازی وزن قطعات از گوگل‌شیت">⚖️ sync</button>
       <button class="btn btn-ghost btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="تغییر بین حالت شب و روز">🌙 حالت روز</button>
     </div>
+    <!-- ══ نوار پالس — فقط کارهای همین کارشناس. فقط می‌خونه، هیچ تابع موجودی رو دست نمی‌زنه ══ -->
+    <div id="pulseBar" style="display:flex;gap:8px;padding:9px 20px;background:var(--surface,#0d1120);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;"></div>
     <div class="content" id="mainContent"></div>
   </div>
 </div>
@@ -2137,6 +2139,7 @@ function closeModalOut(e,id){if(e.target===document.getElementById(id))closeModa
 function postLoadInit(){
   updateMorningBadge();
   renderToolbar();
+  renderPulseBar();
   showCrmTab('morning');
   renderKanban();
 }
@@ -3470,6 +3473,59 @@ async function confirmDebtClosedByFinance(){
   closeModal('modalDebtDetail');
   renderDebtsView();
   toast('✅ پرونده تسویه و بسته شد');
+}
+
+// ══════════════════════════════════════════════════════════════
+// نوار پالس — «کمتر کلیک، بیشتر دیدن». فقط می‌خونه (read-only)، هیچ تابع
+// یا داده‌ی موجودی رو دست نمی‌زنه. با <bdi> از قاطی‌شدن فارسی/انگلیسی جلوگیری می‌کنه.
+// ══════════════════════════════════════════════════════════════
+function pulsePill(count, label, color, onclickFn){
+  if(count<=0) return '';
+  const colors = {red:['#ef4444','rgba(239,68,68,.1)','rgba(239,68,68,.25)'],
+    amber:['#f0a500','rgba(240,165,0,.1)','rgba(240,165,0,.25)'],
+    teal:['#2dd4bf','rgba(45,212,191,.1)','rgba(45,212,191,.25)'],
+    blue:['#60a5fa','rgba(59,130,246,.1)','rgba(59,130,246,.25)']};
+  const [fg,bg,bd] = colors[color]||colors.amber;
+  return `<div onclick="${onclickFn}" style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:10px;font-size:11.5px;white-space:nowrap;cursor:pointer;flex-shrink:0;color:${fg};background:${bg};border:1px solid ${bd};">
+    <span style="font-family:monospace;font-weight:800;font-size:13px;"><bdi>${count}</bdi></span> ${label}
+  </div>`;
+}
+function renderPulseBar(){
+  const el = document.getElementById('pulseBar');
+  if(!el) return;
+  try{
+    const myName = (currentUser&&currentUser.name)||'';
+    const openEntries = [];
+    (leads||[]).forEach(l=>{
+      (l.history||[]).forEach(h=>{
+        if(isRowArchived(h)) return;
+        openEntries.push({customer:l.customer, entry:h});
+      });
+    });
+
+    let overdue=0, todayFollow=0, pendingRef=0;
+    const todayStr = todayShamsiStr();
+    openEntries.forEach(({entry})=>{
+      const hasResp = (entry.nextFollowUpText||'').trim();
+      const hrs = entry.date ? (Date.now()-new Date(entry.date).getTime())/3600000 : 0;
+      if(!hasResp && hrs>24) overdue++;
+      if(entry.nextFollowUpDate===todayStr) todayFollow++;
+      if(entry.workReferral && !entry.referralUnitResponse && !entry.workReferralResponse) pendingRef++;
+    });
+
+    const tomorrowToday = (freeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done && r.date===todayStr).length;
+    const myDebts = (debtCases||[]).filter(d=>d.assignedTo===myName && !d.financeApproved).length;
+
+    const pills = [
+      pulsePill(overdue, 'پاسخ بی‌جواب &gt;۲۴ساعت', 'red', "showCrmTab('table')"),
+      pulsePill(todayFollow, 'پیگیری امروز', 'amber', "showCrmTab('table')"),
+      pulsePill(pendingRef, 'ارجاع بی‌جواب', 'blue', "showCrmTab('table')"),
+      pulsePill(tomorrowToday, 'کار فردا (امروزه)', 'amber', "showCrmTab('reminders')"),
+      pulsePill(myDebts, 'پرونده مطالبات من', 'blue', "showCrmTab('debts')"),
+    ].filter(Boolean);
+
+    el.innerHTML = pills.length ? pills.join('') : '<div style="font-size:11px;color:var(--muted);padding:4px 0;">✅ همه‌چیز آرومه — کاری فوری نیست</div>';
+  }catch(e){ console.warn('renderPulseBar error:', e); }
 }
 
 function renderReminders(){
