@@ -896,6 +896,42 @@ textarea.form-control{resize:vertical;min-height:70px;}
 </head>
 <body>
 
+<!-- ══ نوار هشدار خطای سراسری — تا هر خطای جاوااسکریپت فوری و قابل‌دیدن باشه، نه پنهان ══ -->
+<div id="globalErrorBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:10px 16px;font-size:12px;font-family:'Vazirmatn',sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">
+  <span id="globalErrorText">⚠️ یه خطای فنی رخ داد</span>
+  <button onclick="document.getElementById('globalErrorBanner').style.display='none'" style="margin-right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">بستن</button>
+  <button onclick="copyErrorDetails()" style="margin-right:6px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">📋 کپی جزئیات</button>
+</div>
+<script>
+  window._lastErrorDetails = '';
+  window.addEventListener('error', function(e){
+    const msg = `خطا: ${e.message}\nفایل: ${e.filename}\nخط: ${e.lineno}:${e.colno}`;
+    window._lastErrorDetails = msg;
+    const banner = document.getElementById('globalErrorBanner');
+    const txt = document.getElementById('globalErrorText');
+    if(banner && txt){
+      txt.textContent = `⚠️ یه خطای فنی رخ داد — ممکنه یه بخش از صفحه درست کار نکنه (${e.message})`;
+      banner.style.display = 'block';
+    }
+    console.error('🔴 خطای سراسری گرفته‌شده:', msg);
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    const msg = `خطای Promise: ${e.reason}`;
+    window._lastErrorDetails = msg;
+    const banner = document.getElementById('globalErrorBanner');
+    const txt = document.getElementById('globalErrorText');
+    if(banner && txt){
+      txt.textContent = `⚠️ یه خطای فنی رخ داد (${e.reason})`;
+      banner.style.display = 'block';
+    }
+    console.error('🔴 خطای Promise گرفته‌شده:', msg);
+  });
+  function copyErrorDetails(){
+    if(navigator.clipboard) navigator.clipboard.writeText(window._lastErrorDetails||'خطایی ثبت نشده');
+    alert('جزئیات خطا کپی شد — تو تلگرام/چت برای پشتیبانی پیست کن:\n\n'+(window._lastErrorDetails||''));
+  }
+</script>
+
 <!-- ══ ACCESS GATE — تا تأیید نقش، چیزی از اپ دیده نمی‌شود ══ -->
 <div id="accessGateOverlay" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center;">
   <div id="accessCheckingState">

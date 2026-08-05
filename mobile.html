@@ -290,6 +290,34 @@ textarea.form-control{resize:vertical;min-height:70px;}
 </head>
 <body>
 
+<!-- ══ نوار هشدار خطای سراسری — تا هر خطای جاوااسکریپت فوری و قابل‌دیدن باشه، نه پنهان ══ -->
+<div id="globalErrorBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:8px 12px;font-size:11px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">
+  <span id="globalErrorText">⚠️ خطای فنی</span>
+  <button onclick="document.getElementById('globalErrorBanner').style.display='none'" style="margin-right:8px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;">بستن</button>
+  <button onclick="copyErrorDetails()" style="margin-right:4px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;">📋 کپی</button>
+</div>
+<script>
+  window._lastErrorDetails = '';
+  window.addEventListener('error', function(e){
+    window._lastErrorDetails = `خطا: ${e.message}\nفایل: ${e.filename}\nخط: ${e.lineno}`;
+    const banner = document.getElementById('globalErrorBanner');
+    const txt = document.getElementById('globalErrorText');
+    if(banner && txt){ txt.textContent = `⚠️ خطای فنی (${e.message})`; banner.style.display = 'block'; }
+    console.error('🔴 خطای سراسری:', window._lastErrorDetails);
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    window._lastErrorDetails = `خطای Promise: ${e.reason}`;
+    const banner = document.getElementById('globalErrorBanner');
+    const txt = document.getElementById('globalErrorText');
+    if(banner && txt){ txt.textContent = `⚠️ خطای فنی (${e.reason})`; banner.style.display = 'block'; }
+    console.error('🔴 خطای Promise:', window._lastErrorDetails);
+  });
+  function copyErrorDetails(){
+    if(navigator.clipboard) navigator.clipboard.writeText(window._lastErrorDetails||'');
+    alert('جزئیات کپی شد:\n\n'+(window._lastErrorDetails||''));
+  }
+</script>
+
 <!-- ══ ACCESS GATE — تا تأیید نقش، چیزی از اپ دیده نمی‌شود ══ -->
 <div id="accessGateOverlay" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center;">
   <div id="accessCheckingState">
