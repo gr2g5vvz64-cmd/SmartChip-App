@@ -8390,7 +8390,8 @@ function __removed_duplicate_openAddressModal(customerName){
 }
 
 function getCustomerAddrs(company){
-  return (customerAddresses||[]).filter(a=>a.customer===company && a.active!==false);
+  const target = normalizeFa(company);
+  return (customerAddresses||[]).filter(a=>normalizeFa(a.customer)===target && a.active!==false);
 }
 
 function renderAddressList(company){
