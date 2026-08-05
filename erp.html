@@ -2395,6 +2395,21 @@ let currentUserEmail = '';
 function getStoredEmail(){ return localStorage.getItem('smartchip_erp_email')||''; }
 function storeEmail(e){ localStorage.setItem('smartchip_erp_email', e); }
 
+async function getCurrentUserInfoFromDjangoOrSheet(email){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    if(res.status===404){
+      return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+    }
+    if(res.ok){
+      const d = await res.json();
+      if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
+      return { email, name:d.name||'', role:d.role||'', isStaff:true };
+    }
+  }catch(e){ /* مشکل شبکه — به fallback گوگل‌شیت برمی‌گردیم */ }
+  return await sheetCall('getCurrentUserInfo', { email });
+}
+
 async function initErp(){
   const email = getStoredEmail();
   if(!email){
@@ -2402,7 +2417,7 @@ async function initErp(){
     return;
   }
   // تأیید ایمیل با سرور
-  const res = await sheetCall('getCurrentUserInfo', { email });
+  const res = await getCurrentUserInfoFromDjangoOrSheet(email);
   if(res && res.isStaff){
     currentUserEmail = email;
     grantAccess(res);
@@ -2435,7 +2450,7 @@ async function submitEmailForm(){
   }
   if(errEl) errEl.style.display='none';
   input.disabled=true;
-  const res = await sheetCall('getCurrentUserInfo', { email });
+  const res = await getCurrentUserInfoFromDjangoOrSheet(email);
   input.disabled=false;
   if(res && res.isStaff){
     storeEmail(email);
@@ -6746,7 +6761,7 @@ async function deleteCurrentRequest(){
 
 // ── تدارکات ──
 function addProcurementQuickRow(){
-  const cont=document.getElementById('procurementQuickRows');
+  const cont=document.getElementById('reqProcurementRowsContainer');
   if(!cont) return;
   const idx=cont.children.length;
   currentReqProcurementItems.push({name:'',qty:'',needMarket:false,needForeign:false});
