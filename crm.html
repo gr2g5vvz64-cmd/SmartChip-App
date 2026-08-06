@@ -3109,16 +3109,69 @@ function openFreeReminderForm(presetDate){
 // میان‌بر «+ برنامه‌ی فردا» — دقیقاً همون فرم یادآوری آزاد، فقط از قبل با تاریخ فردا و
 // دسته‌ی «برنامه‌ی فردا» پر شده؛ فیلد مشتری عمداً خالی می‌مونه (کار شخصی، نه کار مشتری خاص)
 function openTomorrowPlanForm(){
-  document.getElementById('freeRemEditId').value='';
-  document.getElementById('freeRemCust').value='';
-  document.getElementById('freeRemDesc').value='';
-  document.getElementById('freeRemDate').value=addDaysToShamsi(todayShamsiStr(),1);
-  document.getElementById('freeRemEndDate').value='';
-  document.getElementById('freeRemModalTitle').textContent='📝 برنامه‌ی فردا';
-  document.getElementById('freeRemSaveBtn').textContent='ثبت برنامه';
-  curFreeRemCategory='tomorrow';
-  renderFreeRemCategoryPills();
-  openModal('freereminder');
+  document.getElementById('ttEditId').value='';
+  document.getElementById('ttCust').value='';
+  document.getElementById('ttDesc').value='';
+  document.getElementById('ttDate').value=addDaysToShamsi(todayShamsiStr(),1);
+  openModal('tomorrowTask');
+}
+function editTomorrowTask(id){
+  const r=freeReminders.find(x=>String(x.id)===String(id));
+  if(!r) return;
+  document.getElementById('ttEditId').value=r.id;
+  document.getElementById('ttCust').value=r.customer||'';
+  document.getElementById('ttDesc').value=r.desc;
+  document.getElementById('ttDate').value=r.date;
+  openModal('tomorrowTask');
+}
+function searchTtCustAC(val){
+  const box=document.getElementById('ttCustAC');
+  if(!val||val.trim().length<1){box.style.display='none';return;}
+  const q=normalizeFa(val);
+  const matches=rankCustomerMatches(q, customerMaster).slice(0,100);
+  if(!matches.length){box.style.display='none';return;}
+  box.innerHTML=matches.map(c=>`<div onclick="pickTtCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"><strong>${c.name}</strong></div>`).join('');
+  box.style.display='block';
+}
+function pickTtCustomer(name){
+  document.getElementById('ttCust').value=name;
+  document.getElementById('ttCustAC').style.display='none';
+}
+async function saveTomorrowTask(){
+  const customer=document.getElementById('ttCust').value.trim();
+  const desc=document.getElementById('ttDesc').value.trim();
+  const date=document.getElementById('ttDate').value.trim();
+  if(!desc||!date){toast('⚠ توضیحات و تاریخ الزامی است');return;}
+  const editId=document.getElementById('ttEditId').value;
+  const btn=document.getElementById('ttSaveBtn');
+  btn.disabled=true; btn.textContent='در حال ذخیره...';
+
+  if(editId){
+    const r=freeReminders.find(x=>String(x.id)===String(editId));
+    if(r){
+      if(r.date && r.date!==date){ if(!r.history) r.history=[]; r.history.push(r.date); }
+      r.customer=customer; r.desc=desc; r.date=date; r.category='tomorrow';
+      const updated = await updateFreeReminderInDjango(r.id, r);
+      btn.disabled=false; btn.textContent='ذخیره';
+      if(updated){
+        Object.assign(r, updated);
+        closeModal('modalTomorrowTask');
+        renderTomorrowPlan();
+        toast('✅ کار فردا ویرایش شد');
+      } else toast('⚠ ذخیره روی سرور ناموفق بود — دوباره امتحان کن');
+    }
+    return;
+  }
+
+  const draftRem={ customer, desc, date, endDate:'', category:'tomorrow', done:false, history:[] };
+  const savedRem = await createFreeReminderInDjango(draftRem);
+  btn.disabled=false; btn.textContent='ذخیره';
+  if(!savedRem){ toast('❌ ثبت کار فردا ناموفق بود — دوباره امتحان کن'); return; }
+  freeReminders.unshift(savedRem);
+  closeModal('modalTomorrowTask');
+  renderTomorrowPlan();
+  updateRemNavBadges();
+  toast('✅ کار فردا ثبت شد');
 }
 
 function editFreeReminder(id){
@@ -3226,10 +3279,10 @@ function renderTomorrowPlan(){
   function rowHTML(r){
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(42,47,74,.4);font-size:12px;${r.done?'opacity:.55':''}">
       <span style="font-size:18px">${r.done?'✅':'📝'}</span>
-      <div style="flex:1;${r.done?'text-decoration:line-through':''}">${r.desc}</div>
+      <div style="flex:1;${r.done?'text-decoration:line-through':''}">${r.customer?`<strong>${r.customer}</strong> — `:''}${r.desc}</div>
       <span style="font-size:11px;color:var(--muted)">${r.date}</span>
       <button class="action-btn" onclick="toggleFreeReminderDone('${r.id}')">${r.done?'بازکردن':'✅ انجام شد'}</button>
-      <button class="action-btn" onclick="editFreeReminder('${r.id}')">✏️</button>
+      <button class="action-btn" onclick="editTomorrowTask('${r.id}')">✏️</button>
       <button class="action-btn" style="color:var(--red)" onclick="deleteFreeReminder('${r.id}')">🗑️</button>
     </div>`;
   }
@@ -3557,7 +3610,7 @@ function renderPulseBar(){
 }
 
 function renderRequestLinkedReminders(){
-  const w=requests.filter(r=>r.reminder);
+  const w=(cachedRequests||[]).filter(r=>r.reminder);
   document.getElementById('remBody').innerHTML=w.length?w.map(r=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(42,47,74,.4);font-size:12px">
     <span style="font-size:18px">🔔</span>
     <div style="flex:1"><strong>${r.customer}</strong> — ${r.desc.substring(0,40)}<br><span style="font-size:10px;color:var(--muted)">${sb(r.status,r.cancelReason)}</span></div>
@@ -5289,6 +5342,27 @@ async function submitUrgentShipRequest(){
 
 
 
+
+<!-- کار فردا — مودال کاملاً جدا از یادآوری آزاد -->
+<div class="modal-overlay" id="modalTomorrowTask" onclick="closeModalOut(event,'modalTomorrowTask')">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">📝 کار فردا</div><button class="close-btn" onclick="closeModal('modalTomorrowTask')">✕</button></div>
+    <input type="hidden" id="ttEditId" value=""/>
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">تاریخ *</label>
+        <input class="form-control" id="ttDate" placeholder="انتخاب از تقویم" readonly style="cursor:pointer" onclick="openDatePicker('ttDate')"/>
+      </div>
+      <div class="form-group form-full" style="position:relative">
+        <label class="form-label">نام مشتری (اختیاری)</label>
+        <input class="form-control" id="ttCust" placeholder="تایپ کن، از لیست انتخاب کن..." oninput="searchTtCustAC(this.value)" autocomplete="off"/>
+        <div id="ttCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
+      </div>
+      <div class="form-group form-full"><label class="form-label">توضیحات *</label><textarea class="form-control" id="ttDesc" placeholder="مثلاً: تماس با آقای بدال درباره‌ی قیمت نهایی"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" id="ttSaveBtn" onclick="saveTomorrowTask()">ذخیره</button><button class="btn btn-ghost" onclick="closeModal('modalTomorrowTask')">انصراف</button></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="modalFreereminder" onclick="closeModalOut(event,'modalFreereminder')">
       <div class="modal">
