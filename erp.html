@@ -2638,43 +2638,8 @@ async function loadFromSheet() {
   }catch(cErr){}
 
   try {
-    // ── یه call واحد برای همه داده‌ها ──
-    let startupRes = await sheetCall('getStartupData');
-    // اگه getStartupData در deploy قدیمی نبود، fallback به call‌های جداگانه
-    if(!startupRes || startupRes.error==='Unknown action'){
-      console.warn('⚠️ getStartupData نیست — از callهای جداگانه استفاده میشه');
-      const [rR,sR,tR,cR,ivR,frR,dR,rrR,chR,crR] = await Promise.all([
-        sheetCall('getRequests'), sheetCall('getShipments'), sheetCall('getTasks'),
-        sheetCall('getCustomers'), sheetCall('getInvoiceRequests'), sheetCall('getFreeReminders'),
-        sheetCall('getDomesticPurchaseArchive'), sheetCall('getRecurringReminders'),
-        sheetCall('getChequesReceived'), sheetCall('getChequesReturned'),
-      ]);
-      startupRes = {
-        requests: rR?.requests||[], shipments: sR?.shipments||[], tasks: tR?.tasks||[],
-        customers: cR?.customers||[], invoiceRequests: ivR?.invoiceRequests||[],
-        freeReminders: frR?.freeReminders||[], domesticPurchaseArchive: dR?.archive||[],
-        recurringReminders: rrR?.recurringReminders||[], chequesReceived: chR?.cheques||[],
-        chequesReturned: crR?.cheques||[], packingLists:[], warehouseItems:[], customerAddresses:[], paidCheques:[], botInvites:[]
-      };
-    }
-    if(!startupRes){ throw new Error('اتصال برقرار نشد'); }
-
-    if(startupRes.requests)              requests              = startupRes.requests;
-    if(startupRes.shipments)             shipments             = startupRes.shipments;
-    if(startupRes.tasks)                 tasks                 = startupRes.tasks;
-    if(startupRes.customers)             customers             = startupRes.customers;
-    if(startupRes.invoiceRequests)       invoiceRequests       = startupRes.invoiceRequests;
-    if(startupRes.freeReminders)         freeReminders         = startupRes.freeReminders;
-    if(startupRes.recurringReminders)    recurringReminders    = startupRes.recurringReminders;
-    if(startupRes.chequesReceived)       chequesReceived       = startupRes.chequesReceived;
-    if(startupRes.chequesReturned)       chequesReturned       = startupRes.chequesReturned;
-    if(startupRes.domesticPurchaseArchive) domesticPurchaseArchive = startupRes.domesticPurchaseArchive;
-    if(startupRes.foreignSupplierPerformance) foreignSupplierPerformance = startupRes.foreignSupplierPerformance;
-    if(startupRes.packingLists)          packingLists          = startupRes.packingLists;
-    if(startupRes.warehouseItems)        warehouseItems        = startupRes.warehouseItems;
-    if(startupRes.debtCases)             debtCases              = startupRes.debtCases;
-    if(startupRes.outboundPackings)      outboundPackings      = startupRes.outboundPackings;
-    if(startupRes.customerAddresses)     customerAddresses     = startupRes.customerAddresses;
+    // همه‌چیز مستقیم از Django میاد — نیازی به sheetCall('getStartupData') اولیه نیست
+    // (اون فقط یه دور کند اضافه بود؛ همه‌ی داده‌هاش پایین همینجا از Django دوباره میومد)
 
     // یادآوری‌ها و تسک‌ها — تلاش برای گرفتن از Django؛ اگه موفق نشد، همون مقادیر گوگل‌شیتِ
     // بالا (که همین الان از startupRes ست شدن) به‌عنوان fallback باقی می‌مونن
@@ -2693,8 +2658,8 @@ async function loadFromSheet() {
     ]);
     if(djangoShipments) shipments = djangoShipments;
     if(djangoPackingLists) packingLists = djangoPackingLists;
-    if(startupRes.paidCheques)           paidCheques           = startupRes.paidCheques;
-    if(startupRes.botInvites)            botInvites            = startupRes.botInvites;
+    // پیش‌مقداردهی چک‌های پرداختی و دعوت‌نامه‌های بات — چک‌های پرداختی پایین از Django میاد،
+    // دعوت‌نامه‌ها موقع باز کردن صفحه‌ی «وضعیت Bot» جدا لود می‌شن
     // مالی (چک‌ها) — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
     const [djangoChqRec, djangoChqRet, djangoPaidChq] = await Promise.all([
       fetchChequesReceivedFromDjangoERP(), fetchChequesReturnedFromDjangoERP(), fetchPaidChequesFromDjangoERP()
@@ -2703,17 +2668,25 @@ async function loadFromSheet() {
     if(djangoChqRet) chequesReturned = djangoChqRet;
     if(djangoPaidChq) paidCheques = djangoPaidChq;
     // ۷ ماژول باقیمانده — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    const [djangoWh, djangoOutbound, djangoAddr, djangoFeedback, djangoUrgent, djangoFinTasks, djangoFsp, djangoDPurch, djangoDebts] = await Promise.all([
-      fetchWarehouseItemsFromDjango(), fetchOutboundPackingsFromDjango(), fetchCustomerAddressesFromDjango(),
-      fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango(),
-      fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango(), fetchDebtCasesFromDjango()
+    // به‌جای ۹ درخواست هم‌زمان (که رو سرور محدود پلن رایگان فشار زیادی می‌ذاره و باعث
+    // قطعی زنجیره‌ای می‌شه)، تو ۳ دسته‌ی کوچیک‌تر و پشت‌سرهم می‌فرستیم
+    const [djangoWh, djangoOutbound, djangoAddr] = await Promise.all([
+      fetchWarehouseItemsFromDjango(), fetchOutboundPackingsFromDjango(), fetchCustomerAddressesFromDjango()
     ]);
     if(djangoWh) warehouseItems = djangoWh;
     if(djangoOutbound) outboundPackings = djangoOutbound;
     if(djangoAddr) customerAddresses = djangoAddr;
+
+    const [djangoFeedback, djangoUrgent, djangoFinTasks] = await Promise.all([
+      fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango()
+    ]);
     if(djangoFeedback) deliveryFeedback = djangoFeedback;
     if(djangoUrgent) urgentShipRequests = djangoUrgent;
     if(djangoFinTasks) financeTasks = djangoFinTasks;
+
+    const [djangoFsp, djangoDPurch, djangoDebts] = await Promise.all([
+      fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango(), fetchDebtCasesFromDjango()
+    ]);
     if(djangoFsp) foreignSupplierPerformance = djangoFsp;
     if(djangoDPurch) domesticPurchaseArchive = djangoDPurch;
     if(djangoDebts) debtCases = djangoDebts;
@@ -2892,6 +2865,10 @@ let financeTasks = [];
 let packingLists = [];     // پکینگ‌ها
 let customerAddresses = []; // آدرس‌های تحویل
 let warehouseItems = [];   // آیتم‌های انبار
+let debtCases = [];        // پرونده‌های وصول مطالبات
+let customers = [];        // لیست خام مشتریان (متفاوت از customerMaster)
+let recurringReminders = []; // یادآوری‌های دوره‌ای
+let freeReminders = [];    // یادآوری‌های آزاد
 let outboundPackings = []; // پکینگ‌های خروجی (بسته‌بندی جنس‌های آماده‌شده برای ارسال به مشتری)
 let curPackDraft = {};     // استیت موقت مرورگر: انتخاب‌های در حال ساخت پکینگ، کلید = مخفف مشتری
 let tasks = [];
@@ -2944,9 +2921,8 @@ function freeRemToApiERP(r){
     end_date:r.endDate||'', category:r.category||'', done:!!r.done, history:r.history||[] };
 }
 async function fetchFreeRemindersFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_FREEREM_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(freeRemFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_FREEREM_API_ERP);
+  return data ? data.map(freeRemFromApiERP) : null;
 }
 async function createFreeReminderInDjangoERP(r){
   try{ const res=await fetch(DJANGO_FREEREM_API_ERP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(freeRemToApiERP(r))});
@@ -2979,9 +2955,8 @@ function recurringToApiERP(r){
     note:r.note||'', canceled:!!r.canceled };
 }
 async function fetchRecurringRemindersFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_RECURRING_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(recurringFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_RECURRING_API_ERP);
+  return data ? data.map(recurringFromApiERP) : null;
 }
 async function createRecurringReminderInDjangoERP(r){
   try{ const res=await fetch(DJANGO_RECURRING_API_ERP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(recurringToApiERP(r))});
@@ -3014,9 +2989,8 @@ function taskToApiERP(t){
     status:t.status||'pending', date:t.date||'', force:!!t.force, completed_date:t.completedDate||'' };
 }
 async function fetchTasksFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_TASKS_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(taskFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_TASKS_API_ERP);
+  return data ? data.map(taskFromApiERP) : null;
 }
 async function createTaskInDjangoERP(t){
   try{ const res=await fetch(DJANGO_TASKS_API_ERP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(taskToApiERP(t))});
@@ -3098,24 +3072,30 @@ function queueOfflineRequest(url, method, body, label){
  * موفق شد → نتیجه‌ی واقعی برمی‌گرده. شکست خورد → تو صف ذخیره می‌شه و
  * {ok:false, queued:true} برمی‌گرده تا کد صدازننده بدونه که کارش «معلقه»، نه گم‌شده.
  */
-async function djangoFetch(url, options, label){
-  options = options || {};
-  const method = options.method || 'GET';
+async function djangoFetchAttempt(url, options, timeoutMs){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), timeoutMs);
   try{
-    const controller = new AbortController();
-    const timeoutId = setTimeout(()=>controller.abort(), 8000);
     const res = await fetch(url, {...options, signal: controller.signal});
     clearTimeout(timeoutId);
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json().catch(()=>({}));
     return {ok:true, data};
-  }catch(e){
-    if(method !== 'GET'){
-      queueOfflineRequest(url, method, options.body, label);
-      return {ok:false, queued:true};
-    }
-    return {ok:false, queued:false};
+  }catch(e){ clearTimeout(timeoutId); return null; }
+}
+async function djangoFetch(url, options, label){
+  options = options || {};
+  const method = options.method || 'GET';
+  // یه تلاش اول (۱۲ثانیه)، اگه شکست خورد یه تلاش دوم سریع (۸ثانیه) قبل از رفتن به صف —
+  // چون خیلی وقتا شکست فقط یه کندی لحظه‌ایه، نه قطعی واقعی
+  let result = await djangoFetchAttempt(url, options, 12000);
+  if(!result) result = await djangoFetchAttempt(url, options, 8000);
+  if(result) return result;
+  if(method !== 'GET'){
+    queueOfflineRequest(url, method, options.body, label);
+    return {ok:false, queued:true};
   }
+  return {ok:false, queued:false};
 }
 
 let _djangoSyncing = false;
@@ -3210,11 +3190,8 @@ function requestFromApiERP(d){
     cancelReason:d.cancel_reason||null };
 }
 async function fetchRequestsFromDjangoERP(){
-  try{
-    const res = await fetch(DJANGO_REQUESTS_API_ERP);
-    if(!res.ok) return null;
-    return (await res.json()).map(requestFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_REQUESTS_API_ERP);
+  return data ? data.map(requestFromApiERP) : null;
 }
 // معادل کامل تابع سرور updateRequest(data) قدیمی — همون قرارداد {field,value,...} رو
 // می‌فهمه، فقط به‌جای گوگل‌شیت، PATCH درست رو به Django می‌فرسته. این یعنی ۲۸ جای کد که
@@ -3306,9 +3283,8 @@ function shipmentToApiERP(s){
     resolve_reason:s.resolveReason||'', resolve_note:s.resolveNote||'' };
 }
 async function fetchShipmentsFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_SHIPMENTS_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(shipmentFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_SHIPMENTS_API_ERP);
+  return data ? data.map(shipmentFromApiERP) : null;
 }
 async function createShipmentInDjangoERP(s){
   try{ const res=await fetch(DJANGO_SHIPMENTS_API_ERP, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(shipmentToApiERP(s))});
@@ -3341,9 +3317,8 @@ function packingListToApiERP(pl){
     items:pl.items||[], status:pl.status||'active', warehoused_date:pl.warehousedDate||'' };
 }
 async function fetchPackingListsFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_PACKINGLISTS_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(packingListFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_PACKINGLISTS_API_ERP);
+  return data ? data.map(packingListFromApiERP) : null;
 }
 async function savePackingListInDjangoERP(pl){
   // اول امتحان می‌کنیم آپدیت کنیم (اگه از قبل بود)، اگه نبود می‌سازیمش
@@ -3383,6 +3358,27 @@ function chqReceivedFromApiERP(d){
 // ══════════════════════════════════════════════════════════════
 
 // ── ۱. انبار (WarehouseItem) — شناسه رشته‌ای، از کلاینت ──
+// تابع کمکی مشترک برای همه‌ی fetchهای خواندنی (GET) — قبلاً هیچ‌کدوم timeout یا
+// تلاش مجدد نداشتن؛ اگه سرور یه لحظه کند بود، درخواست یا خیلی طولانی می‌موند یا
+// بدون هیچ تلاش دومی شکست می‌خورد. الان ۱۲ ثانیه صبر می‌کنه، و اگه شکست خورد یه بار
+// دیگه (با ۱۲ ثانیه‌ی دیگه) امتحان می‌کنه — قبل از اینکه واقعاً null برگردونه.
+async function fetchJsonWithRetry(url, timeoutMs){
+  timeoutMs = timeoutMs || 12000;
+  const attempt = async()=>{
+    const controller = new AbortController();
+    const t = setTimeout(()=>controller.abort(), timeoutMs);
+    try{
+      const res = await fetch(url, {signal: controller.signal});
+      clearTimeout(t);
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(e){ clearTimeout(t); return null; }
+  };
+  let data = await attempt();
+  if(data===null) data = await attempt(); // یه بار دیگه امتحان کن قبل از تسلیم‌شدن
+  return data;
+}
+
 const DJANGO_WAREHOUSE_API = 'https://smartchip-backend.onrender.com/api/ops/warehouse-items/';
 function whItemFromApi(d){
   return {id:d.id, plId:d.pl_id||'', shipId:d.ship_id||'', customer:d.customer||'',
@@ -3401,9 +3397,8 @@ function whItemToApi(w){
     invoice_done_iso:w.invoiceDoneISO||'', project_closed:!!w.projectClosed};
 }
 async function fetchWarehouseItemsFromDjango(){
-  try{ const res=await fetch(DJANGO_WAREHOUSE_API); if(!res.ok) return null;
-    return (await res.json()).map(whItemFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_WAREHOUSE_API);
+  return data ? data.map(whItemFromApi) : null;
 }
 async function createWarehouseItemInDjango(w){
   const r = await djangoFetch(DJANGO_WAREHOUSE_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(whItemToApi(w))}, 'ساخت آیتم انبار '+w.id);
@@ -3429,9 +3424,8 @@ function outboundToApi(p){
     created_iso:p.createdISO||'', sent:!!p.sent, sent_date:p.sentDate||'', sent_iso:p.sentISO||''};
 }
 async function fetchOutboundPackingsFromDjango(){
-  try{ const res=await fetch(DJANGO_OUTBOUND_API); if(!res.ok) return null;
-    return (await res.json()).map(outboundFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_OUTBOUND_API);
+  return data ? data.map(outboundFromApi) : null;
 }
 async function createOutboundPackingInDjango(p){
   const r = await djangoFetch(DJANGO_OUTBOUND_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(outboundToApi(p))}, 'ساخت پکینگ '+p.id);
@@ -3459,9 +3453,8 @@ function addrToApi(a){
     shipping_type:a.type||'میهن‌تور', note:a.note||'', active:a.active!==false, created_date:a.createdDate||''};
 }
 async function fetchCustomerAddressesFromDjango(){
-  try{ const res=await fetch(DJANGO_ADDRESS_API); if(!res.ok) return null;
-    return (await res.json()).map(addrFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_ADDRESS_API);
+  return data ? data.map(addrFromApi) : null;
 }
 async function saveCustomerAddressInDjango(a){
   if(!a.id) a.id = 'ADDR-'+Date.now();
@@ -3490,9 +3483,8 @@ function feedbackFromApi(d){
     reactionDept:d.reaction_dept||'', newRequestId:d.new_request_id||''};
 }
 async function fetchDeliveryFeedbackFromDjango(){
-  try{ const res=await fetch(DJANGO_FEEDBACK_API); if(!res.ok) return null;
-    return (await res.json()).map(feedbackFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_FEEDBACK_API);
+  return data ? data.map(feedbackFromApi) : null;
 }
 async function addDeliveryFeedbackInDjango(data){
   try{
@@ -3529,9 +3521,8 @@ function urgentFromApi(d){
     requestedBy:d.requested_by||'', resolved:!!d.resolved};
 }
 async function fetchUrgentShipRequestsFromDjango(){
-  try{ const res=await fetch(DJANGO_URGENT_API); if(!res.ok) return null;
-    return (await res.json()).map(urgentFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_URGENT_API);
+  return data ? data.map(urgentFromApi) : null;
 }
 async function requestUrgentShipInDjango(data){
   try{
@@ -3555,9 +3546,8 @@ function finTaskFromApi(d){
     leadId:d.lead_id||'', date:d.date||'', done:!!d.done, doneDate:d.done_date||'', doneBy:d.done_by||''};
 }
 async function fetchFinanceTasksFromDjango(){
-  try{ const res=await fetch(DJANGO_FINTASK_API); if(!res.ok) return null;
-    return (await res.json()).map(finTaskFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_FINTASK_API);
+  return data ? data.map(finTaskFromApi) : null;
 }
 async function addFinanceTaskInDjango(data){
   try{
@@ -3582,9 +3572,8 @@ function fspFromApi(d){
     result:d.result||'', date:d.date||'', customer:d.customer||'', reqId:d.req_id||''};
 }
 async function fetchForeignSupplierPerformanceFromDjango(){
-  try{ const res=await fetch(DJANGO_FSP_API); if(!res.ok) return null;
-    return (await res.json()).map(fspFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_FSP_API);
+  return data ? data.map(fspFromApi) : null;
 }
 async function addForeignSupplierPerformanceInDjango(f){
   const r = await djangoFetch(DJANGO_FSP_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
@@ -3602,9 +3591,8 @@ function dPurchFromApi(d){
     name:d.name||'', qty:d.qty||'', supplier:d.supplier||'', price:d.price||'', purchaseDate:d.purchase_date||''};
 }
 async function fetchDomesticPurchaseArchiveFromDjango(){
-  try{ const res=await fetch(DJANGO_DPURCH_API); if(!res.ok) return null;
-    return (await res.json()).map(dPurchFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_DPURCH_API);
+  return data ? data.map(dPurchFromApi) : null;
 }
 async function addDomesticPurchaseInDjango(p){
   const r = await djangoFetch(DJANGO_DPURCH_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
@@ -3616,9 +3604,8 @@ async function addDomesticPurchaseInDjango(p){
 }
 
 async function fetchChequesReceivedFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_CHQREC_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(chqReceivedFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_CHQREC_API_ERP);
+  return data ? data.map(chqReceivedFromApiERP) : null;
 }
 // PATCH جزئی — فقط فیلدهایی که تو data واقعاً حضور دارن می‌فرستیم (مثل لیدها)
 function chqReceivedToApiPartial(data){
@@ -3659,9 +3646,8 @@ function chqReturnedFromApiERP(d){
     decision:d.decision||'', completed:!!d.completed };
 }
 async function fetchChequesReturnedFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_CHQRET_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(chqReturnedFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_CHQRET_API_ERP);
+  return data ? data.map(chqReturnedFromApiERP) : null;
 }
 
 function paidChqFromApiERP(d){
@@ -3675,9 +3661,8 @@ function paidChqToApiERP(data){
     status:data.status||'pending', note:data.note||'' };
 }
 async function fetchPaidChequesFromDjangoERP(){
-  try{ const res=await fetch(DJANGO_PAIDCHQ_API_ERP); if(!res.ok) return null;
-    return (await res.json()).map(paidChqFromApiERP);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_PAIDCHQ_API_ERP);
+  return data ? data.map(paidChqFromApiERP) : null;
 }
 async function savePaidChequeInDjangoERP(data){
   try{
@@ -6146,9 +6131,8 @@ function debtCaseFromApi(d){
     collected:d.collected||0, remaining:d.remaining!==undefined?d.remaining:d.total_debt};
 }
 async function fetchDebtCasesFromDjango(){
-  try{ const res=await fetch(DJANGO_DEBTS_API); if(!res.ok) return null;
-    return (await res.json()).map(debtCaseFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_DEBTS_API);
+  return data ? data.map(debtCaseFromApi) : null;
 }
 async function createDebtCaseInDjango(data){
   try{
