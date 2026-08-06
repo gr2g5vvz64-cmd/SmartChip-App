@@ -3330,19 +3330,13 @@ async function fetchPackingListsFromDjangoERP(){
 }
 async function savePackingListInDjangoERP(pl){
   // اول امتحان می‌کنیم آپدیت کنیم (اگه از قبل بود)، اگه نبود می‌سازیمش
-  try{
-    let res = await fetch(DJANGO_PACKINGLISTS_API_ERP+encodeURIComponent(pl.id)+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(packingListToApiERP(pl))});
-    if(res.status===404){
-      res = await fetch(DJANGO_PACKINGLISTS_API_ERP, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(packingListToApiERP(pl))});
-    }
-    if(!res.ok) return null;
-    return packingListFromApiERP(await res.json());
-  }catch(e){
-    // شبکه کاملاً قطعه — به‌صورت PATCH در صف می‌مونه (چون اکثر ذخیره‌ها روی رکورد موجودن)
-    queueOfflineRequest(DJANGO_PACKINGLISTS_API_ERP+encodeURIComponent(pl.id)+'/', 'PATCH', JSON.stringify(packingListToApiERP(pl)), 'پکینگ‌لیست '+pl.id);
-    toast('🟡 پکینگ‌لیست در صف ماند');
-    return null;
+  let r = await djangoFetch(DJANGO_PACKINGLISTS_API_ERP+encodeURIComponent(pl.id)+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(packingListToApiERP(pl))}, 'پکینگ‌لیست '+pl.id);
+  if(!r.ok && !r.queued){
+    // ۴۰۴ یعنی هنوز نساخته بودیمش — یه بار با POST امتحان کن
+    r = await djangoFetch(DJANGO_PACKINGLISTS_API_ERP, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(packingListToApiERP(pl))}, 'پکینگ‌لیست '+pl.id);
   }
+  if(r.queued){ toast('🟡 پکینگ‌لیست در صف ماند'); return null; }
+  return r.ok ? packingListFromApiERP(r.data) : null;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -6058,10 +6052,7 @@ function markLinkedItemStatus(reqId, itemIdx, status, kind){
 async function movePLToWarehouse(plId){
   const pl = packingLists.find(x=>x.id===plId);
   if(!pl) return;
-  pl.status = 'warehoused';
-  pl.warehousedDate = todayShamsiStr();
   const items = (pl.items||[]).map(id=>shipments.find(x=>x.id===id)).filter(Boolean);
-  items.forEach(s => { s.clearedToWarehouse = true; s.warehousedDate = todayShamsiStr(); });
   // هر محموله‌ی این پکینگ‌لیست، یه ردیف مستقل تو انبار می‌سازه — تا بشه بر اساس کد پیگیری
   // مشتری (displayNumber) مرتب و گروه‌بندی بشن، نه بر اساس پکینگ‌لیست
   const whItems = items.map(s=>({
@@ -6071,13 +6062,23 @@ async function movePLToWarehouse(plId){
     qtyTotal:extractShipQty(s), qtySent:0, source:'foreign',
     date: todayShamsiStr(), dateISO:new Date().toISOString(), weighed:false
   }));
-  warehouseItems.push(...whItems);
-  items.forEach(s=>{ if(s.reqId!==undefined && s.itemIdx!==undefined) markLinkedItemStatus(s.reqId, s.itemIdx, 'arrived', 'foreign'); });
-  await Promise.all([
-    savePackingListInDjangoERP(pl),
-    ...items.map(s => updateShipmentInDjangoERP(s)),
+  toast(`⏳ در حال انتقال ${items.length} آیتم به انبار...`);
+  const results = await Promise.all([
+    savePackingListInDjangoERP({...pl, status:'warehoused', warehousedDate:todayShamsiStr()}),
+    ...items.map(s => updateShipmentInDjangoERP({...s, clearedToWarehouse:true, warehousedDate:todayShamsiStr()})),
     ...whItems.map(w => createWarehouseItemInDjango(w)),
   ]);
+  // اگه حتی یکی از این همه نوشتن ناموفق بود یا به صف افتاد، هیچ‌چیز رو محلی مخفی نمی‌کنیم —
+  // تا این پکینگ همچنان تو صفحه‌ی ترخیص قابل‌پیداکردن و قابل‌تلاش‌مجدد بمونه
+  if(results.some(r => !r)){
+    toast(`⚠️ انتقال کامل نشد (اتصال کند بود) — پکینگ ${plId} هنوز تو صفحه‌ی ترخیص می‌مونه، دوباره امتحان کن`);
+    return;
+  }
+  pl.status = 'warehoused';
+  pl.warehousedDate = todayShamsiStr();
+  items.forEach(s => { s.clearedToWarehouse = true; s.warehousedDate = todayShamsiStr(); });
+  warehouseItems.push(...whItems);
+  items.forEach(s=>{ if(s.reqId!==undefined && s.itemIdx!==undefined) markLinkedItemStatus(s.reqId, s.itemIdx, 'arrived', 'foreign'); });
   renderClearance();
   renderShipments();
   renderWarehouse();
@@ -6090,20 +6091,29 @@ async function movePLToWarehouse(plId){
 async function moveSingleToWarehouse(shipId){
   const s = await findShipment(shipId);
   if(!s) return;
-  s.clearedToWarehouse = true;
-  s.warehousedDate = todayShamsiStr();
   const whItem = {
     id:'WH-'+Date.now(), shipId, reqId:s.reqId||'', itemIdx:s.itemIdx,
     displayNumber:s.displayNumber||'', customer: s.customer||'',
     name:extractShipName(s), supplier:s.supplier||'', qtyTotal:extractShipQty(s), qtySent:0,
     source:'foreign', date: todayShamsiStr(), dateISO:new Date().toISOString(), weighed:false
   };
-  warehouseItems.push(whItem);
-  if(s.reqId!==undefined && s.itemIdx!==undefined) markLinkedItemStatus(s.reqId, s.itemIdx, 'arrived', 'foreign');
-  await Promise.all([
-    updateShipmentInDjangoERP(s),
+  toast('⏳ در حال انتقال به انبار...');
+  const [shipRes, whRes] = await Promise.all([
+    updateShipmentInDjangoERP({...s, clearedToWarehouse:true, warehousedDate:todayShamsiStr()}),
     createWarehouseItemInDjango(whItem),
   ]);
+  // اگه هرکدوم از این دو نوشتن ناموفق بود یا به صف افتاد، محموله رو از ردیابی مخفی
+  // نمی‌کنیم — چون وگرنه دقیقاً همون مشکل «گم‌شدن بین دو صفحه» پیش میاد. کاربر باید
+  // بتونه همیشه پیداش کنه تا وقتی که واقعاً و کامل به انبار منتقل بشه.
+  if(!shipRes || !whRes){
+    toast('⚠️ انتقال کامل نشد (اتصال کند بود) — این آیتم هنوز تو «ردیابی محموله» می‌مونه، دوباره امتحان کن');
+    renderShipments();
+    return;
+  }
+  s.clearedToWarehouse = true;
+  s.warehousedDate = todayShamsiStr();
+  warehouseItems.push(whRes);
+  if(s.reqId!==undefined && s.itemIdx!==undefined) markLinkedItemStatus(s.reqId, s.itemIdx, 'arrived', 'foreign');
   renderClearance();
   renderShipments();
   renderWarehouse();
