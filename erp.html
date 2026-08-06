@@ -3100,24 +3100,33 @@ async function djangoFetchAttempt(url, options, timeoutMs){
   try{
     const res = await fetch(url, {...options, signal: controller.signal});
     clearTimeout(timeoutId);
-    if(!res.ok) throw new Error('HTTP '+res.status);
+    if(!res.ok){
+      // این یه پاسخ واقعی از سرور بود (مثلاً ۴۰۴) — نه قطعی شبکه. نباید صف بره و
+      // نباید دوباره امتحان بشه، چون دوباره امتحان کردن همون جواب رو می‌ده.
+      // این باگ دقیقاً همون چیزی بود که باعث می‌شد آدرس‌های جدید هیچ‌وقت ساخته نشن.
+      return {ok:false, httpStatus:res.status, networkError:false};
+    }
     const data = await res.json().catch(()=>({}));
     return {ok:true, data};
-  }catch(e){ clearTimeout(timeoutId); return null; }
+  }catch(e){
+    clearTimeout(timeoutId);
+    // این واقعاً قطعی شبکه/تایم‌اوته (نه یه پاسخ HTTP) — این باید صف بره
+    return {ok:false, networkError:true};
+  }
 }
 async function djangoFetch(url, options, label){
   options = options || {};
   const method = options.method || 'GET';
-  // یه تلاش اول (۱۲ثانیه)، اگه شکست خورد یه تلاش دوم سریع (۸ثانیه) قبل از رفتن به صف —
-  // چون خیلی وقتا شکست فقط یه کندی لحظه‌ایه، نه قطعی واقعی
   let result = await djangoFetchAttempt(url, options, 12000);
-  if(!result) result = await djangoFetchAttempt(url, options, 8000);
-  if(result) return result;
-  if(method !== 'GET'){
+  // فقط اگه واقعاً قطعی شبکه بود (نه یه پاسخ HTTP مثل ۴۰۴)، تلاش دوم رو بزن
+  if(result.networkError) result = await djangoFetchAttempt(url, options, 8000);
+  if(result.ok) return result;
+  if(result.networkError && method !== 'GET'){
     queueOfflineRequest(url, method, options.body, label);
     return {ok:false, queued:true};
   }
-  return {ok:false, queued:false};
+  // یه خطای HTTP واقعی بود (۴۰۴/۴۰۰/۵۰۰...) — نه صف، نه تلاش مجدد؛ همون لحظه به caller خبر بده
+  return {ok:false, queued:false, httpStatus:result.httpStatus};
 }
 
 let _djangoSyncing = false;
