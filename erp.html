@@ -3469,8 +3469,25 @@ function addrToApi(a){
     shipping_type:a.type||'میهن‌تور', note:a.note||'', active:a.active!==false, created_date:a.createdDate||''};
 }
 async function fetchCustomerAddressesFromDjango(){
-  const data = await fetchJsonWithRetry(DJANGO_ADDRESS_API);
-  return data ? data.map(addrFromApi) : null;
+  const t0 = Date.now();
+  try{
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 25000); // ۲۵ ثانیه — بیشتر از بقیه، چون ممکنه حجمش بیشتر باشه
+    const res = await fetch(DJANGO_ADDRESS_API, {signal: controller.signal});
+    clearTimeout(timeoutId);
+    console.log(`📍 آدرس‌ها: HTTP ${res.status} — ${Date.now()-t0}ms`);
+    if(!res.ok){ console.error(`📍 آدرس‌ها: سرور خطا داد — HTTP ${res.status}`); return null; }
+    const raw = await res.json();
+    if(!Array.isArray(raw)){
+      console.error('📍 آدرس‌ها: پاسخ سرور آرایه نیست — شکل واقعی:', raw);
+      return null;
+    }
+    console.log(`📍 آدرس‌ها: ${raw.length} ردیف با موفقیت دریافت شد`);
+    return raw.map(addrFromApi);
+  }catch(e){
+    console.error(`📍 آدرس‌ها: خطای شبکه بعد از ${Date.now()-t0}ms —`, e.name, e.message);
+    return null;
+  }
 }
 async function saveCustomerAddressInDjango(a){
   if(!a.id) a.id = 'ADDR-'+Date.now();
