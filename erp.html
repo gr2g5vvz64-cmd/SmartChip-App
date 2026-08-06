@@ -2648,53 +2648,67 @@ async function loadFromSheet() {
 
     // یادآوری‌ها و تسک‌ها — تلاش برای گرفتن از Django؛ اگه موفق نشد، همون مقادیر گوگل‌شیتِ
     // بالا (که همین الان از startupRes ست شدن) به‌عنوان fallback باقی می‌مونن
-    const [djangoTasks, djangoFreeRem, djangoRecurring] = await Promise.all([
-      fetchTasksFromDjangoERP(), fetchFreeRemindersFromDjangoERP(), fetchRecurringRemindersFromDjangoERP()
-    ]);
-    if(djangoTasks) tasks = djangoTasks;
-    if(djangoFreeRem) freeReminders = djangoFreeRem;
-    if(djangoRecurring) recurringReminders = djangoRecurring;
-    // درخواست‌های فروش — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    const djangoRequests = await fetchRequestsFromDjangoERP();
-    if(djangoRequests) requests = djangoRequests;
-    // محموله‌ها و پکینگ‌لیست — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    const [djangoShipments, djangoPackingLists] = await Promise.all([
-      fetchShipmentsFromDjangoERP(), fetchPackingListsFromDjangoERP()
-    ]);
-    if(djangoShipments) shipments = djangoShipments;
-    if(djangoPackingLists) packingLists = djangoPackingLists;
-    // پیش‌مقداردهی چک‌های پرداختی و دعوت‌نامه‌های بات — چک‌های پرداختی پایین از Django میاد،
-    // دعوت‌نامه‌ها موقع باز کردن صفحه‌ی «وضعیت Bot» جدا لود می‌شن
-    // مالی (چک‌ها) — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    const [djangoChqRec, djangoChqRet, djangoPaidChq] = await Promise.all([
-      fetchChequesReceivedFromDjangoERP(), fetchChequesReturnedFromDjangoERP(), fetchPaidChequesFromDjangoERP()
-    ]);
-    if(djangoChqRec) chequesReceived = djangoChqRec;
-    if(djangoChqRet) chequesReturned = djangoChqRet;
-    if(djangoPaidChq) paidCheques = djangoPaidChq;
-    // ۷ ماژول باقیمانده — تلاش برای گرفتن از Django؛ اگه موفق نشد، مقدار گوگل‌شیتِ بالا می‌مونه
-    // به‌جای ۹ درخواست هم‌زمان (که رو سرور محدود پلن رایگان فشار زیادی می‌ذاره و باعث
-    // قطعی زنجیره‌ای می‌شه)، تو ۳ دسته‌ی کوچیک‌تر و پشت‌سرهم می‌فرستیم
-    const [djangoWh, djangoOutbound, djangoAddr] = await Promise.all([
-      fetchWarehouseItemsFromDjango(), fetchOutboundPackingsFromDjango(), fetchCustomerAddressesFromDjango()
-    ]);
-    if(djangoWh) warehouseItems = djangoWh;
-    if(djangoOutbound) outboundPackings = djangoOutbound;
-    if(djangoAddr) customerAddresses = djangoAddr;
+    // یادآوری‌ها و تسک‌ها — هر بلوک الان کاملاً مستقل و ایزوله‌ست؛ اگه یکی خطا بده،
+    // throw نمی‌کنه و جلوی اجرای بلوک‌های بعدی (مثل انبار/آدرس‌ها) رو نمی‌گیره
+    try{
+      const [djangoTasks, djangoFreeRem, djangoRecurring] = await Promise.all([
+        fetchTasksFromDjangoERP(), fetchFreeRemindersFromDjangoERP(), fetchRecurringRemindersFromDjangoERP()
+      ]);
+      if(djangoTasks) tasks = djangoTasks;
+      if(djangoFreeRem) freeReminders = djangoFreeRem;
+      if(djangoRecurring) recurringReminders = djangoRecurring;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری یادآوری/تسک:', e); }
 
-    const [djangoFeedback, djangoUrgent, djangoFinTasks] = await Promise.all([
-      fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango()
-    ]);
-    if(djangoFeedback) deliveryFeedback = djangoFeedback;
-    if(djangoUrgent) urgentShipRequests = djangoUrgent;
-    if(djangoFinTasks) financeTasks = djangoFinTasks;
+    try{
+      const djangoRequests = await fetchRequestsFromDjangoERP();
+      if(djangoRequests) requests = djangoRequests;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری درخواست‌ها:', e); }
 
-    const [djangoFsp, djangoDPurch, djangoDebts] = await Promise.all([
-      fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango(), fetchDebtCasesFromDjango()
-    ]);
-    if(djangoFsp) foreignSupplierPerformance = djangoFsp;
-    if(djangoDPurch) domesticPurchaseArchive = djangoDPurch;
-    if(djangoDebts) debtCases = djangoDebts;
+    try{
+      const [djangoShipments, djangoPackingLists] = await Promise.all([
+        fetchShipmentsFromDjangoERP(), fetchPackingListsFromDjangoERP()
+      ]);
+      if(djangoShipments) shipments = djangoShipments;
+      if(djangoPackingLists) packingLists = djangoPackingLists;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری محموله/پکینگ‌لیست:', e); }
+
+    try{
+      const [djangoChqRec, djangoChqRet, djangoPaidChq] = await Promise.all([
+        fetchChequesReceivedFromDjangoERP(), fetchChequesReturnedFromDjangoERP(), fetchPaidChequesFromDjangoERP()
+      ]);
+      if(djangoChqRec) chequesReceived = djangoChqRec;
+      if(djangoChqRet) chequesReturned = djangoChqRet;
+      if(djangoPaidChq) paidCheques = djangoPaidChq;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری چک‌ها:', e); }
+
+    // انبار + پکینگ خروجی + آدرس‌ها — این بلوک همیشه اجرا می‌شه، فارغ از اینکه بلوک‌های
+    // بالا موفق بودن یا نه (این دقیقاً همون گَپی بود که باعث «انبار خالیه، آدرس نیست» می‌شد)
+    try{
+      const [djangoWh, djangoOutbound, djangoAddr] = await Promise.all([
+        fetchWarehouseItemsFromDjango(), fetchOutboundPackingsFromDjango(), fetchCustomerAddressesFromDjango()
+      ]);
+      if(djangoWh) warehouseItems = djangoWh;
+      if(djangoOutbound) outboundPackings = djangoOutbound;
+      if(djangoAddr) customerAddresses = djangoAddr;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری انبار/آدرس‌ها:', e); }
+
+    try{
+      const [djangoFeedback, djangoUrgent, djangoFinTasks] = await Promise.all([
+        fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango()
+      ]);
+      if(djangoFeedback) deliveryFeedback = djangoFeedback;
+      if(djangoUrgent) urgentShipRequests = djangoUrgent;
+      if(djangoFinTasks) financeTasks = djangoFinTasks;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری بازخورد تحویل/سفارش فوری/تسک مالی:', e); }
+
+    try{
+      const [djangoFsp, djangoDPurch, djangoDebts] = await Promise.all([
+        fetchForeignSupplierPerformanceFromDjango(), fetchDomesticPurchaseArchiveFromDjango(), fetchDebtCasesFromDjango()
+      ]);
+      if(djangoFsp) foreignSupplierPerformance = djangoFsp;
+      if(djangoDPurch) domesticPurchaseArchive = djangoDPurch;
+      if(djangoDebts) debtCases = djangoDebts;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری عملکرد تامین‌کننده/بایگانی خرید/مطالبات:', e); }
 
     // ── ذخیره در localStorage برای بار بعد (آنی) ──
     try{
