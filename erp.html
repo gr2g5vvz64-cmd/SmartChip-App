@@ -2747,6 +2747,9 @@ async function loadFromSheet() {
     }
     fetchUrgentShipRequestsFromDjango().then(res=>{ if(res) { urgentShipRequests=res; if(document.getElementById('page-warehouse').classList.contains('active')) renderWarehouse(); } });
     fetchFinanceTasksFromDjango().then(res=>{ if(res) { financeTasks=res; if(document.getElementById('page-financetasks').classList.contains('active')) renderFinanceTasks(); } });
+    // نشانگر نارنجی قدیمی رو هم سبز کن — چون دیگه اکثر بارگذاری‌ها از Django میاد،
+    // نه از گوگل‌شیت، این نقطه دیگه نباید منتظر یه sheetCall موفق بمونه
+    updateSyncIndicator(false);
   } catch(e) {
     if (statusEl) statusEl.textContent = '❌ خطا در اتصال — اطلاعات نمایش داده نمی‌شود';
     isConnected = false;
