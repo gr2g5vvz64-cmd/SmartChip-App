@@ -1187,6 +1187,12 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <select class="form-control" id="custProvinceFilter" style="width:auto;min-width:170px" onchange="renderCusts()">
           <option value="">📍 همه استان‌ها</option>
         </select>
+        <select class="form-control" id="custPriorityFilter" style="width:auto;min-width:130px" onchange="renderCusts()">
+          <option value="">⭐ همه اولویت‌ها</option>
+          <option value="1">۱</option>
+          <option value="5">۵</option>
+          <option value="9">۹</option>
+        </select>
         <button class="action-btn" onclick="clearCustFilters()" style="white-space:nowrap">✕ پاک کردن فیلترها</button>
       </div>
       <div class="tbl-wrap">
@@ -4528,12 +4534,12 @@ function buildCustomerRows(){
 
   // شروع از لیست کامل مشتریان (شیت CUSTOMER) — اگه لود نشده بود از همون فعالیت CRM استفاده کن
   const baseList = customerMaster.length
-    ? customerMaster.map(c=>({name:c.name,category:c.category,subcat:c.subcat,province:c.province}))
-    : Object.keys(activity).map(name=>({name,category:'',subcat:'',province:''}));
+    ? customerMaster.map(c=>({name:c.name,category:c.category,subcat:c.subcat,province:c.province,priority:c.priority}))
+    : Object.keys(activity).map(name=>({name,category:'',subcat:'',province:'',priority:''}));
 
   // مشتری‌هایی که در CRM درخواست دارن ولی در شیت CUSTOMER نیستن رو هم اضافه کن
   Object.keys(activity).forEach(name=>{
-    if(!baseList.find(c=>c.name===name)) baseList.push({name,category:'',subcat:'',province:''});
+    if(!baseList.find(c=>c.name===name)) baseList.push({name,category:'',subcat:'',province:'',priority:''});
   });
 
   return baseList.map(c=>{
@@ -4565,6 +4571,7 @@ function clearCustFilters(){
   curCustCategory=''; curCustProvince=''; curCustSearch='';
   document.getElementById('custCategoryFilter').value='';
   document.getElementById('custProvinceFilter').value='';
+  document.getElementById('custPriorityFilter').value='';
   document.getElementById('custSearchInput').value='';
   renderCusts();
 }
@@ -5713,12 +5720,18 @@ function renderCusts(){
 
   curCustCategory = document.getElementById('custCategoryFilter') ? document.getElementById('custCategoryFilter').value : '';
   curCustProvince = document.getElementById('custProvinceFilter') ? document.getElementById('custProvinceFilter').value : '';
+  const curCustPriority = document.getElementById('custPriorityFilter') ? document.getElementById('custPriorityFilter').value : '';
 
   let rows=buildCustomerRows();
 
   if(curCustFilter==='active')   rows=rows.filter(r=>r.inCRM);
   if(curCustFilter==='notadded') rows=rows.filter(r=>!r.inCRM);
   if(curCustFilter==='vip')      rows=rows.filter(r=>r.vip==='vip');
+
+  // فیلتر اولویت — دقیقاً همون چیزی که تو ستون Z شیت CUSTOMER می‌نویسی (۱/۵/۹)
+  if(curCustPriority){
+    rows=rows.filter(r=>fa2en(String(r.priority||'')).trim()===curCustPriority);
+  }
 
   // فیلتر صنف — همه مشتری‌هایی که دقیقاً همین صنف رو دارن
   if(curCustCategory){
@@ -5745,7 +5758,7 @@ function renderCusts(){
   document.getElementById('custBody').innerHTML = rows.length ? rows.map(c=>{
     const st=c.vip;
     return `<tr>
-      <td><div style="display:flex;align-items:center;gap:9px"><div class="avatar" style="width:32px;height:32px;border-radius:10px;font-size:14px">${c.name[0]}</div><strong>${c.name}</strong></div></td>
+      <td><div style="display:flex;align-items:center;gap:9px"><div class="avatar" style="width:32px;height:32px;border-radius:10px;font-size:14px">${c.name[0]}</div><strong>${c.name}</strong>${c.priority?`<span style="font-size:9px;font-weight:800;color:var(--accent);background:rgba(240,165,0,.12);border-radius:5px;padding:1px 6px;">⭐${fn(c.priority)}</span>`:''}</div></td>
       <td style="font-size:11px;color:var(--text)">${c.category||'—'}</td>
       <td style="font-size:11px;color:var(--text)">${c.subcat||'—'}</td>
       <td style="font-size:11px;color:var(--text)">${c.province?'📍 '+c.province:'—'}</td>
