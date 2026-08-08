@@ -1577,7 +1577,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
           <div class="sec-title">چک‌ها</div>
           <div class="search-box"><span>🔍</span><input type="text" placeholder="جستجو: مشتری..." oninput="searchChecks(this.value)"/></div>
         </div>
-        <table><thead><tr><th>مشتری</th><th>نوع</th><th>مبلغ (تومان)</th><th>وضعیت</th><th></th></tr></thead><tbody id="checksBody"></tbody></table>
+        <table><thead><tr><th>مشتری</th><th>نوع</th><th>مبلغ (ریال)</th><th>وضعیت</th><th></th></tr></thead><tbody id="checksBody"></tbody></table>
       </div>
     </div>
 
@@ -1929,7 +1929,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="form-grid">
       <input type="hidden" id="debtCollectionCaseId"/>
       <input type="hidden" id="debtCollectionEditIdx" value=""/>
-      <div class="form-group form-full"><label class="form-label">مبلغ وصول‌شده (تومان) *</label><input class="form-control" id="debtCollectionAmount" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 10000000"/></div>
+      <div class="form-group form-full"><label class="form-label">مبلغ وصول‌شده (ریال) *</label><input class="form-control" id="debtCollectionAmount" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 10000000"/></div>
       <div class="form-group form-full"><label class="form-label">تاریخ دریافت</label><input class="form-control" id="debtCollectionDate" placeholder="پیش‌فرض: امروز" readonly onfocus="openDatePicker('debtCollectionDate')"/></div>
       <div class="form-group form-full"><label class="form-label">حرف/توضیح مشتری (اختیاری)</label><textarea class="form-control" id="debtCollectionNote" rows="2" placeholder="مثلاً: قول داد باقی رو تا آخر ماه بده..."></textarea></div>
     </div>
@@ -1946,7 +1946,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <input class="form-control" id="debtCaseCustomerInput" placeholder="تایپ کن، از لیست انتخاب کن..." oninput="searchDebtCustAutocomplete(this.value)" autocomplete="off"/>
         <div id="debtCustAutocompleteList" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;z-index:50;margin-top:4px;"></div>
       </div>
-      <div class="form-group form-full"><label class="form-label">مبلغ کل بدهی (تومان) *</label><input class="form-control" id="debtCaseAmountInput" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 50000000"/></div>
+      <div class="form-group form-full"><label class="form-label">مبلغ کل بدهی (ریال) *</label><input class="form-control" id="debtCaseAmountInput" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 50000000"/></div>
       <div class="form-group form-full"><label class="form-label">از کِی این بدهی مونده؟ (تاریخ شروع)</label><input class="form-control" id="debtCaseStartDateInput" placeholder="پیش‌فرض: امروز" readonly onfocus="openDatePicker('debtCaseStartDateInput')"/></div>
     </div>
     <div class="modal-footer"><button class="btn btn-primary" onclick="saveNewDebtCase()">ثبت پرونده</button><button class="btn btn-ghost" onclick="closeModal('modalNewDebtCase')">انصراف</button></div>
@@ -6396,7 +6396,7 @@ async function deleteDebtCollectionLog(caseId, logIdx){
   const dc = debtCases.find(d=>String(d.id)===String(caseId));
   if(!dc || !dc.financeLog || !dc.financeLog[logIdx]) return;
   const l = dc.financeLog[logIdx];
-  if(!confirm(`این ردیف حذف بشه؟\n${l.date} — ${fn(l.amount)} تومان${l.note?' — «'+l.note+'»':''}`)) return;
+  if(!confirm(`این ردیف حذف بشه؟\n${l.date} — ${fn(l.amount)} ریال${l.note?' — «'+l.note+'»':''}`)) return;
 
   const log = dc.financeLog.filter((_,i)=>i!==logIdx);
   // همون لحظه، محلی، مانده رو دوباره حساب کن — دقیقاً مثل ثبت/ویرایش
@@ -6410,7 +6410,7 @@ async function deleteDebtCollectionLog(caseId, logIdx){
   if(result.success){
     debtCases[idx]=result.data;
     renderDebtCasesERP();
-    toast('✅ حذف شد — مانده: '+fn(result.data.remaining)+' تومان');
+    toast('✅ حذف شد — مانده: '+fn(result.data.remaining)+' ریال');
   } else if(result.queued){
     toast('🟡 سرور کند بود — حذف محلی شد و ظرف چند لحظه با سرور هماهنگ می‌شه');
   } else {
@@ -6461,7 +6461,7 @@ async function saveDebtCollectionLog(){
   if(result.success){
     debtCases[idx]=result.data; // جواب واقعی سرور جایگزین محاسبه‌ی محلی می‌شه — برای اطمینان کامل
     renderDebtCasesERP();
-    toast('✅ ثبت شد — مانده: '+fn(result.data.remaining)+' تومان');
+    toast('✅ ثبت شد — مانده: '+fn(result.data.remaining)+' ریال');
   } else if(result.queued){
     toast('🟡 سرور کند بود — ثبت محلی شد و ظرف چند لحظه خودکار با سرور هماهنگ می‌شه');
   } else {
@@ -6509,7 +6509,7 @@ function renderDebtCasesERP(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:13px;">${d.customer}</strong>
         <span style="font-size:11px;color:${d.remaining>0?'var(--red)':'var(--green)'};font-weight:800;">
-          مانده: ${fn(d.remaining)} تومان
+          مانده: ${fn(d.remaining)} ریال
         </span>
       </div>
       <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">
@@ -6519,7 +6519,7 @@ function renderDebtCasesERP(){
       ${durationTxt?`<div style="font-size:10.5px;margin-bottom:8px;">${durationTxt}</div>`:''}
       ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px;">
         ${d.financeLog.map((l,li)=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
-          <span style="flex:1;">💰 ${l.date} — ${fn(l.amount)} تومان${l.note?` — «${l.note}»`:''}</span>
+          <span style="flex:1;">💰 ${l.date} — ${fn(l.amount)} ریال${l.note?` — «${l.note}»`:''}</span>
           <button onclick="editDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش</button>
           <button onclick="deleteDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:4px;color:var(--red);cursor:pointer;">🗑️ حذف</button>
         </div>`).join('')}

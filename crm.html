@@ -448,7 +448,7 @@ html[data-theme="light"] .crm-table td select{color:#0f1828;font-weight:500;}
       <input class="form-control" id="debtCustomer" placeholder="تایپ کن..." oninput="searchDebtCustAC(this.value)" autocomplete="off"/>
       <div class="autocomplete-list" id="debtCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:160px;overflow-y:auto;z-index:80;"></div>
     </div>
-    <div class="form-group"><label class="form-label">مبلغ کل بدهی (تومان)</label><input class="form-control" id="debtTotal" inputmode="numeric" placeholder="مثلاً 50,000,000" oninput="fmtQfQty(this)"/></div>
+    <div class="form-group"><label class="form-label">مبلغ کل بدهی (ریال)</label><input class="form-control" id="debtTotal" inputmode="numeric" placeholder="مثلاً 50,000,000" oninput="fmtQfQty(this)"/></div>
     <div class="form-group"><label class="form-label">تاریخ شروع پروژه</label><input class="form-control" id="debtStartDate" placeholder="انتخاب از تقویم" readonly style="cursor:pointer" onclick="openDatePicker('debtStartDate')"/></div>
     <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:10px;">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">پیگیری‌های مالی که تا الان انجام شده (اختیاری، می‌تونی بعداً هم اضافه کنی)</div>
@@ -3605,7 +3605,7 @@ function openDebtCaseDetail(caseId){
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span>${tag} ${l.date}</span>
       <div style="display:flex;align-items:center;gap:6px;">
-        <span style="color:#4ade80">${l.amount?fmtMoney(l.amount)+' تومان':''}</span>
+        <span style="color:#4ade80">${l.amount?fmtMoney(l.amount)+' ریال':''}</span>
         ${!c.financeApproved?`<button onclick="editDebtLogCRM('${isFinanceLog?'finance':'sales'}',${idx})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️</button>`:''}
       </div>
     </div>
