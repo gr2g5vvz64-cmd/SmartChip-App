@@ -1039,7 +1039,10 @@ async function init(){
     const djangoFeedback = await fetchDeliveryFeedbackFromDjangoM();
     cachedDeliveryFeedback = djangoFeedback || [];
   }catch(e){ console.error('خطای بارگذاری بازخوردها:', e); }
-  // لیدها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۱۲ مهاجرت)
+  try{
+    const sugRes = await fetch('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/');
+    cachedSuggestions = sugRes.ok ? await sugRes.json() : [];
+  }catch(e){ console.error('خطای بارگذاری پیشنهادها:', e); }
   try{
     const djangoLeads = await fetchLeadsFromDjango();
     leads = djangoLeads || [];
@@ -1233,6 +1236,14 @@ function renderToolbar(){
           <input type="checkbox" id="qf_hasSample" onchange="document.getElementById('qf_sampleBox').style.display=this.checked?'block':'none';if(this.checked)qfRenderSampleRows();" style="width:16px;height:16px"/>
           <span style="font-size:12px;font-weight:700;color:#f0a500">📦 نمونه</span>
         </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 14px">
+          <input type="checkbox" id="qf_hasSuggestion" onchange="document.getElementById('qf_suggestionBox').style.display=this.checked?'block':'none';" style="width:16px;height:16px"/>
+          <span style="font-size:12px;font-weight:700;color:#a78bfa">💡 پیشنهاد/موضوع کاری</span>
+        </label>
+      </div>
+      <div id="qf_suggestionBox" style="display:none;border:1px solid rgba(168,85,247,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(168,85,247,.04)">
+        <div style="font-size:11px;font-weight:800;color:#a78bfa;margin-bottom:8px">💡 پیشنهاد/موضوع کاری مشتری</div>
+        <textarea id="qf_suggestionText" class="form-control" placeholder="مثلاً: مشتری پیشنهاد داد بسته‌بندی رو تغییر بدیم..."></textarea>
       </div>
       <div id="qf_sampleBox" style="display:none;border:1px solid rgba(240,165,0,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(240,165,0,.04)">
         <div style="font-size:11px;font-weight:800;color:#f0a500;margin-bottom:8px">📦 نمونه</div>
@@ -1546,6 +1557,7 @@ const FOLLOWUP_BY_OPTS=['چاوشی','حسین‌پور'];
 const WORK_REFERRAL_OPTS=['بازرگانی','سایت','تدارکات','مالی','انبار','مدیریت'];
 let cachedRequests=[]; // برای چک خودکار «تکمیل» بر اساس وضعیت واقعی در ERP
 let cachedDeliveryFeedback=[]; // برای نمایش وضعیت بازخورد هر لید تو ستون جدید
+let cachedSuggestions=[]; // برای نمایش وضعیت پیشنهادهای مشتری
 function feedbackFromApiM(d){
   return {id:d.id, trackingCode:d.tracking_code||'', requestId:d.request_id||'', customer:d.customer||'',
     departments:d.departments||[], type:d.feedback_type||'complaint', description:d.description||'',
@@ -1921,12 +1933,24 @@ function renderTableView(){
       <td style="min-width:90px;text-align:center;">
         ${(()=>{
           const fb = getFeedbackForEntry(e.trackingCode);
-          if(!fb) return `<button onclick="openFeedbackModal('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:2px 8px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:4px;cursor:pointer;color:#a78bfa;font-family:Vazirmatn,sans-serif;">+ ثبت</button>`;
-          const depts = fb.departments||[];
-          const allResolved = depts.length && depts.every(d=>fb.resolvedStatus && fb.resolvedStatus[d] && fb.resolvedStatus[d].resolved);
-          if(allResolved) return `<span style="font-size:9px;color:var(--green);">✅ پاسخ اومد</span>`;
-          const deptLabels={anbar:'انبار',bazargani:'بازرگانی',tadarokat:'تدارکات',mali:'مالی'};
-          return `<span style="font-size:9px;color:var(--yellow);">⏳ ${depts.map(d=>deptLabels[d]||d).join('،')}</span>`;
+          const sug = (cachedSuggestions||[]).find(s=>s.trackingCode===e.trackingCode);
+          let fbHtml='';
+          if(!fb){
+            fbHtml = `<button onclick="openFeedbackModal('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:2px 8px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:4px;cursor:pointer;color:#a78bfa;font-family:Vazirmatn,sans-serif;">+ بازخورد</button>`;
+          } else {
+            const depts = fb.departments||[];
+            const allResolved = depts.length && depts.every(d=>fb.resolvedStatus && fb.resolvedStatus[d] && fb.resolvedStatus[d].resolved);
+            const deptLabels={anbar:'انبار',bazargani:'بازرگانی',tadarokat:'تدارکات',mali:'مالی'};
+            fbHtml = allResolved ? `<span style="font-size:9px;color:var(--green);">✅ پاسخ اومد</span>` : `<span style="font-size:9px;color:var(--yellow);">⏳ ${depts.map(d=>deptLabels[d]||d).join('،')}</span>`;
+          }
+          let sugHtml='';
+          if(sug){
+            sugHtml = sug.responded
+              ? `<div style="margin-top:3px;"><span style="font-size:8.5px;color:var(--green);">💡 ${sug.response.substring(0,25)}</span>
+                  <button onclick="confirmSuggestionSeen('${sug.id}')" style="font-size:7.5px;padding:1px 5px;margin-right:3px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);border-radius:3px;cursor:pointer;color:var(--green);">تأیید</button></div>`
+              : `<div style="margin-top:3px;"><span style="font-size:8.5px;color:var(--muted);">💡 منتظر پاسخ</span></div>`;
+          }
+          return fbHtml + sugHtml;
         })()}
       </td>
       <td style="min-width:90px;text-align:center;">
@@ -4770,6 +4794,21 @@ async function submitQuickContact(){
     }
   }
 
+  // پیشنهاد/موضوع کاری — مستقل از استعلام خرید/مالی، مستقیم به آبشار جدید می‌ره
+  const hasSuggestion = document.getElementById('qf_hasSuggestion').checked;
+  const suggestionText = document.getElementById('qf_suggestionText').value.trim();
+  if(hasSuggestion && suggestionText){
+    try{
+      const httpRes = await fetch('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/create/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({customer:lead.customer, description:suggestionText, leadId:lead.id, trackingCode:entry.trackingCode||''})
+      });
+      const res = await httpRes.json();
+      if(res && res.ok) toast('✅ پیشنهاد ثبت شد — برو ERP جواب بده');
+      else console.error('🔴 ثبت پیشنهاد گیر کرد:', res?.error||'نامشخص');
+    }catch(e){ console.error('🔴 ثبت پیشنهاد — خطای شبکه:', e); }
+  }
+
   // ذخیره
   await reliableUpdateLead({id:lead.id, history:lead.history});
   toast(`✅ تماس با ${customer} ثبت شد`);
@@ -4782,6 +4821,9 @@ async function submitQuickContact(){
   document.getElementById('qf_hasPurchase').checked=false;
   document.getElementById('qf_hasFinance').checked=false;
   document.getElementById('qf_hasSample').checked=false;
+  document.getElementById('qf_hasSuggestion').checked=false;
+  document.getElementById('qf_suggestionText').value='';
+  document.getElementById('qf_suggestionBox').style.display='none';
   document.getElementById('qf_purchaseBox').style.display='none';
   document.getElementById('qf_financeBox').style.display='none';
   document.getElementById('qf_sampleBox').style.display='none';
@@ -5207,6 +5249,22 @@ function qfShowSamplePartAC(idx, dd, val, matches){
 
 let fbContext = {leadId:null, hIdx:null, entry:null};
 
+async function confirmSuggestionSeen(sugId){
+  toast('⏳ در حال ثبت...');
+  let res=null;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/${sugId}/confirm-crm/`, {method:'POST'});
+    res = await httpRes.json();
+  }catch(e){ res={ok:false, error:'خطای شبکه'}; }
+  if(res && res.ok){
+    cachedSuggestions = cachedSuggestions.filter(s=>String(s.id)!==String(sugId));
+    toast('✅ تأیید شد و بایگانی شد');
+    renderTableView();
+  } else {
+    console.error('🔴 تأیید پیشنهاد گیر کرد:', res?.error||'نامشخص');
+    toast('🔴 گیر کرد! خطا: '+(res?.error||'نامشخص'));
+  }
+}
 function openFeedbackModal(leadId, hIdx){
   const l = leads.find(x=>String(x.id)===String(leadId));
   if(!l) return;
