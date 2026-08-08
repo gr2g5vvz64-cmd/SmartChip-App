@@ -1804,13 +1804,31 @@ function renderTableView(){
       <td style="min-width:100px">${pillSelect('convType_'+key,`updateTableEntry('${r.leadId}',${r.hIdx},'conversationType',this.value)`,CONVERSATION_TYPES,e.conversationType,'نوع مکالمه')}</td>
       <td style="width:90px"><input value="${(e.note||'').replace(/"/g,'&quot;')}" onchange="updateTableEntry('${r.leadId}',${r.hIdx},'note',this.value)"/></td>
       <td style="width:85px;text-align:center;vertical-align:middle">
-        ${e.needsFinance||e.finance ? `<div>
-          <span style="font-size:10px;font-weight:700;color:var(--yellow)">💰</span><br>
-          <button onclick="openFinanceTick('${r.leadId}',${r.hIdx})"
-            style="font-size:8px;padding:1px 6px;background:rgba(240,165,0,.15);
-            border:1px solid rgba(240,165,0,.3);border-radius:4px;cursor:pointer;
-            color:var(--accent);font-family:Vazirmatn,sans-serif">ویرایش</button>
-        </div>` : '<span style="color:var(--border);font-size:10px">—</span>'}
+        ${e.needsFinance||e.finance ? (()=>{
+          const linkedReq = e.linkedRequestId ? (cachedRequests||[]).find(r=>String(r.id)===String(e.linkedRequestId)) : null;
+          const fin = linkedReq && linkedReq.parts ? linkedReq.parts.finance : null;
+          const needs = (fin && fin.needs) || {};
+          const doneMap = (fin && fin.done) || {};
+          const allDone = Object.keys(needs).length && Object.keys(needs).every(k=>!needs[k]||doneMap[k]);
+          if(allDone && fin && !fin.crmConfirmed){
+            return `<div>
+              <span style="font-size:9px;color:var(--green);font-weight:800;">✅ مالی پاسخ داد</span><br>
+              <button onclick="confirmFinanceResponse('${e.linkedRequestId}','${r.leadId}',${r.hIdx})"
+                style="font-size:8px;padding:2px 7px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);
+                border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif;margin-top:2px;">تأیید نهایی</button>
+            </div>`;
+          }
+          if(allDone && fin && fin.crmConfirmed){
+            return `<span style="font-size:9px;color:var(--muted);">✅ تکمیل</span>`;
+          }
+          return `<div>
+            <span style="font-size:10px;font-weight:700;color:var(--yellow)">💰 در انتظار مالی</span><br>
+            <button onclick="openFinanceTick('${r.leadId}',${r.hIdx})"
+              style="font-size:8px;padding:1px 6px;background:rgba(240,165,0,.15);
+              border:1px solid rgba(240,165,0,.3);border-radius:4px;cursor:pointer;
+              color:var(--accent);font-family:Vazirmatn,sans-serif">ویرایش</button>
+          </div>`;
+        })() : '<span style="color:var(--border);font-size:10px">—</span>'}
       </td>
       <td style="width:85px;text-align:center;vertical-align:middle">
         ${(()=>{
@@ -4190,6 +4208,35 @@ function searchPartsLocal(q){
 
 // ══ استعلام مالی ══
 let _finTickLeadId = null, _finTickHIdx = null;
+
+async function confirmFinanceResponse(requestId, leadId, hIdx){
+  if(!confirm('با مشتری تماس گرفتی و کارِ مالی رو بهش گزارش دادی؟ با تأیید، این مورد کامل بایگانی می‌شه.')) return;
+  toast('⏳ در حال ثبت تأیید نهایی...');
+  let res=null;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/finance-request/${requestId}/confirm-crm/`, {method:'POST'});
+    res = await httpRes.json();
+  }catch(e){ res = {ok:false, error:'خطای شبکه'}; }
+
+  if(!res || !res.ok){
+    console.error('🔴 تأیید نهایی مالی گیر کرد:', res?.error||'نامشخص');
+    toast('🔴 گیر کرد و ثبت نشد! خطا: '+(res?.error||'نامشخص')+' — دوباره امتحان کن');
+    return;
+  }
+
+  // خودِ لید هم تو CRM کامل و بایگانی می‌شه
+  const l=leads.find(x=>String(x.id)===String(leadId));
+  if(l && l.history[hIdx]){
+    l.history[hIdx].completed = true;
+    l.history[hIdx].completedDate = todayShamsiStr();
+    await reliableUpdateLead({id:leadId, history:l.history});
+  }
+  const reqIdx = cachedRequests.findIndex(r=>String(r.id)===String(requestId));
+  if(reqIdx>-1){ cachedRequests[reqIdx].status='done'; cachedRequests[reqIdx].parts.finance.crmConfirmed=true; }
+
+  toast('✅ تأیید نهایی ثبت شد — این مورد بایگانی شد');
+  renderTableView();
+}
 
 function openFinanceTick(leadId, hIdx){
   _finTickLeadId = leadId; _finTickHIdx = hIdx;
