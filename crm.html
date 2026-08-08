@@ -410,6 +410,17 @@ html[data-theme="light"] .crm-table td select{color:#0f1828;font-weight:500;}
   </div>
 </div>
 <!-- تأیید جزئی پیش‌فاکتور داخل — دقیقاً همون «دوتیکه‌شدن کد پیگیری» -->
+<!-- تأیید جزئی پیش‌فاکتور خارج -->
+<div class="modal-overlay" id="modalForeignApproval" onclick="if(event.target===this)closeModal('modalForeignApproval')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr"><div class="modal-title">🌍 تأیید پیش‌فاکتور خارج — مشتری چی گفت؟</div><button class="close-btn" onclick="closeModal('modalForeignApproval')">✕</button></div>
+    <div style="font-size:11px;color:var(--muted);padding:0 4px 10px;">هر آیتمی که مشتری تأیید کرده رو تیک بزن. بعد از ثبت، برو ERP و برای آیتم‌های تأییدشده «ثبت سفارش» بزن.</div>
+    <div id="foreignApprovalItemsList" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="form-group form-full" style="margin-top:10px;"><label class="form-label">علت رد (اگه چیزی رد شد)</label><input class="form-control" id="foreignApprovalCancelReason" placeholder="مثلاً: قیمت بالا بود..."/></div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="submitForeignApproval()">ثبت تصمیم مشتری</button><button class="btn btn-ghost" onclick="closeModal('modalForeignApproval')">انصراف</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalDomesticApproval" onclick="if(event.target===this)closeModal('modalDomesticApproval')">
   <div class="modal" style="max-width:480px">
     <div class="modal-hdr"><div class="modal-title">💰 تأیید پیش‌فاکتور — مشتری چی گفت؟</div><button class="close-btn" onclick="closeModal('modalDomesticApproval')">✕</button></div>
@@ -1850,12 +1861,18 @@ function renderTableView(){
           const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
           const domesticReady = linkedReq && linkedReq.parts && linkedReq.parts.needMarket &&
             linkedReq.parts.marketQuoteComplete && !linkedReq.parts.marketApproved;
-          if(domesticReady){
-            return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-              <span style="font-size:9px;font-weight:800;color:var(--accent)">💰 آماده‌ی پیش‌فاکتور</span>
-              <button onclick="openDomesticApprovalModal('${reqId}','${r.leadId}',${r.hIdx})"
-                style="font-size:8px;padding:2px 7px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.35);
-                border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">بررسی و تأیید</button>
+          const foreignReady = linkedReq && linkedReq.parts && linkedReq.parts.needForeign &&
+            linkedReq.parts.foreignQuoteComplete && !linkedReq.parts.foreignApproved;
+          if(domesticReady || foreignReady){
+            return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              ${domesticReady?`<div><span style="font-size:9px;font-weight:800;color:var(--accent)">💰 آماده (داخل)</span>
+                <button onclick="openDomesticApprovalModal('${reqId}','${r.leadId}',${r.hIdx})"
+                  style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.35);
+                  border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">تأیید</button></div>`:''}
+              ${foreignReady?`<div><span style="font-size:9px;font-weight:800;color:#22d3ee">🌍 آماده (خارج)</span>
+                <button onclick="openForeignApprovalModal('${reqId}','${r.leadId}',${r.hIdx})"
+                  style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(34,211,238,.15);border:1px solid rgba(34,211,238,.35);
+                  border-radius:4px;cursor:pointer;color:#22d3ee;font-family:Vazirmatn,sans-serif">تأیید</button></div>`:''}
             </div>`;
           }
           const stage = reqId ? getOverallStageLabel(reqId) : null;
@@ -5333,6 +5350,77 @@ function getOverallStageLabel(reqId){
 }
 
 let osContext = {reqId:null, leadId:null, hIdx:null};
+
+let _forApprovalReqId=null, _forApprovalLeadId=null, _forApprovalHIdx=null;
+function openForeignApprovalModal(reqId, leadId, hIdx){
+  const req = (cachedRequests||[]).find(r=>String(r.id)===String(reqId));
+  if(!req || !req.parts || !req.parts.foreignItems){ toast('درخواست پیدا نشد'); return; }
+  _forApprovalReqId=reqId; _forApprovalLeadId=leadId; _forApprovalHIdx=hIdx;
+  const items = req.parts.foreignItems.filter(it=>it.status!=='canceled_customer');
+  const el = document.getElementById('foreignApprovalItemsList');
+  el.innerHTML = items.map((it)=>{
+    const realIdx = req.parts.foreignItems.indexOf(it);
+    const notfound = it.status==='notfound';
+    const approvedQuote = (it.quotes||[]).find(q=>q&&q.approved) || (it.quotes||[])[0] || {};
+    return `<label style="display:flex;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid var(--border);font-size:12px;${notfound?'opacity:.5;':''}">
+      <input type="checkbox" class="for-approval-chk" data-idx="${realIdx}" ${notfound?'disabled':'checked'} style="width:15px;height:15px;"/>
+      <div style="flex:1;">
+        <strong>${it.name||'—'}</strong> × ${it.qty||''}
+        ${notfound?'<span style="color:var(--muted);font-size:10px;margin-right:6px;">(پیدا نشد — از این تصمیم مستثناست)</span>':
+          `<div style="font-size:10px;color:var(--muted);">تأمین‌کننده: ${approvedQuote.supplier||'—'} — فی: ${approvedQuote.price||'—'}</div>`}
+      </div>
+    </label>`;
+  }).join('');
+  document.getElementById('foreignApprovalCancelReason').value='';
+  openModal('foreignApproval');
+}
+
+async function submitForeignApproval(){
+  const checks = document.querySelectorAll('.for-approval-chk:not(:disabled)');
+  const approvedIdxs=[], rejectedIdxs=[];
+  checks.forEach(c=>{
+    const idx = parseInt(c.dataset.idx);
+    if(c.checked) approvedIdxs.push(idx); else rejectedIdxs.push(idx);
+  });
+  const cancelReason = document.getElementById('foreignApprovalCancelReason').value.trim();
+  if(rejectedIdxs.length && !cancelReason){ toast('⚠ برای آیتم‌های ردشده، علت رو بنویس'); return; }
+
+  const req = (cachedRequests||[]).find(r=>String(r.id)===String(_forApprovalReqId));
+  const trackingCode = req ? req.displayNumber : '';
+
+  toast('⏳ در حال ثبت تصمیم مشتری...');
+  let res=null;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/foreign/${_forApprovalReqId}/approve-items/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({approvedIdxs, rejectedIdxs, cancelReason, trackingCode})
+    });
+    res = await httpRes.json();
+  }catch(e){ res = {ok:false, error:'خطای شبکه'}; }
+
+  if(!res || !res.ok){
+    console.error('🔴 تأیید جزئی خارج گیر کرد:', res?.error||'نامشخص');
+    toast('🔴 گیر کرد و ثبت نشد! خطا: '+(res?.error||'نامشخص')+' — دوباره امتحان کن');
+    return;
+  }
+
+  if(req){ req.parts.foreignApproved = true; }
+  closeModal('modalForeignApproval');
+
+  if(res.fullyRejected){
+    const l=leads.find(x=>String(x.id)===String(_forApprovalLeadId));
+    if(l && l.history[_forApprovalHIdx]){
+      l.history[_forApprovalHIdx].completed=true;
+      l.history[_forApprovalHIdx].canceled=true;
+      l.history[_forApprovalHIdx].cancelReason=cancelReason;
+      await reliableUpdateLead({id:_forApprovalLeadId, history:l.history});
+    }
+    toast('❌ مشتری رد کرد — بایگانی شد');
+  } else {
+    toast(`✅ ${approvedIdxs.length} آیتم تأیید شد — برو ERP «ثبت سفارش» بزن`);
+  }
+  renderTableView();
+}
 
 let _domApprovalReqId=null, _domApprovalLeadId=null, _domApprovalHIdx=null;
 function openDomesticApprovalModal(reqId, leadId, hIdx){

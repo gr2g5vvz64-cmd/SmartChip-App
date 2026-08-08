@@ -5310,6 +5310,30 @@ async function persistEstelamatForeignChange(r){
   renderDash();
   if(document.getElementById('page-requests').classList.contains('active')) renderReqs();
   if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {statusValue:r.status});
+  if(r.parts && r.parts.needForeign && isConnected){
+    checkForeignQuoteCascade(r);
+  }
+}
+async function checkForeignQuoteCascade(r){
+  const items = r.parts.foreignItems || [];
+  const resolvedStatuses = ['quoted','ordered_shipping','arrived','delivered_to_customer','notfound','canceled_customer'];
+  const allResolved = items.length>0 && items.every(it=>resolvedStatuses.includes(it.status));
+  if(!allResolved || r.parts.foreignQuoteComplete) return;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/foreign/${r.id}/check-completion/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({trackingCode:r.displayNumber, actor:(currentUser&&currentUser.name)||''})
+    });
+    const res = await httpRes.json();
+    if(res && res.ok){
+      if(res.newlyCompleted){
+        r.parts.foreignQuoteComplete = true;
+        toast('✅ همه‌ی آیتم‌های خارج این درخواست تعیین‌تکلیف شدن — آماده‌ی پیش‌فاکتور تو CRM');
+      }
+    } else {
+      console.error('🔴 آبشار بازرگانی گیر کرد:', res?.error||'نامشخص');
+    }
+  }catch(e){ console.error('🔴 آبشار بازرگانی — خطای شبکه:', e); }
 }
 function updateEstelamatForeignQuote(safeKey,qIdx,field,value){
   const found=findForeignReqAndItem(safeKey);
@@ -6712,13 +6736,14 @@ async function markPackingSent(pkId){
   for(const it of (p.items||[])){
     if(it.reqId && it.itemIdx!==undefined){
       markLinkedItemStatus(it.reqId, it.itemIdx, 'delivered_to_customer', it.source);
-      // آبشار اتمی جدید — فقط برای آیتم‌های داخل، چک کامل‌شدن + ثبت تاریخچه + بایگانی خودکار
-      if(it.source==='domestic' || it.source==='market'){
+      // آبشار اتمی جدید — برای هم داخل هم خارج، چک کامل‌شدن + ثبت تاریخچه + بایگانی خودکار
+      if(it.source==='domestic' || it.source==='market' || it.source==='foreign'){
+        const kind = it.source==='foreign' ? 'foreign' : 'domestic';
         try{
           const r = requests.find(x=>String(x.id)===String(it.reqId));
-          const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${it.reqId}/ship-item/`, {
+          const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/${it.reqId}/ship-item/`, {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({itemIdx:it.itemIdx, trackingCode:(r&&r.displayNumber)||''})
+            body: JSON.stringify({itemIdx:it.itemIdx, kind, trackingCode:(r&&r.displayNumber)||''})
           });
           const res = await httpRes.json();
           if(res && res.ok && res.fullyDone){
