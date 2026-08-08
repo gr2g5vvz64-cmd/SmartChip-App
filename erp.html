@@ -899,31 +899,31 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <!-- ══ نوار هشدار خطای سراسری — تا هر خطای جاوااسکریپت فوری و قابل‌دیدن باشه، نه پنهان ══ -->
 <div id="globalErrorBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:10px 16px;font-size:12px;font-family:'Vazirmatn',sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">
   <span id="globalErrorText">⚠️ یه خطای فنی رخ داد</span>
-  <button onclick="document.getElementById('globalErrorBanner').style.display='none'" style="margin-right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">بستن</button>
+  <button onclick="document.getElementById('globalErrorBanner').style.display='none';document.body.style.paddingTop='0'" style="margin-right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">بستن</button>
   <button onclick="copyErrorDetails()" style="margin-right:6px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">📋 کپی جزئیات</button>
 </div>
 <script>
   window._lastErrorDetails = '';
+  function showGlobalErrorBanner(text){
+    const banner = document.getElementById('globalErrorBanner');
+    const txt = document.getElementById('globalErrorText');
+    if(!banner || !txt) return;
+    txt.textContent = text;
+    banner.style.display = 'block';
+    // چون نوار fixed هست (رو محتوا می‌شینه، نه اینکه هلش بده پایین)، خودمون فاصله‌ی
+    // بالای صفحه رو اضافه می‌کنیم تا نوار پالس و بقیه‌ی محتوا زیرش گم/بریده نشن
+    document.body.style.paddingTop = banner.offsetHeight + 'px';
+  }
   window.addEventListener('error', function(e){
     const msg = `خطا: ${e.message}\nفایل: ${e.filename}\nخط: ${e.lineno}:${e.colno}`;
     window._lastErrorDetails = msg;
-    const banner = document.getElementById('globalErrorBanner');
-    const txt = document.getElementById('globalErrorText');
-    if(banner && txt){
-      txt.textContent = `⚠️ یه خطای فنی رخ داد — ممکنه یه بخش از صفحه درست کار نکنه (${e.message})`;
-      banner.style.display = 'block';
-    }
+    showGlobalErrorBanner(`⚠️ یه خطای فنی رخ داد — ممکنه یه بخش از صفحه درست کار نکنه (${e.message})`);
     console.error('🔴 خطای سراسری گرفته‌شده:', msg);
   });
   window.addEventListener('unhandledrejection', function(e){
     const msg = `خطای Promise: ${e.reason}`;
     window._lastErrorDetails = msg;
-    const banner = document.getElementById('globalErrorBanner');
-    const txt = document.getElementById('globalErrorText');
-    if(banner && txt){
-      txt.textContent = `⚠️ یه خطای فنی رخ داد (${e.reason})`;
-      banner.style.display = 'block';
-    }
+    showGlobalErrorBanner(`⚠️ یه خطای فنی رخ داد (${e.reason})`);
     console.error('🔴 خطای Promise گرفته‌شده:', msg);
   });
   function copyErrorDetails(){
@@ -1925,14 +1925,15 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <!-- DEBT COLLECTION LOG MODAL -->
 <div class="modal-overlay" id="modalDebtCollection" onclick="closeModalOut(event,'modalDebtCollection')">
   <div class="modal" style="width:400px">
-    <div class="modal-hdr"><div class="modal-title">💰 ثبت وصولی</div><button class="close-btn" onclick="closeModal('modalDebtCollection')">✕</button></div>
+    <div class="modal-hdr"><div class="modal-title" id="debtCollectionModalTitle">💰 ثبت وصولی</div><button class="close-btn" onclick="closeModal('modalDebtCollection')">✕</button></div>
     <div class="form-grid">
       <input type="hidden" id="debtCollectionCaseId"/>
+      <input type="hidden" id="debtCollectionEditIdx" value=""/>
       <div class="form-group form-full"><label class="form-label">مبلغ وصول‌شده (تومان) *</label><input class="form-control" id="debtCollectionAmount" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 10000000"/></div>
       <div class="form-group form-full"><label class="form-label">تاریخ دریافت</label><input class="form-control" id="debtCollectionDate" placeholder="پیش‌فرض: امروز" readonly onfocus="openDatePicker('debtCollectionDate')"/></div>
       <div class="form-group form-full"><label class="form-label">حرف/توضیح مشتری (اختیاری)</label><textarea class="form-control" id="debtCollectionNote" rows="2" placeholder="مثلاً: قول داد باقی رو تا آخر ماه بده..."></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-primary" onclick="saveDebtCollectionLog()">ثبت</button><button class="btn btn-ghost" onclick="closeModal('modalDebtCollection')">انصراف</button></div>
+    <div class="modal-footer"><button class="btn btn-primary" id="debtCollectionSaveBtn" onclick="saveDebtCollectionLog()">ثبت</button><button class="btn btn-ghost" onclick="closeModal('modalDebtCollection')">انصراف</button></div>
   </div>
 </div>
 
@@ -4267,7 +4268,9 @@ function renderDash(){
     </div>`:'';
   // dash shipments — فشرده در داشبورد
   // ── داشبورد محموله‌ها — فشرده و مختصر ──
-  const activeS = shipments.filter(s=>!['delivered','canceled'].includes(s.status));
+  // دقیقاً همون فیلتری که صفحه‌ی «ردیابی محموله» استفاده می‌کنه — وگرنه آیتم‌هایی
+  // که به ترخیص رفتن، اینجا هنوز «در راه» حساب می‌شن ولی اونجا دیگه دیده نمی‌شن
+  const activeS = shipments.filter(s=>!['delivered','canceled'].includes(s.status) && !s.sentToClearance);
   const lateS   = activeS.filter(s=>daysLeft(s.eta)<0);
   const soonS   = activeS.filter(s=>{ const d=daysLeft(s.eta); return d>=0&&d<=7; });
   const custS   = [...new Set(activeS.map(s=>s.customer).filter(Boolean))];
@@ -6374,9 +6377,25 @@ async function saveNewDebtCase(){
 
 function openDebtCollectionModal(id){
   document.getElementById('debtCollectionCaseId').value=id;
+  document.getElementById('debtCollectionEditIdx').value='';
+  document.getElementById('debtCollectionModalTitle').textContent='💰 ثبت وصولی';
+  document.getElementById('debtCollectionSaveBtn').textContent='ثبت';
   document.getElementById('debtCollectionAmount').value='';
   document.getElementById('debtCollectionDate').value=todayShamsiStr();
   document.getElementById('debtCollectionNote').value='';
+  openModal('debtCollection');
+}
+function editDebtCollectionLog(caseId, logIdx){
+  const dc = debtCases.find(d=>String(d.id)===String(caseId));
+  if(!dc || !dc.financeLog || !dc.financeLog[logIdx]) return;
+  const l = dc.financeLog[logIdx];
+  document.getElementById('debtCollectionCaseId').value=caseId;
+  document.getElementById('debtCollectionEditIdx').value=logIdx;
+  document.getElementById('debtCollectionModalTitle').textContent='✏️ ویرایش وصولی';
+  document.getElementById('debtCollectionSaveBtn').textContent='ذخیره ویرایش';
+  document.getElementById('debtCollectionAmount').value=fn(l.amount);
+  document.getElementById('debtCollectionDate').value=l.date||todayShamsiStr();
+  document.getElementById('debtCollectionNote').value=l.note||'';
   openModal('debtCollection');
 }
 async function saveDebtCollectionLog(){
@@ -6387,17 +6406,32 @@ async function saveDebtCollectionLog(){
   if(!amount){ toast('⚠ مبلغ نامعتبر'); return; }
   const dc = debtCases.find(d=>String(d.id)===String(id));
   if(!dc) return;
-  const log = [...dc.financeLog, {date, amount, note}];
+  const editIdx = document.getElementById('debtCollectionEditIdx').value;
+  let log;
+  if(editIdx!==''){
+    log = [...dc.financeLog];
+    log[parseInt(editIdx)] = {date, amount, note};
+  } else {
+    log = [...dc.financeLog, {date, amount, note}];
+  }
+
+  // همون لحظه، محلی و بدون نیاز به جواب سرور، «مانده» رو دقیقاً با همون فرمول
+  // سرور (کل بدهی منهای مجموع لاگ‌ها) حساب و رو صفحه نشون بده — چون این محاسبه
+  // ساده‌ست و لازم نیست منتظر سرور بمونیم تا کاربر ببینه چی شد
+  const collected = log.reduce((s,l)=>s+(parseInt(l.amount)||0),0) + (dc.salesLog||[]).reduce((s,l)=>s+(parseInt(l.amount)||0),0);
+  const idx=debtCases.findIndex(d=>String(d.id)===String(id));
+  debtCases[idx] = {...dc, financeLog:log, collected, remaining:Math.max(0, dc.totalDebt-collected)};
+  closeModal('modalDebtCollection');
+  renderDebtCasesERP();
+  toast('⏳ در حال ثبت...');
+
   const result = await updateDebtCaseInDjango(id, {finance_log:log});
   if(result.success){
-    const idx=debtCases.findIndex(d=>String(d.id)===String(id));
-    debtCases[idx]=result.data;
-    closeModal('modalDebtCollection');
+    debtCases[idx]=result.data; // جواب واقعی سرور جایگزین محاسبه‌ی محلی می‌شه — برای اطمینان کامل
     renderDebtCasesERP();
-    toast('✅ ثبت شد');
+    toast('✅ ثبت شد — مانده: '+fn(result.data.remaining)+' تومان');
   } else if(result.queued){
-    closeModal('modalDebtCollection');
-    toast('🟡 سرور کند بود — در صف ماند، ظرف چند لحظه خودکار ثبت می‌شه (رفرش کن تا ببینیش)');
+    toast('🟡 سرور کند بود — ثبت محلی شد و ظرف چند لحظه خودکار با سرور هماهنگ می‌شه');
   } else {
     toast('⚠️ ذخیره ناموفق بود — دوباره امتحان کن');
   }
@@ -6452,7 +6486,10 @@ function renderDebtCasesERP(){
       </div>
       ${durationTxt?`<div style="font-size:10.5px;margin-bottom:8px;">${durationTxt}</div>`:''}
       ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px;">
-        ${d.financeLog.map(l=>`💰 ${l.date} — ${fn(l.amount)} تومان${l.note?` — «${l.note}»`:''}`).join('<br>')}
+        ${d.financeLog.map((l,li)=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
+          <span style="flex:1;">💰 ${l.date} — ${fn(l.amount)} تومان${l.note?` — «${l.note}»`:''}</span>
+          <button onclick="editDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش</button>
+        </div>`).join('')}
       </div>`:''}
       <div style="display:flex;gap:6px;">
         ${d.remaining>0?`<button class="action-btn" style="font-size:10px;" onclick="openDebtCollectionModal('${d.id}')">💰 ثبت وصولی</button>`:''}
@@ -11502,7 +11539,22 @@ function renderFinanceDashboard(){
       <td style="text-align:center;padding:8px;">${statusHTML}</td>
     </tr>`;
   });
-  html+='</tbody></table></div></div>';
+  html+='</tbody>';
+  // ردیف مجموع — باید دقیقاً با تعداد ردیف‌های صفحه‌ی «چک‌های دریافتی» و «چک‌های برگشتی» یکی باشه
+  const totalReceived = rows.reduce((s,r)=>s+r.total,0);
+  const totalBounced = rows.reduce((s,r)=>s+r.bounced,0);
+  const actualReturnedPageCount = (chequesReturned||[]).length;
+  const mismatch = totalBounced !== actualReturnedPageCount;
+  html+=`<tfoot><tr style="border-top:2px solid var(--accent);font-weight:800;">
+    <td style="padding:8px;">مجموع</td>
+    <td style="text-align:center;padding:8px;">${fn(totalReceived)}</td>
+    <td style="text-align:center;padding:8px;${mismatch?'color:#f87171;':''}">${fn(totalBounced)}</td>
+    <td colspan="3" style="text-align:center;padding:8px;font-size:10px;color:var(--muted);font-weight:400;">
+      کل ردیف‌های «چک‌های دریافتی»: ${fn((chequesReceived||[]).length)} — کل ردیف‌های «چک‌های برگشتی»: ${fn(actualReturnedPageCount)}
+      ${mismatch?`<span style="color:#f87171;font-weight:700;"> ⚠️ عدم تطابق!</span>`:'<span style="color:#4ade80;"> ✓ مطابقت دارد</span>'}
+    </td>
+  </tr></tfoot>`;
+  html+='</table></div></div>';
   el.innerHTML=html;
 }
 

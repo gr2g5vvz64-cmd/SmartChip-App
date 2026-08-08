@@ -212,31 +212,29 @@ html[data-theme="light"] .crm-table td select{color:#0f1828;font-weight:500;}
 <!-- ══ نوار هشدار خطای سراسری — تا هر خطای جاوااسکریپت فوری و قابل‌دیدن باشه، نه پنهان ══ -->
 <div id="globalErrorBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:10px 16px;font-size:12px;font-family:'Vazirmatn',sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">
   <span id="globalErrorText">⚠️ یه خطای فنی رخ داد</span>
-  <button onclick="document.getElementById('globalErrorBanner').style.display='none'" style="margin-right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">بستن</button>
+  <button onclick="document.getElementById('globalErrorBanner').style.display='none';document.body.style.paddingTop='0'" style="margin-right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">بستن</button>
   <button onclick="copyErrorDetails()" style="margin-right:6px;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:11px;">📋 کپی جزئیات</button>
 </div>
 <script>
   window._lastErrorDetails = '';
+  function showGlobalErrorBanner(text){
+    const banner = document.getElementById('globalErrorBanner');
+    const txt = document.getElementById('globalErrorText');
+    if(!banner || !txt) return;
+    txt.textContent = text;
+    banner.style.display = 'block';
+    document.body.style.paddingTop = banner.offsetHeight + 'px';
+  }
   window.addEventListener('error', function(e){
     const msg = `خطا: ${e.message}\nفایل: ${e.filename}\nخط: ${e.lineno}:${e.colno}`;
     window._lastErrorDetails = msg;
-    const banner = document.getElementById('globalErrorBanner');
-    const txt = document.getElementById('globalErrorText');
-    if(banner && txt){
-      txt.textContent = `⚠️ یه خطای فنی رخ داد — ممکنه یه بخش از صفحه درست کار نکنه (${e.message})`;
-      banner.style.display = 'block';
-    }
+    showGlobalErrorBanner(`⚠️ یه خطای فنی رخ داد — ممکنه یه بخش از صفحه درست کار نکنه (${e.message})`);
     console.error('🔴 خطای سراسری گرفته‌شده:', msg);
   });
   window.addEventListener('unhandledrejection', function(e){
     const msg = `خطای Promise: ${e.reason}`;
     window._lastErrorDetails = msg;
-    const banner = document.getElementById('globalErrorBanner');
-    const txt = document.getElementById('globalErrorText');
-    if(banner && txt){
-      txt.textContent = `⚠️ یه خطای فنی رخ داد (${e.reason})`;
-      banner.style.display = 'block';
-    }
+    showGlobalErrorBanner(`⚠️ یه خطای فنی رخ داد (${e.reason})`);
     console.error('🔴 خطای Promise گرفته‌شده:', msg);
   });
   function copyErrorDetails(){
@@ -3590,18 +3588,26 @@ function selectDebtCust(name){
 
 // ── جزئیات پرونده ──
 let curDebtDetailId='';
+let curDebtLogEdit=null; // {type:'finance'|'sales', idx:N} وقتی در حال ویرایش هستیم
 function openDebtCaseDetail(caseId){
   const c=findDebtCase(caseId);
   if(!c) return;
   curDebtDetailId=caseId;
+  curDebtLogEdit=null;
   const {collected,remaining}=debtCaseTotals(c);
   const st=debtStatusLabel(c);
   document.getElementById('debtDetailTitle').textContent='💳 '+c.customer;
-  const logRow=(l,tag)=>`<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11.5px;">
-    <div style="display:flex;justify-content:space-between;"><span>${tag} ${l.date}</span><span style="color:#4ade80">${l.amount?fmtMoney(l.amount)+' تومان':''}</span></div>
+  const logRow=(l,tag,idx,isFinanceLog)=>`<div style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11.5px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span>${tag} ${l.date}</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="color:#4ade80">${l.amount?fmtMoney(l.amount)+' تومان':''}</span>
+        ${!c.financeApproved?`<button onclick="editDebtLogCRM('${isFinanceLog?'finance':'sales'}',${idx})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️</button>`:''}
+      </div>
+    </div>
     ${l.note?`<div style="color:var(--muted);margin-top:2px;">${l.note}</div>`:''}
   </div>`;
-  const allLog=[...(c.financeLog||[]).map(l=>({...l,tag:'💰'})),...(c.salesLog||[]).map(l=>({...l,tag:'👤'}))]
+  const allLog=[...(c.financeLog||[]).map((l,i)=>({...l,tag:'💰',idx:i,isFinanceLog:true})),...(c.salesLog||[]).map((l,i)=>({...l,tag:'👤',idx:i,isFinanceLog:false}))]
     .sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
   document.getElementById('debtDetailBody').innerHTML=`
     <div style="display:flex;gap:14px;background:var(--card);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;">
@@ -3621,7 +3627,7 @@ function openDebtCaseDetail(caseId){
 
     <div style="font-size:11px;font-weight:800;color:var(--muted);margin:12px 0 6px;">📝 تاریخچه‌ی پیگیری (💰 مالی / 👤 فروش)</div>
     <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
-      ${allLog.length?allLog.map(l=>logRow(l,l.tag)).join(''):'<div style="padding:12px;text-align:center;color:var(--muted);font-size:11px">هنوز پیگیری‌ای ثبت نشده</div>'}
+      ${allLog.length?allLog.map(l=>logRow(l,l.tag,l.idx,l.isFinanceLog)).join(''):'<div style="padding:12px;text-align:center;color:var(--muted);font-size:11px">هنوز پیگیری‌ای ثبت نشده</div>'}
     </div>
 
     ${!c.financeApproved?`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
@@ -3630,12 +3636,26 @@ function openDebtCaseDetail(caseId){
         <input class="form-control" id="debtLogAmountNew" placeholder="مبلغ گرفته‌شده" inputmode="numeric" style="width:110px" oninput="fmtQfQty(this)"/>
         <input class="form-control" id="debtLogNoteNew" placeholder="چی گفته شد..." style="flex:1"/>
       </div>
-      <button class="action-btn" style="width:100%;margin-bottom:10px;" onclick="addDebtFollowUp()">+ ثبت پیگیری جدید</button>
+      <button class="action-btn" id="debtLogSubmitBtn" style="width:100%;margin-bottom:10px;" onclick="addDebtFollowUp()">+ ثبت پیگیری جدید</button>
       ${c.assignedTo&&!c.salesClosedTick?`<button class="btn btn-primary" style="width:100%;background:var(--green);border-color:var(--green);" onclick="markDebtClosedBySales()">✅ پروژه بسته شد — مبلغ کامل گرفته شد</button>`:''}
       ${c.salesClosedTick?`<button class="btn btn-primary" style="width:100%;background:#a855f7;border-color:#a855f7;" onclick="confirmDebtClosedByFinance()">🔒 تأیید نهایی مالی — بستن پرونده</button>`:''}
     </div>`:''}
   `;
   openModal('DebtDetail');
+}
+function editDebtLogCRM(type, idx){
+  const c=findDebtCase(curDebtDetailId);
+  if(!c) return;
+  const arr = type==='finance' ? (c.financeLog||[]) : (c.salesLog||[]);
+  const l = arr[idx];
+  if(!l) return;
+  curDebtLogEdit = {type, idx};
+  document.getElementById('debtLogDateNew').value = l.date||todayShamsiStr();
+  document.getElementById('debtLogAmountNew').value = fmtMoney(l.amount||0);
+  document.getElementById('debtLogNoteNew').value = l.note||'';
+  const btn = document.getElementById('debtLogSubmitBtn');
+  if(btn) btn.textContent = '✏️ ذخیره ویرایش';
+  document.getElementById('debtDetailBody').scrollTop = document.getElementById('debtDetailBody').scrollHeight;
 }
 async function addDebtFollowUp(){
   const c=findDebtCase(curDebtDetailId);
@@ -3645,9 +3665,16 @@ async function addDebtFollowUp(){
   const note=document.getElementById('debtLogNoteNew').value.trim();
   if(!amount && !note){toast('⚠ چیزی برای ثبت نیست');return;}
   const entry={date, amount, note};
-  // اگه هنوز واگذار نشده، جزو لاگ مالیه؛ وگرنه لاگ فروش
-  if(c.assignedTo){ if(!c.salesLog) c.salesLog=[]; c.salesLog.push(entry); }
-  else { if(!c.financeLog) c.financeLog=[]; c.financeLog.push(entry); }
+  if(curDebtLogEdit){
+    // حالت ویرایش — جایگزینی ردیف موجود، نه افزودن ردیف جدید
+    const arr = curDebtLogEdit.type==='finance' ? c.financeLog : c.salesLog;
+    if(arr && arr[curDebtLogEdit.idx]) arr[curDebtLogEdit.idx] = entry;
+    curDebtLogEdit = null;
+  } else {
+    // اگه هنوز واگذار نشده، جزو لاگ مالیه؛ وگرنه لاگ فروش
+    if(c.assignedTo){ if(!c.salesLog) c.salesLog=[]; c.salesLog.push(entry); }
+    else { if(!c.financeLog) c.financeLog=[]; c.financeLog.push(entry); }
+  }
   const updated = await updateDebtCaseInDjango(c.id, c);
   if(!updated){ toast('❌ ذخیره‌سازی ناموفق بود — اتصال به سرور رو چک کن'); return; }
   Object.assign(c, updated);
