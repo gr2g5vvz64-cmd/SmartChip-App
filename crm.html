@@ -4237,22 +4237,37 @@ async function saveFinanceTick(){
   document.getElementById('modalFinanceTick').classList.remove('open');
   await reliableUpdateLead({id:_finTickLeadId, history:l.history});
 
-  // ارسال هر مورد تیک‌خورده به عنوان یک task مالی جداگانه به ERP
+  // ارسال هر مورد تیک‌خورده به آبشار اتمی جدید — هرکدوم هم تسک مالی می‌سازه هم
+  // درخواست فروش رو آپدیت می‌کنه هم تو تاریخچه ثبت می‌کنه، همه یا هیچ‌کدوم
   const customer=l.customer||'';
+  const trackingCode = h.trackingCode || '';
   let sentCount=0;
+  const failedLabels=[];
   for(const key of checkedKeys){
-    const res=await addFinanceTaskInDjango({
-      customer, type:key, label:LABELS[key]||key,
-      note, leadId:_finTickLeadId, date:todayShamsiStr()
-    });
-    if(res && res.added) sentCount++;
+    let res=null;
+    try{
+      const httpRes = await fetch('https://smartchip-backend.onrender.com/api/ops/cascade/finance-task/create/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({customer, type:key, label:LABELS[key]||key, note, leadId:_finTickLeadId,
+                               trackingCode, requestId:h.linkedRequestId||''})
+      });
+      res = await httpRes.json();
+    }catch(e){ res = {ok:false, error:'خطای شبکه'}; }
+    if(res && res.ok){
+      sentCount++;
+      if(res.requestId && !h.linkedRequestId) h.linkedRequestId = res.requestId;
+    } else {
+      failedLabels.push(LABELS[key]||key);
+      console.error(`🔴 آبشار مالی گیر کرد — مورد «${LABELS[key]||key}»:`, res?.error||'نامشخص');
+    }
   }
 
   if(sentCount===checkedKeys.length){
-    toast('✅ '+sentCount+' مورد مالی به ERP ارسال شد');
+    toast('✅ '+sentCount+' مورد مالی به واحد مالی و درخواست فروش رفت');
   } else {
-    toast('⚠️ فقط '+sentCount+' از '+checkedKeys.length+' مورد ارسال شد — بقیه رو دوباره امتحان کن');
+    toast('🔴 گیر کرد! این موارد به مالی نرسیدن: '+failedLabels.join('، ')+' — دوباره امتحان کن یا با پشتیبانی چک کن');
   }
+  await reliableUpdateLead({id:_finTickLeadId, history:l.history});
   renderTableView();
 }
 

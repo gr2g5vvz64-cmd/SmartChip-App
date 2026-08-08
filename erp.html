@@ -3585,7 +3585,9 @@ async function resolveUrgentShipInDjango(id){
 const DJANGO_FINTASK_API = 'https://smartchip-backend.onrender.com/api/ops/finance-tasks/';
 function finTaskFromApi(d){
   return {id:d.id, customer:d.customer||'', type:d.task_type||'', label:d.label||'', note:d.note||'',
-    leadId:d.lead_id||'', date:d.date||'', done:!!d.done, doneDate:d.done_date||'', doneBy:d.done_by||''};
+    leadId:d.lead_id||'', trackingCode:d.tracking_code||'', linkedRequestId:d.linked_request_id||'',
+    date:d.date||'', done:!!d.done, doneDate:d.done_date||'', doneBy:d.done_by||'',
+    archived:!!d.archived, crmConfirmed:!!d.crm_confirmed};
 }
 async function fetchFinanceTasksFromDjango(){
   const data = await fetchJsonWithRetry(DJANGO_FINTASK_API);
@@ -11564,7 +11566,7 @@ function renderFinanceTasks(){
         ${!t.done?`<button class="btn btn-primary btn-sm" onclick="markFinanceTaskDone('${t.id}')">✅ انجام شد</button>`:`<span style="font-size:10px;color:#4ade80;font-weight:700;">✅ انجام‌شده — ${t.doneDate||''}</span>`}
       </div>
       ${t.note?`<div style="font-size:11.5px;color:var(--muted);margin-bottom:4px;">${t.note}</div>`:''}
-      <div style="font-size:9.5px;color:var(--muted);">تاریخ ثبت: ${t.date||'—'}</div>
+      <div style="font-size:9.5px;color:var(--muted);">تاریخ ثبت: ${t.date||'—'} ${t.linkedRequestId?` — درخواست: ${t.linkedRequestId}`:''}</div>
     </div>`;
   }
 
@@ -11579,10 +11581,27 @@ function renderFinanceTasks(){
 
 async function markFinanceTaskDone(id){
   const t=(financeTasks||[]).find(x=>x.id===id);
-  if(t){ t.done=true; t.doneDate=todayShamsiStr(); t.doneBy=currentUser?(currentUser.name||currentUser.email):''; }
-  renderFinanceTasks();
-  await sheetCall('updateFinanceTask',{id, done:true, doneDate:todayShamsiStr(), doneBy:t?t.doneBy:''});
-  toast('✅ ثبت شد');
+  if(!t) return;
+  const note = prompt('توضیح کاری که انجام شد (برای کارشناس فروش و مشتری):') || '';
+  const doneBy = currentUser?(currentUser.name||currentUser.email):'';
+  toast('⏳ در حال ثبت آبشاری...');
+  let res=null;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/finance-task/${id}/complete/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({doneBy, note})
+    });
+    res = await httpRes.json();
+  }catch(e){ res = {ok:false, error:'خطای شبکه'}; }
+
+  if(res && res.ok){
+    t.done=true; t.doneDate=todayShamsiStr(); t.doneBy=doneBy; t.note=(t.note?t.note+'\n':'')+`[پاسخ مالی] ${note}`;
+    renderFinanceTasks();
+    toast(res.requestCompleted ? '✅ ثبت شد — درخواست فروش هم کامل شد، برگشت به CRM' : '✅ ثبت شد — منتظر بقیه‌ی موارد مالی این درخواست');
+  } else {
+    console.error('🔴 آبشار مالی گیر کرد:', res?.error||'نامشخص');
+    toast('🔴 گیر کرد و ثبت نشد! خطا: '+(res?.error||'نامشخص')+' — دوباره امتحان کن');
+  }
 }
 
 </script>
