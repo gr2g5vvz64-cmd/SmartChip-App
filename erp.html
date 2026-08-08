@@ -4883,6 +4883,33 @@ async function persistEstelamatChange(r){
   renderDash();
   if(document.getElementById('page-requests').classList.contains('active')) renderReqs();
   if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {statusValue:r.status});
+  // آبشار — بعد از هر تغییر تو استعلام داخل، چک کن همه‌ی آیتم‌ها تعیین‌تکلیف شدن یا نه.
+  // اگه بله، سرور خودش parts.marketQuoteComplete رو ست می‌کنه و تو تاریخچه ثبت می‌کنه؛
+  // این پیام هیچ‌وقت جلوی کار کاربر رو نمی‌گیره (پس‌زمینه‌ست) و اگه گیر کرد، تو کنسول لاگ می‌شه.
+  if(r.parts && r.parts.needMarket && isConnected){
+    checkDomesticQuoteCascade(r);
+  }
+}
+async function checkDomesticQuoteCascade(r){
+  const items = r.parts.marketItems || [];
+  const resolvedStatuses = ['quoted','approved','delivered','notfound','canceled_customer'];
+  const allResolved = items.length>0 && items.every(it=>resolvedStatuses.includes(it.status));
+  if(!allResolved || r.parts.marketQuoteComplete) return; // یا هنوز کامل نشده، یا قبلاً ثبت شده — دوباره لازم نیست
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${r.id}/check-completion/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({trackingCode:r.displayNumber, actor:(currentUser&&currentUser.name)||''})
+    });
+    const res = await httpRes.json();
+    if(res && res.ok){
+      if(res.newlyCompleted){
+        r.parts.marketQuoteComplete = true;
+        toast('✅ همه‌ی آیتم‌های این درخواست تعیین‌تکلیف شدن — آماده‌ی پیش‌فاکتور تو CRM');
+      }
+    } else {
+      console.error('🔴 آبشار تدارکات داخل گیر کرد:', res?.error||'نامشخص');
+    }
+  }catch(e){ console.error('🔴 آبشار تدارکات داخل — خطای شبکه:', e); }
 }
 function updateEstelamatQuote(safeKey,qIdx,field,value){
   const found=findReqAndItem(safeKey);
@@ -6664,9 +6691,27 @@ async function markPackingSent(pkId){
   p.sent=true;
   p.sentDate=todayShamsiStr();
   p.sentISO=new Date().toISOString();
-  (p.items||[]).forEach(it=>{
-    if(it.reqId && it.itemIdx!==undefined) markLinkedItemStatus(it.reqId, it.itemIdx, 'delivered_to_customer', it.source);
-  });
+  for(const it of (p.items||[])){
+    if(it.reqId && it.itemIdx!==undefined){
+      markLinkedItemStatus(it.reqId, it.itemIdx, 'delivered_to_customer', it.source);
+      // آبشار اتمی جدید — فقط برای آیتم‌های داخل، چک کامل‌شدن + ثبت تاریخچه + بایگانی خودکار
+      if(it.source==='domestic' || it.source==='market'){
+        try{
+          const r = requests.find(x=>String(x.id)===String(it.reqId));
+          const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${it.reqId}/ship-item/`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({itemIdx:it.itemIdx, trackingCode:(r&&r.displayNumber)||''})
+          });
+          const res = await httpRes.json();
+          if(res && res.ok && res.fullyDone){
+            toast('✅✅ همه‌ی این درخواست تحویل شد — کامل بایگانی شد، برگشت به CRM');
+          } else if(!res || !res.ok){
+            console.error('🔴 آبشار ارسال نهایی گیر کرد برای', it.reqId, ':', res?.error||'نامشخص');
+          }
+        }catch(e){ console.error('🔴 آبشار ارسال نهایی — خطای شبکه:', e); }
+      }
+    }
+  }
   await updateOutboundPackingInDjango(p);
   if(p.customer) await closeCRMLeadsInDjango([p.customer]);
   renderWarehouse();
