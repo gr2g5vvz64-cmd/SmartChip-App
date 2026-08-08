@@ -996,7 +996,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       </div>
       <div class="nav-group-items" id="ngi-proc" style="max-height:none">
         <button class="nav-item" onclick="showPage('procurement')"><span class="nav-icon">📋</span><span>نیاز مشتری</span><span class="nbadge orange" id="procBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="curEstelamatCustomer=null;estelamatFilterRequestId=null;showPage('estelamat')"><span class="nav-icon">📑</span><span>استعلامات (همه)</span></button>
+        <button class="nav-item" onclick="curEstelamatCustomer=null;curEstelamatRequestId=null;estelamatFilterRequestId=null;showPage('estelamat')"><span class="nav-icon">📑</span><span>استعلامات (همه)</span></button>
         <button class="nav-item" onclick="showPage('domesticdeliv')"><span class="nav-icon">🏬</span><span>جمع‌آوری کالا</span><span class="nbadge orange" id="domesticDelivBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('deptfeedback-tadarokat')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeTadarokat" style="display:none">0</span></button>
       </div>
@@ -4575,15 +4575,14 @@ let curCustNeedFilter='open', curCustNeedSearch='';
 //   approved → یک استعلام تأیید شده، منتظر جمع‌آوری (در تحویل بار داخل)
 //   delivered→ تحویل گرفته شده = این آیتم تکمیل است
 function buildCustNeedRows(){
-  const map={}; // customer -> {customer, totalItems, quoted, approved, delivered, notfound, reqIds:Set}
+  const rows=[]; // هر ردیف = یه درخواست (لید) خاص، نه کل تاریخچه‌ی یه مشتری
   requests.forEach(r=>{
     if(!r.parts || !r.parts.needMarket) return;
     if(r.status==='canceled') return; // درخواست کاملاً کنسل‌شده اصلاً نباید تو این لیست بیاد
     const items=r.parts.marketItems||[];
     if(!items.length) return;
-    if(!map[r.customer]) map[r.customer]={customer:r.customer, totalItems:0, quoted:0, approved:0, delivered:0, notfound:0, reqIds:[]};
-    const m=map[r.customer];
-    m.reqIds.push(r.id);
+    const m={customer:r.customer, requestId:r.id, displayNumber:r.displayNumber||r.id, date:r.date||'',
+             totalItems:0, quoted:0, approved:0, delivered:0, notfound:0};
     items.forEach(it=>{
       m.totalItems++;
       if(it.status==='quoted')   m.quoted++;
@@ -4591,11 +4590,14 @@ function buildCustNeedRows(){
       if(it.status==='delivered')m.delivered++;
       if(it.status==='notfound'||it.status==='canceled_customer') m.notfound++;
     });
+    rows.push({...m, resolved:m.delivered+m.notfound});
   });
-  return Object.values(map).map(m=>({...m, resolved:m.delivered+m.notfound}));
+  // قدیمی‌ترین درخواست بالا — دقیقاً همون منطق «اولین که اومده، بالاتر»
+  rows.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
+  return rows;
 }
 function renderCustNeed(){
-  let rows=buildCustNeedRows().filter(r=>r.resolved<r.totalItems); // فقط مشتریان باز
+  let rows=buildCustNeedRows().filter(r=>r.resolved<r.totalItems); // فقط درخواست‌های باز
   if(curCustNeedSearch){
     const q=normalizeFa(curCustNeedSearch);
     rows=rows.filter(r=>normalizeFa(r.customer).includes(q));
@@ -4603,15 +4605,15 @@ function renderCustNeed(){
   setBadge('procBadge', rows.length);
   const el=document.getElementById('custNeedBody');
   if(!rows.length){el.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">موردی نیست</div></div></td></tr>`;return;}
-  el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openEstelamat('${escAttr(r.customer)}')">
-    <td><strong>${r.customer}</strong></td>
+  el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openEstelamat('${r.requestId}')">
+    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${r.displayNumber}</span></td>
     <td>${fn(r.totalItems)}</td>
     <td>${fn(r.quoted+r.approved+r.delivered)}</td>
     <td>${fn(r.approved+r.delivered)}</td>
     <td style="color:${r.resolved===r.totalItems?'var(--green)':'var(--text)'}">${fn(r.resolved)}${r.notfound?` <span style="color:var(--muted);font-size:10px">(${fn(r.notfound)} پیدا نشد)</span>`:''}</td>
     <td style="display:flex;gap:6px;align-items:center">
-      <button class="action-btn" onclick="event.stopPropagation();openEstelamat('${escAttr(r.customer)}')">باز کردن استعلامات ›</button>
-      <button class="action-btn" style="color:#f87171;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);white-space:nowrap" onclick="event.stopPropagation();cancelAllEstelamatItems('${escAttr(r.customer)}')">❌ کنسلی کل لیست</button>
+      <button class="action-btn" onclick="event.stopPropagation();openEstelamat('${r.requestId}')">باز کردن استعلامات ›</button>
+      <button class="action-btn" style="color:#f87171;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);white-space:nowrap" onclick="event.stopPropagation();cancelAllEstelamatItems('${escAttr(r.customer)}',  '${r.requestId}')">❌ کنسلی این درخواست</button>
     </td>
   </tr>`).join('');
   renderCustNeedArchive();
@@ -4646,15 +4648,24 @@ function searchCustNeed(v){curCustNeedSearch=v;renderCustNeed();}
 // استعلامات — جزئیات یک مشتری: گزارش بالا + ۱۰ ردیف استعلام برای هر آیتم
 // ══════════════════════════════════════════
 let curEstelamatCustomer=null;
-function openEstelamat(customerName){
-  curEstelamatCustomer=customerName;
+let curEstelamatRequestId=null; // وقتی پر باشه، فقط آیتم‌های همین یه درخواست دیده می‌شه
+function openEstelamat(requestId){
+  const r = requests.find(x=>String(x.id)===String(requestId));
+  curEstelamatCustomer = r ? r.customer : requestId; // سازگاری با کدهای قدیمی که customer رو نمایش می‌دن
+  curEstelamatRequestId = requestId;
   showPage('estelamat');
 }
 function getCustomerMarketItems(customerName){
-  // همه‌ی آیتم‌های بازار این مشتری را از همه‌ی درخواست‌هایش جمع می‌کند
+  // اگه یه درخواست خاص انتخاب شده (curEstelamatRequestId)، فقط همون یکی — نه کل
+  // تاریخچه‌ی مشتری. این دقیقاً همون چیزیه که خواسته شده بود.
   const items=[];
   requests.forEach(r=>{
-    if(r.customer!==customerName || !r.parts || !r.parts.needMarket) return;
+    if(curEstelamatRequestId){
+      if(String(r.id)!==String(curEstelamatRequestId)) return;
+    } else if(r.customer!==customerName){
+      return;
+    }
+    if(!r.parts || !r.parts.needMarket) return;
     if(r.status==='canceled') return; // درخواست کاملاً کنسل‌شده نباید تو دید مشتری بیاد
     (r.parts.marketItems||[]).forEach((it,idx)=>{
       if(it.status==='canceled_customer') return;
@@ -9356,11 +9367,16 @@ function renderCal(){
 }
 
 
-async function cancelAllEstelamatItems(customerName){
-  if(!confirm('کنسلی کل آیتمهای '+customerName+'?')) return;
+async function cancelAllEstelamatItems(customerName, requestId){
+  const label = requestId ? 'این درخواست' : 'کل آیتم‌های '+customerName;
+  if(!confirm('کنسلی '+label+'؟')) return;
   var changed=0;
-  (requests||[]).forEach(function(r){
-    if(r.customer!==customerName||!r.parts||!r.parts.marketItems) return;
+  var custReqs=(requests||[]).filter(function(r){
+    if(!r.parts||!r.parts.marketItems) return false;
+    if(requestId) return String(r.id)===String(requestId);
+    return r.customer===customerName;
+  });
+  custReqs.forEach(function(r){
     r.parts.marketItems.forEach(function(it){
       if(it.status!=='delivered'&&it.status!=='notfound'){
         it.status='canceled_customer';
@@ -9371,12 +9387,9 @@ async function cancelAllEstelamatItems(customerName){
   if(!changed){ toast('آیتمی برای کنسل نبود'); return; }
   renderEstelamatPage();
   renderCustNeed();
-  toast('❌ کل لیست '+customerName+' کنسل شد');
+  toast('❌ '+label+' کنسل شد');
   // آپدیت cache تا بعد reload هم بمونه
   try{ localStorage.removeItem('sc_cache_v2'); }catch(err){}
-  var custReqs=(requests||[]).filter(function(r){
-    return r.customer===customerName&&r.parts&&r.parts.marketItems;
-  });
   for(var ri=0;ri<custReqs.length;ri++){
     if(isConnected) await reliableUpdateRequestParts(custReqs[ri].id, custReqs[ri].parts);
   }
