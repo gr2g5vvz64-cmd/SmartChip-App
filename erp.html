@@ -5072,15 +5072,14 @@ function reopenEstelamatItem(safeKey){
 // ══════════════════════════════════════════
 let curForeignNeedSearch='', curForeignNeedArchiveSearch='';
 function buildForeignNeedRows(){
-  const map={};
+  const rows=[];
   requests.forEach(r=>{
     if(!r.parts || !r.parts.needForeign) return;
     if(r.status==='canceled') return; // درخواست کاملاً کنسل‌شده اصلاً نباید تو این لیست بیاد
     const items=(r.parts.foreignItems||[]).filter(it=>it.status!=='canceled_customer'); // آیتم‌های کنسل‌شده هم حذف بشن
     if(!items.length) return;
-    if(!map[r.customer]) map[r.customer]={customer:r.customer, totalItems:0, quoted:0, approved:0, orderedShipping:0, arrived:0, deliveredToCustomer:0, notfound:0, reqIds:[]};
-    const m=map[r.customer];
-    m.reqIds.push(r.id);
+    const m={customer:r.customer, requestId:r.id, displayNumber:r.displayNumber||r.id, date:r.date||'',
+             totalItems:0, quoted:0, approved:0, orderedShipping:0, arrived:0, deliveredToCustomer:0, notfound:0};
     items.forEach(it=>{
       m.totalItems++;
       if(it.status==='quoted')   m.quoted++;
@@ -5090,8 +5089,11 @@ function buildForeignNeedRows(){
       if(it.status==='delivered_to_customer') m.deliveredToCustomer++;
       if(it.status==='notfound') m.notfound++;
     });
+    rows.push({...m, resolved:m.deliveredToCustomer+m.notfound});
   });
-  return Object.values(map).map(m=>({...m, resolved:m.deliveredToCustomer+m.notfound}));
+  // قدیمی‌ترین درخواست بالا
+  rows.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
+  return rows;
 }
 function renderForeignNeed(){
   let rows=buildForeignNeedRows().filter(r=>r.resolved<r.totalItems);
@@ -5102,15 +5104,15 @@ function renderForeignNeed(){
   setBadge('foreignDelivBadge', rows.length);
   const el=document.getElementById('foreignNeedBody');
   if(!rows.length){el.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">موردی نیست</div></div></td></tr>`;return;}
-  el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openEstelamatForeign('${escAttr(r.customer)}')">
-    <td><strong>${r.customer}</strong></td>
+  el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openForeignEstelamatByRequest('${r.requestId}')">
+    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${r.displayNumber||''}</span></td>
     <td>${fn(r.totalItems)}</td>
     <td>${fn(r.quoted+r.approved+r.orderedShipping+r.arrived+r.deliveredToCustomer)}</td>
     <td>${fn(r.approved+r.orderedShipping+r.arrived+r.deliveredToCustomer)}</td>
     <td style="color:${r.resolved===r.totalItems?'var(--green)':'var(--text)'}">${fn(r.deliveredToCustomer)}${r.notfound?` <span style="color:var(--muted);font-size:10px">(${fn(r.notfound)} پیدا نشد)</span>`:''}</td>
     <td style="display:flex;gap:6px;align-items:center">
       <button class="action-btn">باز کردن استعلامات ›</button>
-      <button class="action-btn" style="color:#f87171;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06)" onclick="event.stopPropagation();cancelAllForeignNeed('${escAttr(r.customer)}')">❌ کنسلی کل لیست</button>
+      <button class="action-btn" style="color:#f87171;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06)" onclick="event.stopPropagation();cancelAllForeignNeed('${escAttr(r.customer)}','${r.requestId}')">❌ کنسلی این درخواست</button>
     </td>
   </tr>`).join('');
   renderForeignNeedArchive();
@@ -5140,6 +5142,11 @@ function renderForeignNeedArchive(){
 // ══════════════════════════════════════════
 // استعلامات خارج — جزئیات یک مشتری: گزارش + ۴ ردیف استعلام برای هر آیتم
 // ══════════════════════════════════════════
+function openForeignEstelamatByRequest(requestId){
+  estelamatForeignFilterRequestId = requestId;
+  curEstelamatForeignCustomer = null;
+  showPage('estelamatforeign');
+}
 let curEstelamatForeignCustomer=null;
 function openEstelamatForeign(customerName){
   curEstelamatForeignCustomer=customerName;
@@ -10347,11 +10354,16 @@ function pickProcurementQuickRowItem(idx,name){
   renderProcurementQuickRows();
 }
 
-async function cancelAllForeignNeed(customerName){
-  if(!confirm('کنسلی کل لیست خارجی «'+customerName+'»?')) return;
+async function cancelAllForeignNeed(customerName, requestId){
+  const label = requestId ? 'این درخواست' : 'کل لیست خارجی «'+customerName+'»';
+  if(!confirm('کنسلی '+label+'?')) return;
   var changed=0;
-  (requests||[]).forEach(function(r){
-    if(r.customer!==customerName||!r.parts||!r.parts.foreignItems) return;
+  var custReqs=(requests||[]).filter(function(r){
+    if(!r.parts||!r.parts.foreignItems) return false;
+    if(requestId) return String(r.id)===String(requestId);
+    return r.customer===customerName;
+  });
+  custReqs.forEach(function(r){
     r.parts.foreignItems.forEach(function(it){
       if(it.status!=='delivered_to_customer'&&it.status!=='notfound'){
         it.status='notfound';
@@ -10361,8 +10373,7 @@ async function cancelAllForeignNeed(customerName){
   });
   if(!changed){toast('آیتمی برای کنسل نبود');return;}
   renderForeignNeed();
-  toast('❌ کل لیست خارجی '+customerName+' کنسل شد — بایگانی شد');
-  var custReqs=(requests||[]).filter(function(r){return r.customer===customerName&&r.parts&&r.parts.foreignItems;});
+  toast('❌ '+label+' کنسل شد — بایگانی شد');
   for(var i=0;i<custReqs.length;i++){
     if(isConnected) await reliableUpdateRequestParts(custReqs[i].id, custReqs[i].parts);
   }
