@@ -1692,7 +1692,8 @@ const DJANGO_RECURRING_API = 'https://smartchip-backend.onrender.com/api/worklog
 
 function freeRemFromApi(d){
   return { id:d.id, customer:d.customer||'', desc:d.desc||'', date:d.date||'',
-    endDate:d.end_date||'', category:d.category||'', done:!!d.done, history:d.history||[] };
+    endDate:d.end_date||'', category:d.category||'', done:!!d.done, history:d.history||[],
+    doneAt:d.updated_at||'' };
 }
 function freeRemToApi(r){
   return { customer:r.customer||'', desc:r.desc||'', date:r.date||'',
@@ -3374,9 +3375,17 @@ async function toggleFreeReminderDone(id){
   const r=freeReminders.find(x=>String(x.id)===String(id));
   if(!r)return;
   r.done=!r.done;
+  // این تابع بین «کارهای فردا» و «یادآوری آزاد» مشترکه — هر دو رو رفرش کن، هرکدوم
+  // که رو صفحه‌ست، درست آپدیت بشه (قبلاً فقط یکی رفرش می‌شد و صفحه‌ی دیگه یخ می‌زد)
+  renderTomorrowPlan();
   renderFreeReminders();
   if(document.getElementById('calendarView').classList.contains('active')) renderCal();
-  await updateFreeReminderInDjango(r.id, r);
+  const updated = await updateFreeReminderInDjango(r.id, r);
+  if(updated){
+    r.doneAt = updated.doneAt; // زمان واقعی سرور (updated_at) — برای بایگانی «کی تکمیل شد»
+    renderTomorrowPlan();
+    renderFreeReminders();
+  }
 }
 
 async function deleteFreeReminder(id){
@@ -3399,17 +3408,25 @@ function renderTomorrowPlan(){
   const open=list.filter(r=>!r.done), done=list.filter(r=>r.done);
   document.getElementById('remTomorrowCount').textContent = open.length?`(${open.length} باز)`:'';
   if(!list.length){ el.innerHTML=emptyBox('📝','کار فردایی ثبت نشده'); return; }
-  function rowHTML(r){
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(42,47,74,.4);font-size:12px;${r.done?'opacity:.55':''}">
+  function rowHTML(r, showDoneTime){
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(42,47,74,.4);font-size:12px;${r.done?'opacity:.6':''}">
       <span style="font-size:18px">${r.done?'✅':'📝'}</span>
-      <div style="flex:1;${r.done?'text-decoration:line-through':''}">${r.customer?`<strong>${r.customer}</strong> — `:''}${r.desc}</div>
+      <div style="flex:1;${r.done?'text-decoration:line-through':''}">${r.customer?`<strong>${r.customer}</strong> — `:''}${r.desc}
+        ${showDoneTime&&r.doneAt?`<div style="font-size:9.5px;color:var(--green);text-decoration:none;margin-top:2px;">✅ تکمیل شد: ${new Date(r.doneAt).toLocaleString('fa-IR')}</div>`:''}
+      </div>
       <span style="font-size:11px;color:var(--muted)">${r.date}</span>
       <button class="action-btn" onclick="toggleFreeReminderDone('${r.id}')">${r.done?'بازکردن':'✅ انجام شد'}</button>
       <button class="action-btn" onclick="editTomorrowTask('${r.id}')">✏️</button>
       <button class="action-btn" style="color:var(--red)" onclick="deleteFreeReminder('${r.id}')">🗑️</button>
     </div>`;
   }
-  el.innerHTML=open.map(rowHTML).join('')+done.map(rowHTML).join('');
+  const openHTML = open.length ? open.map(r=>rowHTML(r,false)).join('') : `<div style="padding:16px;text-align:center;color:var(--muted);font-size:11px;">✅ همه‌ی کارهای فردا انجام شده — پایین رو ببین</div>`;
+  const archiveHTML = done.length ? `
+    <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:800;color:var(--muted);padding:0 18px 8px;">🗄️ بایگانی — کارهای انجام‌شده (${done.length})</div>
+      ${done.slice().reverse().map(r=>rowHTML(r,true)).join('')}
+    </div>` : '';
+  el.innerHTML = openHTML + archiveHTML;
 }
 
 function renderFreeReminders(){
