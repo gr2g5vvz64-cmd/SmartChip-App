@@ -409,6 +409,17 @@ html[data-theme="light"] .crm-table td select{color:#0f1828;font-weight:500;}
     </div>
   </div>
 </div>
+<!-- تأیید جزئی پیش‌فاکتور داخل — دقیقاً همون «دوتیکه‌شدن کد پیگیری» -->
+<div class="modal-overlay" id="modalDomesticApproval" onclick="if(event.target===this)closeModal('modalDomesticApproval')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr"><div class="modal-title">💰 تأیید پیش‌فاکتور — مشتری چی گفت؟</div><button class="close-btn" onclick="closeModal('modalDomesticApproval')">✕</button></div>
+    <div style="font-size:11px;color:var(--muted);padding:0 4px 10px;">هر آیتمی که مشتری تأیید کرده رو تیک بزن. آیتم‌های تیک‌نخورده به‌عنوان رد‌شده بایگانی می‌شن.</div>
+    <div id="domesticApprovalItemsList" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="form-group form-full" style="margin-top:10px;"><label class="form-label">علت رد (اگه چیزی رد شد)</label><input class="form-control" id="domesticApprovalCancelReason" placeholder="مثلاً: قیمت بالا بود..."/></div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="submitDomesticApproval()">ثبت تصمیم مشتری</button><button class="btn btn-ghost" onclick="closeModal('modalDomesticApproval')">انصراف</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOrderStatus" onclick="if(event.target===this)closeModal('modalOrderStatus')">
   <div class="modal">
     <div class="modal-hdr"><div class="modal-title" id="osTitle">📦 وضعیت سفارش</div><button class="close-btn" onclick="closeModal('modalOrderStatus')">✕</button></div>
@@ -1836,6 +1847,17 @@ function renderTableView(){
           const parts = (e.procurementParts&&e.procurementParts.items)||[];
           const cnt = parts.filter(p=>p.name).length;
           const reqId = e.linkedRequestId||'';
+          const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
+          const domesticReady = linkedReq && linkedReq.parts && linkedReq.parts.needMarket &&
+            linkedReq.parts.marketQuoteComplete && !linkedReq.parts.marketApproved;
+          if(domesticReady){
+            return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <span style="font-size:9px;font-weight:800;color:var(--accent)">💰 آماده‌ی پیش‌فاکتور</span>
+              <button onclick="openDomesticApprovalModal('${reqId}','${r.leadId}',${r.hIdx})"
+                style="font-size:8px;padding:2px 7px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.35);
+                border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">بررسی و تأیید</button>
+            </div>`;
+          }
           const stage = reqId ? getOverallStageLabel(reqId) : null;
           const progLabel = stage ? stage.label : `📋 ${fn(cnt)} پارت`;
           const progColor = stage ? stage.color : 'var(--accent)';
@@ -5311,6 +5333,77 @@ function getOverallStageLabel(reqId){
 }
 
 let osContext = {reqId:null, leadId:null, hIdx:null};
+
+let _domApprovalReqId=null, _domApprovalLeadId=null, _domApprovalHIdx=null;
+function openDomesticApprovalModal(reqId, leadId, hIdx){
+  const req = (cachedRequests||[]).find(r=>String(r.id)===String(reqId));
+  if(!req || !req.parts || !req.parts.marketItems){ toast('درخواست پیدا نشد'); return; }
+  _domApprovalReqId=reqId; _domApprovalLeadId=leadId; _domApprovalHIdx=hIdx;
+  const items = req.parts.marketItems.filter(it=>it.status!=='canceled_customer');
+  const el = document.getElementById('domesticApprovalItemsList');
+  el.innerHTML = items.map((it,idx)=>{
+    const realIdx = req.parts.marketItems.indexOf(it);
+    const notfound = it.status==='notfound';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid var(--border);font-size:12px;${notfound?'opacity:.5;':''}">
+      <input type="checkbox" class="dom-approval-chk" data-idx="${realIdx}" ${notfound?'disabled':'checked'} style="width:15px;height:15px;"/>
+      <div style="flex:1;">
+        <strong>${it.name||'—'}</strong> × ${it.qty||''}
+        ${notfound?'<span style="color:var(--muted);font-size:10px;margin-right:6px;">(پیدا نشد — از این تصمیم مستثناست)</span>':
+          `<div style="font-size:10px;color:var(--muted);">تأمین‌کننده: ${it.supplier||'—'} — قیمت: ${it.price||'—'}</div>`}
+      </div>
+    </label>`;
+  }).join('');
+  document.getElementById('domesticApprovalCancelReason').value='';
+  openModal('domesticApproval');
+}
+
+async function submitDomesticApproval(){
+  const checks = document.querySelectorAll('.dom-approval-chk:not(:disabled)');
+  const approvedIdxs=[], rejectedIdxs=[];
+  checks.forEach(c=>{
+    const idx = parseInt(c.dataset.idx);
+    if(c.checked) approvedIdxs.push(idx); else rejectedIdxs.push(idx);
+  });
+  const cancelReason = document.getElementById('domesticApprovalCancelReason').value.trim();
+  if(rejectedIdxs.length && !cancelReason){ toast('⚠ برای آیتم‌های ردشده، علت رو بنویس'); return; }
+
+  const req = (cachedRequests||[]).find(r=>String(r.id)===String(_domApprovalReqId));
+  const trackingCode = req ? req.displayNumber : '';
+
+  toast('⏳ در حال ثبت تصمیم مشتری...');
+  let res=null;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${_domApprovalReqId}/approve-items/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({approvedIdxs, rejectedIdxs, cancelReason, trackingCode})
+    });
+    res = await httpRes.json();
+  }catch(e){ res = {ok:false, error:'خطای شبکه'}; }
+
+  if(!res || !res.ok){
+    console.error('🔴 تأیید جزئی گیر کرد:', res?.error||'نامشخص');
+    toast('🔴 گیر کرد و ثبت نشد! خطا: '+(res?.error||'نامشخص')+' — دوباره امتحان کن');
+    return;
+  }
+
+  if(req){ req.parts.marketApproved = true; }
+  closeModal('modalDomesticApproval');
+
+  if(res.fullyRejected){
+    // رد کامل — خودِ لید هم همینجا بایگانی می‌شه
+    const l=leads.find(x=>String(x.id)===String(_domApprovalLeadId));
+    if(l && l.history[_domApprovalHIdx]){
+      l.history[_domApprovalHIdx].completed=true;
+      l.history[_domApprovalHIdx].canceled=true;
+      l.history[_domApprovalHIdx].cancelReason=cancelReason;
+      await reliableUpdateLead({id:_domApprovalLeadId, history:l.history});
+    }
+    toast('❌ مشتری رد کرد — بایگانی شد');
+  } else {
+    toast(`✅ ${approvedIdxs.length} آیتم تأیید شد — رفت برای خرید تدارکات`);
+  }
+  renderTableView();
+}
 
 function openOrderStatusModal(leadId, hIdx){
   const l = leads.find(x=>String(x.id)===String(leadId));

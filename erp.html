@@ -4753,17 +4753,35 @@ function renderEstelamatPage(){
     return header+custItems.map(function(it){return estelamatItemCardHTML(it.reqId,it.itemIdx,it.item);}).join('');
   }).join('<div style="margin:10px 0;border-top:1px dashed rgba(255,255,255,.08)"></div>');
 }
+async function markDomesticItemCollected(reqId, itemIdx){
+  const r = requests.find(x=>String(x.id)===String(reqId));
+  if(!r || !r.parts || !r.parts.marketItems || !r.parts.marketItems[itemIdx]) return;
+  r.parts.marketItems[itemIdx].status = 'collected';
+  renderEstelamatPage();
+  if(isConnected) await reliableUpdateRequestParts(r.id, r.parts);
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${reqId}/collect-item/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({itemIdx, trackingCode:r.displayNumber||''})
+    });
+    const res = await httpRes.json();
+    if(!res || !res.ok) console.error('🔴 آبشار جمع‌آوری گیر کرد:', res?.error||'نامشخص');
+  }catch(e){ console.error('🔴 آبشار جمع‌آوری — خطای شبکه:', e); }
+  toast('✅ جمع‌آوری ثبت شد — آماده‌ی ورود به انبار');
+}
 function estelamatItemCardHTML(reqId,itemIdx,item){
   const quotes=item.quotes||[];
   const approvedIdx=quotes.findIndex(q=>q.approved);
   const statusBadge=
     item.status==='delivered'?'<span style="color:var(--green);font-weight:700">✅ تحویل گرفته شده</span>':
-    item.status==='approved'?'<span style="color:#a78bfa;font-weight:700">📦 تأیید‌شده</span>':
+    item.status==='collected'?'<span style="color:#22d3ee;font-weight:700">📦 جمع‌آوری شد — رفت انبار</span>':
+    item.status==='approved'?`<span style="color:#a78bfa;font-weight:700">📦 تأیید‌شده — نیاز به خرید</span>
+      <button onclick="event.stopPropagation();markDomesticItemCollected('${reqId}',${itemIdx})" style="font-size:9px;padding:2px 8px;margin-right:6px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);border-radius:5px;color:#22d3ee;cursor:pointer;">✅ جمع‌آوری شد</button>`:
     item.status==='notfound'?'<span style="color:var(--muted);font-weight:700">✕ پیدا نشد</span>':
     item.status==='quoted'?'<span style="color:#60a5fa;font-weight:700">⏳ استعلام‌شده</span>':
     '<span style="color:var(--yellow);font-weight:700">⚠ هنوز استعلام نشده</span>';
   const safeKey=`${reqId}__${itemIdx}`;
-  const disabled=item.status==='approved'||item.status==='delivered'||item.status==='notfound';
+  const disabled=item.status==='approved'||item.status==='collected'||item.status==='delivered'||item.status==='notfound';
 
   // یک سلول تامین‌کننده
   function cellDomestic(qIdx){
