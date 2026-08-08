@@ -1332,7 +1332,9 @@ function toggleRemNavGroup(){
 function updateRemNavBadges(){
   const setB=(id,cnt)=>{const el=document.getElementById(id); if(!el) return; el.textContent=fn(cnt); el.style.display=cnt>0?'inline-block':'none';};
   const todayStr = todayShamsiStr();
-  setB('remTomorrowNavBadge', (freeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done && r.date===todayStr).length);
+  // کل کارهای فردای باز — نه فقط اونایی که دقیقاً «امروز» موعدشونه، وگرنه با
+  // تکمیل‌کردن کارها عدد درست کم نمی‌شد (کاربر انتظار داشت ۱۵→۱۲ بشه)
+  setB('remTomorrowNavBadge', (freeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done).length);
   setB('remRecurringNavBadge', (recurringReminders||[]).filter(r=>!r.canceled && r.nextDate<=todayStr).length);
   setB('remFreeNavBadge', (freeReminders||[]).filter(r=>r.category!=='tomorrow' && !r.done).length);
 }
@@ -3377,12 +3379,14 @@ async function toggleFreeReminderDone(id){
   // که رو صفحه‌ست، درست آپدیت بشه (قبلاً فقط یکی رفرش می‌شد و صفحه‌ی دیگه یخ می‌زد)
   renderTomorrowPlan();
   renderFreeReminders();
+  updateRemNavBadges();
   if(document.getElementById('calendarView').classList.contains('active')) renderCal();
   const updated = await updateFreeReminderInDjango(r.id, r);
   if(updated){
     r.doneAt = updated.doneAt; // زمان واقعی سرور (updated_at) — برای بایگانی «کی تکمیل شد»
     renderTomorrowPlan();
     renderFreeReminders();
+    updateRemNavBadges();
   }
 }
 
@@ -3420,10 +3424,10 @@ function renderTomorrowPlan(){
   }
   const openHTML = open.length ? open.map(r=>rowHTML(r,false)).join('') : `<div style="padding:16px;text-align:center;color:var(--muted);font-size:11px;">✅ همه‌ی کارهای فردا انجام شده — پایین رو ببین</div>`;
   const archiveHTML = done.length ? `
-    <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);">
-      <div style="font-size:12px;font-weight:800;color:var(--muted);padding:0 18px 8px;">🗄️ بایگانی — کارهای انجام‌شده (${done.length})</div>
+    <details style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);">
+      <summary style="font-size:12px;font-weight:800;color:var(--muted);padding:0 18px 8px;cursor:pointer;">🗄️ بایگانی — کارهای انجام‌شده (${done.length})</summary>
       ${done.slice().reverse().map(r=>rowHTML(r,true)).join('')}
-    </div>` : '';
+    </details>` : '';
   el.innerHTML = openHTML + archiveHTML;
 }
 

@@ -6392,6 +6392,31 @@ function openDebtCollectionModal(id){
   document.getElementById('debtCollectionNote').value='';
   openModal('debtCollection');
 }
+async function deleteDebtCollectionLog(caseId, logIdx){
+  const dc = debtCases.find(d=>String(d.id)===String(caseId));
+  if(!dc || !dc.financeLog || !dc.financeLog[logIdx]) return;
+  const l = dc.financeLog[logIdx];
+  if(!confirm(`این ردیف حذف بشه؟\n${l.date} — ${fn(l.amount)} تومان${l.note?' — «'+l.note+'»':''}`)) return;
+
+  const log = dc.financeLog.filter((_,i)=>i!==logIdx);
+  // همون لحظه، محلی، مانده رو دوباره حساب کن — دقیقاً مثل ثبت/ویرایش
+  const collected = log.reduce((s,x)=>s+(parseInt(x.amount)||0),0) + (dc.salesLog||[]).reduce((s,x)=>s+(parseInt(x.amount)||0),0);
+  const idx=debtCases.findIndex(d=>String(d.id)===String(caseId));
+  debtCases[idx] = {...dc, financeLog:log, collected, remaining:Math.max(0, dc.totalDebt-collected)};
+  renderDebtCasesERP();
+  toast('⏳ در حال حذف...');
+
+  const result = await updateDebtCaseInDjango(caseId, {finance_log:log});
+  if(result.success){
+    debtCases[idx]=result.data;
+    renderDebtCasesERP();
+    toast('✅ حذف شد — مانده: '+fn(result.data.remaining)+' تومان');
+  } else if(result.queued){
+    toast('🟡 سرور کند بود — حذف محلی شد و ظرف چند لحظه با سرور هماهنگ می‌شه');
+  } else {
+    toast('⚠️ حذف ناموفق بود — دوباره امتحان کن');
+  }
+}
 function editDebtCollectionLog(caseId, logIdx){
   const dc = debtCases.find(d=>String(d.id)===String(caseId));
   if(!dc || !dc.financeLog || !dc.financeLog[logIdx]) return;
@@ -6496,6 +6521,7 @@ function renderDebtCasesERP(){
         ${d.financeLog.map((l,li)=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
           <span style="flex:1;">💰 ${l.date} — ${fn(l.amount)} تومان${l.note?` — «${l.note}»`:''}</span>
           <button onclick="editDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش</button>
+          <button onclick="deleteDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:4px;color:var(--red);cursor:pointer;">🗑️ حذف</button>
         </div>`).join('')}
       </div>`:''}
       <div style="display:flex;gap:6px;">
