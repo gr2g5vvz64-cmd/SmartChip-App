@@ -4835,8 +4835,12 @@ function estelamatItemCardHTML(reqId,itemIdx,item){
   const priceSummary = approvedIdx>=0
     ? `<span style="color:var(--green);font-size:10px;font-weight:700">✅ ${quotes[approvedIdx].supplier} — ${fn(quotes[approvedIdx].price)}</span>`:'';
 
+  const movedOn = item.status==='approved'||item.status==='collected'||item.status==='delivered';
   return `<div class="est-item-card" style="background:var(--surface);border:1px solid var(--border);
-    border-radius:12px;margin-bottom:10px;overflow:hidden;">
+    border-radius:12px;margin-bottom:10px;overflow:hidden;${movedOn?'opacity:.5;filter:grayscale(.3);':''}">
+    ${movedOn?`<div style="background:rgba(168,85,247,.1);color:#a78bfa;font-size:9.5px;padding:4px 14px;text-align:center;font-weight:700;">
+      ➡️ این آیتم از مرحله‌ی تدارکات گذشته — دیگه اینجا کاری نداره، جلو رفته به مرحله‌ی بعد
+    </div>`:''}
     <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
       background:rgba(240,165,0,.05);border-bottom:1px solid var(--border);">
       <div style="flex:1">
@@ -4852,7 +4856,7 @@ function estelamatItemCardHTML(reqId,itemIdx,item){
           border-radius:6px;color:var(--red);cursor:pointer;font-family:Vazirmatn,sans-serif">✕ پیدا نشد</button>`:''}
       </div>
     </div>
-    <div style="padding:8px 10px;">
+    ${movedOn?'':`<div style="padding:8px 10px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;padding:0 5px 4px;
         font-size:9px;color:var(--muted);font-weight:700">
         <div style="display:grid;grid-template-columns:16px 1.4fr 0.9fr 1.2fr auto;gap:3px;text-align:center">
@@ -4867,7 +4871,7 @@ function estelamatItemCardHTML(reqId,itemIdx,item){
         style="width:100%;margin-top:4px;padding:5px;background:rgba(240,165,0,.06);
         border:1px dashed rgba(240,165,0,.2);border-radius:7px;color:var(--accent);
         font-family:Vazirmatn,sans-serif;font-size:11px;cursor:pointer">+ ردیف جدید</button>`:''}
-    </div>
+    </div>`}
   </div>`;
 }
 
@@ -5286,8 +5290,10 @@ function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
     </thead><tbody>${rowsHTML}</tbody></table>`;
   }
 
-  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;${itemClosed?'opacity:.6':''}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;${itemClosed||beyondQuoting?'opacity:.55;filter:grayscale(.3);':''}">
+    ${beyondQuoting?`<div style="background:rgba(96,165,250,.1);color:#60a5fa;font-size:9.5px;padding:4px 10px;text-align:center;font-weight:700;border-radius:8px;margin-bottom:8px;">
+      ➡️ این آیتم از مرحله‌ی استعلام گذشته — الان تو ردیابی محموله/انبار پیگیریش کن
+    </div>`:''}    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:#fff;">×${fn(item.qty)}</span> <strong style="font-size:13px">${item.name}</strong> ${item.isSample?`<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(240,165,0,.15);color:#f0a500;font-weight:700;">📦 نمونه (${item.sampleType==='receive'?'دریافت':'ارسال'})</span>`:''} ${displayNumber?`<span style="font-size:9px;color:var(--accent)">${displayNumber}</span>`:''}</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <button class="action-btn" style="font-size:10px;padding:4px 8px;color:#f87171;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06)" onclick="markCustomerCanceledFromCard('${reqId}')" title="مشتری بعد از دادن قیمت، درخواست را کنسل کرده">❌ کنسلی مشتری</button>

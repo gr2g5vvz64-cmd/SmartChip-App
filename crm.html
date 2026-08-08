@@ -1956,6 +1956,16 @@ function renderTableView(){
       <td style="min-width:90px;text-align:center;">
         ${(()=>{
           const reqId = e.linkedRequestId||'';
+          const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
+          const fullyDelivered = linkedReq && linkedReq.status==='done' &&
+            (linkedReq.parts&&(linkedReq.parts.needMarket||linkedReq.parts.needForeign)) &&
+            !(linkedReq.parts&&linkedReq.parts.crmConfirmed);
+          if(fullyDelivered){
+            return `<div><span style="font-size:9px;font-weight:800;color:var(--green)">✅ همه تحویل شد</span><br>
+              <button onclick="confirmFullDelivery('${reqId}','${r.leadId}',${r.hIdx})"
+                style="font-size:8px;padding:2px 7px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);
+                border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif">تأیید نهایی</button></div>`;
+          }
           const stage = reqId ? getOverallStageLabel(reqId) : null;
           if(stage) return `<span style="font-size:10px;font-weight:700;color:${stage.color}">${stage.label}</span>`;
           if(e.needsFinance) return `<span style="font-size:10px;color:var(--yellow)">💰 مالی</span>`;
@@ -5248,6 +5258,34 @@ function qfShowSamplePartAC(idx, dd, val, matches){
 
 
 let fbContext = {leadId:null, hIdx:null, entry:null};
+
+async function confirmFullDelivery(reqId, leadId, hIdx){
+  if(!confirm('با مشتری تماس گرفتی و بهش گزارش دادی کاملاً تحویل شده؟ با تأیید، این مورد کامل بایگانی می‌شه.')) return;
+  toast('⏳ در حال ثبت تأیید نهایی...');
+  let res=null;
+  try{
+    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/${reqId}/confirm-delivery/`, {method:'POST'});
+    res = await httpRes.json();
+  }catch(e){ res={ok:false, error:'خطای شبکه'}; }
+
+  if(!res || !res.ok){
+    console.error('🔴 تأیید نهایی تحویل گیر کرد:', res?.error||'نامشخص');
+    toast('🔴 گیر کرد و ثبت نشد! خطا: '+(res?.error||'نامشخص')+' — دوباره امتحان کن');
+    return;
+  }
+
+  const l=leads.find(x=>String(x.id)===String(leadId));
+  if(l && l.history[hIdx]){
+    l.history[hIdx].completed = true;
+    l.history[hIdx].completedDate = todayShamsiStr();
+    await reliableUpdateLead({id:leadId, history:l.history});
+  }
+  const reqIdx = cachedRequests.findIndex(r=>String(r.id)===String(reqId));
+  if(reqIdx>-1){ cachedRequests[reqIdx].parts.crmConfirmed=true; }
+
+  toast('✅ تأیید نهایی ثبت شد — این مورد بایگانی شد');
+  renderTableView();
+}
 
 async function confirmSuggestionSeen(sugId){
   toast('⏳ در حال ثبت...');
