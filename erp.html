@@ -1307,9 +1307,10 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <button class="btn btn-primary btn-sm" onclick="openAddressModal(null)">+ آدرس جدید</button>
       </div>
       <!-- سرچ مشتری -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;gap:8px;">
-        <input class="form-control" id="addrSearchCustomer" placeholder="🔍 سرچ نام مشتری..."
-          oninput="renderAddressPage()" style="flex:1"/>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;gap:8px;position:relative;">
+        <input class="form-control" id="addrSearchCustomer" placeholder="🔍 سرچ نام مشتری (فقط اولویت‌دارها)..."
+          oninput="renderAddressPage();addrSearchCustomerAC(this.value)" onfocus="addrSearchCustomerAC(this.value)" autocomplete="off" style="flex:1"/>
+        <div id="addrSearchAC" style="display:none;position:absolute;top:100%;right:14px;left:150px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
         <select class="form-control" id="addrFilterType" style="width:140px" onchange="renderAddressPage()">
           <option value="">همه نوع‌ها</option>
           <option value="میهن‌تور">میهن‌تور</option>
@@ -8457,6 +8458,33 @@ async function loadAddressesIfNeeded(){
   renderAddressPage();
 }
 
+function addrSearchCustomerAC(val){
+  const box=document.getElementById('addrSearchAC');
+  if(!box) return;
+  const q=normalizeFa((val||'').trim().toLowerCase());
+  if(!q){ box.style.display='none'; return; }
+  const PRIORITY_SET=['1','5','9'];
+  const matches=(customerMaster||[])
+    .filter(c=>PRIORITY_SET.includes(fa2en(String(c.priority||'')).trim()))
+    .filter(c=>normalizeFa((c.name||'').toLowerCase()).includes(q))
+    .slice(0,15);
+  if(!matches.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML=matches.map(c=>{
+    const hasAddr=(customerAddresses||[]).some(a=>a.customer===c.name);
+    return `<div onmousedown="pickAddrSearchCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+      <span>${c.name}</span>
+      <span style="font-size:9px;color:var(--muted)">${hasAddr?'📍 آدرس داره':'+ آدرس جدید'}</span>
+    </div>`;
+  }).join('');
+}
+function pickAddrSearchCustomer(name){
+  document.getElementById('addrSearchCustomer').value=name;
+  document.getElementById('addrSearchAC').style.display='none';
+  const hasAddr=(customerAddresses||[]).some(a=>a.customer===name);
+  if(hasAddr) renderAddressPage();
+  else openAddressModal(name); // مستقیم مودال آدرس جدید رو باز کن، چون هنوز آدرسی نداره
+}
 function renderAddressPage(){
   const el = document.getElementById('addressPageContent');
   if(!el) return;
@@ -8485,7 +8513,7 @@ function renderAddressPage(){
         <span style="font-weight:800;color:var(--accent)">${cust}</span>
         <div style="display:flex;gap:6px;">
           <span style="font-size:10px;color:var(--muted)">${list.length} آدرس</span>
-          <button class="btn btn-ghost btn-sm" onclick="openAddressModal(null,'${cust.replace(/'/g,"\\'")}')">+ آدرس جدید</button>
+          <button class="btn btn-ghost btn-sm" onclick="openAddressModal('${cust.replace(/'/g,"\\'")}')">+ آدرس جدید</button>
         </div>
       </div>
       ${list.map(a=>{
@@ -9282,7 +9310,7 @@ function searchChqTransferorAC(val){
   if(!dd||!val){if(dd)dd.style.display='none';return;}
   var q=normalizeFa(val);
   var res=rankCustomerMatches(q, (customerMaster||[]).filter(function(c){
-    return ['1','5','9'].indexOf(String(c.priority||''))>-1;
+    return ['1','5','9'].indexOf(fa2en(String(c.priority||'')).trim())>-1;
   })).slice(0,15);
   if(!res.length){dd.style.display='none';return;}
   dd.style.display='block';
