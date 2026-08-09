@@ -4579,8 +4579,10 @@ function qfSearchCustomer(val){
   const dd = document.getElementById('qf_customerAC');
   if(!val||val.length<1){dd.style.display='none';return;}
   const q = val.toLowerCase();
-  // سریع از cache
-  const src = (customerMaster&&customerMaster.length) ? customerMaster
+  // فقط مشتریانی که تو ستون Z شیت CUSTOMER اولویت ۱، ۵ یا ۹ دارن — طبق تصمیم قبلی
+  const PRIORITY_SET = ['1','5','9'];
+  const src = (customerMaster&&customerMaster.length)
+    ? customerMaster.filter(c=>PRIORITY_SET.includes(fa2en(String(c.priority||'')).trim()))
     : [...new Map((leads||[]).map(l=>([l.customer,{name:l.customer}]))).values()];
   const matches = src.filter(c=>c.name&&c.name.toLowerCase().includes(q)).slice(0,15);
   if(!matches.length){dd.style.display='none';return;}
