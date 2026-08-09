@@ -4975,36 +4975,24 @@ function updateEstelamatQuote(safeKey,qIdx,field,value){
 }
 
 // ─── autocomplete تامین‌کننده در جدول استعلامات — از پایگاه مشتریان (شیت CUSTOMER) ───
+function getDomesticSupplierNames(){
+  return (customerMaster||[]).filter(c=>{
+    const cat=(c.category||'').replace(/[\s\u200c]+/g,'');
+    return cat.includes('بازارالکترونیک');
+  }).map(c=>c.name);
+}
 function searchEstelamatSupplierAC(inputEl, acId){
   const box=document.getElementById(acId);
   if(!box) return;
   const val=inputEl.value;
   if(!val||val.trim().length<1){box.style.display='none';return;}
   const q=normalizeFa(val.trim().toLowerCase());
-  const handleResults=(list)=>{
-    const m=list.filter(s=>normalizeFa(s.toLowerCase()).includes(q)).slice(0,15);
-    if(!m.length){box.style.display='none';return;}
-    box.style.display='block';
-    box.innerHTML=m.map(name=>`<div onmousedown="document.getElementById('${acId}').previousElementSibling.value='${name.replace(/'/g,"\\'")}';document.getElementById('${acId}').style.display='none'"
-      style="padding:7px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">${name}</div>`).join('');
-  };
-  if(window._supplierCache&&window._supplierCache.length){handleResults(window._supplierCache);return;}
-  box.innerHTML='<div style="padding:8px;font-size:10px;color:var(--muted)">جستجو...</div>';
+  const DOMESTIC_SUPPLIERS = getDomesticSupplierNames();
+  const m=DOMESTIC_SUPPLIERS.filter(s=>normalizeFa(s.toLowerCase()).includes(q)).slice(0,15);
+  if(!m.length){box.style.display='none';return;}
   box.style.display='block';
-  clearTimeout(window._supTimer);
-  window._supTimer=setTimeout(async()=>{
-    try{
-      const res=await sheetCall('getSupplierList');
-      if(res&&res.suppliers&&res.suppliers.length){
-        window._supplierCache=res.suppliers;
-        handleResults(res.suppliers);
-      } else {
-        const fb=(customerMaster||[]).map(c=>c.name).filter(Boolean);
-        window._supplierCache=fb;
-        handleResults(fb);
-      }
-    }catch(err){box.style.display='none';}
-  },200);
+  box.innerHTML=m.map(name=>`<div onmousedown="document.getElementById('${acId}').previousElementSibling.value='${name.replace(/'/g,"\\'")}';document.getElementById('${acId}').style.display='none'"
+    style="padding:7px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">${name}</div>`).join('');
 }
 let estelamatSupplierJustPicked=false;
 function pickEstelamatSupplier(divEl, acId, name){
