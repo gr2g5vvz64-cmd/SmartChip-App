@@ -5509,6 +5509,43 @@ function addForeignQuoteSlot(reqId, itemIdx){
   item.quotes.push({supplier:'',price:'',note:'',day1:'',day2:'',approved:false});
   renderEstelamatForeignPage();
 }
+async function notifySupplierOfOrder(ship){
+  if(!ship || !ship.supplier) return;
+  const cm = customerMaster.find(c=>c.name===ship.supplier) || {};
+  const connected = cm.telegram || cm.bale;
+
+  if(!connected){
+    // تأمین‌کننده هنوز بات رو استارت نکرده — یه دعوت‌نامه می‌سازیم (متن آماده می‌شه،
+    // ارسال واقعی از طریق واتساپ دستیه، طبق همون الگوی موجود)
+    try{
+      const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-supplier-invite/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({supplier: ship.supplier})
+      });
+      const res = await httpRes.json();
+      if(res && res.ok) console.log(`📨 دعوت‌نامه‌ی تأمین‌کننده «${ship.supplier}» آماده شد (هنوز بات رو استارت نکرده)`);
+    }catch(e){ console.error('🔴 خطای ساخت دعوت‌نامه‌ی تأمین‌کننده:', e); }
+    return;
+  }
+
+  // تأمین‌کننده وصله — پیام سفارش رو بدون فی (چون فی مربوط به سمت فروش ماست، نه چیزی
+  // که لازم باشه تأمین‌کننده ببینه) براش می‌فرستیم
+  const message = `📦 سفارش جدید — ${ship.id||''}\n\n`+
+    `کالا: ${ship.partName||ship.desc||''}\n`+
+    `تعداد: ${fn(ship.partQty||'')}\n`+
+    `تاریخ سفارش: ${ship.orderDate||''}\n`+
+    `تحویل تخمینی: ${ship.eta||''} تا ${ship.eta2||''}\n\n`+
+    `لطفاً وضعیت آماده‌سازی/ارسال رو از همین‌جا با ما در میان بذارید.`;
+  try{
+    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({customer: ship.supplier, message})
+    });
+    const res = await httpRes.json();
+    if(res && res.sent) console.log(`✅ پیام سفارش به تأمین‌کننده «${ship.supplier}» از طریق ${res.sent} رفت`);
+    else console.warn('⚠️ اطلاع‌رسانی به تأمین‌کننده گیر کرد:', res?.error||'نامشخص');
+  }catch(e){ console.error('🔴 خطای اطلاع‌رسانی به تأمین‌کننده:', e); }
+}
 async function submitForeignOrderRow(reqId,itemIdx,qIdx){
   const safeKey=`${reqId}__${itemIdx}`;
   const found=findForeignReqAndItem(safeKey);
@@ -5554,6 +5591,8 @@ async function submitForeignOrderRow(reqId,itemIdx,qIdx){
 
   // ارسال خودکار پیام تأیید سفارش — بدون popup
   autoNotify(newShip, 'ordered');
+  // اطلاع‌رسانی به خودِ تأمین‌کننده — اگه وصل بود جزئیات (بدون فی) می‌ره، اگه نبود دعوت‌نامه آماده می‌شه
+  notifySupplierOfOrder(newShip);
   // ارسال دعوتنامه bot اگه مشتری هنوز وصل نشده
   sendBotInviteIfNeeded(newShip);
 }
