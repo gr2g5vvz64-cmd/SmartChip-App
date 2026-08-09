@@ -1948,6 +1948,25 @@ function openLeadsListSheet(){
   renderLeadsListMobile();
   updateMobileMorningBadge();
 }
+function getOverallStageLabelM(reqId){
+  const r=(cachedRequests||[]).find(x=>String(x.id)===String(reqId));
+  if(!r||!r.parts) return null;
+  const p=r.parts;
+  if(r.status==='done') return {label:'✅ تکمیل شد', color:'var(--green)'};
+  if(r.status==='canceled') return {label:'❌ کنسل شد', color:'var(--muted)'};
+  if(p.needFinance && p.finance && !((p.finance.done||{})[Object.keys(p.finance.needs||{})[0]])) return {label:'💰 منتظر مالی', color:'var(--yellow)'};
+  if(p.needMarket){
+    if(!p.marketQuoteComplete) return {label:'📋 در حال استعلام داخل', color:'#60a5fa'};
+    if(!p.marketApproved) return {label:'💰 منتظر تأیید مشتری', color:'var(--yellow)'};
+    return {label:'📦 در حال تدارک/ارسال', color:'#a78bfa'};
+  }
+  if(p.needForeign){
+    if(!p.foreignQuoteComplete) return {label:'🌍 در حال استعلام خارج', color:'#60a5fa'};
+    if(!p.foreignApproved) return {label:'💰 منتظر تأیید مشتری', color:'var(--yellow)'};
+    return {label:'🚢 در حال حمل/ترخیص', color:'#a78bfa'};
+  }
+  return null;
+}
 function renderLeadsListMobile(){
   const el=document.getElementById('leadsListContent');
   if(!leads.length){el.innerHTML='<div class="summary-empty">هنوز لیدی ثبت نشده</div>';return;}
@@ -1959,12 +1978,14 @@ function renderLeadsListMobile(){
   el.innerHTML=sorted.map(l=>{
     const lastHist=(l.history&&l.history.length)?l.history[l.history.length-1]:null;
     const hasOverdue=(l.history||[]).some(h=>{ const sla=getSlaStatusM(h); const srs=getSalesResponseSlaM(h); return (sla&&sla.overdue)||(srs&&srs.overdue); });
+    const stage=lastHist&&lastHist.linkedRequestId?getOverallStageLabelM(lastHist.linkedRequestId):null;
     return `<div class="lead-row" onclick="openLeadDetailSheet('${l.id}')" style="background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:7px;${hasOverdue?'border-right:3px solid var(--red)':''}">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <strong style="font-size:12px">${l.customer}</strong>
         <span style="font-size:9px;color:var(--muted)">${fn((l.history||[]).length)} تماس</span>
       </div>
       ${hasOverdue?'<div style="font-size:9px;color:var(--red);font-weight:700;margin-top:2px;">⚠️ تأخیر در پاسخ استعلام</div>':''}
+      ${stage?`<div style="font-size:9.5px;font-weight:700;color:${stage.color};margin-top:2px;">${stage.label}</div>`:''}
       ${lastHist&&lastHist.trackingCode?`<div style="font-size:9px;color:var(--accent);margin-top:2px;">🔗 ${lastHist.trackingCode}</div>`:''}
       ${lastHist?`<div style="font-size:10px;color:var(--muted);margin-top:3px;">${(lastHist.note||'بدون یادداشت').substring(0,60)}</div>`:'<div style="font-size:10px;color:var(--muted);margin-top:3px;">هنوز تماسی ثبت نشده</div>'}
     </div>`;
