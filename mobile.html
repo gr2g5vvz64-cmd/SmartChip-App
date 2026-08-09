@@ -795,6 +795,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="autocomplete-list" id="mLeadCustAC"></div>
     </div>
     <div class="form-group" id="mLeadCatBox" style="display:none;font-size:11px;color:var(--muted);"></div>
+    <div id="mLeadDebtBox" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px;margin-bottom:10px;"></div>
     <div class="form-group">
       <label class="form-label">تلفن (اختیاری)</label>
       <input class="form-control" id="mLeadPhone" placeholder="۰۹۱۲۳۴۵۶۷۸۹"/>
@@ -805,6 +806,10 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <label class="form-label">تاریخچه‌ی تماس‌ها</label>
       <div id="mContactHistoryList" style="margin-bottom:10px;"></div>
       <button class="pill-btn" style="width:100%;background:rgba(240,165,0,.1);border-color:var(--accent);color:var(--accent);" onclick="openContactEntrySheet(document.getElementById('mLeadEditId').value)">+ تماس جدید</button>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="pill-btn" style="flex:1;background:rgba(168,85,247,.1);border-color:#a78bfa;color:#a78bfa;" onclick="openMFeedbackSheet()">💬 بازخورد</button>
+        <button class="pill-btn" style="flex:1;background:rgba(96,165,250,.1);border-color:#60a5fa;color:#60a5fa;" onclick="openMSuggestionSheet()">💡 پیشنهاد</button>
+      </div>
     </div>
   </div>
 </div>
@@ -865,6 +870,54 @@ textarea.form-control{resize:vertical;min-height:70px;}
 </div>
 
 <!-- ══════ ESTELAMAT TICK SHEET (موبایل) ══════ -->
+<div class="sheet-overlay" id="overlayMfeedback" onclick="closeSheetOut(event,'mfeedback')">
+  <div class="sheet" id="sheetMfeedback">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">💬 ثبت بازخورد<button class="close-x" onclick="closeSheet('mfeedback')">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">درباره‌ی کدوم واحد؟</label>
+      <select class="form-control" id="mFbDept">
+        <option value="anbar">انبار</option>
+        <option value="bazargani">بازرگانی</option>
+        <option value="tadarokat">تدارکات</option>
+        <option value="mali">مالی</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">نوع</label>
+      <select class="form-control" id="mFbType">
+        <option value="complaint">⚠️ شکایت</option>
+        <option value="thanks">🌟 تشکر</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">توضیح</label>
+      <textarea class="form-control" id="mFbDesc" placeholder="مشتری چی گفت..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitMFeedback()">ثبت بازخورد</button>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="overlayMsuggestion" onclick="closeSheetOut(event,'msuggestion')">
+  <div class="sheet" id="sheetMsuggestion">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">💡 ثبت پیشنهاد<button class="close-x" onclick="closeSheet('msuggestion')">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">پیشنهاد/موضوع کاری مشتری</label>
+      <textarea class="form-control" id="mSugDesc" placeholder="مثلاً: مشتری پیشنهاد داد بسته‌بندی رو تغییر بدیم..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitMSuggestion()">ثبت پیشنهاد</button>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="overlayMyassigned" onclick="closeSheetOut(event,'myassigned')">
+  <div class="sheet" id="sheetMyassigned" style="max-height:80vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📌 کارهای واگذارشده به من<button class="close-x" onclick="closeSheet('myassigned')">✕</button></div>
+    <div id="mMyAssignedList"></div>
+  </div>
+</div>
+
 <div class="sheet-overlay" id="overlayApproval" onclick="closeSheetOut(event,'approval')">
   <div class="sheet" id="sheetApproval" style="max-height:85vh;">
     <div class="sheet-handle"></div>
@@ -1963,6 +2016,82 @@ function openLeadsListSheet(){
   updateMobileMorningBadge();
 }
 let _mApprovalReqId=null, _mApprovalKind=null;
+function openMFeedbackSheet(){ openSheet('mfeedback'); }
+async function submitMFeedback(){
+  const customer=document.getElementById('mLeadCustomer').value.trim();
+  const dept=document.getElementById('mFbDept').value;
+  const type=document.getElementById('mFbType').value;
+  const desc=document.getElementById('mFbDesc').value.trim();
+  if(!desc){ toast('⚠ توضیح رو بنویس'); return; }
+  const l=leads.find(x=>String(x.id)===String(document.getElementById('mLeadEditId').value));
+  const lastHist=l&&l.history&&l.history.length?l.history[l.history.length-1]:null;
+  try{
+    const res=await fetch('https://smartchip-backend.onrender.com/api/ops/delivery-feedback/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customer, departments:[dept], feedback_type:type, description:desc,
+        recorded_by:currentUserName, tracking_code:(lastHist&&lastHist.trackingCode)||'',
+        request_id:(lastHist&&lastHist.linkedRequestId)||''})
+    });
+    if(res.ok){ closeSheet('mfeedback'); document.getElementById('mFbDesc').value=''; toast('✅ بازخورد ثبت شد'); }
+    else toast('⚠️ ثبت ناموفق بود');
+  }catch(e){ toast('⚠️ خطای شبکه'); }
+}
+function openMSuggestionSheet(){ openSheet('msuggestion'); }
+async function submitMSuggestion(){
+  const customer=document.getElementById('mLeadCustomer').value.trim();
+  const desc=document.getElementById('mSugDesc').value.trim();
+  if(!desc){ toast('⚠ متن پیشنهاد رو بنویس'); return; }
+  const leadId=document.getElementById('mLeadEditId').value;
+  const l=leads.find(x=>String(x.id)===String(leadId));
+  const lastHist=l&&l.history&&l.history.length?l.history[l.history.length-1]:null;
+  try{
+    const res=await fetch('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/create/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customer, description:desc, leadId, trackingCode:(lastHist&&lastHist.trackingCode)||''})
+    });
+    const r=await res.json();
+    if(r&&r.ok){ closeSheet('msuggestion'); document.getElementById('mSugDesc').value=''; toast('✅ پیشنهاد ثبت شد — برو ERP جواب بده'); }
+    else toast('⚠️ ثبت ناموفق بود');
+  }catch(e){ toast('⚠️ خطای شبکه'); }
+}
+function openMyAssignedTasksSheet(){
+  const tasks=(cachedFreeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done && r.assigneeName===currentUserName);
+  const el=document.getElementById('mMyAssignedList');
+  el.innerHTML=tasks.length?tasks.map(r=>`<div style="background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:7px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:12px">${r.customer?r.customer+' — ':''}${r.desc}</strong>
+    </div>
+    <div style="font-size:9px;color:var(--muted);margin-top:3px;">${r.date}</div>
+    <button class="pill-btn" style="width:100%;margin-top:8px;" onclick="markMyTaskDoneM('${r.id}')">✅ انجام شد</button>
+  </div>`).join(''):'<div class="summary-empty">کاری برات واگذار نشده</div>';
+  openSheet('myassigned');
+}
+async function markMyTaskDoneM(id){
+  const r=cachedFreeReminders.find(x=>String(x.id)===String(id));
+  if(!r) return;
+  r.done=true;
+  try{
+    await fetch(DJANGO_FREEREM_API_M+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({done:true})});
+  }catch(e){ console.error('🔴 خطای تیک‌زدن کار:', e); }
+  toast('✅ تکمیل شد');
+  openMyAssignedTasksSheet();
+  renderPulseBar();
+}
+async function confirmMobileDelivery(reqId){
+  if(!confirm('با مشتری تماس گرفتی و کاملاً تحویل شده رو تأیید کرد؟')) return;
+  try{
+    const res=await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/${reqId}/confirm-delivery/`, {method:'POST'});
+    const r=await res.json();
+    if(r&&r.ok){
+      toast('✅ تأیید نهایی ثبت شد — بایگانی شد');
+      await loadSummary();
+      renderLeadsListMobile();
+    } else {
+      toast('🔴 گیر کرد: '+(r?.error||'نامشخص'));
+    }
+  }catch(e){ toast('⚠️ خطای شبکه'); }
+}
 function openMobileApprovalSheet(reqId, kind){
   const r=(cachedRequests||[]).find(x=>String(x.id)===String(reqId));
   if(!r||!r.parts){ toast('درخواست پیدا نشد'); return; }
@@ -2017,7 +2146,10 @@ function getOverallStageLabelM(reqId){
   const r=(cachedRequests||[]).find(x=>String(x.id)===String(reqId));
   if(!r||!r.parts) return null;
   const p=r.parts;
-  if(r.status==='done') return {label:'✅ تکمیل شد', color:'var(--green)'};
+  if(r.status==='done'){
+    if(!p.crmConfirmed) return {label:'✅ همه تحویل شد — لمس کن برای تأیید نهایی', color:'var(--green)', tapConfirmReqId:reqId};
+    return {label:'✅ تکمیل شد', color:'var(--green)'};
+  }
   if(r.status==='canceled') return {label:'❌ کنسل شد', color:'var(--muted)'};
   if(p.needFinance && p.finance && !((p.finance.done||{})[Object.keys(p.finance.needs||{})[0]])) return {label:'💰 منتظر مالی', color:'var(--yellow)'};
   if(p.needMarket){
@@ -2050,7 +2182,7 @@ function renderLeadsListMobile(){
         <span style="font-size:9px;color:var(--muted)">${fn((l.history||[]).length)} تماس</span>
       </div>
       ${hasOverdue?'<div style="font-size:9px;color:var(--red);font-weight:700;margin-top:2px;">⚠️ تأخیر در پاسخ استعلام</div>':''}
-      ${stage?`<div style="font-size:9.5px;font-weight:700;color:${stage.color};margin-top:2px;${stage.tapReqId?'text-decoration:underline;cursor:pointer;':''}" ${stage.tapReqId?`onclick="event.stopPropagation();openMobileApprovalSheet('${stage.tapReqId}','${stage.tapKind}')"`:''}>${stage.label}</div>`:''}
+      ${stage?`<div style="font-size:9.5px;font-weight:700;color:${stage.color};margin-top:2px;${(stage.tapReqId||stage.tapConfirmReqId)?'text-decoration:underline;cursor:pointer;':''}" ${stage.tapReqId?`onclick="event.stopPropagation();openMobileApprovalSheet('${stage.tapReqId}','${stage.tapKind}')"`:''}${stage.tapConfirmReqId?`onclick="event.stopPropagation();confirmMobileDelivery('${stage.tapConfirmReqId}')"`:''}>${stage.label}</div>`:''}
       ${lastHist&&lastHist.trackingCode?`<div style="font-size:9px;color:var(--accent);margin-top:2px;">🔗 ${lastHist.trackingCode}</div>`:''}
       ${lastHist?`<div style="font-size:10px;color:var(--muted);margin-top:3px;">${(lastHist.note||'بدون یادداشت').substring(0,60)}</div>`:'<div style="font-size:10px;color:var(--muted);margin-top:3px;">هنوز تماسی ثبت نشده</div>'}
     </div>`;
@@ -2070,6 +2202,7 @@ function openLeadDetailSheet(id){
     const cat=getCustomerCategoryInfoM(l.customer);
     document.getElementById('mLeadCatBox').style.display='block';
     document.getElementById('mLeadCatBox').textContent=`صنف: ${cat.category} — زیرصنف: ${cat.subcat}`;
+    loadAndShowDebtForCustomer(l.customer);
     const hist=l.history||[];
     document.getElementById('mContactHistoryBox').style.display='block';
     if(hist.length){
@@ -2114,6 +2247,24 @@ function openLeadDetailSheet(id){
     document.getElementById('mContactHistoryBox').style.display='none';
   }
   openSheet('leaddetail');
+}
+let debtCasesM = [];
+async function loadAndShowDebtForCustomer(customerName){
+  const box=document.getElementById('mLeadDebtBox');
+  box.style.display='none';
+  try{
+    if(!window._debtCasesLoadedM){
+      const res=await fetch('https://smartchip-backend.onrender.com/api/debts/cases/');
+      if(res.ok){ debtCasesM=(await res.json()).map(d=>({customer:d.customer, totalDebt:d.total_debt, remaining:d.remaining})); window._debtCasesLoadedM=true; }
+    }
+    const dc=debtCasesM.find(d=>normalizeFa(d.customer)===normalizeFa(customerName) && d.remaining>0);
+    if(dc){
+      box.style.display='block';
+      box.innerHTML=`<div style="font-size:11px;font-weight:800;color:var(--red);">⚠️ مطالبات باز</div>
+        <div style="font-size:15px;font-weight:800;color:var(--red);margin-top:3px;">مانده: ${fn(dc.remaining)} ریال</div>
+        <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">از کل ${fn(dc.totalDebt)} ریال</div>`;
+    }
+  }catch(e){ console.error('🔴 خطای بارگذاری مطالبات:', e); }
 }
 function getCustomerCategoryInfoM(name){
   const c=customerMaster.find(x=>(x.name||'').trim().toLowerCase()===(name||'').trim().toLowerCase());
@@ -2684,7 +2835,8 @@ const DJANGO_RECURRING_API_M = 'https://smartchip-backend.onrender.com/api/workl
 const DJANGO_TASKS_API_M = 'https://smartchip-backend.onrender.com/api/worklog/tasks/';
 function freeRemFromApiMob(d){
   return { id:d.id, customer:d.customer||'', desc:d.desc||'', date:d.date||'',
-    endDate:d.end_date||'', category:d.category||'', done:!!d.done, history:d.history||[] };
+    endDate:d.end_date||'', category:d.category||'', done:!!d.done, history:d.history||[],
+    assigneeName:d.assignee_name||'' };
 }
 function recurringFromApiMob(d){
   return { id:d.id, title:d.title||'', interval:d.interval||'', startDate:d.start_date||'',
@@ -2854,10 +3006,13 @@ function renderPulseBar(){
       if(days>=0 && days<=5) etaRisk++;
     });
 
+    const myAssignedTasks = (cachedFreeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done && r.assigneeName===currentUserName);
+
     const pills = [
       pulsePillM(overdue, 'بی‌جواب &gt;۲۴س', 'red', "openSheet('crmHub')"),
       pulsePillM(todayFollow, 'پیگیری امروز', 'amber', "openSheet('crmHub')"),
       pulsePillM(etaRisk, 'محدوده خطر ETA', 'amber', "openSheet('crmHub')"),
+      pulsePillM(myAssignedTasks.length, 'کار واگذارشده به من', 'teal', "openMyAssignedTasksSheet()"),
     ].filter(Boolean);
 
     el.innerHTML = pills.length ? pills.join('') : '';
