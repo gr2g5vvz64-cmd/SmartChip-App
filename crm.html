@@ -1693,11 +1693,12 @@ const DJANGO_RECURRING_API = 'https://smartchip-backend.onrender.com/api/worklog
 function freeRemFromApi(d){
   return { id:d.id, customer:d.customer||'', desc:d.desc||'', date:d.date||'',
     endDate:d.end_date||'', category:d.category||'', done:!!d.done, history:d.history||[],
-    doneAt:d.updated_at||'' };
+    doneAt:d.updated_at||'', assigneeId:d.assignee_id||'', assigneeName:d.assignee_name||'' };
 }
 function freeRemToApi(r){
   return { customer:r.customer||'', desc:r.desc||'', date:r.date||'',
-    end_date:r.endDate||'', category:r.category||'', done:!!r.done, history:r.history||[] };
+    end_date:r.endDate||'', category:r.category||'', done:!!r.done, history:r.history||[],
+    assignee_id:r.assigneeId||'', assignee_name:r.assigneeName||'' };
 }
 async function fetchFreeRemindersFromDjango(){
   try{
@@ -3236,7 +3237,10 @@ function openTomorrowPlanForm(){
   document.getElementById('ttEditId').value='';
   document.getElementById('ttCust').value='';
   document.getElementById('ttDesc').value='';
+  document.getElementById('ttAssignee').value='';
+  document.getElementById('ttAssigneeId').value='';
   document.getElementById('ttDate').value=addDaysToShamsi(todayShamsiStr(),1);
+  if(!window._staffListLoadedCRM) loadStaffListCRM();
   openModal('tomorrowTask');
 }
 function editTomorrowTask(id){
@@ -3246,7 +3250,33 @@ function editTomorrowTask(id){
   document.getElementById('ttCust').value=r.customer||'';
   document.getElementById('ttDesc').value=r.desc;
   document.getElementById('ttDate').value=r.date;
+  document.getElementById('ttAssignee').value=r.assigneeName||'';
+  document.getElementById('ttAssigneeId').value=r.assigneeId||'';
+  if(!window._staffListLoadedCRM) loadStaffListCRM();
   openModal('tomorrowTask');
+}
+let staffListCRM = [];
+async function loadStaffListCRM(){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
+    if(res.ok){ staffListCRM = await res.json(); window._staffListLoadedCRM = true; }
+  }catch(e){ console.error('🔴 خطای بارگذاری لیست کارمندان:', e); }
+}
+function searchTtAssigneeAC(val){
+  const box=document.getElementById('ttAssigneeAC');
+  const q=normalizeFa(val||'');
+  const matches = q ? staffListCRM.filter(s=>normalizeFa(s.name).includes(q)) : staffListCRM;
+  if(!matches.length){box.style.display='none';return;}
+  box.innerHTML=matches.slice(0,50).map(s=>`<div onclick="pickTtAssignee(${s.id},'${s.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+    <span><strong>${s.name}</strong> <span style="color:var(--muted);font-size:10px">${s.role}</span></span>
+    <span style="font-size:10px">${s.telegramConnected||s.baleConnected?'🟢':'⚪'}</span>
+  </div>`).join('');
+  box.style.display='block';
+}
+function pickTtAssignee(id, name){
+  document.getElementById('ttAssignee').value=name;
+  document.getElementById('ttAssigneeId').value=id;
+  document.getElementById('ttAssigneeAC').style.display='none';
 }
 function searchTtCustAC(val){
   const box=document.getElementById('ttCustAC');
@@ -3265,6 +3295,8 @@ async function saveTomorrowTask(){
   const customer=document.getElementById('ttCust').value.trim();
   const desc=document.getElementById('ttDesc').value.trim();
   const date=document.getElementById('ttDate').value.trim();
+  const assigneeId=document.getElementById('ttAssigneeId').value;
+  const assigneeName=document.getElementById('ttAssignee').value.trim();
   if(!desc||!date){toast('⚠ توضیحات و تاریخ الزامی است');return;}
   const editId=document.getElementById('ttEditId').value;
   const btn=document.getElementById('ttSaveBtn');
@@ -3274,20 +3306,24 @@ async function saveTomorrowTask(){
     const r=freeReminders.find(x=>String(x.id)===String(editId));
     if(r){
       if(r.date && r.date!==date){ if(!r.history) r.history=[]; r.history.push(r.date); }
+      const wasAssignedTo = r.assigneeId;
       r.customer=customer; r.desc=desc; r.date=date; r.category='tomorrow';
+      r.assigneeId=assigneeId; r.assigneeName=assigneeName;
       const updated = await updateFreeReminderInDjango(r.id, r);
       btn.disabled=false; btn.textContent='ذخیره';
       if(updated){
         Object.assign(r, updated);
         closeModal('modalTomorrowTask');
         renderTomorrowPlan();
+        // فقط وقتی واگذاری تازه اضافه/تغییر کرده، پیام بفرست — نه هر بار که ویرایش می‌شه
+        if(assigneeId && String(assigneeId)!==String(wasAssignedTo)) notifyTaskAssignment(assigneeId, desc, date, customer);
         toast('✅ کار فردا ویرایش شد');
       } else toast('⚠ ذخیره روی سرور ناموفق بود — دوباره امتحان کن');
     }
     return;
   }
 
-  const draftRem={ customer, desc, date, endDate:'', category:'tomorrow', done:false, history:[] };
+  const draftRem={ customer, desc, date, endDate:'', category:'tomorrow', done:false, history:[], assigneeId, assigneeName };
   const savedRem = await createFreeReminderInDjango(draftRem);
   btn.disabled=false; btn.textContent='ذخیره';
   if(!savedRem){ toast('❌ ثبت کار فردا ناموفق بود — دوباره امتحان کن'); return; }
@@ -3295,7 +3331,24 @@ async function saveTomorrowTask(){
   closeModal('modalTomorrowTask');
   renderTomorrowPlan();
   updateRemNavBadges();
-  toast('✅ کار فردا ثبت شد');
+  if(assigneeId) notifyTaskAssignment(assigneeId, desc, date, customer);
+  toast('✅ کار فردا ثبت شد'+(assigneeId?' — به '+assigneeName+' واگذار شد':''));
+}
+async function notifyTaskAssignment(staffId, taskText, date, customer){
+  try{
+    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-task-assignment/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({staffId, taskText, date, customer})
+    });
+    const res = await httpRes.json();
+    if(res && res.ok){
+      toast('📨 پیام واگذاری برای همکار ارسال شد');
+    } else if(res && res.connected===false){
+      toast('⚠️ این همکار هنوز بات رو وصل نکرده — از تب «کارمندان و مدیریت» تو وضعیت Bot دعوتش کن');
+    } else {
+      console.error('🔴 ارسال پیام واگذاری گیر کرد:', res?.error||'نامشخص');
+    }
+  }catch(e){ console.error('🔴 خطای شبکه در ارسال پیام واگذاری:', e); }
 }
 
 function editFreeReminder(id){
@@ -3414,6 +3467,7 @@ function renderTomorrowPlan(){
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(42,47,74,.4);font-size:12px;${r.done?'opacity:.6':''}">
       <span style="font-size:18px">${r.done?'✅':'📝'}</span>
       <div style="flex:1;${r.done?'text-decoration:line-through':''}">${r.customer?`<strong>${r.customer}</strong> — `:''}${r.desc}
+        ${r.assigneeName?`<span style="font-size:9.5px;color:#a78bfa;text-decoration:none;margin-right:6px;">👤 ${r.assigneeName}</span>`:''}
         ${showDoneTime&&r.doneAt?`<div style="font-size:9.5px;color:var(--green);text-decoration:none;margin-top:2px;">✅ تکمیل شد: ${new Date(r.doneAt).toLocaleString('fa-IR')}</div>`:''}
       </div>
       <span style="font-size:11px;color:var(--muted)">${r.date}</span>
@@ -5776,6 +5830,12 @@ async function submitUrgentShipRequest(){
         <label class="form-label">نام مشتری (اختیاری)</label>
         <input class="form-control" id="ttCust" placeholder="تایپ کن، از لیست انتخاب کن..." oninput="searchTtCustAC(this.value)" autocomplete="off"/>
         <div id="ttCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
+      </div>
+      <div class="form-group form-full" style="position:relative">
+        <label class="form-label">واگذار به (اختیاری — اگه خالی بذاری، کار برای خودت می‌مونه)</label>
+        <input class="form-control" id="ttAssignee" placeholder="تایپ کن، از لیست کارمندان انتخاب کن..." oninput="searchTtAssigneeAC(this.value)" onfocus="searchTtAssigneeAC(this.value)" autocomplete="off"/>
+        <input type="hidden" id="ttAssigneeId" value=""/>
+        <div id="ttAssigneeAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
       </div>
       <div class="form-group form-full"><label class="form-label">توضیحات *</label><textarea class="form-control" id="ttDesc" placeholder="مثلاً: تماس با آقای بدال درباره‌ی قیمت نهایی"></textarea></div>
     </div>

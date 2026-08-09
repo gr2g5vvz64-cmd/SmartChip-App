@@ -8350,23 +8350,81 @@ function renderBotStatusPanel(){
     <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);">
       <button class="bot-cat-tab active" id="botCatTabCustomers" onclick="switchBotCatTab('customers')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;">👥 مشتریان</button>
       <button class="bot-cat-tab" id="botCatTabSuppliers" onclick="switchBotCatTab('suppliers')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;">🚚 تأمین‌کنندگان خارج</button>
+      <button class="bot-cat-tab" id="botCatTabStaff" onclick="switchBotCatTab('staff')" style="padding:9px 18px;font-size:12px;font-weight:800;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;">👔 کارمندان و مدیریت</button>
     </div>
     <div id="botCatBodyCustomers">${renderBlock('مشتریان','👥',custData,false)}</div>
     <div id="botCatBodySuppliers" style="display:none;">${renderBlock('تأمین‌کنندگان خارج','🚚',supData,true)}</div>
+    <div id="botCatBodyStaff" style="display:none;"></div>
   `;
 }
 
 function switchBotCatTab(which){
-  const isCust = which==='customers';
-  document.getElementById('botCatBodyCustomers').style.display = isCust?'block':'none';
-  document.getElementById('botCatBodySuppliers').style.display = isCust?'none':'block';
-  const tc = document.getElementById('botCatTabCustomers'), ts = document.getElementById('botCatTabSuppliers');
-  tc.style.color = isCust?'var(--accent)':'var(--muted)'; tc.style.borderBottomColor = isCust?'var(--accent)':'transparent';
-  ts.style.color = isCust?'var(--muted)':'var(--accent)'; ts.style.borderBottomColor = isCust?'transparent':'var(--accent)';
+  const tabs = {customers:'Customers', suppliers:'Suppliers', staff:'Staff'};
+  Object.keys(tabs).forEach(k=>{
+    const body = document.getElementById('botCatBody'+tabs[k]);
+    const tab = document.getElementById('botCatTab'+tabs[k]);
+    if(body) body.style.display = (k===which)?'block':'none';
+    if(tab){ tab.style.color = (k===which)?'var(--accent)':'var(--muted)'; tab.style.borderBottomColor = (k===which)?'var(--accent)':'transparent'; }
+  });
+  if(which==='staff' && !window._staffListLoaded){ loadStaffListForBotPanel(); }
 }
 
 function resendBotInvite(customerName){
   sendBotInviteWhatsApp(customerName);
+}
+
+let staffListForAssignment = [];
+async function loadStaffListForBotPanel(){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
+    if(res.ok){ staffListForAssignment = await res.json(); window._staffListLoaded = true; }
+  }catch(e){ console.error('🔴 خطای بارگذاری لیست کارمندان:', e); }
+  renderStaffBotTab();
+}
+function renderStaffBotTab(){
+  const el = document.getElementById('botCatBodyStaff');
+  if(!el) return;
+  const connected = staffListForAssignment.filter(s=>s.telegramConnected||s.baleConnected);
+  const notConnected = staffListForAssignment.filter(s=>!s.telegramConnected&&!s.baleConnected);
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;">
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--green)">${connected.length}</div>
+        <div style="font-size:10px;color:var(--muted)">🟢 وصل شده</div>
+      </div>
+      <div style="background:rgba(156,163,175,.08);border:1px solid rgba(156,163,175,.3);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--muted)">${notConnected.length}</div>
+        <div style="font-size:10px;color:var(--muted)">⚪ وصل‌نشده</div>
+      </div>
+    </div>
+    ${notConnected.length?`<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">⚪ وصل‌نشده‌ها:</div>
+    ${notConnected.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
+      <span style="font-weight:700">${s.name}</span><span style="color:var(--muted);font-size:10px">${s.role}</span>
+      <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto" onclick="sendStaffBotInviteWhatsApp(${s.id})">📱 دعوت با واتس‌اپ</button>
+    </div>`).join('')}`:''}
+    ${connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px;">🟢 وصل‌شده‌ها:</div>
+    ${connected.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
+      <span style="font-weight:700">${s.name}</span><span style="color:var(--muted);font-size:10px">${s.role}</span>
+      ${s.telegramConnected?'<span style="color:#0088cc;font-size:10px">✈️ تلگرام</span>':''}
+      ${s.baleConnected?'<span style="color:#0070e0;font-size:10px">💙 بله</span>':''}
+    </div>`).join('')}`:''}
+  `;
+}
+async function sendStaffBotInviteWhatsApp(staffId){
+  try{
+    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-staff-invite/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({staffId})
+    });
+    const res = await httpRes.json();
+    if(res && res.ok){
+      await navigator.clipboard.writeText(res.message).catch(()=>{});
+      window.open('https://wa.me/?text='+encodeURIComponent(res.message), '_blank');
+      toast('📨 متن دعوت آماده شد — تو واتساپ باز شد');
+    } else {
+      toast('⚠️ ساخت دعوت‌نامه ناموفق بود: '+(res?.error||'نامشخص'));
+    }
+  }catch(e){ toast('⚠️ خطای شبکه — دوباره امتحان کن'); }
 }
 
 
