@@ -1854,82 +1854,70 @@ function renderTableView(){
         <div style="font-size:12px;font-weight:800;color:var(--accent)">${e.trackingCode||'—'}</div>
         <div style="font-size:9px;color:var(--muted);margin-top:2px">${e.date?toShamsiCompact(e.date):''}</div>
       </td>
-      <td style="min-width:90px;font-weight:700">${r.customer}</td>
-      <td style="min-width:90px">
-        <div style="font-size:11px;font-weight:600;color:var(--text)">${cat.category||'—'}</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px">${cat.subcat||''}</div>
+      <td style="min-width:150px;font-weight:700">
+        ${r.customer}
+        <div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:2px">${cat.category||'—'}${cat.subcat?' / '+cat.subcat:''}</div>
       </td>
-      
       <td style="min-width:100px">${pillSelect('convType_'+key,`updateTableEntry('${r.leadId}',${r.hIdx},'conversationType',this.value)`,CONVERSATION_TYPES,e.conversationType,'نوع مکالمه')}</td>
-      <td style="width:90px"><input value="${(e.note||'').replace(/"/g,'&quot;')}" onchange="updateTableEntry('${r.leadId}',${r.hIdx},'note',this.value)"/></td>
-      <td style="width:85px;text-align:center;vertical-align:middle">
-        ${e.needsFinance||e.finance ? (()=>{
-          const linkedReq = e.linkedRequestId ? (cachedRequests||[]).find(r=>String(r.id)===String(e.linkedRequestId)) : null;
-          const fin = linkedReq && linkedReq.parts ? linkedReq.parts.finance : null;
-          const needs = (fin && fin.needs) || {};
-          const doneMap = (fin && fin.done) || {};
-          const allDone = Object.keys(needs).length && Object.keys(needs).every(k=>!needs[k]||doneMap[k]);
-          if(allDone && fin && !fin.crmConfirmed){
-            return `<div>
-              <span style="font-size:9px;color:var(--green);font-weight:800;">✅ مالی پاسخ داد</span><br>
-              <button onclick="confirmFinanceResponse('${e.linkedRequestId}','${r.leadId}',${r.hIdx})"
-                style="font-size:8px;padding:2px 7px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);
-                border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif;margin-top:2px;">تأیید نهایی</button>
-            </div>`;
-          }
-          if(allDone && fin && fin.crmConfirmed){
-            return `<span style="font-size:9px;color:var(--muted);">✅ تکمیل</span>`;
-          }
-          return `<div>
-            <span style="font-size:10px;font-weight:700;color:var(--yellow)">💰 در انتظار مالی</span><br>
-            <button onclick="openFinanceTick('${r.leadId}',${r.hIdx})"
-              style="font-size:8px;padding:1px 6px;background:rgba(240,165,0,.15);
-              border:1px solid rgba(240,165,0,.3);border-radius:4px;cursor:pointer;
-              color:var(--accent);font-family:Vazirmatn,sans-serif">ویرایش</button>
-          </div>`;
-        })() : '<span style="color:var(--border);font-size:10px">—</span>'}
-      </td>
-      <td style="width:85px;text-align:center;vertical-align:middle">
+      <td style="min-width:150px;text-align:center;vertical-align:middle">
         ${(()=>{
-          if(!e.needsEstelamat) return '<span style="color:var(--border);font-size:10px">—</span>';
-          const parts = (e.procurementParts&&e.procurementParts.items)||[];
-          const cnt = parts.filter(p=>p.name).length;
-          const reqId = e.linkedRequestId||'';
-          const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
-          const domesticReady = linkedReq && linkedReq.parts && linkedReq.parts.needMarket &&
-            linkedReq.parts.marketQuoteComplete && !linkedReq.parts.marketApproved;
-          const foreignReady = linkedReq && linkedReq.parts && linkedReq.parts.needForeign &&
-            linkedReq.parts.foreignQuoteComplete && !linkedReq.parts.foreignApproved;
-          if(domesticReady || foreignReady){
-            return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-              ${domesticReady?`<div><span style="font-size:9px;font-weight:800;color:var(--accent)">💰 آماده (داخل)</span>
-                <button onclick="openDomesticApprovalModal('${reqId}','${r.leadId}',${r.hIdx})"
-                  style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.35);
-                  border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">تأیید</button></div>`:''}
-              ${foreignReady?`<div><span style="font-size:9px;font-weight:800;color:#22d3ee">🌍 آماده (خارج)</span>
-                <button onclick="openForeignApprovalModal('${reqId}','${r.leadId}',${r.hIdx})"
-                  style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(34,211,238,.15);border:1px solid rgba(34,211,238,.35);
-                  border-radius:4px;cursor:pointer;color:#22d3ee;font-family:Vazirmatn,sans-serif">تأیید</button></div>`:''}
-            </div>`;
+          const blocks=[];
+          // بلوک مالی
+          if(e.needsFinance||e.finance){
+            const linkedReq = e.linkedRequestId ? (cachedRequests||[]).find(r=>String(r.id)===String(e.linkedRequestId)) : null;
+            const fin = linkedReq && linkedReq.parts ? linkedReq.parts.finance : null;
+            const needs = (fin && fin.needs) || {};
+            const doneMap = (fin && fin.done) || {};
+            const allDone = Object.keys(needs).length && Object.keys(needs).every(k=>!needs[k]||doneMap[k]);
+            if(allDone && fin && !fin.crmConfirmed){
+              blocks.push(`<div><span style="font-size:9px;color:var(--green);font-weight:800;">✅ مالی پاسخ داد</span>
+                <button onclick="confirmFinanceResponse('${e.linkedRequestId}','${r.leadId}',${r.hIdx})" style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif;">تأیید نهایی</button></div>`);
+            } else if(allDone && fin && fin.crmConfirmed){
+              blocks.push(`<span style="font-size:9px;color:var(--muted);">✅ مالی تکمیل</span>`);
+            } else {
+              blocks.push(`<div><span style="font-size:10px;font-weight:700;color:var(--yellow)">💰 در انتظار مالی</span>
+                <button onclick="openFinanceTick('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:1px 6px;margin-right:3px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.3);border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">ویرایش</button></div>`);
+            }
           }
-          const stage = reqId ? getOverallStageLabel(reqId) : null;
-          const progLabel = stage ? stage.label : `📋 ${fn(cnt)} پارت`;
-          const progColor = stage ? stage.color : 'var(--accent)';
-          return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-            <span style="font-size:9.5px;font-weight:700;color:${progColor}">${progLabel}</span>
-            ${reqId?`<button onclick="openOrderStatusModal('${r.leadId}',${r.hIdx})"
-              style="font-size:8px;padding:1px 5px;background:rgba(74,222,128,.12);
-              border:1px solid rgba(74,222,128,.3);border-radius:4px;cursor:pointer;
-              color:#4ade80;font-family:Vazirmatn,sans-serif">📦 وضعیت/ارسال</button>`:''}
-            <button onclick="openEstelamatTickModal('${r.leadId}',${r.hIdx})"
-              style="font-size:8px;padding:1px 5px;background:rgba(96,165,250,.12);
-              border:1px solid rgba(96,165,250,.3);border-radius:4px;cursor:pointer;
-              color:#60a5fa;font-family:Vazirmatn,sans-serif">ویرایش</button>
-            ${reqId?`<button onclick="goToErpEstelamat('${reqId}')"
-              style="font-size:8px;padding:1px 5px;background:rgba(34,197,94,.1);
-              border:1px solid rgba(34,197,94,.3);border-radius:4px;cursor:pointer;
-              color:var(--green);font-family:Vazirmatn,sans-serif">→ ERP</button>`:''}
-          </div>`;
+          // بلوک خرید (داخل/خارج)
+          if(e.needsEstelamat){
+            const parts = (e.procurementParts&&e.procurementParts.items)||[];
+            const cnt = parts.filter(p=>p.name).length;
+            const reqId = e.linkedRequestId||'';
+            const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
+            const domesticReady = linkedReq && linkedReq.parts && linkedReq.parts.needMarket && linkedReq.parts.marketQuoteComplete && !linkedReq.parts.marketApproved;
+            const foreignReady = linkedReq && linkedReq.parts && linkedReq.parts.needForeign && linkedReq.parts.foreignQuoteComplete && !linkedReq.parts.foreignApproved;
+            if(domesticReady) blocks.push(`<div><span style="font-size:9px;font-weight:800;color:var(--accent)">💰 آماده (داخل)</span>
+              <button onclick="openDomesticApprovalModal('${reqId}','${r.leadId}',${r.hIdx})" style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.35);border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">تأیید</button></div>`);
+            if(foreignReady) blocks.push(`<div><span style="font-size:9px;font-weight:800;color:#22d3ee">🌍 آماده (خارج)</span>
+              <button onclick="openForeignApprovalModal('${reqId}','${r.leadId}',${r.hIdx})" style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(34,211,238,.15);border:1px solid rgba(34,211,238,.35);border-radius:4px;cursor:pointer;color:#22d3ee;font-family:Vazirmatn,sans-serif">تأیید</button></div>`);
+            if(!domesticReady && !foreignReady){
+              const stage = reqId ? getOverallStageLabel(reqId) : null;
+              const progLabel = stage ? stage.label : `📋 ${fn(cnt)} پارت`;
+              const progColor = stage ? stage.color : 'var(--accent)';
+              blocks.push(`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <span style="font-size:9.5px;font-weight:700;color:${progColor}">${progLabel}</span>
+                <div style="display:flex;gap:3px;">
+                ${reqId?`<button onclick="openOrderStatusModal('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:1px 5px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);border-radius:4px;cursor:pointer;color:#4ade80;font-family:Vazirmatn,sans-serif">📦</button>`:''}
+                <button onclick="openEstelamatTickModal('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:1px 5px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);border-radius:4px;cursor:pointer;color:#60a5fa;font-family:Vazirmatn,sans-serif">ویرایش</button>
+                ${reqId?`<button onclick="goToErpEstelamat('${reqId}')" style="font-size:8px;padding:1px 5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif">→ERP</button>`:''}
+                </div></div>`);
+            }
+          }
+          // بلوک تحویل نهایی / مرحله‌ی کلی (اگه بالاتر چیزی نبود)
+          if(!blocks.length){
+            const reqId = e.linkedRequestId||'';
+            const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
+            const fullyDelivered = linkedReq && linkedReq.status==='done' && (linkedReq.parts&&(linkedReq.parts.needMarket||linkedReq.parts.needForeign)) && !(linkedReq.parts&&linkedReq.parts.crmConfirmed);
+            if(fullyDelivered){
+              blocks.push(`<div><span style="font-size:9px;font-weight:800;color:var(--green)">✅ همه تحویل شد</span>
+                <button onclick="confirmFullDelivery('${reqId}','${r.leadId}',${r.hIdx})" style="font-size:8px;padding:2px 7px;margin-right:3px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif">تأیید نهایی</button></div>`);
+            } else {
+              const stage = reqId ? getOverallStageLabel(reqId) : null;
+              if(stage) blocks.push(`<span style="font-size:10px;font-weight:700;color:${stage.color}">${stage.label}</span>`);
+            }
+          }
+          return blocks.length ? `<div style="display:flex;flex-direction:column;gap:5px;align-items:center;">${blocks.join('')}</div>` : '<span style="color:var(--border);font-size:10px">—</span>';
         })()}
       </td>
       <td style="min-width:90px;text-align:center;">
@@ -1955,25 +1943,6 @@ function renderTableView(){
           return fbHtml + sugHtml;
         })()}
       </td>
-      <td style="min-width:90px;text-align:center;">
-        ${(()=>{
-          const reqId = e.linkedRequestId||'';
-          const linkedReq = reqId ? (cachedRequests||[]).find(x=>String(x.id)===String(reqId)) : null;
-          const fullyDelivered = linkedReq && linkedReq.status==='done' &&
-            (linkedReq.parts&&(linkedReq.parts.needMarket||linkedReq.parts.needForeign)) &&
-            !(linkedReq.parts&&linkedReq.parts.crmConfirmed);
-          if(fullyDelivered){
-            return `<div><span style="font-size:9px;font-weight:800;color:var(--green)">✅ همه تحویل شد</span><br>
-              <button onclick="confirmFullDelivery('${reqId}','${r.leadId}',${r.hIdx})"
-                style="font-size:8px;padding:2px 7px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);
-                border-radius:4px;cursor:pointer;color:var(--green);font-family:Vazirmatn,sans-serif">تأیید نهایی</button></div>`;
-          }
-          const stage = reqId ? getOverallStageLabel(reqId) : null;
-          if(stage) return `<span style="font-size:10px;font-weight:700;color:${stage.color}">${stage.label}</span>`;
-          if(e.needsFinance) return `<span style="font-size:10px;color:var(--yellow)">💰 مالی</span>`;
-          return `<span style="font-size:10px;color:var(--muted)">—</span>`;
-        })()}
-      </td>
       <td style="width:48px;text-align:center">
         <input type="checkbox" ${e.recalled?'checked':''} onchange="updateTableEntry('${r.leadId}',${r.hIdx},'recalled',this.checked)" style="width:16px;height:16px;"/>
       </td>
@@ -1997,19 +1966,15 @@ function renderTableView(){
       <input id="newRowCustomer" placeholder="نام مشتری را تایپ کن..." oninput="searchNewRowCustomerAC()" autocomplete="off"/>
       <div class="autocomplete-dd" id="newRowCustomerAC" style="display:none;text-align:right;"></div>
     </td>
-    <td colspan="12" style="color:var(--muted);font-size:10px">بعد از انتخاب نام مشتری از لیست، ردیف جدید همینجا ثبت می‌شود</td>
+    <td colspan="7" style="color:var(--muted);font-size:10px">بعد از انتخاب نام مشتری از لیست، ردیف جدید همینجا ثبت می‌شود</td>
   </tr>`;
 
     const headHTML = `<tr>
           <th style="width:90px">کد پیگیری</th>
-          <th style="width:130px">مشتری</th>
-          <th style="width:100px">صنف / زیرصنف</th>
-          <th style="width:78px">نوع</th>
+          <th style="width:150px">مشتری</th>
           <th style="width:90px">صحبت انجام‌شده</th>
-          <th style="width:85px;text-align:center">💰<br><span style="font-size:9px">مالی</span></th>
-          <th style="width:85px;text-align:center">📋<br><span style="font-size:9px">خرید</span></th>
+          <th style="width:150px">وضعیت</th>
           <th style="width:85px;text-align:center">💬<br><span style="font-size:9px">بازخورد</span></th>
-          <th style="width:100px">مرحله‌ی فعلی</th>
           <th style="width:48px;text-align:center">تماس مجدد</th>
           <th style="width:160px">توضیحات تماس</th>
           <th style="width:52px;text-align:center">تکمیل</th>

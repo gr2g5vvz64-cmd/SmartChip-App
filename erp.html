@@ -1054,6 +1054,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       </div>
       <div class="nav-group-items" id="ngi-tools" style="max-height:none">
         <button class="nav-item" onclick="showPage('botstatus');loadBotInvites().then(renderBotStatusPanel)"><span class="nav-icon">🤖</span><span>وضعیت Bot</span></button>
+        <button class="nav-item" onclick="showPage('staffmgmt');loadStaffMgmt()"><span class="nav-icon">👔</span><span>مدیریت کارمندان</span></button>
         <button class="nav-item" onclick="showPage('reminders')"><span class="nav-icon">🔔</span><span>یادآوری‌ها</span><span class="nbadge red" id="remBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('calendar')"><span class="nav-icon">🗓️</span><span>تقویم</span></button>
       </div>
@@ -1402,6 +1403,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
 
     <!-- ══ تسک‌های مالی — از تیک‌های CRM ══ -->
     <div class="page" id="page-financetasks"><div id="financeTasksContent"></div><div id="suggestionsContent" style="margin-top:24px;"></div></div>
+    <div class="page" id="page-staffmgmt"><div id="staffMgmtContent"></div></div>
 
     <!-- ══ وصول مطالبات — شروع از مالی ══ -->
     <div class="page" id="page-debtcases"><div id="debtCasesContentERP"></div></div>
@@ -1923,6 +1925,43 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <!-- PACKING BUILDER MODAL — انتخاب چندتایی آیتم‌های انبار برای ساخت یه پکینگ -->
 <!-- NEW DEBT CASE MODAL -->
 <!-- DEBT COLLECTION LOG MODAL -->
+<div class="modal-overlay" id="modalStaffForm" onclick="closeModalOut(event,'modalStaffForm')">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr"><div class="modal-title" id="staffFormTitle">👔 کارمند جدید</div><button class="close-btn" onclick="closeModal('modalStaffForm')">✕</button></div>
+    <input type="hidden" id="staffFormEditEmail" value=""/>
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">نام و نام‌خانوادگی *</label><input class="form-control" id="staffFormName" placeholder="مثلاً: حمیدرضا چاوشی"/></div>
+      <div class="form-group form-full"><label class="form-label">ایمیل * (برای ورود به سیستم)</label><input class="form-control" id="staffFormEmail" type="email" placeholder="example@gmail.com"/></div>
+      <div class="form-group form-full"><label class="form-label">موبایل</label><input class="form-control" id="staffFormMobile" placeholder="09123456789"/></div>
+      <div class="form-group form-full">
+        <label class="form-label">سمت *</label>
+        <select class="form-control" id="staffFormRole">
+          <option value="owner">مدیریت (خودم)</option>
+          <option value="sup_sales">سرپرست فروش</option>
+          <option value="sup_trade">سرپرست بازرگانی</option>
+          <option value="sup_procurement">سرپرست تدارکات</option>
+          <option value="sup_finance">سرپرست مالی</option>
+          <option value="sup_warehouse">سرپرست انبار</option>
+          <option value="office">مسئول دفتر</option>
+          <option value="sales_expert">کارشناس فروش</option>
+          <option value="accounting">حسابداری</option>
+          <option value="warehouse_keeper">انباردار</option>
+          <option value="trade_expert">کارشناس بازرگانی</option>
+          <option value="procurement_staff">تدارکات</option>
+          <option value="service">خدمات</option>
+          <option value="parts_mgmt">مدیریت قطعات</option>
+          <option value="pcb_mgmt">مدیریت برد مدارچاپی</option>
+        </select>
+      </div>
+      <div class="form-group form-full" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="staffFormActive" checked style="width:16px;height:16px;"/>
+        <label class="form-label" style="margin:0;">فعال (دسترسی به سیستم دارد)</label>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" id="staffFormSaveBtn" onclick="saveStaffMember()">ذخیره</button><button class="btn btn-ghost" onclick="closeModal('modalStaffForm')">انصراف</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalDebtCollection" onclick="closeModalOut(event,'modalDebtCollection')">
   <div class="modal" style="width:400px">
     <div class="modal-hdr"><div class="modal-title" id="debtCollectionModalTitle">💰 ثبت وصولی</div><button class="close-btn" onclick="closeModal('modalDebtCollection')">✕</button></div>
@@ -4063,7 +4102,7 @@ function showPage(p){
     'deptfeedback-tadarokat':'بازخورد — تدارکات','deptfeedback-bazargani':'بازخورد — بازرگانی',
     'deptfeedback-mali':'بازخورد — مالی','deptfeedback-anbar':'بازخورد — انبار',
     feedbackdash:'عملکرد واحدها (بازخورد)',
-    checks:'چک‌ها',invoices:'صورتحساب‌ها',chequesreceived:'چک‌های دریافتی',chequesreturned:'چک‌های برگشتی',chequespaid:'چک‌های پرداختی',shipments:'ردیابی محموله‌ها',foreigndeliv:'تحویل بار خارج',domesticdeliv:'جمع‌آوری کالا',tasks:'ارجاع کار به بخش‌ها',reminders:'یادآوری‌ها',calendar:'تقویم ایران و چین'};
+    checks:'چک‌ها',invoices:'صورتحساب‌ها',chequesreceived:'چک‌های دریافتی',chequesreturned:'چک‌های برگشتی',chequespaid:'چک‌های پرداختی',shipments:'ردیابی محموله‌ها',foreigndeliv:'تحویل بار خارج',domesticdeliv:'جمع‌آوری کالا',tasks:'ارجاع کار به بخش‌ها',reminders:'یادآوری‌ها',calendar:'تقویم ایران و چین',staffmgmt:'مدیریت کارمندان'};
   document.getElementById('pageTitle').textContent=titles[p]||p;
   // ⚠️ فیکس مهم: قبلاً با regex رو متن onclick هر دکمه تطبیق می‌داد که در شرایط خاص
   // (چیدمان تغییرکرده، رندر مجدد وسط کلیک) ممکن بود کلاس active رو رو دکمه‌ی
@@ -8380,6 +8419,114 @@ async function loadStaffListForBotPanel(){
     if(res.ok){ staffListForAssignment = await res.json(); window._staffListLoaded = true; }
   }catch(e){ console.error('🔴 خطای بارگذاری لیست کارمندان:', e); }
   renderStaffBotTab();
+}
+const STAFF_ROLE_LABELS = {
+  owner:'مدیریت (خودم)', sup_sales:'سرپرست فروش', sup_trade:'سرپرست بازرگانی',
+  sup_procurement:'سرپرست تدارکات', sup_finance:'سرپرست مالی', sup_warehouse:'سرپرست انبار',
+  office:'مسئول دفتر', sales_expert:'کارشناس فروش', accounting:'حسابداری',
+  warehouse_keeper:'انباردار', trade_expert:'کارشناس بازرگانی', procurement_staff:'تدارکات',
+  service:'خدمات', parts_mgmt:'مدیریت قطعات', pcb_mgmt:'مدیریت برد مدارچاپی',
+  // سازگاری با داده‌های قدیمی، قبل از گسترش لیست سمت‌ها
+  admin:'مدیریت (خودم)', sales:'کارشناس فروش', finance:'حسابداری',
+  procurement:'تدارکات', trade:'کارشناس بازرگانی', warehouse:'انباردار',
+};
+let staffListERP = [];
+async function loadStaffMgmt(){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/');
+    if(res.ok) staffListERP = await res.json();
+  }catch(e){ console.error('🔴 خطای بارگذاری لیست کارمندان:', e); }
+  renderStaffMgmt();
+}
+function renderStaffMgmt(){
+  const el=document.getElementById('staffMgmtContent');
+  if(!el) return;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="sec-title">👔 مدیریت کارمندان — ${fn(staffListERP.length)} نفر</div>
+      <button class="btn btn-primary btn-sm" onclick="openStaffForm()">+ کارمند جدید</button>
+    </div>
+    <div style="display:grid;gap:10px;">
+      ${staffListERP.length ? staffListERP.map(s=>`
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;${!s.active?'opacity:.5;':''}">
+          <div>
+            <strong style="font-size:13px;">${s.name||'—'}</strong>
+            <span style="font-size:10px;color:var(--accent);background:rgba(240,165,0,.1);padding:2px 8px;border-radius:5px;margin-right:8px;">${STAFF_ROLE_LABELS[s.role]||s.role}</span>
+            ${!s.active?'<span style="font-size:10px;color:var(--red);margin-right:6px;">غیرفعال</span>':''}
+            <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">${s.email}${s.mobile?' — '+s.mobile:''}</div>
+            <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">
+              ${s.telegram_chat_id?'✈️ تلگرام':''} ${s.bale_chat_id?'💙 بله':''} ${!s.telegram_chat_id&&!s.bale_chat_id?'⚪ هنوز بات رو وصل نکرده':''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="action-btn" onclick="openStaffForm('${s.email.replace(/'/g,"\\'")}')">✏️ ویرایش</button>
+            <button class="action-btn" style="color:var(--red)" onclick="deleteStaffMember('${s.email.replace(/'/g,"\\'")}')">🗑️ حذف</button>
+          </div>
+        </div>`).join('') : '<div style="text-align:center;color:var(--muted);padding:24px;">هنوز کارمندی ثبت نشده</div>'}
+    </div>
+  `;
+}
+function openStaffForm(email){
+  document.getElementById('staffFormEditEmail').value=email||'';
+  if(email){
+    const s=staffListERP.find(x=>x.email===email);
+    if(!s) return;
+    document.getElementById('staffFormTitle').textContent='✏️ ویرایش کارمند';
+    document.getElementById('staffFormName').value=s.name||'';
+    document.getElementById('staffFormEmail').value=s.email;
+    document.getElementById('staffFormEmail').disabled=true;
+    document.getElementById('staffFormMobile').value=s.mobile||'';
+    document.getElementById('staffFormRole').value=s.role||'sales_expert';
+    document.getElementById('staffFormActive').checked=s.active;
+  } else {
+    document.getElementById('staffFormTitle').textContent='👔 کارمند جدید';
+    document.getElementById('staffFormName').value='';
+    document.getElementById('staffFormEmail').value='';
+    document.getElementById('staffFormEmail').disabled=false;
+    document.getElementById('staffFormMobile').value='';
+    document.getElementById('staffFormRole').value='sales_expert';
+    document.getElementById('staffFormActive').checked=true;
+  }
+  openModal('staffForm');
+}
+async function saveStaffMember(){
+  const editEmail=document.getElementById('staffFormEditEmail').value;
+  const name=document.getElementById('staffFormName').value.trim();
+  const email=document.getElementById('staffFormEmail').value.trim().toLowerCase();
+  const mobile=document.getElementById('staffFormMobile').value.trim();
+  const role=document.getElementById('staffFormRole').value;
+  const active=document.getElementById('staffFormActive').checked;
+  if(!name||!email){ toast('⚠ نام و ایمیل الزامی است'); return; }
+  const btn=document.getElementById('staffFormSaveBtn');
+  btn.disabled=true; btn.textContent='در حال ذخیره...';
+  const body={name, email, mobile, role, active};
+  try{
+    let res;
+    if(editEmail){
+      res=await fetch(`https://smartchip-backend.onrender.com/api/staff/staff/${encodeURIComponent(editEmail)}/`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    } else {
+      res=await fetch('https://smartchip-backend.onrender.com/api/staff/staff/', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    }
+    btn.disabled=false; btn.textContent='ذخیره';
+    if(res.ok){
+      closeModal('modalStaffForm');
+      toast('✅ کارمند ذخیره شد');
+      loadStaffMgmt();
+    } else {
+      const err=await res.json().catch(()=>({}));
+      toast('⚠️ ذخیره ناموفق بود: '+(err.email?err.email[0]:JSON.stringify(err)));
+    }
+  }catch(e){ btn.disabled=false; btn.textContent='ذخیره'; toast('⚠️ خطای شبکه'); }
+}
+async function deleteStaffMember(email){
+  if(!confirm('این کارمند حذف بشه؟ دسترسیش به سیستم قطع می‌شه.')) return;
+  try{
+    const res=await fetch(`https://smartchip-backend.onrender.com/api/staff/staff/${encodeURIComponent(email)}/`, {method:'DELETE'});
+    if(res.ok || res.status===204){ toast('✅ حذف شد'); loadStaffMgmt(); }
+    else toast('⚠️ حذف ناموفق بود');
+  }catch(e){ toast('⚠️ خطای شبکه'); }
 }
 function renderStaffBotTab(){
   const el = document.getElementById('botCatBodyStaff');
