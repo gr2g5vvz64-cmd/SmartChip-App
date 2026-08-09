@@ -88,7 +88,15 @@ function toggleTheme(){
   applyThemeButtonLabel();
 }
 applyThemeButtonLabel();
-const ROLE_LABELS={admin:'مدیر', sales:'فروش', ops:'تدارکات/بازرگانی', finance:'مالی'};
+const ROLE_LABELS={
+  owner:'مدیریت (خودم)', sup_sales:'سرپرست فروش', sup_trade:'سرپرست بازرگانی',
+  sup_procurement:'سرپرست تدارکات', sup_finance:'سرپرست مالی', sup_warehouse:'سرپرست انبار',
+  office:'مسئول دفتر', sales_expert:'کارشناس فروش', accounting:'حسابداری',
+  warehouse_keeper:'انباردار', trade_expert:'کارشناس بازرگانی', procurement_staff:'تدارکات',
+  service:'خدمات', parts_mgmt:'مدیریت قطعات', pcb_mgmt:'مدیریت برد مدارچاپی',
+  // سازگاری با داده‌های قدیمی
+  admin:'مدیریت (خودم)', sales:'کارشناس فروش', ops:'تدارکات/بازرگانی', finance:'حسابداری',
+};
 
 async function sheetCall(action, data={}){
   try{
@@ -147,9 +155,9 @@ async function init(){
     return;
   }
   const userInfo=await getCurrentUserInfoFromDjangoOrSheet(email);
-  if(!userInfo || !userInfo.isStaff || userInfo.role!=='admin'){
+  if(!userInfo || !userInfo.isStaff || (userInfo.role!=='admin' && userInfo.role!=='owner')){
     document.getElementById('deniedContent').style.display='block';
-    document.getElementById('deniedMsg').innerHTML=((userInfo&&userInfo.error)||'فقط نقش «مدیر» به این صفحه دسترسی دارد')+
+    document.getElementById('deniedMsg').innerHTML=((userInfo&&userInfo.error)||'فقط نقش «مدیریت» به این صفحه دسترسی دارد')+
       '<br><br><a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);font-size:11px;">تغییر ایمیل</a>';
     return;
   }
@@ -159,21 +167,33 @@ async function init(){
 }
 function renderForm(){
   document.getElementById('mainContent').innerHTML=`
-    <div class="add-form">
+    <div class="add-form" style="grid-template-columns:1.3fr 1fr 1fr 1.3fr auto;">
       <div><label class="form-label">ایمیل گوگل *</label><input class="form-control" id="newEmail" placeholder="name@gmail.com"/></div>
       <div><label class="form-label">نام</label><input class="form-control" id="newName" placeholder="نام کارمند"/></div>
-      <div><label class="form-label">نقش</label>
+      <div><label class="form-label">موبایل</label><input class="form-control" id="newMobile" placeholder="09123456789"/></div>
+      <div><label class="form-label">سمت</label>
         <select class="form-control" id="newRole">
-          <option value="sales">فروش</option>
-          <option value="ops">تدارکات/بازرگانی</option>
-          <option value="finance">مالی</option>
-          <option value="admin">مدیر</option>
+          <option value="owner">مدیریت (خودم)</option>
+          <option value="sup_sales">سرپرست فروش</option>
+          <option value="sup_trade">سرپرست بازرگانی</option>
+          <option value="sup_procurement">سرپرست تدارکات</option>
+          <option value="sup_finance">سرپرست مالی</option>
+          <option value="sup_warehouse">سرپرست انبار</option>
+          <option value="office">مسئول دفتر</option>
+          <option value="sales_expert" selected>کارشناس فروش</option>
+          <option value="accounting">حسابداری</option>
+          <option value="warehouse_keeper">انباردار</option>
+          <option value="trade_expert">کارشناس بازرگانی</option>
+          <option value="procurement_staff">تدارکات</option>
+          <option value="service">خدمات</option>
+          <option value="parts_mgmt">مدیریت قطعات</option>
+          <option value="pcb_mgmt">مدیریت برد مدارچاپی</option>
         </select>
       </div>
       <button class="btn btn-primary" onclick="addStaffMember()">+ افزودن</button>
     </div>
     <table>
-      <thead><tr><th>ایمیل</th><th>نام</th><th>نقش</th><th>فعال</th><th></th></tr></thead>
+      <thead><tr><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th></tr></thead>
       <tbody id="staffTableBody"></tbody>
     </table>
   `;
@@ -195,6 +215,7 @@ function renderTable(){
     <tr>
       <td>${s.email}</td>
       <td>${s.name||'—'}</td>
+      <td>${s.mobile||'—'}</td>
       <td>${ROLE_LABELS[s.role]||s.role}</td>
       <td><button class="btn btn-ghost btn-sm" style="color:${s.active?'var(--green)':'var(--red)'}" onclick="toggleStaffActive('${s.email}',${!s.active})">${s.active?'✅ فعال':'❌ غیرفعال'}</button></td>
       <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeStaffMember('${s.email}')">حذف</button></td>
@@ -203,14 +224,16 @@ function renderTable(){
 async function addStaffMember(){
   const email=document.getElementById('newEmail').value.trim().toLowerCase();
   const name=document.getElementById('newName').value.trim();
+  const mobile=document.getElementById('newMobile').value.trim();
   const role=document.getElementById('newRole').value;
   if(!email||!email.includes('@')){alert('⚠ ایمیل معتبر وارد کن');return;}
   try{
-    const res = await fetch(DJANGO_STAFF_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,name,role,active:true})});
+    const res = await fetch(DJANGO_STAFF_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,name,mobile,role,active:true})});
     if(!res.ok){ const err = await res.json().catch(()=>({})); alert(err.email ? 'این ایمیل قبلاً ثبت شده' : 'خطا در ثبت'); return; }
   }catch(e){ alert('⚠️ اتصال به سرور برقرار نشد'); return; }
   document.getElementById('newEmail').value='';
   document.getElementById('newName').value='';
+  document.getElementById('newMobile').value='';
   await loadStaff();
 }
 async function toggleStaffActive(email,active){
