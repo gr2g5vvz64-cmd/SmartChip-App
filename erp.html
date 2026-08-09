@@ -5518,11 +5518,13 @@ async function notifySupplierOfOrder(ship){
 
   // تأمین‌کننده وصله — پیام سفارش رو بدون فی (چون فی مربوط به سمت فروش ماست، نه چیزی
   // که لازم باشه تأمین‌کننده ببینه) براش می‌فرستیم
-  const message = `📦 سفارش جدید — ${ship.id||''}\n\n`+
-    `کالا: ${ship.partName||ship.desc||''}\n`+
+  const message = `📦 سفارش جدید ثبت شد\n\n`+
+    `کد پیگیری: ${ship.displayNumber||ship.id||''}\n`+
+    `قطعه: ${ship.partName||ship.desc||''}\n`+
     `تعداد: ${fn(ship.partQty||'')}\n`+
-    `تاریخ سفارش: ${ship.orderDate||''}\n`+
-    `تحویل تخمینی: ${ship.eta||''} تا ${ship.eta2||''}\n\n`+
+    `تاریخ ثبت سفارش: ${ship.orderDate||todayShamsiStr()}\n`+
+    `تحویل موردانتظار (ETA۱): ${ship.eta||'—'}\n`+
+    `تحویل موردانتظار (ETA۲): ${ship.eta2||'—'}\n\n`+
     `لطفاً وضعیت آماده‌سازی/ارسال رو از همین‌جا با ما در میان بذارید.`;
   try{
     const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
@@ -7313,14 +7315,14 @@ function cancelRecurring(id){
 const MSG_TEMPLATES = {
   // بازرگانی
   ordered: (s) =>
-    `شرکت ${s.customer} گرامی\nسفارش شما ثبت و تأیید شد.\nکد پیگیری: ${s.id}${s.proforma?'\nپیش‌فاکتور: '+s.proforma:''}\nتاریخ: ${todayShamsiStr()}\nبا تشکر — اسمارت‌چیپ`,
+    `شرکت ${s.customer} گرامی\nکد پیگیری ${s.displayNumber||s.id} با پارت‌نامبر ${s.partName||extractShipName(s)} به تعداد ${fn(s.partQty||extractShipQty(s)||'')} در تاریخ ${todayShamsiStr()} ثبت سفارش شد.${s.proforma?'\nپیش‌فاکتور: '+s.proforma:''}\nبا تشکر — اسمارت‌چیپ`,
   customs: (s) =>
-    `شرکت ${s.customer} گرامی\nکالای شما وارد گمرک شد.\nکد: ${s.id}${s.proforma?' | پیش‌فاکتور: '+s.proforma:''}\nتاریخ: ${todayShamsiStr()}\nدر حال ترخیص هستیم.\nبا تشکر — اسمارت‌چیپ`,
+    `شرکت ${s.customer} گرامی\nکد پیگیری ${s.displayNumber||s.id} با پارت‌نامبر ${s.partName||extractShipName(s)} به تعداد ${fn(s.partQty||extractShipQty(s)||'')} در تاریخ ${todayShamsiStr()} وارد گمرک شد.${s.proforma?'\nپیش‌فاکتور: '+s.proforma:''}\nدر حال ترخیص هستیم.\nبا تشکر — اسمارت‌چیپ`,
   warehouse: (s) =>
-    `شرکت ${s.customer} گرامی\nکالای شما در انبار ما موجود است.\nکد: ${s.id}${s.proforma?' | پیش‌فاکتور: '+s.proforma:''}\nتاریخ: ${todayShamsiStr()}\nبه زودی با شما در ارتباط خواهیم بود.\nبا تشکر — اسمارت‌چیپ`,
+    `شرکت ${s.customer} گرامی\nکد پیگیری ${s.displayNumber||s.id} با پارت‌نامبر ${s.partName||extractShipName(s)} به تعداد ${fn(s.partQty||extractShipQty(s)||'')} در تاریخ ${todayShamsiStr()} در انبار ما موجود شد.${s.proforma?'\nپیش‌فاکتور: '+s.proforma:''}\nبه زودی با شما در ارتباط خواهیم بود.\nبا تشکر — اسمارت‌چیپ`,
   // فروش — CRM
   invoice: (s) =>
-    `شرکت ${s.customer} گرامی\nفاکتور شماره ${s.proforma||s.id} صادر شد.\nجهت تسویه و دریافت کالا هماهنگی نمایید.\nتاریخ: ${todayShamsiStr()}\nبا تشکر — اسمارت‌چیپ`,
+    `شرکت ${s.customer} گرامی\nکد پیگیری ${s.displayNumber||s.id} با پارت‌نامبر ${s.partName||extractShipName(s)} به تعداد ${fn(s.partQty||extractShipQty(s)||'')}: فاکتور شماره ${s.proforma||s.id} در تاریخ ${todayShamsiStr()} صادر شد.\nجهت تسویه و دریافت کالا هماهنگی نمایید.\nبا تشکر — اسمارت‌چیپ`,
 };
 
 function getCustomerMobile(customerName){
