@@ -562,7 +562,29 @@ let chequesReceived=[]; // چک‌های دریافتی — برای تقویم
 let paidCheques=[]; // چک‌های پرداختی — برای تقویم
 let shipments=[]; // محموله‌ها — برای نمایش وعده‌ی تحویل در تقویم
 
+// تابع کمکی مشترک برای همه‌ی fetchهای خواندنی (GET) — قبلاً هیچ‌کدوم timeout یا
+// تلاش مجدد نداشتن؛ اگه سرور یه لحظه کند بود (مثلاً تازه از خواب بیدار می‌شد)،
+// درخواست تا دقیقه‌ها معطل می‌موند و همه‌چیز بعدش (چون پشت‌سرهمن) قفل می‌شد.
+async function fetchJsonWithRetry(url, timeoutMs){
+  timeoutMs = timeoutMs || 12000;
+  const attempt = async()=>{
+    const controller = new AbortController();
+    const t = setTimeout(()=>controller.abort(), timeoutMs);
+    try{
+      const res = await fetch(url, {signal: controller.signal});
+      clearTimeout(t);
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(e){ clearTimeout(t); return null; }
+  };
+  let data = await attempt();
+  if(data===null) data = await attempt(); // یه بار دیگه امتحان کن قبل از تسلیم‌شدن
+  return data;
+}
+
 async function sheetCall(action, data={}){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 15000); // ۱۵ ثانیه سقف — قبلاً هیچ سقفی نداشت
   try{
     document.getElementById('syncDot').style.background='var(--yellow)';
     const payloadStr=JSON.stringify(data);
@@ -574,16 +596,18 @@ async function sheetCall(action, data={}){
       const body=new URLSearchParams();
       body.set('action', action);
       body.set('payload', payloadStr);
-      res=await fetch(SHEET_URL, {method:'POST', body});
+      res=await fetch(SHEET_URL, {method:'POST', body, signal: controller.signal});
     } else {
       const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(payloadStr)+'&t='+Date.now();
-      res=await fetch(url,{method:'GET'});
+      res=await fetch(url,{method:'GET', signal: controller.signal});
     }
+    clearTimeout(timeoutId);
     const json=await res.json();
     isConnected=true;
     document.getElementById('syncDot').style.background='var(--green)';
     return json;
   }catch(e){
+    clearTimeout(timeoutId);
     isConnected=false;
     document.getElementById('syncDot').style.background='var(--red)';
     return null;
@@ -623,11 +647,8 @@ function leadFromApi(d){
     history:d.history||[] };
 }
 async function fetchLeadsFromDjango(){
-  try{
-    const res = await fetch(DJANGO_LEADS_API);
-    if(!res.ok) return null;
-    return (await res.json()).map(leadFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (لیدها):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_LEADS_API);
+  return data ? data.map(leadFromApi) : null;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -691,11 +712,8 @@ async function notifyForeignSuppliersForItems(requestId, trackingCode, items, re
   }
 }
 async function fetchRequestsFromDjango(){
-  try{
-    const res = await fetch(DJANGO_REQUESTS_API);
-    if(!res.ok) return null;
-    return (await res.json()).map(requestFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (درخواست‌ها):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_REQUESTS_API);
+  return data ? data.map(requestFromApi) : null;
 }
 
 // اتصال محموله‌ها به Django — مرحله ۲۰ مهاجرت (فقط خواندنی تو CRM، برای تقویم)
@@ -863,11 +881,8 @@ async function getNextCustomerSeqFromDjango(customerName){
 }
 
 async function fetchShipmentsFromDjango(){
-  try{
-    const res = await fetch(DJANGO_SHIPMENTS_API);
-    if(!res.ok) return null;
-    return (await res.json()).map(shipmentFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (محموله‌ها):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_SHIPMENTS_API);
+  return data ? data.map(shipmentFromApi) : null;
 }
 
 // اتصال چک‌ها به Django — مرحله ۲۳ مهاجرت (فقط خواندنی تو CRM)
@@ -888,14 +903,12 @@ function paidChqFromApi(d){
     note:d.note||'' };
 }
 async function fetchChequesReceivedFromDjango(){
-  try{ const res=await fetch(DJANGO_CHQREC_API); if(!res.ok) return null;
-    return (await res.json()).map(chqReceivedFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_CHQREC_API);
+  return data ? data.map(chqReceivedFromApi) : null;
 }
 async function fetchPaidChequesFromDjango(){
-  try{ const res=await fetch(DJANGO_PAIDCHQ_API); if(!res.ok) return null;
-    return (await res.json()).map(paidChqFromApi);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry(DJANGO_PAIDCHQ_API);
+  return data ? data.map(paidChqFromApi) : null;
 }
 
 // ذخیره‌ی مطمئن لید — همون منطق قبلی (چک نتیجه، یه‌بار retry، هشدار صریح) رو حفظ کرده،
@@ -1565,9 +1578,8 @@ function feedbackFromApiM(d){
     reactionDept:d.reaction_dept||'', newRequestId:d.new_request_id||''};
 }
 async function fetchDeliveryFeedbackFromDjangoM(){
-  try{ const res=await fetch('https://smartchip-backend.onrender.com/api/ops/delivery-feedback/'); if(!res.ok) return null;
-    return (await res.json()).map(feedbackFromApiM);
-  }catch(e){ return null; }
+  const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/ops/delivery-feedback/');
+  return data ? data.map(feedbackFromApiM) : null;
 }
 function getFeedbackForEntry(trackingCode){
   if(!trackingCode) return null;
@@ -1623,12 +1635,8 @@ function debtCaseToApi(c){
   };
 }
 async function fetchDebtCasesFromDjango(){
-  try{
-    const res = await fetch(DJANGO_DEBTS_API);
-    if(!res.ok) return null;
-    const data = await res.json();
-    return data.map(debtCaseFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (وصول مطالبات):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_DEBTS_API);
+  return data ? data.map(debtCaseFromApi) : null;
 }
 async function createDebtCaseInDjango(c){
   try{
@@ -1676,12 +1684,8 @@ function customerFromApi(d){
   };
 }
 async function fetchCustomersFromDjango(){
-  try{
-    const res = await fetch(DJANGO_CUSTOMERS_API);
-    if(!res.ok) return null;
-    const data = await res.json();
-    return data.map(customerFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (مشتریان):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_CUSTOMERS_API);
+  return data ? data.map(customerFromApi) : null;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1701,10 +1705,8 @@ function freeRemToApi(r){
     assignee_id:r.assigneeId||'', assignee_name:r.assigneeName||'' };
 }
 async function fetchFreeRemindersFromDjango(){
-  try{
-    const res=await fetch(DJANGO_FREEREM_API); if(!res.ok) return null;
-    return (await res.json()).map(freeRemFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (یادآوری آزاد):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_FREEREM_API);
+  return data ? data.map(freeRemFromApi) : null;
 }
 async function createFreeReminderInDjango(r){
   try{
@@ -1739,10 +1741,8 @@ function recurringToApi(r){
     note:r.note||'', canceled:!!r.canceled };
 }
 async function fetchRecurringRemindersFromDjango(){
-  try{
-    const res=await fetch(DJANGO_RECURRING_API); if(!res.ok) return null;
-    return (await res.json()).map(recurringFromApi);
-  }catch(e){ console.error('خطای اتصال به Django (یادآوری دوره‌ای):', e); return null; }
+  const data = await fetchJsonWithRetry(DJANGO_RECURRING_API);
+  return data ? data.map(recurringFromApi) : null;
 }
 async function createRecurringReminderInDjango(r){
   try{
