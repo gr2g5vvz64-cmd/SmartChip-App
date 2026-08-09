@@ -5518,7 +5518,7 @@ async function notifySupplierOfOrder(ship){
 
   // تأمین‌کننده وصله — پیام سفارش رو بدون فی (چون فی مربوط به سمت فروش ماست، نه چیزی
   // که لازم باشه تأمین‌کننده ببینه) براش می‌فرستیم
-  const message = `📦 سفارش جدید ثبت شد\n\n`+
+  const message = `🚚 [تأمین‌کننده]\n\n📦 سفارش جدید ثبت شد\n\n`+
     `کد پیگیری: ${ship.displayNumber||ship.id||''}\n`+
     `قطعه: ${ship.partName||ship.desc||''}\n`+
     `تعداد: ${fn(ship.partQty||'')}\n`+
