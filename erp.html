@@ -3804,6 +3804,7 @@ async function loadCustomerMaster() {
       customerMaster = data.map(customerFromApiERP);
       console.log(`📇 پایگاه مشتریان از Django بارگذاری شد: ${customerMaster.length} مشتری`);
       if(infoEl) infoEl.innerHTML = `📇 ${fn(customerMaster.length)} مشتری بارگذاری شد (از Django)`;
+      reRenderIfSupplierPageActive();
       return;
     }
   }catch(e){ console.warn('⚠️ اتصال به Django برای مشتریان ناموفق بود، برمی‌گردیم به گوگل‌شیت:', e); }
@@ -3820,10 +3821,21 @@ async function loadCustomerMaster() {
         (res.totalRowsInSheet ? ` (شیت ${fn(res.totalRowsInSheet)} ردیف دارد)` : '') +
         (res.error ? ` — <span style="color:var(--red)">⚠️ ${res.error}</span>` : '');
     }
+    reRenderIfSupplierPageActive();
   } else {
     console.warn('⚠️ نه Django نه گوگل‌شیت جواب دادن', res);
     if (infoEl) infoEl.innerHTML = `<span style="color:var(--red)">⚠️ پایگاه مشتریان بارگذاری نشد — هیچ‌کدوم از دو منبع در دسترس نبودن</span>`;
   }
+}
+function reRenderIfSupplierPageActive(){
+  // customerMaster معمولاً در پس‌زمینه لود می‌شه (برای سرعت اولیه‌ی صفحه) — اگه دقیقاً
+  // تو همون لحظه‌ای که کاربر (مثلاً از طریق لینک CRM) وارد صفحه‌ی استعلام شده بود،
+  // قبلش تأمین‌کننده‌ای برای نمایش نبود. الان که رسید، دوباره رندر می‌کنیم تا
+  // سرچ‌بار تأمین‌کننده و فیلدها ظاهر بشن، بدون نیاز به رفرش دستی کاربر.
+  const estEl = document.getElementById('page-estelamat');
+  const estForEl = document.getElementById('page-estelamatforeign');
+  if(estEl && estEl.classList.contains('active') && typeof renderEstelamatPage==='function') renderEstelamatPage();
+  if(estForEl && estForEl.classList.contains('active') && typeof renderEstelamatForeignPage==='function') renderEstelamatForeignPage();
 }
 
 function findCustomerMaster(name) {
@@ -5254,57 +5266,54 @@ function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
 
   let tableHTML='';
   if(!beyondQuoting){
-    const groupSize=3;
-    const rowsHTML=Array.from({length:Math.ceil(FOREIGN_SUPPLIERS.length/groupSize)}).map((_,rowIdx)=>{
-      const idxs=[rowIdx*groupSize, rowIdx*groupSize+1, rowIdx*groupSize+2];
-      const SUPPLIERS=FOREIGN_SUPPLIERS;
-      function cellForeign(q,qIdx,rowKey){
-        return `<div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;
-          background:rgba(255,255,255,.02);border-radius:7px;padding:5px 7px;border:1px solid rgba(255,255,255,.06)">
-          <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700">#${qIdx+1}</span>
-          <select class="form-control" style="font-size:10px;padding:3px 4px;width:90px;flex-shrink:0;font-weight:700" ${itemClosed?'disabled':''}
-            onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'supplier',this.value)">
-            <option value="">انتخاب</option>
-            ${SUPPLIERS.map(s=>`<option value="${s}" ${q.supplier===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-          <input class="form-control" style="font-size:11px;padding:3px 5px;width:70px;flex-shrink:0;text-align:center" type="text" inputmode="decimal"
+    // هر آیتم اسلات‌های خودش رو داره — نه بر اساس کل تأمین‌کنندگان سیستم. حداقل ۲ تا
+    // اسلات همیشه نشون داده می‌شه، و با دکمه‌ی «+ افزودن» می‌شه بیشتر اضافه کرد.
+    const slotCount = Math.max(2, quotes.length);
+    const groupSize=2;
+    function cellForeign(qIdx){
+      const q=quotes[qIdx]||{supplier:'',price:'',note:'',day1:'',day2:''};
+      const rowKey=`${reqId}_${itemIdx}_${qIdx}`;
+      return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;
+        background:rgba(255,255,255,.02);border-radius:9px;padding:9px;border:1px solid rgba(255,255,255,.07)">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700">تأمین‌کننده #${qIdx+1}</span>
+        </div>
+        <input list="foreignSupplierList_${safeKey}" class="form-control" style="font-size:11px;padding:5px 7px;font-weight:700" ${itemClosed?'disabled':''}
+          value="${(q.supplier||'').replace(/"/g,'&quot;')}"
+          onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'supplier',this.value)" placeholder="تایپ کن یا از لیست انتخاب کن..."/>
+        <div style="display:flex;gap:5px;">
+          <input class="form-control" style="font-size:11px;padding:5px 7px;flex:1;min-width:0;text-align:center" type="text" inputmode="decimal"
             value="${q.price||''}" ${itemClosed?'disabled':''}
             onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'price',this.value)" placeholder="فی"/>
-          <input class="form-control" style="font-size:11px;padding:3px 5px;flex:1;min-width:0" type="text"
-            value="${(q.note||'').replace(/"/g,'&quot;')}" ${itemClosed?'disabled':''}
-            onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'note',this.value)" placeholder="توضیح"/>
-          <input class="form-control" style="font-size:10px;padding:3px 4px;width:30px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
-            id="foDay1_${rowKey}" ${itemClosed?'disabled':''} maxlength="2"
-            oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="ر۱"/>
-          <input class="form-control" style="font-size:10px;padding:3px 4px;width:30px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
-            id="foDay2_${rowKey}" ${itemClosed?'disabled':''} maxlength="2"
-            oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="ر۲"/>
-          <button class="action-btn" style="font-size:9px;padding:3px 8px;flex-shrink:0;white-space:nowrap"
-            id="foSubmitBtn_${rowKey}" ${itemClosed?'disabled':''}
-            onclick="submitForeignOrderRow('${reqId}','${itemIdx}',${qIdx})">ثبت</button>
-        </div>`;
-      }
-      const cellsHTML=idxs.map((qIdx,pos)=>{
-        if(qIdx>=FOREIGN_SUPPLIERS.length) return '<div style="flex:1"></div>';
-        const q=quotes[qIdx]||{supplier:'',price:'',note:'',approved:false};
-        const rowKey=`${reqId}_${itemIdx}_${qIdx}`;
-        const sep=pos<idxs.length-1?'<div style="width:1px;background:rgba(255,255,255,.07);flex-shrink:0"></div>':'';
-        return cellForeign(q,qIdx,rowKey)+sep;
-      }).join('');
-      return `<div style="display:flex;gap:6px;margin-bottom:5px">${cellsHTML}</div>`;
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+            <input class="form-control" style="font-size:10px;padding:5px 4px;width:38px;text-align:center" type="text" inputmode="numeric"
+              id="foDay1_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day1||''}"
+              oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="روز۱"/>
+            <span id="foDate1_${rowKey}" style="font-size:8px;color:var(--muted);margin-top:1px;"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+            <input class="form-control" style="font-size:10px;padding:5px 4px;width:38px;text-align:center" type="text" inputmode="numeric"
+              id="foDay2_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day2||''}"
+              oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="روز۲"/>
+            <span id="foDate2_${rowKey}" style="font-size:8px;color:var(--muted);margin-top:1px;"></span>
+          </div>
+        </div>
+        <input class="form-control" style="font-size:11px;padding:5px 7px;" type="text"
+          value="${(q.note||'').replace(/"/g,'&quot;')}" ${itemClosed?'disabled':''}
+          onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'note',this.value)" placeholder="توضیح"/>
+        <button class="action-btn" style="font-size:10px;padding:5px 8px;width:100%;"
+          id="foSubmitBtn_${rowKey}" ${itemClosed?'disabled':''}
+          onclick="submitForeignOrderRow('${reqId}','${itemIdx}',${qIdx})">✅ ثبت سفارش از این تأمین‌کننده</button>
+      </div>`;
+    }
+    const rowsHTML=Array.from({length:Math.ceil(slotCount/groupSize)}).map((_,rowIdx)=>{
+      const i1=rowIdx*groupSize, i2=rowIdx*groupSize+1;
+      return `<div style="display:flex;gap:8px;margin-bottom:8px;">${cellForeign(i1)}${i2<slotCount?cellForeign(i2):'<div style="flex:1"></div>'}</div>`;
     }).join('');
-
-
-    tableHTML=`<table style="width:100%;font-size:10px;border-collapse:collapse;"><thead>
-      <tr style="background:var(--card)">
-        <th colspan="4" style="font-size:13px;font-weight:800;color:#60a5fa;padding:7px;border-left:1px solid var(--border);text-align:center">تامین‌کنندگان</th>
-        <th colspan="3" style="font-size:13px;font-weight:800;color:#a78bfa;padding:7px;text-align:center">سفارش‌گذاری</th>
-      </tr>
-      <tr style="text-align:center">
-        <th style="width:16px"></th><th style="width:20%">تامین‌کننده</th><th style="width:11%">فی</th><th style="width:16%">توضیح</th>
-        <th style="width:15%">روز۱</th><th style="width:15%">روز۲</th><th style="width:14%"></th>
-      </tr>
-    </thead><tbody>${rowsHTML}</tbody></table>`;
+    const datalistHTML = `<datalist id="foreignSupplierList_${safeKey}">${FOREIGN_SUPPLIERS.map(s=>`<option value="${s}">`).join('')}</datalist>`;
+    tableHTML=`${datalistHTML}${rowsHTML}
+      <button class="action-btn" style="width:100%;padding:7px;font-size:11px;color:var(--accent);border:1px dashed rgba(240,165,0,.3);background:rgba(240,165,0,.04)"
+        onclick="addForeignQuoteSlot('${reqId}','${itemIdx}')">+ افزودن تأمین‌کننده‌ی دیگر</button>`;
   }
 
   return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;${itemClosed||beyondQuoting?'opacity:.55;filter:grayscale(.3);':''}">
@@ -5491,6 +5500,14 @@ function updateForeignRowDates(reqId,itemIdx,qIdx){
   const today=todayShamsiStr();
   date1El.textContent=d1>0?addDaysToShamsi(today,d1):'';
   date2El.textContent=d2>0?addDaysToShamsi(today,d2):'';
+}
+function addForeignQuoteSlot(reqId, itemIdx){
+  const r=requests.find(x=>String(x.id)===String(reqId));
+  if(!r||!r.parts||!r.parts.foreignItems||!r.parts.foreignItems[itemIdx]) return;
+  const item=r.parts.foreignItems[itemIdx];
+  if(!item.quotes) item.quotes=[];
+  item.quotes.push({supplier:'',price:'',note:'',day1:'',day2:'',approved:false});
+  renderEstelamatForeignPage();
 }
 async function submitForeignOrderRow(reqId,itemIdx,qIdx){
   const safeKey=`${reqId}__${itemIdx}`;
