@@ -1011,7 +1011,6 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <button class="nav-item" onclick="showPage('financedash')"><span class="nav-icon">📊</span><span>داشبورد مالی</span></button>
         <button class="nav-item" onclick="showPage('financetasks')"><span class="nav-icon">✅</span><span>تسک‌های مالی (از CRM)</span><span class="nbadge orange" id="financeTaskBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('debtcases')"><span class="nav-icon">💳</span><span>وصول مطالبات</span><span class="nbadge red" id="debtCaseBadgeERP" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('checks')"><span class="nav-icon">🧾</span><span>چک‌ها</span><span class="nbadge orange" id="checksBadge" style="display:none">0</span></button>
         <!-- صفحه‌ی «صورتحساب‌ها» حذف شد — نیاز مالی الان فقط از تیک مالی در تماس CRM ثبت می‌شود -->
         <button class="nav-item" onclick="showPage('chequesreceived')"><span class="nav-icon">💳</span><span>چک‌های دریافتی</span></button>
         <button class="nav-item" onclick="showPage('chequesreturned')"><span class="nav-icon">↩️</span><span>چک‌های برگشتی</span><span class="nbadge red" id="chequesReturnedBadge" style="display:none">0</span></button>
@@ -1564,23 +1563,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
     </div>
 
     <!-- ══ چک‌ها (از درخواست‌های فروش) ══ -->
-    <div class="page" id="page-checks">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 16px;margin-bottom:16px;font-size:12px;color:var(--muted);">
-        همه‌ی چک‌های «گرفتن از مشتری» و «دادن به تامین‌کننده داخل» که در بخش مالی درخواست‌های فروش ثبت شده‌اند.
-      </div>
-      <div class="filter-row" id="checksFilter">
-        <button class="fpill active" onclick="fChecks('open',this)">باز</button>
-        <button class="fpill" onclick="fChecks('done',this)">انجام‌شده</button>
-        <button class="fpill" onclick="fChecks('all',this)">همه</button>
-      </div>
-      <div class="tbl-wrap">
-        <div class="tbl-hdr">
-          <div class="sec-title">چک‌ها</div>
-          <div class="search-box"><span>🔍</span><input type="text" placeholder="جستجو: مشتری..." oninput="searchChecks(this.value)"/></div>
-        </div>
-        <table><thead><tr><th>مشتری</th><th>نوع</th><th>مبلغ (ریال)</th><th>وضعیت</th><th></th></tr></thead><tbody id="checksBody"></tbody></table>
-      </div>
-    </div>
+    <!-- صفحه‌ی «چک‌ها» حذف شد — طبق دستور کاربر، همه‌ی تیک‌های مالی فقط از «تسک‌های مالی» دیده می‌شن -->
 
     <!-- صفحه‌ی صورتحساب‌ها حذف شد — نیاز مالی الان فقط از تیک مالی در تماس CRM ثبت می‌شود -->
 
@@ -4087,7 +4070,6 @@ function showPage(p){
   if(p==='customers')     renderCusts();
   if(p==='procurement')   renderCustNeed();
   if(p==='estelamat')     renderEstelamatPage();
-  if(p==='checks')        renderChecks();
   if(p==='chequesreceived') renderChequesReceived();
   if(p==='chequesreturned') renderChequesReturned();
   if(p==='shipments')     renderShipments();
@@ -5257,48 +5239,36 @@ function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
   if(!beyondQuoting){
     // هر آیتم اسلات‌های خودش رو داره — نه بر اساس کل تأمین‌کنندگان سیستم. حداقل ۲ تا
     // اسلات همیشه نشون داده می‌شه، و با دکمه‌ی «+ افزودن» می‌شه بیشتر اضافه کرد.
+    // هر تأمین‌کننده یه سطر افقی واحده: نام | فی | توضیح | ETA۱ | ETA۲ | ثبت
     const slotCount = Math.max(2, quotes.length);
-    const groupSize=2;
-    function cellForeign(qIdx){
+    function rowForeign(qIdx){
       const q=quotes[qIdx]||{supplier:'',price:'',note:'',day1:'',day2:''};
       const rowKey=`${reqId}_${itemIdx}_${qIdx}`;
-      return `<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;
-        background:rgba(255,255,255,.02);border-radius:9px;padding:9px;border:1px solid rgba(255,255,255,.07)">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700">تأمین‌کننده #${qIdx+1}</span>
-        </div>
-        <input list="foreignSupplierList_${safeKey}" class="form-control" style="font-size:11px;padding:5px 7px;font-weight:700" ${itemClosed?'disabled':''}
+      return `<div style="display:flex;align-items:center;gap:6px;padding:8px;
+        background:rgba(255,255,255,.02);border-radius:9px;border:1px solid rgba(255,255,255,.07);margin-bottom:6px;flex-wrap:wrap;">
+        <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700;width:16px;">#${qIdx+1}</span>
+        <input list="foreignSupplierList_${safeKey}" class="form-control" style="font-size:11px;padding:5px 7px;font-weight:700;flex:1.4;min-width:110px;" ${itemClosed?'disabled':''}
           value="${(q.supplier||'').replace(/"/g,'&quot;')}"
-          onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'supplier',this.value)" placeholder="تایپ کن یا از لیست انتخاب کن..."/>
-        <div style="display:flex;gap:5px;">
-          <input class="form-control" style="font-size:11px;padding:5px 7px;flex:1;min-width:0;text-align:center" type="text" inputmode="decimal"
-            value="${q.price||''}" ${itemClosed?'disabled':''}
-            onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'price',this.value)" placeholder="فی"/>
-          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
-            <input class="form-control" style="font-size:10px;padding:5px 4px;width:38px;text-align:center" type="text" inputmode="numeric"
-              id="foDay1_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day1||''}"
-              oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="روز۱"/>
-            <span id="foDate1_${rowKey}" style="font-size:8px;color:var(--muted);margin-top:1px;"></span>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
-            <input class="form-control" style="font-size:10px;padding:5px 4px;width:38px;text-align:center" type="text" inputmode="numeric"
-              id="foDay2_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day2||''}"
-              oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="روز۲"/>
-            <span id="foDate2_${rowKey}" style="font-size:8px;color:var(--muted);margin-top:1px;"></span>
-          </div>
-        </div>
-        <input class="form-control" style="font-size:11px;padding:5px 7px;" type="text"
+          onfocus="if(!customerMaster.length && !window._loadingSupplierRetry){window._loadingSupplierRetry=true;loadCustomerMaster().finally(()=>{window._loadingSupplierRetry=false;});}"
+          onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'supplier',this.value)" placeholder="نام تأمین‌کننده..."/>
+        <input class="form-control" style="font-size:11px;padding:5px 7px;flex:0.8;min-width:60px;text-align:center" type="text" inputmode="decimal"
+          value="${q.price||''}" ${itemClosed?'disabled':''}
+          onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'price',this.value)" placeholder="فی"/>
+        <input class="form-control" style="font-size:11px;padding:5px 7px;flex:1.2;min-width:90px;" type="text"
           value="${(q.note||'').replace(/"/g,'&quot;')}" ${itemClosed?'disabled':''}
           onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'note',this.value)" placeholder="توضیح"/>
-        <button class="action-btn" style="font-size:10px;padding:5px 8px;width:100%;"
+        <input class="form-control" style="font-size:10px;padding:5px 4px;width:36px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
+          id="foDay1_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day1||''}"
+          oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="ETA۱"/>
+        <input class="form-control" style="font-size:10px;padding:5px 4px;width:36px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
+          id="foDay2_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day2||''}"
+          oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="ETA۲"/>
+        <button class="action-btn" style="font-size:9px;padding:5px 9px;flex-shrink:0;white-space:nowrap;"
           id="foSubmitBtn_${rowKey}" ${itemClosed?'disabled':''}
-          onclick="submitForeignOrderRow('${reqId}','${itemIdx}',${qIdx})">✅ ثبت سفارش از این تأمین‌کننده</button>
+          onclick="submitForeignOrderRow('${reqId}','${itemIdx}',${qIdx})">✅ ثبت</button>
       </div>`;
     }
-    const rowsHTML=Array.from({length:Math.ceil(slotCount/groupSize)}).map((_,rowIdx)=>{
-      const i1=rowIdx*groupSize, i2=rowIdx*groupSize+1;
-      return `<div style="display:flex;gap:8px;margin-bottom:8px;">${cellForeign(i1)}${i2<slotCount?cellForeign(i2):'<div style="flex:1"></div>'}</div>`;
-    }).join('');
+    const rowsHTML=Array.from({length:slotCount}).map((_,i)=>rowForeign(i)).join('');
     const datalistHTML = `<datalist id="foreignSupplierList_${safeKey}">${FOREIGN_SUPPLIERS.map(s=>`<option value="${s}">`).join('')}</datalist>`;
     tableHTML=`${datalistHTML}${rowsHTML}
       <button class="action-btn" style="width:100%;padding:7px;font-size:11px;color:var(--accent);border:1px dashed rgba(240,165,0,.3);background:rgba(240,165,0,.04)"
@@ -5681,72 +5651,11 @@ function renderDomesticPurchaseArchive(){
 // ══════════════════════════════════════════
 // چک‌ها — از بخش مالی درخواست‌های فروش
 // ══════════════════════════════════════════
-let curChecksFilter='open', curChecksSearch='';
-const FIN_LABELS={
-  checkIn:'گرفتن چک مشتری', sendInvoice:'ارسال صورتحساب', sayyadi:'ثبت چک صیادی',
-  sendFactor:'ارسال فاکتور مشتری', checkOut:'دادن چک تامین‌کننده', getInvoice:'گرفتن صورتحساب'
-};
-function buildChecksRows(){
-  const rows=[];
-  requests.forEach(r=>{
-    if(!r.parts || !r.parts.needFinance || !r.parts.finance) return;
-    const f=r.parts.finance;
-    Object.keys(FIN_LABELS).forEach(key=>{
-      if(f.needs && f.needs[key]){
-        rows.push({reqId:r.id, customer:r.customer, displayNumber:r.displayNumber, type:FIN_LABELS[key], status:(f.done&&f.done[key])?'done':'pending', field:key, note:f.note||''});
-      }
-    });
-  });
-  return rows;
-}
-function renderChecks(){
-  let rows=buildChecksRows();
-  if(curChecksFilter==='open') rows=rows.filter(r=>r.status!=='done');
-  if(curChecksFilter==='done') rows=rows.filter(r=>r.status==='done');
-  if(curChecksSearch){
-    const q=normalizeFa(curChecksSearch);
-    rows=rows.filter(r=>normalizeFa(r.customer).includes(q));
-  }
-  setBadge('checksBadge', buildChecksRows().filter(r=>r.status!=='done').length);
-  const el=document.getElementById('checksBody');
-  if(!rows.length){el.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-text">موردی ثبت نشده</div></div></td></tr>`;return;}
-  el.innerHTML=rows.map(r=>{
-    const ok=r.status==='done';
-    return `<tr>
-      <td><strong>${r.customer}</strong>${r.displayNumber?`<div style="font-size:9px;color:var(--accent)">${r.displayNumber}</div>`:''}</td>
-      <td>${r.type}</td>
-      <td style="font-size:11px;color:var(--muted)">${r.note||'—'}</td>
-      <td><button class="action-btn" style="color:${ok?'var(--green)':'var(--yellow)'}" onclick="toggleCheckStatus('${r.reqId}','${r.field}')">${ok?'✅ انجام شد':'⏳ باز'}</button></td>
-      <td><button class="action-btn" onclick="openDetail('${r.reqId}')">جزئیات درخواست</button></td>
-    </tr>`;
-  }).join('');
-}
-function fChecks(f,btn){curChecksFilter=f;document.querySelectorAll('#checksFilter .fpill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderChecks();}
-function searchChecks(v){curChecksSearch=v;renderChecks();}
-// از چیپ «مالی» در جدول درخواست‌ها — مستقیم صفحه‌ی چک‌ها را روی همان مشتری فیلتر می‌کند
+// از چیپ «مالی» در جدول درخواست‌ها — مستقیم صفحه‌ی تسک‌های مالی رو باز می‌کنه
+// (قبلاً به صفحه‌ی «چک‌ها» می‌رفت که طبق دستور کاربر کامل حذف شد چون یه نمای
+// موازی و قدیمی بود، جدا از تسک‌های مالی واقعی)
 function openChecksForCustomer(customerName){
-  curChecksFilter='all';
-  curChecksSearch=customerName;
-  showPage('checks');
-  const filterBoxInput=document.querySelector('#page-checks .search-box input');
-  if(filterBoxInput) filterBoxInput.value=customerName;
-  document.querySelectorAll('#checksFilter .fpill').forEach(b=>b.classList.remove('active'));
-  const allBtn=document.querySelector('#checksFilter .fpill:last-child');
-  if(allBtn) allBtn.classList.add('active');
-}
-async function toggleCheckStatus(reqId,field){
-  const r=requests.find(x=>String(x.id)===String(reqId));
-  if(!r||!r.parts||!r.parts.finance)return;
-  if(!r.parts.finance.done) r.parts.finance.done={};
-  r.parts.finance.done[field] = !r.parts.finance.done[field];
-  r.status=computeOverallStatus(r.parts);
-  if(r.status==='done') r.completedDate=todayShamsiStr();
-  else r.completedDate=null;
-  renderChecks();
-  renderDash();
-  if(document.getElementById('page-requests').classList.contains('active')) renderReqs();
-  toast('وضعیت بروزرسانی شد');
-  if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {statusValue:r.status});
+  showPage('financetasks');
 }
 
 // ══════════════════════════════════════════
