@@ -5498,43 +5498,24 @@ function addForeignQuoteSlot(reqId, itemIdx){
   renderEstelamatForeignPage();
 }
 async function notifySupplierOfOrder(ship){
+  // ⚠️ توجه مهم: ارسال «پیام سفارش» به تأمین‌کننده‌ی وصل‌شده رو خودِ سرور، همون
+  // لحظه‌ای که محموله ساخته می‌شه (shipments_app/views.py → perform_create →
+  // supplier_notify.py)، **خودکار** انجام می‌ده — با یه فلگ (supplier_notified)
+  // که جلوی تکراری‌شدن رو می‌گیره. این تابع فقط برای حالتیه که سرور نمی‌تونه انجام
+  // بده: وقتی تأمین‌کننده هنوز بات رو استارت نکرده، دعوت‌نامه‌ش رو آماده می‌کنه.
   if(!ship || !ship.supplier) return;
   const cm = customerMaster.find(c=>c.name===ship.supplier) || {};
   const connected = cm.telegram || cm.bale;
+  if(connected) return; // سرور خودش پیام رو می‌فرسته — اینجا کاری لازم نیست
 
-  if(!connected){
-    // تأمین‌کننده هنوز بات رو استارت نکرده — یه دعوت‌نامه می‌سازیم (متن آماده می‌شه،
-    // ارسال واقعی از طریق واتساپ دستیه، طبق همون الگوی موجود)
-    try{
-      const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-supplier-invite/', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({supplier: ship.supplier})
-      });
-      const res = await httpRes.json();
-      if(res && res.ok) console.log(`📨 دعوت‌نامه‌ی تأمین‌کننده «${ship.supplier}» آماده شد (هنوز بات رو استارت نکرده)`);
-    }catch(e){ console.error('🔴 خطای ساخت دعوت‌نامه‌ی تأمین‌کننده:', e); }
-    return;
-  }
-
-  // تأمین‌کننده وصله — پیام سفارش رو بدون فی (چون فی مربوط به سمت فروش ماست، نه چیزی
-  // که لازم باشه تأمین‌کننده ببینه) براش می‌فرستیم
-  const message = `🚚 [تأمین‌کننده]\n\n📦 سفارش جدید ثبت شد\n\n`+
-    `کد پیگیری: ${ship.displayNumber||ship.id||''}\n`+
-    `قطعه: ${ship.partName||ship.desc||''}\n`+
-    `تعداد: ${fn(ship.partQty||'')}\n`+
-    `تاریخ ثبت سفارش: ${ship.orderDate||todayShamsiStr()}\n`+
-    `تحویل موردانتظار (ETA۱): ${ship.eta||'—'}\n`+
-    `تحویل موردانتظار (ETA۲): ${ship.eta2||'—'}\n\n`+
-    `لطفاً وضعیت آماده‌سازی/ارسال رو از همین‌جا با ما در میان بذارید.`;
   try{
-    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
+    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-supplier-invite/', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({customer: ship.supplier, message})
+      body: JSON.stringify({supplier: ship.supplier})
     });
     const res = await httpRes.json();
-    if(res && res.sent) console.log(`✅ پیام سفارش به تأمین‌کننده «${ship.supplier}» از طریق ${res.sent} رفت`);
-    else console.warn('⚠️ اطلاع‌رسانی به تأمین‌کننده گیر کرد:', res?.error||'نامشخص');
-  }catch(e){ console.error('🔴 خطای اطلاع‌رسانی به تأمین‌کننده:', e); }
+    if(res && res.ok) console.log(`📨 دعوت‌نامه‌ی تأمین‌کننده «${ship.supplier}» آماده شد (هنوز بات رو استارت نکرده)`);
+  }catch(e){ console.error('🔴 خطای ساخت دعوت‌نامه‌ی تأمین‌کننده:', e); }
 }
 async function submitForeignOrderRow(reqId,itemIdx,qIdx){
   const safeKey=`${reqId}__${itemIdx}`;
@@ -5579,9 +5560,11 @@ async function submitForeignOrderRow(reqId,itemIdx,qIdx){
   if(document.getElementById('page-shipments').classList.contains('active')) renderShipments();
   await persistEstelamatForeignChange(found.r);
 
-  // ارسال خودکار پیام تأیید سفارش — بدون popup
-  autoNotify(newShip, 'ordered');
-  // اطلاع‌رسانی به خودِ تأمین‌کننده — اگه وصل بود جزئیات (بدون فی) می‌ره، اگه نبود دعوت‌نامه آماده می‌شه
+  // ⚠️ اطلاع‌رسانی «سفارش ثبت شد» به مشتری رو دیگه اینجا صدا نمی‌زنیم — چون سرور
+  // خودش، همون لحظه‌ای که این محموله ساخته می‌شه (perform_create)، خودکار و با
+  // فلگ ضدتکرار (customer_notified_ordered) انجامش می‌ده. صدازدنش اینجا هم باعث
+  // می‌شد مشتری دوبار پیام «سفارش ثبت شد» بگیره.
+  // اطلاع‌رسانی به خودِ تأمین‌کننده — اگه وصل نبود دعوت‌نامه آماده می‌شه (اگه وصل بود، سرور خودش پیام سفارش رو می‌فرسته)
   notifySupplierOfOrder(newShip);
   // ارسال دعوتنامه bot اگه مشتری هنوز وصل نشده
   sendBotInviteIfNeeded(newShip);
@@ -6287,9 +6270,8 @@ async function movePLToWarehouse(plId){
   renderWarehouse();
   setBadge('warehouseBadge', warehouseItems.length);
   toast(`✅ پکینگ ${plId} به انبار منتقل شد — ${whItems.length} آیتم ذخیره شد`);
-  // ارسال خودکار «بار در انبار» — یه‌بار برای هر مشتریِ متمایز
-  const doneCustomers=new Set();
-  whItems.forEach(w=>{ if(w.customer && !doneCustomers.has(w.customer)){ doneCustomers.add(w.customer); autoNotifyWH(w.id,'warehouse'); } });
+  // ⚠️ اطلاع‌رسانی «بار در انبار» رو دیگه اینجا صدا نمی‌زنیم — سرور خودش موقع
+  // آپدیت cleared_to_warehouse این کارو خودکار و با فلگ ضدتکرار انجام می‌ده
 }
 async function moveSingleToWarehouse(shipId){
   const s = await findShipment(shipId);
@@ -6322,7 +6304,7 @@ async function moveSingleToWarehouse(shipId){
   renderWarehouse();
   setBadge('warehouseBadge', warehouseItems.length);
   toast(`✅ ${shipId} به انبار منتقل شد`);
-  autoNotify(s, 'warehouse');
+  // ⚠️ همینجا هم، سرور خودش موقع آپدیت cleared_to_warehouse پیام رو خودکار می‌فرسته
 }
 
 // ══════════════════════════════════════════════════════════════
