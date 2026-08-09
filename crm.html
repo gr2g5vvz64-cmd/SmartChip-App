@@ -3263,6 +3263,7 @@ async function saveTomorrowTask(){
   const assigneeId=document.getElementById('ttAssigneeId').value;
   const assigneeName=document.getElementById('ttAssignee').value.trim();
   if(!desc||!date){toast('⚠ توضیحات و تاریخ الزامی است');return;}
+  if(!assigneeId){toast('⚠ باید یه نفر رو از لیست «واگذار به» انتخاب کنی — حتی اگه خودتی');return;}
   const editId=document.getElementById('ttEditId').value;
   const btn=document.getElementById('ttSaveBtn');
   btn.disabled=true; btn.textContent='در حال ذخیره...';
@@ -5797,7 +5798,7 @@ async function submitUrgentShipRequest(){
         <div id="ttCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
       </div>
       <div class="form-group form-full" style="position:relative">
-        <label class="form-label">واگذار به (اختیاری — اگه خالی بذاری، کار برای خودت می‌مونه)</label>
+        <label class="form-label">واگذار به * (اجباری — انتخاب کن حتی اگه خودتی)</label>
         <input class="form-control" id="ttAssignee" placeholder="تایپ کن، از لیست کارمندان انتخاب کن..." oninput="searchTtAssigneeAC(this.value)" onfocus="searchTtAssigneeAC(this.value)" autocomplete="off"/>
         <input type="hidden" id="ttAssigneeId" value=""/>
         <div id="ttAssigneeAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
