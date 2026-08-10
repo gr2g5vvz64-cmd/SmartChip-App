@@ -6373,8 +6373,9 @@ async function createDebtCaseInDjango(data){
     })}, 'ساخت پرونده مطالبات '+data.customer);
     if(res.ok) return {success:true, data:debtCaseFromApi(res.data)};
     if(res.queued) return {queued:true};
+    logAndShowError('ثبت پرونده‌ی مطالبات', JSON.stringify(res.data||res.error||'سرور جزئیات نداد'));
     return {success:false};
-  }catch(e){ return {success:false}; }
+  }catch(e){ logAndShowError('ثبت پرونده‌ی مطالبات — خطای شبکه', e); return {success:false}; }
 }
 async function updateDebtCaseInDjango(id, patch){
   try{
