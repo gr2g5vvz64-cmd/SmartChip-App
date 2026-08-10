@@ -2415,6 +2415,7 @@ const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoa
 
 let isConnected = false;
 let currentUserEmail = '';
+let currentUser = null; // {email, name, role, isStaff} — بعد از ورود موفق پر می‌شه
 
 // ══════════════════════════════════════════════════════════════
 // سیستم ورود و احراز هویت ERP
@@ -2492,6 +2493,7 @@ async function submitEmailForm(){
 }
 
 function grantAccess(userInfo){
+  currentUser = userInfo; // از این به بعد، هرجا currentUser.name لازم بود، واقعاً پره
   // مخفی کردن gate
   const gate = document.getElementById('accessGateOverlay');
   if(gate) gate.style.display='none';
