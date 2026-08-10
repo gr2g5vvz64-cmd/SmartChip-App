@@ -6399,6 +6399,22 @@ function openDebtCollectionModal(id){
   document.getElementById('debtCollectionNote').value='';
   openModal('debtCollection');
 }
+async function deleteWholeDebtCase(caseId, customerName){
+  if(!confirm(`کل پرونده‌ی مطالبات «${customerName}» حذف بشه؟\n⚠️ این کار برگشت‌پذیر نیست — همه‌ی تاریخچه‌ی وصولی‌هاش هم پاک می‌شه.`)) return;
+  toast('⏳ در حال حذف...');
+  try{
+    const httpRes = await fetch(DJANGO_DEBTS_API+caseId+'/', {method:'DELETE'});
+    if(httpRes.ok || httpRes.status===204){
+      debtCases = debtCases.filter(d=>String(d.id)!==String(caseId));
+      renderDebtCasesERP();
+      toast('✅ پرونده کامل حذف شد');
+    } else {
+      logAndShowError('حذف کل پرونده‌ی مطالبات', 'سرور جواب '+httpRes.status+' داد');
+    }
+  }catch(e){
+    logAndShowError('حذف کل پرونده‌ی مطالبات — خطای شبکه', e);
+  }
+}
 async function deleteDebtCollectionLog(caseId, logIdx){
   const dc = debtCases.find(d=>String(d.id)===String(caseId));
   if(!dc || !dc.financeLog || !dc.financeLog[logIdx]) return;
@@ -6534,6 +6550,7 @@ function renderDebtCasesERP(){
       <div style="display:flex;gap:6px;">
         ${d.remaining>0?`<button class="action-btn" style="font-size:10px;" onclick="openDebtCollectionModal('${d.id}')">💰 ثبت وصولی</button>`:''}
         ${!d.assignedTo?`<button class="action-btn" style="font-size:10px;color:var(--accent);" onclick="handoffDebtCaseToSales('${d.id}')">📤 ارجاع به فروش (CRM)</button>`:''}
+        <button class="action-btn" style="font-size:10px;color:var(--red);" onclick="deleteWholeDebtCase('${d.id}','${d.customer.replace(/'/g,"\\'")}')">🗑️ حذف کل این پرونده</button>
       </div>
     </div>`;
   };
