@@ -3942,7 +3942,7 @@ function escAttr(s){
 // تبدیل اعداد فارسی به انگلیسی — قبل از parseInt همیشه باید این صدا زده شود،
 // چون parseInt با ارقام فارسی (۰-۹) کار نمی‌کند و NaN برمی‌گرداند
 function fa2en(s){ return (s||'').toString().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
-function parseIntFa(s){ return parseInt(fa2en(s)); }
+function parseIntFa(s){ return parseInt(fa2en(String(s||'')).replace(/,/g,'')) || 0; }
 
 function shamsiDateSortVal(str){
   if(!str) return -1;
@@ -6383,8 +6383,9 @@ async function updateDebtCaseInDjango(id, patch){
   try{
     const res = await djangoFetch(DJANGO_DEBTS_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)}, 'آپدیت پرونده مطالبات '+id);
     if(res.queued) return {queued:true};
+    if(!res.ok) logAndShowError('آپدیت پرونده‌ی مطالبات', JSON.stringify(res.data||res.error||'سرور جزئیات نداد'));
     return res.ok ? {success:true, data:debtCaseFromApi(res.data)} : {success:false};
-  }catch(e){ return {success:false}; }
+  }catch(e){ logAndShowError('آپدیت پرونده‌ی مطالبات — خطای شبکه', e); return {success:false}; }
 }
 
 function searchDebtCustAutocomplete(val){
@@ -6444,6 +6445,26 @@ function openDebtCollectionModal(id){
   document.getElementById('debtCollectionDate').value=todayShamsiStr();
   document.getElementById('debtCollectionNote').value='';
   openModal('debtCollection');
+}
+async function editDebtCaseTotalAmount(caseId){
+  const dc = debtCases.find(d=>String(d.id)===String(caseId));
+  if(!dc) return;
+  const newAmountStr = prompt('مبلغ کل بدهی (ریال) رو دقیق وارد کن:', dc.totalDebt);
+  if(newAmountStr===null) return; // انصراف
+  const newAmount = parseIntFa(newAmountStr);
+  if(!newAmount){ toast('⚠ عدد نامعتبر'); return; }
+  toast('⏳ در حال ذخیره...');
+  const result = await updateDebtCaseInDjango(caseId, {total_debt: newAmount});
+  if(result.success){
+    const idx=debtCases.findIndex(d=>String(d.id)===String(caseId));
+    debtCases[idx]=result.data;
+    renderDebtCasesERP();
+    toast('✅ کل بدهی اصلاح شد — مانده‌ی جدید: '+fn(result.data.remaining)+' ریال');
+  } else if(result.queued){
+    toast('🟡 سرور کند بود — ثبت محلی شد و ظرف چند لحظه هماهنگ می‌شه');
+  } else {
+    toast('⚠️ ذخیره ناموفق بود — دوباره امتحان کن');
+  }
 }
 async function deleteWholeDebtCase(caseId, customerName){
   if(!confirm(`کل پرونده‌ی مطالبات «${customerName}» حذف بشه؟\n⚠️ این کار برگشت‌پذیر نیست — همه‌ی تاریخچه‌ی وصولی‌هاش هم پاک می‌شه.`)) return;
@@ -6577,9 +6598,12 @@ function renderDebtCasesERP(){
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong style="font-size:13px;">${d.customer}</strong>
-        <span style="font-size:11px;color:${d.remaining>0?'var(--red)':'var(--green)'};font-weight:800;">
-          مانده: ${fn(d.remaining)} ریال
-        </span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:${d.remaining>0?'var(--red)':'var(--green)'};font-weight:800;">
+            مانده: ${fn(d.remaining)} ریال
+          </span>
+          <button onclick="editDebtCaseTotalAmount('${d.id}')" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش کل بدهی</button>
+        </div>
       </div>
       <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">
         کل بدهی: ${fn(d.totalDebt)} — وصول‌شده: ${fn(d.collected)} — شروع: ${d.startDate||'—'}
