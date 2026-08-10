@@ -8632,7 +8632,9 @@ function searchAddrCompanyAC(val){
   const dd = document.getElementById('addrCompanyAC');
   if(!val||val.length<1){dd.style.display='none';return;}
   const q = normalizeFa(val.toLowerCase());
+  const PRIORITY_SET=['1','5','9'];
   const matches = (customerMaster||[])
+    .filter(c=>PRIORITY_SET.includes(fa2en(String(c.priority||'')).trim()))
     .filter(c=>normalizeFa((c.name||'').toLowerCase()).includes(q))
     .slice(0,15).map(c=>c.name);
   if(!matches.length){dd.style.display='none';return;}
@@ -9242,7 +9244,7 @@ function validateSayyad(el){
   else el.style.borderColor='';
 }
 
-function searchChqCustAC(v){var d=document.getElementById('chqCustAC');if(!d||!v){if(d)d.style.display='none';return;}var q=normalizeFa(v);var r=rankCustomerMatches(q, customerMaster||[]).slice(0,15);if(!r.length){d.style.display='none';return;}d.style.display='block';d.innerHTML=r.map(function(c){return '<div data-name='+JSON.stringify(c.name)+' onmousedown="chqSelectCust(this)" style="padding:8px 12px;cursor:pointer;font-size:12px">'+c.name+'</div>';}).join('');}
+function searchChqCustAC(v){var d=document.getElementById('chqCustAC');if(!d||!v){if(d)d.style.display='none';return;}var q=normalizeFa(v);var pool=(customerMaster||[]).filter(function(c){return ['1','5','9'].indexOf(fa2en(String(c.priority||'')).trim())>-1;});var r=rankCustomerMatches(q, pool).slice(0,15);if(!r.length){d.style.display='none';return;}d.style.display='block';d.innerHTML=r.map(function(c){return '<div data-name='+JSON.stringify(c.name)+' onmousedown="chqSelectCust(this)" style="padding:8px 12px;cursor:pointer;font-size:12px">'+c.name+'</div>';}).join('');}
 function chqSelectCust(el){var f=document.getElementById('chqCustomer');if(f)f.value=el.getAttribute('data-name')||el.textContent;var d=document.getElementById('chqCustAC');if(d)d.style.display='none';}
 function onChqSayyadChange(chk){var df=document.getElementById('chqTransferRegisteredDate');if(df&&chk&&!df.value&&typeof todayShamsiStr=='function')df.value=todayShamsiStr();}
 
@@ -10097,7 +10099,8 @@ function searchFreeRemCustAC(val){
   const box=document.getElementById('freeRemCustAC');
   if(!val||val.trim().length<1){box.style.display='none';return;}
   const q=normalizeFa(val);
-  const matches=rankCustomerMatches(q, customerMaster).slice(0,100);
+  const pool=(customerMaster||[]).filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim()));
+  const matches=rankCustomerMatches(q, pool).slice(0,100);
   if(!matches.length){box.style.display='none';return;}
   box.innerHTML=matches.map(c=>`<div onclick="pickFreeRemCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"><strong>${c.name}</strong></div>`).join('');
   box.style.display='block';
@@ -10121,31 +10124,13 @@ function searchItemSupplierMarketAC(val){
   if(!box) return;
   if(!val||val.trim().length<1){box.style.display='none';return;}
   var q=normalizeFa(val.trim().toLowerCase());
-  function showR(list){
-    var m=list.filter(function(s){return normalizeFa(s.toLowerCase()).includes(q);}).slice(0,20);
-    if(!m.length){box.style.display='none';return;}
-    box.style.display='block';
-    box.innerHTML=m.map(function(s){
-      return '<div onmousedown="pickItemSupplierMarket(this)" data-name="'+s.replace(/"/g,'&quot;')+'" style="padding:7px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">'+s+'</div>';
-    }).join('');
-  }
-  if(window._supplierCache&&window._supplierCache.length){showR(window._supplierCache);return;}
-  box.innerHTML='<div style="padding:8px;font-size:10px;color:var(--muted)">جستجو...</div>';
+  var list=getDomesticSupplierNames();
+  var m=list.filter(function(s){return normalizeFa(s.toLowerCase()).includes(q);}).slice(0,20);
+  if(!m.length){box.style.display='none';return;}
   box.style.display='block';
-  clearTimeout(window._supTimer);
-  window._supTimer=setTimeout(async function(){
-    try{
-      var res=await sheetCall('getSupplierList');
-      if(res&&res.suppliers&&res.suppliers.length){
-        window._supplierCache=res.suppliers;
-        showR(res.suppliers);
-      } else {
-        var fb=(customerMaster||[]).map(function(c){return c.name;}).filter(Boolean);
-        window._supplierCache=fb;
-        showR(fb);
-      }
-    }catch(err){box.style.display='none';}
-  },200);
+  box.innerHTML=m.map(function(s){
+    return '<div onmousedown="pickItemSupplierMarket(this)" data-name="'+s.replace(/"/g,'&quot;')+'" style="padding:7px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">'+s+'</div>';
+  }).join('');
 }
 
 
@@ -10334,7 +10319,8 @@ function searchTaskCustAC(val){
   var dd = document.getElementById('tCustAC');
   if(!dd||!val||val.length<1){if(dd)dd.style.display='none';return;}
   var q = normalizeFa(val);
-  var res = rankCustomerMatches(q, customerMaster||[]).slice(0,12);
+  var pool = (customerMaster||[]).filter(function(c){return ['1','5','9'].indexOf(fa2en(String(c.priority||'')).trim())>-1;});
+  var res = rankCustomerMatches(q, pool).slice(0,12);
   if(!res.length){dd.style.display='none';return;}
   dd.style.display='block';
   dd.innerHTML=res.map(function(c){return '<div data-name="'+c.name+'" onmousedown="taskSelectCust(this)" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">'+c.name+'</div>';}).join('');
