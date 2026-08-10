@@ -1430,7 +1430,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <span style="font-size:15px">📋</span>
         <span>مشتریانی که در درخواست‌شان آیتمی برای «تأمین خارج» ثبت شده — روی نام مشتری بزن تا وارد صفحه‌ی استعلامات خارج شوی.</span>
       </div>
-      <div class="sec-hdr"><div class="sec-title">📂 نیازمند استعلام/تکمیل</div></div>
+
+      <div class="sec-hdr"><div class="sec-title">📂 نیازمند استعلام (هنوز منتظر تصمیم مشتری)</div></div>
       <div class="tbl-wrap">
         <div class="tbl-hdr">
           <div class="sec-title">نیاز مشتری خارج</div>
@@ -1439,8 +1440,17 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <table><thead><tr><th>مشتری</th><th>تعداد آیتم</th><th>استعلام‌شده</th><th>تأیید‌شده</th><th>رسیده</th><th></th></tr></thead><tbody id="foreignNeedBody"></tbody></table>
       </div>
 
+      <div class="sec-hdr" style="margin-top:24px"><div class="sec-title">🚚 تکمیل — سفارش ثبت شده، منتظر رسیدن به دفتر</div></div>
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <div class="sec-title">در حال پیگیری</div>
+          <div class="search-box"><span>🔍</span><input type="text" placeholder="جستجو: نام مشتری..." oninput="searchForeignNeedInProgress(this.value)"/></div>
+        </div>
+        <table><thead><tr><th>مشتری</th><th>تعداد آیتم</th><th>سفارش‌شده</th><th></th></tr></thead><tbody id="foreignNeedInProgressBody"></tbody></table>
+      </div>
+
       <div class="sec-hdr" style="margin-top:30px;cursor:pointer" onclick="toggleArchive('foreignneed')">
-        <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی (مشتریانی که کارشان کامل تعیین‌تکلیف شده) <span id="foreignneedArchiveCount" style="font-size:11px"></span></div>
+        <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی (رسیده یا کنسل‌شده) <span id="foreignneedArchiveCount" style="font-size:11px"></span></div>
         <span id="foreignneedArchiveChevron" style="color:var(--muted)">›</span>
       </div>
       <div id="foreignneedArchiveBox" style="display:none;">
@@ -5086,9 +5096,10 @@ function buildForeignNeedRows(){
     const items=(r.parts.foreignItems||[]).filter(it=>it.status!=='canceled_customer'); // آیتم‌های کنسل‌شده هم حذف بشن
     if(!items.length) return;
     const m={customer:r.customer, requestId:r.id, displayNumber:r.displayNumber||r.id, date:r.date||'',
-             totalItems:0, quoted:0, approved:0, orderedShipping:0, arrived:0, deliveredToCustomer:0, notfound:0};
+             totalItems:0, pending:0, quoted:0, approved:0, orderedShipping:0, arrived:0, deliveredToCustomer:0, notfound:0};
     items.forEach(it=>{
       m.totalItems++;
+      if(!it.status || it.status==='new') m.pending++;
       if(it.status==='quoted')   m.quoted++;
       if(it.status==='approved') m.approved++;
       if(it.status==='ordered_shipping') m.orderedShipping++;
@@ -5096,14 +5107,20 @@ function buildForeignNeedRows(){
       if(it.status==='delivered_to_customer') m.deliveredToCustomer++;
       if(it.status==='notfound') m.notfound++;
     });
-    rows.push({...m, resolved:m.deliveredToCustomer+m.notfound});
+    // «نیازمند استعلام» = حداقل یه آیتم هنوز new/quoted (منتظر تصمیم مشتری)
+    const needsInquiry = (m.pending + m.quoted) > 0;
+    // «رسیده/بسته» = arrived، delivered یا notfound — دیگه کاری روش نمی‌کنیم
+    const resolved = m.deliveredToCustomer + m.notfound + m.arrived;
+    // «بایگانی» = همه‌ی آیتم‌ها رسیده/بسته شدن
+    const isArchived = resolved === m.totalItems;
+    rows.push({...m, resolved, needsInquiry, isArchived});
   });
   // قدیمی‌ترین درخواست بالا
   rows.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
   return rows;
 }
 function renderForeignNeed(){
-  let rows=buildForeignNeedRows().filter(r=>r.resolved<r.totalItems);
+  let rows=buildForeignNeedRows().filter(r=>r.needsInquiry);
   if(curForeignNeedSearch){
     const q=normalizeFa(curForeignNeedSearch);
     rows=rows.filter(r=>normalizeFa(r.customer).includes(q));
@@ -5122,12 +5139,31 @@ function renderForeignNeed(){
       <button class="action-btn" style="color:#f87171;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06)" onclick="event.stopPropagation();cancelAllForeignNeed('${escAttr(r.customer)}','${r.requestId}')">❌ کنسلی این درخواست</button>
     </td>
   </tr>`).join('');
+  renderForeignNeedInProgress();
   renderForeignNeedArchive();
+}
+let curForeignNeedInProgressSearch='';
+function searchForeignNeedInProgress(v){curForeignNeedInProgressSearch=v;renderForeignNeedInProgress();}
+function renderForeignNeedInProgress(){
+  let rows=buildForeignNeedRows().filter(r=>!r.needsInquiry && !r.isArchived);
+  if(curForeignNeedInProgressSearch){
+    const q=normalizeFa(curForeignNeedInProgressSearch);
+    rows=rows.filter(r=>normalizeFa(r.customer).includes(q));
+  }
+  const el=document.getElementById('foreignNeedInProgressBody');
+  if(!el) return;
+  if(!rows.length){el.innerHTML=`<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🚚</div><div class="empty-text">موردی در حال پیگیری نیست</div></div></td></tr>`;return;}
+  el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openForeignEstelamatByRequest('${r.requestId}')">
+    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${r.displayNumber||''}</span></td>
+    <td>${fn(r.totalItems)}</td>
+    <td style="color:#60a5fa">${fn(r.approved+r.orderedShipping)}</td>
+    <td><button class="action-btn">مشاهده ›</button></td>
+  </tr>`).join('');
 }
 function searchForeignNeed(v){curForeignNeedSearch=v;renderForeignNeed();}
 function searchForeignNeedArchive(v){curForeignNeedArchiveSearch=v;renderForeignNeedArchive();}
 function renderForeignNeedArchive(){
-  let rows=buildForeignNeedRows().filter(r=>r.totalItems>0 && r.resolved===r.totalItems);
+  let rows=buildForeignNeedRows().filter(r=>r.isArchived);
   const countEl=document.getElementById('foreignneedArchiveCount');
   if(countEl) countEl.textContent=`(${fn(rows.length)} مورد)`;
   if(curForeignNeedArchiveSearch){
