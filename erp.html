@@ -926,6 +926,16 @@ textarea.form-control{resize:vertical;min-height:70px;}
     showGlobalErrorBanner(`⚠️ یه خطای فنی رخ داد (${e.reason})`);
     console.error('🔴 خطای Promise گرفته‌شده:', msg);
   });
+  // برای صدازدن دستی از هر جای کد — وقتی یه دکمه/اکشن «بی‌صدا» شکست می‌خوره
+  // (نه exception پرتاب‌شده، بلکه یه منطق نادرست مثل پیدانشدن آیتم تو لیست محلی).
+  // این‌جوری دیگه هیچ باگی فقط تو کنسول (که کاربر معمولاً بازش نمی‌کنه) گم نمی‌شه —
+  // هم رو صفحه (نوار قرمز) هم تو کنسول با جزئیات کامل ثبت می‌شه.
+  function logAndShowError(context, detail){
+    const msg = `خطا در «${context}»: ${detail}`;
+    window._lastErrorDetails = msg;
+    showGlobalErrorBanner(`⚠️ یه اقدام شکست خورد — ${context}: ${detail}`);
+    console.error('🔴 [logAndShowError]', msg);
+  }
   function copyErrorDetails(){
     if(navigator.clipboard) navigator.clipboard.writeText(window._lastErrorDetails||'خطایی ثبت نشده');
     alert('جزئیات خطا کپی شد — تو تلگرام/چت برای پشتیبانی پیست کن:\n\n'+(window._lastErrorDetails||''));
@@ -4786,8 +4796,8 @@ async function markDomesticItemCollected(reqId, itemIdx){
       body: JSON.stringify({itemIdx, trackingCode:r.displayNumber||''})
     });
     const res = await httpRes.json();
-    if(!res || !res.ok) console.error('🔴 آبشار جمع‌آوری گیر کرد:', res?.error||'نامشخص');
-  }catch(e){ console.error('🔴 آبشار جمع‌آوری — خطای شبکه:', e); }
+    if(!res || !res.ok) logAndShowError('جمع‌آوری آیتم داخل (مرحله‌ی تکمیلی)', res?.error||'نامشخص — خودِ وضعیت ذخیره شد، ولی این مرحله ناقص موند');
+  }catch(e){ logAndShowError('جمع‌آوری آیتم داخل — خطای شبکه در مرحله‌ی تکمیلی', e); }
   toast('✅ جمع‌آوری ثبت شد — آماده‌ی ورود به انبار');
 }
 function estelamatItemCardHTML(reqId,itemIdx,item){
@@ -4950,9 +4960,9 @@ async function checkDomesticQuoteCascade(r){
         toast('✅ همه‌ی آیتم‌های این درخواست تعیین‌تکلیف شدن — آماده‌ی پیش‌فاکتور تو CRM');
       }
     } else {
-      console.error('🔴 آبشار تدارکات داخل گیر کرد:', res?.error||'نامشخص');
+      logAndShowError('چک تکمیل‌شدن تدارکات داخل', res?.error||'نامشخص');
     }
-  }catch(e){ console.error('🔴 آبشار تدارکات داخل — خطای شبکه:', e); }
+  }catch(e){ logAndShowError('چک تکمیل‌شدن تدارکات داخل — خطای شبکه', e); }
 }
 function updateEstelamatQuote(safeKey,qIdx,field,value){
   const found=findReqAndItem(safeKey);
@@ -5387,9 +5397,9 @@ async function checkForeignQuoteCascade(r){
         toast('✅ همه‌ی آیتم‌های خارج این درخواست تعیین‌تکلیف شدن — آماده‌ی پیش‌فاکتور تو CRM');
       }
     } else {
-      console.error('🔴 آبشار بازرگانی گیر کرد:', res?.error||'نامشخص');
+      logAndShowError('چک تکمیل‌شدن بازرگانی', res?.error||'نامشخص');
     }
-  }catch(e){ console.error('🔴 آبشار بازرگانی — خطای شبکه:', e); }
+  }catch(e){ logAndShowError('چک تکمیل‌شدن بازرگانی — خطای شبکه', e); }
 }
 function updateEstelamatForeignQuote(safeKey,qIdx,field,value){
   const found=findForeignReqAndItem(safeKey);
@@ -6841,9 +6851,9 @@ async function markPackingSent(pkId){
           if(res && res.ok && res.fullyDone){
             toast('✅✅ همه‌ی این درخواست تحویل شد — کامل بایگانی شد، برگشت به CRM');
           } else if(!res || !res.ok){
-            console.error('🔴 آبشار ارسال نهایی گیر کرد برای', it.reqId, ':', res?.error||'نامشخص');
+            logAndShowError('آبشار ارسال نهایی برای '+it.reqId, res?.error||'نامشخص');
           }
-        }catch(e){ console.error('🔴 آبشار ارسال نهایی — خطای شبکه:', e); }
+        }catch(e){ logAndShowError('آبشار ارسال نهایی — خطای شبکه', e); }
       }
     }
   }
@@ -8652,7 +8662,7 @@ async function openChequeReceivedModal(id){
   const title=document.getElementById('modalChequereceivedTitle');
   if(title) title.textContent=id?'✏️ ویرایش چک دریافتی':'💳 ثبت چک دریافتی جدید';
   if(id){
-    const c=(chequesReceived||[]).find(x=>x.id===id);
+    const c=(chequesReceived||[]).find(x=>String(x.id)===String(id));
     if(c){
       const sv=(fid,val)=>{const el=document.getElementById(fid);if(el)el.value=val||'';};
       sv('chqDateReceived',c.dateReceived);
@@ -8673,7 +8683,7 @@ async function openChequeReceivedModal(id){
 function buildChequeReceivedModal(){}
 async function markChequeReturned(id){
   if(!confirm('این چک برگشت خورد؟')) return;
-  const c=(chequesReceived||[]).find(x=>x.id===id);
+  const c=(chequesReceived||[]).find(x=>String(x.id)===String(id));
   if(!c) return;
   c.returned=true;
   renderChequesReceived();
@@ -11497,14 +11507,14 @@ async function setWarehouseDelayReason(whId){
 
 
 function openReturnedChequeDetail(id){
-  const c=(chequesReceived||[]).find(x=>x.id===id);
+  const c=(chequesReceived||[]).find(x=>String(x.id)===String(id));
   if(!c) return;
   document.getElementById('returnedChqTitle').textContent='چک برگشتی — '+(c.transferor||c.customer||'');
   renderReturnedChequeBody(id);
   document.getElementById('modalReturnedCheque').classList.add('open');
 }
 function renderReturnedChequeBody(id){
-  const c=(chequesReceived||[]).find(x=>x.id===id);
+  const c=(chequesReceived||[]).find(x=>String(x.id)===String(id));
   const el=document.getElementById('returnedChqBody');
   if(!c||!el) return;
   const log=c.followUpLog||[];
@@ -11537,7 +11547,7 @@ async function addFollowUpNote(id){
   const input=document.getElementById('newFollowUpNote');
   const note=input.value.trim();
   if(!note){ toast('⚠️ یادداشت خالیه'); return; }
-  const c=(chequesReceived||[]).find(x=>x.id===id);
+  const c=(chequesReceived||[]).find(x=>String(x.id)===String(id));
   if(!c) return;
   if(!c.followUpLog) c.followUpLog=[];
   c.followUpLog.push({date:todayShamsiStr(), note});
@@ -11549,7 +11559,7 @@ async function addFollowUpNote(id){
   }
 }
 async function setChequeResolution(id, status){
-  const c=(chequesReceived||[]).find(x=>x.id===id);
+  const c=(chequesReceived||[]).find(x=>String(x.id)===String(id));
   if(!c) return;
   c.resolutionStatus=status;
   c.resolutionDate=todayShamsiStr();
@@ -11745,7 +11755,7 @@ function renderDeptFeedback(deptKey){
 async function resolveDeptFeedback(id, deptKey){
   const note=prompt('توضیح رسیدگی (اختیاری):','');
   if(note===null) return;
-  const f=(deliveryFeedback||[]).find(x=>x.id===id);
+  const f=(deliveryFeedback||[]).find(x=>String(x.id)===String(id));
   if(f){ if(!f.resolvedStatus) f.resolvedStatus={}; f.resolvedStatus[deptKey]={resolved:true, note}; }
   renderDeptFeedback(deptKey);
   await markFeedbackDeptResolvedInDjango(id, deptKey, note);
@@ -11832,7 +11842,7 @@ function buildUrgentShipBannerHTML(){
   </div>`;
 }
 async function resolveUrgentShipUI(id){
-  const u=(urgentShipRequests||[]).find(x=>x.id===id);
+  const u=(urgentShipRequests||[]).find(x=>String(x.id)===String(id));
   if(u) u.resolved=true;
   renderWarehouse();
   await resolveUrgentShipInDjango(id);
@@ -11886,8 +11896,7 @@ async function respondToSuggestion(id){
     renderSuggestions();
     toast('✅ پاسخ ثبت شد — برگشت به CRM');
   } else {
-    console.error('🔴 ثبت پاسخ پیشنهاد گیر کرد:', res?.error||'نامشخص');
-    toast('🔴 گیر کرد! خطا: '+(res?.error||'نامشخص'));
+    logAndShowError('ثبت پاسخ پیشنهاد', res?.error||'نامشخص');
   }
 }
 function renderFinanceTasks(){
@@ -11920,8 +11929,8 @@ function renderFinanceTasks(){
 }
 
 async function markFinanceTaskDone(id){
-  const t=(financeTasks||[]).find(x=>x.id===id);
-  if(!t) return;
+  const t=(financeTasks||[]).find(x=>String(x.id)===String(id));
+  if(!t){ logAndShowError('markFinanceTaskDone', `تسک با شناسه ${id} تو لیست محلی پیدا نشد (شاید هنوز لود نشده یا آیدی اشتباهه)`); return; }
   const note = prompt('توضیح کاری که انجام شد (برای کارشناس فروش و مشتری):') || '';
   const doneBy = currentUser?(currentUser.name||currentUser.email):'';
   toast('⏳ در حال ثبت آبشاری...');
