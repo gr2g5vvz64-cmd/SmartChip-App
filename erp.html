@@ -1690,7 +1690,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px;">
     <div style="flex:1;position:relative;">
       <div style="display:flex;gap:6px;align-items:center;">
-        <input type="text" id="dpCustomerInput" class="form-control" style="font-size:17px;font-weight:800;padding:7px 12px;" oninput="searchDpCustAutocomplete(this.value)" autocomplete="off"/>
+        <input type="text" id="dpCustomerInput" class="form-control" style="font-size:17px;font-weight:800;padding:7px 12px;" oninput="searchDpCustAutocomplete(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
         <button class="action-btn" onclick="saveDpCustomerName()" title="ذخیره نام جدید">✓ ذخیره</button>
       </div>
       <div id="dpCustAutocompleteList" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:90;"></div>
@@ -1748,7 +1748,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="form-grid">
       <div class="form-group" style="position:relative">
         <label class="form-label">نام مشتری *</label>
-        <input class="form-control" id="rCust" placeholder="مثلاً: سایلکس" oninput="searchCustAutocomplete(this.value)" autocomplete="off"/>
+        <input class="form-control" id="rCust" placeholder="مثلاً: سایلکس" oninput="searchCustAutocomplete(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
         <div id="custAutocompleteList" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
       </div>
       <div class="form-group"><label class="form-label">مسئول کار</label><select class="form-control" id="rAssign"><option>چاوشی</option><option>حسین پور</option><option>علی امیری</option><option>ناصری راد</option></select></div>
@@ -1937,7 +1937,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="form-grid">
       <div class="form-group form-full" style="position:relative">
         <label class="form-label">نام مشتری *</label>
-        <input class="form-control" id="debtCaseCustomerInput" placeholder="تایپ کن، از لیست انتخاب کن..." oninput="searchDebtCustAutocomplete(this.value)" autocomplete="off"/>
+        <input class="form-control" id="debtCaseCustomerInput" placeholder="تایپ کن، از لیست انتخاب کن..." oninput="searchDebtCustAutocomplete(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
         <div id="debtCustAutocompleteList" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;max-height:220px;overflow-y:auto;z-index:50;margin-top:4px;"></div>
       </div>
       <div class="form-group form-full"><label class="form-label">مبلغ کل بدهی (ریال) *</label><input class="form-control" id="debtCaseAmountInput" type="text" inputmode="numeric" oninput="fmtEst3(this)" placeholder="مثلاً 50000000"/></div>
@@ -2043,7 +2043,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="form-group form-full"><label class="form-label">عنوان موضوع *</label><input class="form-control" id="recTitle" placeholder="مثلاً: تماس با تامین‌کننده Yageo"/></div>
       <div class="form-group form-full" style="position:relative">
         <label class="form-label">مرتبط با مشتری (اختیاری)</label>
-        <input class="form-control" id="recCust" placeholder="مثلاً: پرهون" oninput="searchRecCustAutocomplete(this.value)" autocomplete="off"/>
+        <input class="form-control" id="recCust" placeholder="مثلاً: پرهون" oninput="searchRecCustAutocomplete(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
         <div id="recCustAutocompleteList" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:90;"></div>
       </div>
       <div class="form-group"><label class="form-label">تاریخ شروع شمارش</label><input class="form-control" id="recStartDate" placeholder="پیش‌فرض: امروز" readonly style="cursor:pointer" onclick="openDatePicker('recStartDate')"/></div>
@@ -3969,7 +3969,8 @@ function searchCustAutocomplete(val) {
   const infoPanel = document.getElementById('custInfoPanel');
   if (!val || val.trim().length < 1) { box.style.display='none'; infoPanel.style.display='none'; return; }
   const q = normalizeFa(val);
-  const allMatches = rankCustomerMatches(q, customerMaster);
+  const pool = (customerMaster||[]).filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim()));
+  const allMatches = rankCustomerMatches(q, pool);
   const matches = allMatches.slice(0, 50);
   if (!matches.length) { box.style.display='none'; return; }
   box.innerHTML = matches.map(c => `
@@ -3993,7 +3994,8 @@ function searchRecCustAutocomplete(val) {
   const box = document.getElementById('recCustAutocompleteList');
   if (!val || val.trim().length < 1) { box.style.display='none'; return; }
   const q = normalizeFa(val);
-  const matches = rankCustomerMatches(q, customerMaster).slice(0, 50);
+  const pool = (customerMaster||[]).filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim()));
+  const matches = rankCustomerMatches(q, pool).slice(0, 50);
   if (!matches.length) { box.style.display='none'; return; }
   box.innerHTML = matches.map(c => `
     <div onclick="pickRecCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
@@ -6386,7 +6388,8 @@ function searchDebtCustAutocomplete(val){
   const box=document.getElementById('debtCustAutocompleteList');
   if(!val||val.trim().length<1){box.style.display='none';return;}
   const q=normalizeFa(val);
-  const matches=rankCustomerMatches(q, customerMaster).slice(0,100);
+  const pool=(customerMaster||[]).filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim()));
+  const matches=rankCustomerMatches(q, pool).slice(0,100);
   if(!matches.length){box.style.display='none';return;}
   box.innerHTML=matches.map(c=>`
     <div onclick="pickDebtCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
@@ -10210,7 +10213,8 @@ function searchDpCustAutocomplete(val){
   const box=document.getElementById('dpCustAutocompleteList');
   if(!val||val.trim().length<1){box.style.display='none';return;}
   const q=normalizeFa(val);
-  const matches=rankCustomerMatches(q, customerMaster).slice(0,100);
+  const pool=(customerMaster||[]).filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim()));
+  const matches=rankCustomerMatches(q, pool).slice(0,100);
   if(!matches.length){box.style.display='none';return;}
   box.innerHTML=matches.map(c=>`
     <div onclick="pickDpCustomer('${c.name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
