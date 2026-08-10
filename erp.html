@@ -1534,7 +1534,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <input type="hidden" id="freeRemEditId" value=""/>
         <div class="form-grid">
           <div class="form-group form-full" style="position:relative"><label class="form-label">نام مشتری (اختیاری)</label>
-            <input class="form-control" id="freeRemCust" placeholder="مثلاً: پرهون" oninput="searchFreeRemCustAC(this.value)" autocomplete="off"/>
+            <input class="form-control" id="freeRemCust" placeholder="مثلاً: پرهون" oninput="searchFreeRemCustAC(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
             <div id="freeRemCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;"></div>
           </div>
           <div class="form-group form-full"><label class="form-label">شرح یادآوری *</label><textarea class="form-control" id="freeRemDesc" placeholder="مثلاً: تماس با اداره دارایی برای مفاصا حساب"></textarea></div>
@@ -1879,7 +1879,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="form-grid">
       <div class="form-group form-full" id="itemSupplierMarketGroup" style="position:relative;display:none;">
         <label class="form-label">تامین‌کننده داخل (از لیست مشتریان) *</label>
-        <input class="form-control" id="itemSupplierMarketInput" placeholder="مثلاً: پرهون" oninput="searchItemSupplierMarketAC(this.value)" autocomplete="off"/>
+        <input class="form-control" id="itemSupplierMarketInput" placeholder="مثلاً: پرهون" oninput="searchItemSupplierMarketAC(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
         <div id="itemSupplierMarketAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:180px;overflow-y:auto;z-index:95;"></div>
       </div>
       <div class="form-group form-full" id="itemSupplierForeignGroup" style="display:none;">
@@ -2008,7 +2008,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="form-group form-full"><label class="form-label">عنوان کار *</label><input class="form-control" id="tTitle" placeholder="مثلاً: بروزرسانی قیمت محصولات سایت"/></div>
       <div class="form-group form-full"><label class="form-label">توضیحات کامل</label><textarea class="form-control" id="tDesc" placeholder="جزئیات کار، انتظارات، منابع مورد نیاز..."></textarea></div>
       <div class="form-group"><label class="form-label">ددلاین</label><input class="form-control" id="tDeadline" placeholder="۱۴۰۵/۰۴/۰۱" onfocus="openDatePicker('tDeadline')" readonly/></div>
-      <div class="form-group" style="position:relative;"><label class="form-label">مرتبط با مشتری (اختیاری)</label><input class="form-control" id="tCust" placeholder="نام مشتری..." oninput="searchTaskCustAC(this.value)" autocomplete="off"/><div class="autocomplete-list" id="tCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:160px;overflow-y:auto;z-index:80;"></div></div>
+      <div class="form-group" style="position:relative;"><label class="form-label">مرتبط با مشتری (اختیاری)</label><input class="form-control" id="tCust" placeholder="نام مشتری..." oninput="searchTaskCustAC(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/><div class="autocomplete-list" id="tCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:160px;overflow-y:auto;z-index:80;"></div></div>
       <div class="form-group form-full">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 14px;">
           <input type="checkbox" id="tForce" style="width:18px;height:18px;accent-color:#ef4444;">
@@ -2288,7 +2288,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <div style="position:relative">
           <input class="form-control" id="addrCompanyName"
             placeholder="از لیست مشتریان تایپ کنید..."
-            oninput="searchAddrCompanyAC(this.value)" autocomplete="off"/>
+            oninput="searchAddrCompanyAC(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
           <div id="addrCompanyAC" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:99;
             background:var(--card);border:1px solid var(--border);border-radius:8px;
             max-height:140px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.3)"></div>
@@ -2327,7 +2327,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="form-group"><label class="form-label">تاریخ دریافت</label><input class="form-control" id="chqDateReceived" placeholder="پیش‌فرض: امروز" readonly style="cursor:pointer" onclick="openDatePicker('chqDateReceived')"/></div>
       <div class="form-group"><label class="form-label">نام واگذارنده</label>
         <div style="position:relative">
-          <input class="form-control" id="chqTransferor" placeholder="نام واگذارنده را سرچ کن..." oninput="searchChqTransferorAC(this.value)" autocomplete="off"/>
+          <input class="form-control" id="chqTransferor" placeholder="نام واگذارنده را سرچ کن..." oninput="searchChqTransferorAC(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/>
           <div class="autocomplete-list" id="chqTransferorAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:160px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.3);"></div>
         </div>
       </div>
@@ -2337,7 +2337,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="form-group"><label class="form-label">سریال چک</label><input class="form-control" id="chqSerial" placeholder="مثلاً: 931850"/></div>
       <div class="form-group"><label class="form-label">تاریخ سررسید</label><input class="form-control" id="chqDueDate" placeholder="انتخاب از تقویم" readonly style="cursor:pointer" onclick="openDatePickerTop('chqDueDate')"/></div>
       <div class="form-group form-full"><label class="form-label">مبلغ (ریال)</label><input class="form-control" id="chqAmount" type="text" inputmode="numeric" placeholder="مثلاً: 90,000,000" oninput="formatChqAmount(this)"/></div>
-      <div class="form-group" style="position:relative"><label class="form-label">نام مشتری</label><input class="form-control" id="chqCustomer" placeholder="نام مشتری را سرچ کن..." oninput="searchChqCustAC(this.value)" autocomplete="off"/><div class="autocomplete-list" id="chqCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:160px;overflow-y:auto;z-index:80;"></div></div>
+      <div class="form-group" style="position:relative"><label class="form-label">نام مشتری</label><input class="form-control" id="chqCustomer" placeholder="نام مشتری را سرچ کن..." oninput="searchChqCustAC(this.value)" onfocus="ensureCustomerMasterLoaded()" autocomplete="off"/><div class="autocomplete-list" id="chqCustAC" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:160px;overflow-y:auto;z-index:80;"></div></div>
       <div class="form-group"><label class="form-label">نام گیرنده (انتقال‌گرفته)</label><input class="form-control" id="chqRecipient" placeholder="مثلاً: مهدی سلمان"/></div>
       <div class="form-group form-full"><label class="form-label">کد ملی گیرنده</label><input class="form-control" id="chqRecipientNationalId" placeholder="مثلاً: 5409948092" style="direction:ltr;text-align:left"/></div>
       <!-- ✅ ثبت صیادی اول، سپس برگشتی — با تاریخ خودکار -->
@@ -3779,6 +3779,16 @@ async function syncItemsToDjango(){
   if(btn) btn.disabled = false;
 }
 
+// تابع کمکی مشترک — رو onfocus هر فیلد سرچ مشتری صداش می‌زنیم. اگه customerMaster
+// هنوز خالیه (مثلاً چون از لینک مستقیم وارد شدیم و صفحه زودتر از داده رندر شد)،
+// فوری یه تلاش دیگه برای بارگذاری می‌کنه. این دقیقاً همون فیکسیه که برای
+// تأمین‌کننده خارج جواب داد — الان مرکزی شده تا دیگه یادم نره جای دیگه‌ای بذارمش.
+function ensureCustomerMasterLoaded(){
+  if(!customerMaster.length && !window._loadingSupplierRetry){
+    window._loadingSupplierRetry=true;
+    loadCustomerMaster().finally(()=>{window._loadingSupplierRetry=false;});
+  }
+}
 async function loadCustomerMaster() {
   const infoEl = document.getElementById('custLoadInfo');
   try{
@@ -5139,7 +5149,7 @@ function openEstelamatForeign(customerName){
 // روشون نشده (new)، یا منتظر تصمیم مشتری‌ایم (quoted)، یا مشتری تأیید کرده و
 // منتظر ثبت سفارش از طرف ماست (approved). فقط وقتی سفارش واقعاً ثبت بشه
 // (ordered_shipping به بعد) یا کاملاً بسته بشه (notfound/canceled) بایگانی می‌شه.
-const FOREIGN_ACTIVE_STATUSES=['new','quoted','approved',undefined,'']; // وضعیت خالی هم یعنی new
+const FOREIGN_ACTIVE_STATUSES=['pending','new','quoted','approved',undefined,'']; // وضعیت اولیه‌ی واقعی «pending»ه، نه «new» — دیروز اشتباه گرفتم
 function getCustomerForeignItems(customerName){
   const items=[];
   requests.forEach(r=>{
@@ -5298,7 +5308,7 @@ function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
         <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700;width:16px;">#${qIdx+1}</span>
         <input list="foreignSupplierList_${safeKey}" class="form-control" style="font-size:11px;padding:5px 7px;font-weight:700;flex:1.4;min-width:110px;" ${itemClosed?'disabled':''}
           value="${(q.supplier||'').replace(/"/g,'&quot;')}"
-          onfocus="if(!customerMaster.length && !window._loadingSupplierRetry){window._loadingSupplierRetry=true;loadCustomerMaster().finally(()=>{window._loadingSupplierRetry=false;});}"
+          onfocus="ensureCustomerMasterLoaded()"
           onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'supplier',this.value)" placeholder="نام تأمین‌کننده..."/>
         <input class="form-control" style="font-size:11px;padding:5px 7px;flex:0.8;min-width:60px;text-align:center" type="text" inputmode="decimal"
           value="${q.price||''}" ${itemClosed?'disabled':''}
