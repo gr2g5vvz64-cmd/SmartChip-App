@@ -5308,38 +5308,49 @@ function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
   if(!beyondQuoting){
     // هر آیتم اسلات‌های خودش رو داره — نه بر اساس کل تأمین‌کنندگان سیستم. حداقل ۲ تا
     // اسلات همیشه نشون داده می‌شه، و با دکمه‌ی «+ افزودن» می‌شه بیشتر اضافه کرد.
-    // هر تأمین‌کننده یه سطر افقی واحده: نام | فی | توضیح | ETA۱ | ETA۲ | ثبت
+    // دو تأمین‌کننده تو یه سطر افقی واحد کنار هم — نه دو سطر جدا از هم.
     const slotCount = Math.max(2, quotes.length);
-    function rowForeign(qIdx){
+    function halfForeign(qIdx){
       const q=quotes[qIdx]||{supplier:'',price:'',note:'',day1:'',day2:''};
       const rowKey=`${reqId}_${itemIdx}_${qIdx}`;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:8px;
-        background:rgba(255,255,255,.02);border-radius:9px;border:1px solid rgba(255,255,255,.07);margin-bottom:6px;flex-wrap:wrap;">
-        <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700;width:16px;">#${qIdx+1}</span>
-        <input list="foreignSupplierList_${safeKey}" class="form-control" style="font-size:11px;padding:5px 7px;font-weight:700;flex:1.4;min-width:110px;" ${itemClosed?'disabled':''}
-          value="${(q.supplier||'').replace(/"/g,'&quot;')}"
-          onfocus="ensureCustomerMasterLoaded()"
-          onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'supplier',this.value)" placeholder="نام تأمین‌کننده..."/>
-        <input class="form-control" style="font-size:11px;padding:5px 7px;flex:0.8;min-width:60px;text-align:center" type="text" inputmode="decimal"
+      return `<div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;">
+        <span style="font-size:9px;color:var(--muted);flex-shrink:0;font-weight:700;">#${qIdx+1}</span>
+        <div style="position:relative;flex:1.1;min-width:70px;">
+          <input class="form-control" style="font-size:10.5px;padding:5px 6px;font-weight:700;width:100%;" ${itemClosed?'disabled':''}
+            id="foSup_${rowKey}" value="${(q.supplier||'').replace(/"/g,'&quot;')}"
+            oninput="searchForeignSupplierAC('${rowKey}',this.value,'${reqId}','${itemIdx}',${qIdx})"
+            onfocus="ensureCustomerMasterLoaded();searchForeignSupplierAC('${rowKey}',this.value,'${reqId}','${itemIdx}',${qIdx})"
+            onblur="setTimeout(()=>{const b=document.getElementById('foSupAC_${rowKey}');if(b)b.style.display='none';},200)"
+            placeholder="نام تأمین‌کننده..." autocomplete="off"/>
+          <div id="foSupAC_${rowKey}" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:2px;max-height:150px;overflow-y:auto;z-index:200;box-shadow:0 8px 20px rgba(0,0,0,.4);"></div>
+        </div>
+        <input class="form-control" style="font-size:10.5px;padding:5px 5px;flex:0.6;min-width:38px;text-align:center" type="text" inputmode="decimal"
           value="${q.price||''}" ${itemClosed?'disabled':''}
           onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'price',this.value)" placeholder="فی"/>
-        <input class="form-control" style="font-size:11px;padding:5px 7px;flex:1.2;min-width:90px;" type="text"
+        <input class="form-control" style="font-size:10.5px;padding:5px 5px;flex:0.9;min-width:55px;" type="text"
           value="${(q.note||'').replace(/"/g,'&quot;')}" ${itemClosed?'disabled':''}
           onchange="updateEstelamatForeignQuote('${safeKey}',${qIdx},'note',this.value)" placeholder="توضیح"/>
-        <input class="form-control" style="font-size:10px;padding:5px 4px;width:36px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
+        <input class="form-control" style="font-size:9.5px;padding:5px 3px;width:28px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
           id="foDay1_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day1||''}"
-          oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="ETA۱"/>
-        <input class="form-control" style="font-size:10px;padding:5px 4px;width:36px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
+          oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="E۱"/>
+        <input class="form-control" style="font-size:9.5px;padding:5px 3px;width:28px;flex-shrink:0;text-align:center" type="text" inputmode="numeric"
           id="foDay2_${rowKey}" ${itemClosed?'disabled':''} maxlength="2" value="${q.day2||''}"
-          oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="ETA۲"/>
-        <button class="action-btn" style="font-size:9px;padding:5px 9px;flex-shrink:0;white-space:nowrap;"
+          oninput="updateForeignRowDates('${reqId}','${itemIdx}',${qIdx})" placeholder="E۲"/>
+        <button class="action-btn" style="font-size:9px;padding:5px 7px;flex-shrink:0;white-space:nowrap;"
           id="foSubmitBtn_${rowKey}" ${itemClosed?'disabled':''}
-          onclick="submitForeignOrderRow('${reqId}','${itemIdx}',${qIdx})">✅ ثبت</button>
+          onclick="submitForeignOrderRow('${reqId}','${itemIdx}',${qIdx})">✅</button>
       </div>`;
     }
-    const rowsHTML=Array.from({length:slotCount}).map((_,i)=>rowForeign(i)).join('');
-    const datalistHTML = `<datalist id="foreignSupplierList_${safeKey}">${FOREIGN_SUPPLIERS.map(s=>`<option value="${s}">`).join('')}</datalist>`;
-    tableHTML=`${datalistHTML}${rowsHTML}
+    const rowsHTML=Array.from({length:Math.ceil(slotCount/2)}).map((_,rowIdx)=>{
+      const i1=rowIdx*2, i2=rowIdx*2+1;
+      return `<div style="display:flex;gap:8px;padding:7px;margin-bottom:6px;
+        background:rgba(255,255,255,.02);border-radius:9px;border:1px solid rgba(255,255,255,.07);">
+        ${halfForeign(i1)}
+        <div style="width:1px;background:rgba(255,255,255,.08);flex-shrink:0;"></div>
+        ${i2<slotCount?halfForeign(i2):'<div style="flex:1"></div>'}
+      </div>`;
+    }).join('');
+    tableHTML=`${rowsHTML}
       <button class="action-btn" style="width:100%;padding:7px;font-size:11px;color:var(--accent);border:1px dashed rgba(240,165,0,.3);background:rgba(240,165,0,.04)"
         onclick="addForeignQuoteSlot('${reqId}','${itemIdx}')">+ افزودن تأمین‌کننده‌ی دیگر</button>`;
   }
@@ -5400,6 +5411,35 @@ async function checkForeignQuoteCascade(r){
       logAndShowError('چک تکمیل‌شدن بازرگانی', res?.error||'نامشخص');
     }
   }catch(e){ logAndShowError('چک تکمیل‌شدن بازرگانی — خطای شبکه', e); }
+}
+// سرچ سفارشی تأمین‌کننده خارج — دقیقاً هم‌الگو با بقیه‌ی سرچ‌بارهای موفق سیستم
+// (نه datalist مرورگر، که با آپدیت پویا مشکل داشت). rowKey فرمتش
+// «reqId_itemIdx_qIdx»ه، برای پیدا کردن دقیق فیلد و ذخیره‌ی مقدار انتخاب‌شده.
+function searchForeignSupplierAC(rowKey, val, reqId, itemIdx, qIdx){
+  const box=document.getElementById('foSupAC_'+rowKey);
+  if(!box) return;
+  if(!val || val.trim().length<1){
+    // وقتی خالیه (تازه فوکوس شده)، کل لیست رو نشون بده تا انتخاب راحت باشه
+    const all=getForeignSupplierNames();
+    if(!all.length){ box.style.display='none'; return; }
+    box.style.display='block';
+    box.innerHTML=all.slice(0,30).map(s=>`<div onmousedown="pickForeignSupplier('${rowKey}','${s.replace(/'/g,"\\'")}','${reqId}','${itemIdx}',${qIdx})"
+      style="padding:6px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">${s}</div>`).join('');
+    return;
+  }
+  const q=normalizeFa(val.trim().toLowerCase());
+  const matches=getForeignSupplierNames().filter(s=>normalizeFa(s.toLowerCase()).includes(q)).slice(0,20);
+  if(!matches.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML=matches.map(s=>`<div onmousedown="pickForeignSupplier('${rowKey}','${s.replace(/'/g,"\\'")}','${reqId}','${itemIdx}',${qIdx})"
+    style="padding:6px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">${s}</div>`).join('');
+}
+function pickForeignSupplier(rowKey, name, reqId, itemIdx, qIdx){
+  const input=document.getElementById('foSup_'+rowKey);
+  const box=document.getElementById('foSupAC_'+rowKey);
+  if(input) input.value=name;
+  if(box) box.style.display='none';
+  updateEstelamatForeignQuote(`${reqId}__${itemIdx}`, qIdx, 'supplier', name);
 }
 function updateEstelamatForeignQuote(safeKey,qIdx,field,value){
   const found=findForeignReqAndItem(safeKey);
