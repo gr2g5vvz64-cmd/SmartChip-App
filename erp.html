@@ -6525,7 +6525,7 @@ async function saveDebtCollectionLog(){
   const amount = parseIntFa(document.getElementById('debtCollectionAmount').value)||0;
   const date = document.getElementById('debtCollectionDate').value.trim()||todayShamsiStr();
   const note = document.getElementById('debtCollectionNote').value.trim();
-  if(!amount){ toast('⚠ مبلغ نامعتبر'); return; }
+  if(!amount && !note){ toast('⚠ حداقل مبلغ یا توضیح رو بنویس'); return; }
   const dc = debtCases.find(d=>String(d.id)===String(id));
   if(!dc) return;
   const editIdx = document.getElementById('debtCollectionEditIdx').value;
@@ -6612,7 +6612,7 @@ function renderDebtCasesERP(){
       ${durationTxt?`<div style="font-size:10.5px;margin-bottom:8px;">${durationTxt}</div>`:''}
       ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px;">
         ${d.financeLog.map((l,li)=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
-          <span style="flex:1;">💰 ${l.date} — ${fn(l.amount)} ریال${l.note?` — «${l.note}»`:''}</span>
+          <span style="flex:1;">${l.amount>0?`💰 ${l.date} — ${fn(l.amount)} ریال${l.note?` — «${l.note}»`:''}`:`📝 ${l.date} — یادداشت (بدون وصولی)${l.note?`: «${l.note}»`:''}`}</span>
           <button onclick="editDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش</button>
           <button onclick="deleteDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:4px;color:var(--red);cursor:pointer;">🗑️ حذف</button>
         </div>`).join('')}
