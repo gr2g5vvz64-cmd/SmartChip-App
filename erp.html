@@ -5135,13 +5135,18 @@ function openEstelamatForeign(customerName){
   curEstelamatForeignCustomer=customerName;
   showPage('estelamatforeign');
 }
+// این سه تابع، فقط آیتم‌هایی رو برمی‌گردونن که هنوز «کار باز» دارن: یا هیچ کاری
+// روشون نشده (new)، یا منتظر تصمیم مشتری‌ایم (quoted)، یا مشتری تأیید کرده و
+// منتظر ثبت سفارش از طرف ماست (approved). فقط وقتی سفارش واقعاً ثبت بشه
+// (ordered_shipping به بعد) یا کاملاً بسته بشه (notfound/canceled) بایگانی می‌شه.
+const FOREIGN_ACTIVE_STATUSES=['new','quoted','approved',undefined,'']; // وضعیت خالی هم یعنی new
 function getCustomerForeignItems(customerName){
   const items=[];
   requests.forEach(r=>{
     if(r.customer!==customerName || !r.parts || !r.parts.needForeign) return;
     if(r.status==='canceled') return; // درخواست کاملاً کنسل‌شده نباید تو دید مشتری بیاد
     (r.parts.foreignItems||[]).forEach((it,idx)=>{
-      if(it.status==='canceled_customer') return;
+      if(!FOREIGN_ACTIVE_STATUSES.includes(it.status)) return;
       items.push({reqId:r.id, itemIdx:idx, item:it, displayNumber:r.displayNumber});
     });
   });
@@ -5153,7 +5158,7 @@ function getAllForeignItems(){
     if(!r.parts || !r.parts.needForeign) return;
     if(r.status==='canceled') return; // درخواست کاملاً کنسل‌شده نباید تو دید کلی بیاد
     (r.parts.foreignItems||[]).forEach((it,idx)=>{
-      if(it.status==='delivered_to_customer'||it.status==='notfound'||it.status==='canceled_customer') return;
+      if(!FOREIGN_ACTIVE_STATUSES.includes(it.status)) return;
       items.push({reqId:r.id, itemIdx:idx, item:it, displayNumber:r.displayNumber, customer:r.customer});
     });
   });
@@ -5164,8 +5169,22 @@ function getRequestForeignItems(reqId){
   const r=requests.find(x=>String(x.id)===String(reqId));
   if(!r||!r.parts) return items;
   (r.parts.foreignItems||[]).forEach((it,idx)=>{
-    if(it.status==='canceled_customer') return;
+    if(!FOREIGN_ACTIVE_STATUSES.includes(it.status)) return;
     items.push({reqId:r.id, itemIdx:idx, item:it, displayNumber:r.displayNumber});
+  });
+  return items;
+}
+// نسخه‌ی «بایگانی» — دقیقاً برعکس بالا: هرچی که از حالت فعال خارج شده
+function getForeignArchiveItems(reqId, customerName){
+  const items=[];
+  requests.forEach(r=>{
+    if(reqId && String(r.id)!==String(reqId)) return;
+    if(!reqId && customerName && r.customer!==customerName) return;
+    if(!r.parts || !r.parts.needForeign) return;
+    (r.parts.foreignItems||[]).forEach((it,idx)=>{
+      if(FOREIGN_ACTIVE_STATUSES.includes(it.status)) return; // این‌ها تو لیست فعالن، نه بایگانی
+      items.push({reqId:r.id, itemIdx:idx, item:it, displayNumber:r.displayNumber, customer:r.customer});
+    });
   });
   return items;
 }
@@ -5199,7 +5218,9 @@ function renderEstelamatForeignPage(){
       <span style="color:var(--yellow)">باقی‌مانده بدون استعلام: <strong>${fn(total-quoted)}</strong></span>
     </div>`;
   const container=document.getElementById('estelamatForeignItemsContainer');
-  if(!items.length){container.innerHTML=emptyBox('🌍','آیتمی برای نمایش نیست');return;}
+  if(!items.length){
+    container.innerHTML=emptyBox('🌍','آیتم بازی برای نمایش نیست — پایین رو برای بایگانی ببین');
+  } else {
   container.innerHTML=Object.entries((function(){
     var gr={};
     items.forEach(function(it){var c=it.customer||'__none__';if(!gr[c])gr[c]=[];gr[c].push(it);});
@@ -5218,6 +5239,34 @@ function renderEstelamatForeignPage(){
       :'';
     return header+custItems.map(function(it){return estelamatForeignItemCardHTML(it.reqId,it.itemIdx,it.item,it.displayNumber);}).join('');
   }).join('<div style="margin:10px 0;border-top:1px dashed rgba(255,255,255,.08)"></div>');
+  }
+
+  // بایگانی — هرچی که از حالت فعال خارج شده (سفارش ثبت شد و رفت ردیابی محموله،
+  // یا کاملاً کنسل/پیدانشد شد). طبق درخواست کاربر: این صفحه فقط باید چیزی رو نشون
+  // بده که «یا کاری روش نکردم یا منتظر مشتریم» — بقیه اینجا، جدا و جمع‌شده.
+  const archiveItems = estelamatForeignFilterRequestId ? getForeignArchiveItems(estelamatForeignFilterRequestId, null)
+    : curEstelamatForeignCustomer ? getForeignArchiveItems(null, curEstelamatForeignCustomer)
+    : getForeignArchiveItems(null, null);
+  if(archiveItems.length){
+    const archiveLabel=(it)=>{
+      const s=it.item.status;
+      if(s==='ordered_shipping') return '<span style="color:#a78bfa">🚢 سفارش ثبت شد — تو ردیابی محموله</span>';
+      if(s==='arrived') return '<span style="color:#fb923c">📥 رسیده به دفتر</span>';
+      if(s==='delivered_to_customer') return '<span style="color:var(--green)">✅ تحویل مشتری شد</span>';
+      if(s==='notfound') return '<span style="color:var(--muted)">✕ پیدا نشد</span>';
+      if(s==='canceled_customer') return '<span style="color:#f87171">❌ مشتری کنسل کرد</span>';
+      return '<span style="color:var(--muted)">'+(s||'—')+'</span>';
+    };
+    container.innerHTML += `<details style="margin-top:20px;">
+      <summary style="font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;padding:8px 0;">🗄️ بایگانی — رفته مرحله‌ی بعد یا بسته‌شده (${fn(archiveItems.length)})</summary>
+      <div style="margin-top:10px;">
+        ${archiveItems.map(it=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+          <div><strong style="font-size:12px;">${it.item.name||'—'}</strong> <span style="font-size:10px;color:var(--muted);margin-right:8px;">${it.customer||''} — ${it.displayNumber||''}</span></div>
+          <div style="font-size:10.5px;">${archiveLabel(it)}</div>
+        </div>`).join('')}
+      </div>
+    </details>`;
+  }
 }
 function estelamatForeignItemCardHTML(reqId,itemIdx,item,displayNumber){
   const quotes=item.quotes||[];
@@ -11646,18 +11695,21 @@ const FEEDBACK_DEPT_LABELS={anbar:'🏭 انبار', bazargani:'🌍 بازرگ�
 function renderDeptFeedback(deptKey){
   const el=document.getElementById('deptFeedbackContent-'+deptKey);
   if(!el) return;
-  const items=(deliveryFeedback||[]).filter(f=>(f.departments||[]).includes(deptKey))
+  const allItems=(deliveryFeedback||[]).filter(f=>(f.departments||[]).includes(deptKey))
     .sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const unresolvedCount=items.filter(f=>!(f.resolvedStatus&&f.resolvedStatus[deptKey]&&f.resolvedStatus[deptKey].resolved)).length;
+  const isResolved=f=>f.resolvedStatus && f.resolvedStatus[deptKey] && f.resolvedStatus[deptKey].resolved;
+  const open=allItems.filter(f=>!isResolved(f));
+  const done=allItems.filter(isResolved);
+  const unresolvedCount=open.length;
   const badgeEl=document.getElementById('fbBadge'+deptKey[0].toUpperCase()+deptKey.slice(1));
   if(badgeEl){ badgeEl.style.display=unresolvedCount>0?'inline-block':'none'; badgeEl.textContent=unresolvedCount; }
 
-  if(!items.length){
+  if(!allItems.length){
     el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">هنوز بازخوردی برای این واحد ثبت نشده</div>';
     return;
   }
-  el.innerHTML=items.map(f=>{
-    const resolved = f.resolvedStatus && f.resolvedStatus[deptKey] && f.resolvedStatus[deptKey].resolved;
+  function card(f){
+    const resolved=isResolved(f);
     const typeColor = f.type==='thanks' ? '#4ade80' : '#f87171';
     const typeLabel = f.type==='thanks' ? '🌟 تشکر' : '⚠️ شکایت';
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;${resolved?'opacity:.6;':''}">
@@ -11673,7 +11725,11 @@ function renderDeptFeedback(deptKey){
         : `<button class="btn btn-primary btn-sm" onclick="resolveDeptFeedback('${f.id}','${deptKey}')">✅ علامت‌گذاری «رسیدگی شد»</button>`
       }
     </div>`;
-  }).join('');
+  }
+  el.innerHTML = (open.length?open.map(card).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">✅ همه‌چی رسیدگی شده — پایین رو ببین</div>')
+    + (done.length?`<details style="margin-top:16px;"><summary style="font-size:11.5px;color:var(--muted);cursor:pointer;">🗄️ بایگانی — رسیدگی‌شده‌ها (${fn(done.length)})</summary>
+      <div style="margin-top:10px;">${done.map(card).join('')}</div>
+    </details>`:'');
 }
 
 async function resolveDeptFeedback(id, deptKey){
@@ -11847,7 +11903,7 @@ function renderFinanceTasks(){
   el.innerHTML = `
     <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px;">⏳ در انتظار (${fn(pending.length)})</div>
     ${pending.length?pending.map(taskCard).join(''):'<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;">موردی نیست</div>'}
-    ${done.length?`<details style="margin-top:16px;"><summary style="font-size:11.5px;color:var(--muted);cursor:pointer;">✅ انجام‌شده‌ها (${fn(done.length)})</summary>
+    ${done.length?`<details style="margin-top:16px;"><summary style="font-size:11.5px;color:var(--muted);cursor:pointer;">🗄️ بایگانی — انجام‌شده‌ها (${fn(done.length)})</summary>
       <div style="margin-top:10px;">${done.map(taskCard).join('')}</div>
     </details>`:''}
   `;
