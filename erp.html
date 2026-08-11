@@ -4107,6 +4107,14 @@ function sb(s,cancelReason){
 function ac(name){return `<span class="assignee-chip"><span class="avatar" style="width:20px;height:20px;font-size:10px">${name[0]}</span>${name}</span>`;}
 function dl(deadline,status){if(!deadline||['done','canceled'].includes(status))return '—';if(status==='overdue')return `<span style="color:var(--red);font-weight:700;font-size:11px">⚠ ${deadline}</span>`;return `<span style="color:var(--yellow);font-size:11px">${deadline}</span>`;}
 function fn(n){return String(n).replace(/\d/g,x=>'۰۱۲۳۴۵۶۷۸۹'[x]);}
+// مخصوص نمایش مبلغ — سه‌رقم سه‌رقم با کاما جدا می‌کنه، بعد فارسی می‌کنه.
+// ⚠️ این فقط برای *نمایش* است — جایی که این خروجی می‌تونه به یه input برگرده و
+// دوباره parseIntFa بشه، استفاده‌ش نکن (parseIntFa کاما رو حذف می‌کنه، ولی چون
+// این یه تابع نمایشی جداست، بهتره سردرگم نشیم کجا استفاده شده).
+function fnMoney(n){
+  const num = Number(n)||0;
+  return fn(num.toLocaleString('en-US'));
+}
 
 // ══════════════════════════════════════════
 // NAVIGATION
@@ -6545,7 +6553,7 @@ async function editDebtCaseTotalAmount(caseId){
     const idx=debtCases.findIndex(d=>String(d.id)===String(caseId));
     debtCases[idx]=result.data;
     renderDebtCasesERP();
-    toast('✅ کل بدهی اصلاح شد — مانده‌ی جدید: '+fn(result.data.remaining)+' ریال');
+    toast('✅ کل بدهی اصلاح شد — مانده‌ی جدید: '+fnMoney(result.data.remaining)+' ریال');
   } else if(result.queued){
     toast('🟡 سرور کند بود — ثبت محلی شد و ظرف چند لحظه هماهنگ می‌شه');
   } else {
@@ -6572,7 +6580,7 @@ async function deleteDebtCollectionLog(caseId, logIdx){
   const dc = debtCases.find(d=>String(d.id)===String(caseId));
   if(!dc || !dc.financeLog || !dc.financeLog[logIdx]) return;
   const l = dc.financeLog[logIdx];
-  if(!confirm(`این ردیف حذف بشه؟\n${l.date} — ${fn(l.amount)} ریال${l.note?' — «'+l.note+'»':''}`)) return;
+  if(!confirm(`این ردیف حذف بشه؟\n${l.date} — ${fnMoney(l.amount)} ریال${l.note?' — «'+l.note+'»':''}`)) return;
 
   const log = dc.financeLog.filter((_,i)=>i!==logIdx);
   // همون لحظه، محلی، مانده رو دوباره حساب کن — دقیقاً مثل ثبت/ویرایش
@@ -6586,7 +6594,7 @@ async function deleteDebtCollectionLog(caseId, logIdx){
   if(result.success){
     debtCases[idx]=result.data;
     renderDebtCasesERP();
-    toast('✅ حذف شد — مانده: '+fn(result.data.remaining)+' ریال');
+    toast('✅ حذف شد — مانده: '+fnMoney(result.data.remaining)+' ریال');
   } else if(result.queued){
     toast('🟡 سرور کند بود — حذف محلی شد و ظرف چند لحظه با سرور هماهنگ می‌شه');
   } else {
@@ -6601,7 +6609,7 @@ function editDebtCollectionLog(caseId, logIdx){
   document.getElementById('debtCollectionEditIdx').value=logIdx;
   document.getElementById('debtCollectionModalTitle').textContent='✏️ ویرایش وصولی';
   document.getElementById('debtCollectionSaveBtn').textContent='ذخیره ویرایش';
-  document.getElementById('debtCollectionAmount').value=fn(l.amount);
+  document.getElementById('debtCollectionAmount').value=fnMoney(l.amount);
   document.getElementById('debtCollectionDate').value=l.date||todayShamsiStr();
   document.getElementById('debtCollectionNote').value=l.note||'';
   openModal('debtCollection');
@@ -6637,7 +6645,7 @@ async function saveDebtCollectionLog(){
   if(result.success){
     debtCases[idx]=result.data; // جواب واقعی سرور جایگزین محاسبه‌ی محلی می‌شه — برای اطمینان کامل
     renderDebtCasesERP();
-    toast('✅ ثبت شد — مانده: '+fn(result.data.remaining)+' ریال');
+    toast('✅ ثبت شد — مانده: '+fnMoney(result.data.remaining)+' ریال');
   } else if(result.queued){
     toast('🟡 سرور کند بود — ثبت محلی شد و ظرف چند لحظه خودکار با سرور هماهنگ می‌شه');
   } else {
@@ -6686,19 +6694,19 @@ function renderDebtCasesERP(){
         <strong style="font-size:13px;">${d.customer}</strong>
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:11px;color:${d.remaining>0?'var(--red)':'var(--green)'};font-weight:800;">
-            مانده: ${fn(d.remaining)} ریال
+            مانده: ${fnMoney(d.remaining)} ریال
           </span>
           <button onclick="editDebtCaseTotalAmount('${d.id}')" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش کل بدهی</button>
         </div>
       </div>
       <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">
-        کل بدهی: ${fn(d.totalDebt)} — وصول‌شده: ${fn(d.collected)} — شروع: ${d.startDate||'—'}
+        کل بدهی: ${fnMoney(d.totalDebt)} — وصول‌شده: ${fnMoney(d.collected)} — شروع: ${d.startDate||'—'}
         ${d.assignedTo?` — <span style="color:var(--accent)">ارجاع به: ${d.assignedTo} (${d.handoffDate})</span>`:''}
       </div>
       ${durationTxt?`<div style="font-size:10.5px;margin-bottom:8px;">${durationTxt}</div>`:''}
       ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px;">
         ${d.financeLog.map((l,li)=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
-          <span style="flex:1;">${l.amount>0?`💰 ${l.date} — ${fn(l.amount)} ریال${l.note?` — «${l.note}»`:''}`:`📝 ${l.date} — یادداشت (بدون وصولی)${l.note?`: «${l.note}»`:''}`}</span>
+          <span style="flex:1;">${l.amount>0?`💰 ${l.date} — ${fnMoney(l.amount)} ریال${l.note?` — «${l.note}»`:''}`:`📝 ${l.date} — یادداشت (بدون وصولی)${l.note?`: «${l.note}»`:''}`}</span>
           <button onclick="editDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.25);border-radius:4px;color:var(--accent);cursor:pointer;">✏️ ویرایش</button>
           <button onclick="deleteDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:4px;color:var(--red);cursor:pointer;">🗑️ حذف</button>
         </div>`).join('')}
