@@ -1215,7 +1215,6 @@ function toggleTheme(){
 applyThemeButtonLabel();
 let leads = []; // لیدهای فروش (CRM) — برای استفاده بعد از ساعت کاری روی موبایل
 let currentUserName = ''; // برای ثبت «مسئول» در لیدهای جدید
-let itemMaster = [];
 let currentOrderItems = [];
 let dpTargetField = null, dpY = 1404, dpM = 1;
 let selectedItemQty = null;
@@ -1232,6 +1231,29 @@ function updateSyncIndicator(syncing, error=false){
   else{el.style.background='#22c55e';}
 }
 
+async function fetchJsonWithRetry(url, timeoutMs){
+  timeoutMs = timeoutMs || 12000;
+  const attempt = async()=>{
+    const controller = new AbortController();
+    const t = setTimeout(()=>controller.abort(), timeoutMs);
+    try{
+      const res = await fetch(url, {signal: controller.signal});
+      clearTimeout(t);
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(e){ clearTimeout(t); return null; }
+  };
+  let data = await attempt();
+  if(data===null) data = await attempt();
+  return data;
+}
+// سرچ پارت‌نامبر — مستقیم و زنده از Django (نه لود یکجای ۳۲هزار ردیف تو حافظه،
+// که هم سنگین بود هم به گوگل‌اپ‌اسکریپت وابسته)
+async function liveSearchParts(q){
+  if(!q || q.trim().length<1) return [];
+  const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(q.trim()));
+  return (data && data.items) || [];
+}
 async function sheetCall(action, data={}){
   if(!SHEET_URL) return null;
   try{
@@ -1460,13 +1482,15 @@ function closeMiniModalOut(e,name){if(e.target===document.getElementById('modal'
 function searchItemAC(val){
   const box=document.getElementById('itemAC');
   if(!val||val.trim().length<1){box.style.display='none';return;}
-  const q=normalizeFa(val);
-  const allMatches=itemMaster.filter(name=>normalizeFa(name).includes(q));
-  const matches=allMatches.slice(0,30);
-  if(!matches.length){box.style.display='none';return;}
-  box.innerHTML=matches.map(name=>`<div class="autocomplete-item" onclick="pickItem('${name.replace(/'/g,"\\'")}')">${name}</div>`).join('')
-    + (allMatches.length>30?`<div style="padding:6px 14px;font-size:10px;color:var(--accent);text-align:center">${fn(allMatches.length-30)} نتیجه‌ی دیگر هم هست — دقیق‌تر تایپ کن</div>`:'');
+  box.innerHTML='<div style="padding:6px 14px;font-size:10px;color:var(--muted)">در حال جستجو...</div>';
   box.style.display='block';
+  clearTimeout(window._itemACTimer);
+  window._itemACTimer=setTimeout(async()=>{
+    const matches=await liveSearchParts(val);
+    if(!matches.length){box.style.display='none';return;}
+    box.innerHTML=matches.map(name=>`<div class="autocomplete-item" onclick="pickItem('${name.replace(/'/g,"\\'")}')">${name}</div>`).join('');
+    box.style.display='block';
+  },250);
 }
 function pickItem(name){
   document.getElementById('itemNameInput').value=name;
@@ -1611,13 +1635,15 @@ function openForeignItemPicker(){
 function searchItemPicker2(val){
   const box=document.getElementById('itemPicker2AC');
   if(!val||val.trim().length<1){box.style.display='none';return;}
-  const q=normalizeFa(val);
-  const allMatches=itemMaster.filter(name=>normalizeFa(name).includes(q));
-  const matches=allMatches.slice(0,30);
-  if(!matches.length){box.style.display='none';return;}
-  box.innerHTML=matches.map(name=>`<div class="autocomplete-item" onclick="pickItemPicker2('${name.replace(/'/g,"\\'")}')">${name}</div>`).join('')
-    + (allMatches.length>30?`<div style="padding:6px 14px;font-size:10px;color:var(--accent);text-align:center">${fn(allMatches.length-30)} نتیجه‌ی دیگر هم هست — دقیق‌تر تایپ کن</div>`:'');
+  box.innerHTML='<div style="padding:6px 14px;font-size:10px;color:var(--muted)">در حال جستجو...</div>';
   box.style.display='block';
+  clearTimeout(window._itemPicker2Timer);
+  window._itemPicker2Timer=setTimeout(async()=>{
+    const matches=await liveSearchParts(val);
+    if(!matches.length){box.style.display='none';return;}
+    box.innerHTML=matches.map(name=>`<div class="autocomplete-item" onclick="pickItemPicker2('${name.replace(/'/g,"\\'")}')">${name}</div>`).join('');
+    box.style.display='block';
+  },250);
 }
 function pickItemPicker2(name){
   document.getElementById('itemPicker2Name').value=name;
@@ -2449,13 +2475,17 @@ let pcSelectedPart = null;
 function searchPcPart(val){
   const dd = document.getElementById('pcPartAC');
   if(!val || val.trim().length < 2){ dd.style.display='none'; return; }
-  const q = val.toLowerCase();
-  const matches = itemMaster.filter(n => n.toLowerCase().includes(q)).slice(0, 25);
-  if(!matches.length){ dd.style.display='none'; return; }
-  dd.innerHTML = matches.map(n =>
-    `<div onclick="pickPcPart('${n.replace(/'/g,"\\'")}\")" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;">${n}</div>`
-  ).join('');
+  dd.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:var(--muted)">در حال جستجو...</div>';
   dd.style.display = 'block';
+  clearTimeout(window._pcPartTimer);
+  window._pcPartTimer = setTimeout(async()=>{
+    const matches = await liveSearchParts(val);
+    if(!matches.length){ dd.style.display='none'; return; }
+    dd.innerHTML = matches.map(n =>
+      `<div onclick="pickPcPart('${n.replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;">${n}</div>`
+    ).join('');
+    dd.style.display = 'block';
+  }, 250);
 }
 async function pickPcPart(name){
   document.getElementById('pcPartInput').value = name;
@@ -2611,18 +2641,21 @@ function searchMEstPartAC(idx){
   const inputEl=document.getElementById(`mEstPartInput_${idx}`);
   const dd=document.getElementById('mEstPartAC');
   const val=inputEl.value.trim();
-  if(!val||!itemMaster.length){dd.style.display='none';return;}
-  const q=val.toLowerCase();
-  const matches=itemMaster.filter(name=>name.toLowerCase().includes(q)).slice(0,20);
-  if(!matches.length){dd.style.display='none';return;}
+  if(!val){dd.style.display='none';return;}
   const rect=inputEl.getBoundingClientRect();
   dd.style.top=(rect.bottom+4)+'px';
   dd.style.right=(window.innerWidth-rect.right)+'px';
   dd.style.width=rect.width+'px';
   dd.style.display='block';
-  dd.innerHTML=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.3);">
-    ${matches.map(name=>`<div class="autocomplete-item" onclick="pickMEstPart(${idx},'${name.replace(/'/g,"\\'")}')">${name}</div>`).join('')}
-  </div>`;
+  dd.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;color:var(--muted)">در حال جستجو...</div>';
+  clearTimeout(window._mEstPartTimer);
+  window._mEstPartTimer=setTimeout(async()=>{
+    const matches=await liveSearchParts(val);
+    if(!matches.length){dd.style.display='none';return;}
+    dd.innerHTML=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.3);">
+      ${matches.map(name=>`<div class="autocomplete-item" onclick="pickMEstPart(${idx},'${name.replace(/'/g,"\\'")}')">${name}</div>`).join('')}
+    </div>`;
+  },250);
 }
 function pickMEstPart(idx,name){
   mEstItems[idx].name=name;
@@ -3412,8 +3445,8 @@ async function fetchCustomersFromDjangoM(){
   }catch(e){ console.warn('⚠️ اتصال به Django برای مشتریان ناموفق بود:', e); return null; }
 }
 async function loadMasters(){
-  const [djangoCustomers, iRes, djangoLeads] = await Promise.all([
-    fetchCustomersFromDjangoM(), sheetCall('getItemMaster'), fetchLeadsFromDjangoM()
+  const [djangoCustomers, djangoLeads] = await Promise.all([
+    fetchCustomersFromDjangoM(), fetchLeadsFromDjangoM()
   ]);
   if(djangoCustomers){
     customerMaster = djangoCustomers;
@@ -3423,7 +3456,7 @@ async function loadMasters(){
     if(cRes&&cRes.customerMaster) customerMaster=cRes.customerMaster;
   }
   if(djangoLeads){ leads=djangoLeads; updateMobileMorningBadge(); }
-  if(iRes&&iRes.items) itemMaster=iRes.items;
+  // پارت‌نامبرها دیگه اینجا لود نمی‌شن — سرچ الان زنده و مستقیم از Django میاد (liveSearchParts)
 }
 
 // ══════════════════════════════════════════════════════════════════

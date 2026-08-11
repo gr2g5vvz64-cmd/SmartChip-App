@@ -2355,8 +2355,6 @@ function toggleEstelamatTick(leadId,hIdx,checked){
 }
 let curEstelamatTickRowKey=null;
 let estelamatTickItems=[];
-let itemMaster = [];
-let itemMasterLoaded = false;
 function toggleFinOptions(checked){
   document.getElementById('finOptionsBox').style.display=checked?'block':'none';
   if(!checked){
@@ -2386,8 +2384,7 @@ async function openEstelamatTickModal(leadId, hIdx){
   renderEstelamatTickRows();
   document.getElementById('modalEstelamatTick').classList.add('open');
 
-  // لود پارت‌نامبرها اگه نلودیده — در بک‌گراند
-  if(!_partsLoaded) ensurePartsLoaded();
+  // (لود پیشاپیش پارت‌نامبرها دیگه لازم نیست — سرچ الان زنده و به‌ازای هر تایپه)
 }
 
 function renderEstelamatTickRows(){
@@ -2445,9 +2442,12 @@ function searchEstTickPartAC(idx){
   if(!val){dd.style.display='none';return;}
   const rect=inputEl.getBoundingClientRect();
   dd.style.cssText=`display:block;position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth-rect.right}px;width:${rect.width}px;z-index:9999`;
-  if(_partsLoaded){showPartResults(idx,val,searchPartsLocal(val));return;}
-  dd.innerHTML=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;color:var(--muted)">⏳ اولین بار — لود پارت‌نامبرها...</div>`;
-  ensurePartsLoaded().then(()=>showPartResults(idx,val,searchPartsLocal(val)));
+  dd.innerHTML=`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:11px;color:var(--muted)">⏳ در حال جستجو...</div>`;
+  clearTimeout(window._estTickPartTimer);
+  window._estTickPartTimer=setTimeout(async()=>{
+    const matches=await liveSearchParts(val);
+    showPartResults(idx,val,matches);
+  },250);
 }
 
 function showPartResults(idx,val,matches){
@@ -4351,31 +4351,14 @@ function renderReadyToInvoice(){
 
 
 // ══ سرچ سریع CRM ══
-let _partsLoaded = false;
-let _allParts = [];
-
-async function ensurePartsLoaded(){
-  if(_partsLoaded) return;
+// سرچ پارت‌نامبر — مستقیم و زنده از Django (نه لود یکجای ۳۲هزار ردیف تو حافظه،
+// که هم سنگین بود هم به گوگل‌اپ‌اسکریپت وابسته)
+async function liveSearchParts(q){
+  if(!q || q.trim().length<1) return [];
   try{
-    const res = await sheetCall('getItemMaster');
-    _allParts = (res&&res.items)||[];
-    _partsLoaded = true;
-    itemMaster = _allParts;
-    itemMasterLoaded = true;
-  }catch(e){}
-}
-
-function searchPartsLocal(q){
-  if(!q||!_allParts.length) return [];
-  const ql=q.toLowerCase();
-  const exact=[],starts=[],contains=[];
-  for(const n of _allParts){
-    const l=n.toLowerCase();
-    if(l===ql) exact.push(n);
-    else if(l.startsWith(ql)) starts.push(n);
-    else if(l.includes(ql)) contains.push(n);
-  }
-  return [...exact,...starts,...contains].slice(0,25);
+    const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(q.trim()));
+    return (data && data.items) || [];
+  }catch(e){ return []; }
 }
 
 
@@ -4675,28 +4658,13 @@ function qfSampleSearchItem(val){
   if(!dd) return;
   if(!val||val.length<2){dd.style.display='none';return;}
 
-  if(_partsLoaded && _allParts && _allParts.length){
-    const q = val.toLowerCase();
-    const matches = _allParts.filter(n=>n.toLowerCase().includes(q)).slice(0,20);
-    qfShowSampleItemAC(dd, val, matches);
-    return;
-  }
-
-  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال بارگذاری...</div>';
+  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال جستجو...</div>';
   dd.style.display='block';
   clearTimeout(window._qfSampleTimer);
   window._qfSampleTimer = setTimeout(async()=>{
-    try{
-      await ensurePartsLoaded();
-      if(_allParts && _allParts.length){
-        const q = val.toLowerCase();
-        const matches = _allParts.filter(n=>n.toLowerCase().includes(q)).slice(0,20);
-        qfShowSampleItemAC(dd, val, matches);
-      } else {
-        dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">آیتمی پیدا نشد</div>';
-      }
-    }catch(e){ dd.style.display='none'; }
-  }, 200);
+    const matches = await liveSearchParts(val);
+    qfShowSampleItemAC(dd, val, matches);
+  }, 250);
 }
 function qfShowSampleItemAC(dd, val, matches){
   if(!matches.length){dd.style.display='none';return;}
@@ -4714,30 +4682,13 @@ function qfSearchPart(idx, val){
   if(!dd) return;
   if(!val||val.length<2){dd.style.display='none';return;}
 
-  // اگه cache کامل هست — مستقیم فیلتر کن
-  if(_partsLoaded && _allParts && _allParts.length){
-    const q = val.toLowerCase();
-    const matches = _allParts.filter(n=>n.toLowerCase().includes(q)).slice(0,20);
-    qfShowPartAC(dd, idx, val, matches);
-    return;
-  }
-
-  // cache خالیه — اول همه آیتم‌ها رو لود کن، بعد سرچ
-  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال بارگذاری...</div>';
+  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال جستجو...</div>';
   dd.style.display='block';
   clearTimeout(window._qfPartTimer);
   window._qfPartTimer = setTimeout(async()=>{
-    try{
-      await ensurePartsLoaded();
-      if(_allParts && _allParts.length){
-        const q = val.toLowerCase();
-        const matches = _allParts.filter(n=>n.toLowerCase().includes(q)).slice(0,20);
-        qfShowPartAC(dd, idx, val, matches);
-      } else {
-        dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">نتیجه‌ای نیافت</div>';
-      }
-    }catch(e){ dd.style.display='none'; }
-  }, 150);
+    const matches = await liveSearchParts(val);
+    qfShowPartAC(dd, idx, val, matches);
+  }, 250);
 }
 
 function qfShowPartAC(dd, idx, val, matches){
@@ -5292,27 +5243,13 @@ function qfSearchSamplePart(idx, val){
   if(!dd) return;
   if(!val||val.length<2){dd.style.display='none';return;}
 
-  if(_partsLoaded && _allParts && _allParts.length){
-    const q = val.toLowerCase();
-    const matches = _allParts.filter(n=>n.toLowerCase().includes(q)).slice(0,15);
-    qfShowSamplePartAC(idx, dd, val, matches);
-    return;
-  }
-  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال بارگذاری...</div>';
+  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال جستجو...</div>';
   dd.style.display='block';
   clearTimeout(window['_qfSampleTimer_'+idx]);
   window['_qfSampleTimer_'+idx] = setTimeout(async()=>{
-    try{
-      await ensurePartsLoaded();
-      if(_allParts && _allParts.length){
-        const q = val.toLowerCase();
-        const matches = _allParts.filter(n=>n.toLowerCase().includes(q)).slice(0,15);
-        qfShowSamplePartAC(idx, dd, val, matches);
-      } else {
-        dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">آیتمی پیدا نشد</div>';
-      }
-    }catch(e){ dd.style.display='none'; }
-  }, 200);
+    const matches = await liveSearchParts(val);
+    qfShowSamplePartAC(idx, dd, val, matches);
+  }, 250);
 }
 function qfShowSamplePartAC(idx, dd, val, matches){
   if(!matches.length){dd.style.display='none';return;}
