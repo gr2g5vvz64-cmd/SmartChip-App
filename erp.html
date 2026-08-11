@@ -4968,13 +4968,13 @@ function findReqAndItem(safeKey){
   return {r,item:r.parts.marketItems[itemIdx]};
 }
 async function persistEstelamatChange(r){
-  r.status=computeOverallStatus(r.parts);
-  if(r.status==='done') r.completedDate=todayShamsiStr();
-  else r.completedDate=null;
+  // ⚠️ همون فیکسی که برای بازرگانی خارج زدیم — computeOverallStatus با enum
+  // اشتباه کار می‌کرد و باعث می‌شد درخواست از کل سیستم گم بشه
+  if(r.status!=='done' && r.status!=='canceled') r.completedDate=null;
   renderEstelamatPage();
   renderDash();
   if(document.getElementById('page-requests').classList.contains('active')) renderReqs();
-  if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {statusValue:r.status});
+  if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {});
   // آبشار — بعد از هر تغییر تو استعلام داخل، چک کن همه‌ی آیتم‌ها تعیین‌تکلیف شدن یا نه.
   // اگه بله، سرور خودش parts.marketQuoteComplete رو ست می‌کنه و تو تاریخچه ثبت می‌کنه؛
   // این پیام هیچ‌وقت جلوی کار کاربر رو نمی‌گیره (پس‌زمینه‌ست) و اگه گیر کرد، تو کنسول لاگ می‌شه.
@@ -5445,13 +5445,16 @@ function findForeignReqAndItem(safeKey){
   return {r,item:r.parts.foreignItems[itemIdx]};
 }
 async function persistEstelamatForeignChange(r){
-  r.status=computeOverallStatus(r.parts);
-  if(r.status==='done') r.completedDate=todayShamsiStr();
-  else r.completedDate=null;
+  // ⚠️ قبلاً اینجا `r.status=computeOverallStatus(r.parts)` بود که با enum اشتباه
+  // ('pending'/'quoted'/'approved') کار می‌کرد، در حالی که r.status واقعی باید
+  // 'new'/'follow'/'overdue'/'done'/'canceled' باشه. این باعث می‌شد بعد از هر
+  // ثبت سفارش خارج، درخواست عملاً از همه‌جای سیستم (نه فقط صفحه‌ی تکمیل) گم بشه
+  // چون status به یه مقدار نامعتبر تغییر می‌کرد که هیچ فیلتری نمی‌شناختش.
+  if(r.status!=='done' && r.status!=='canceled') r.completedDate=null;
   renderEstelamatForeignPage();
   renderDash();
   if(document.getElementById('page-requests').classList.contains('active')) renderReqs();
-  if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {statusValue:r.status});
+  if(isConnected) await reliableUpdateRequestParts(r.id, r.parts, {});
   if(r.parts && r.parts.needForeign && isConnected){
     checkForeignQuoteCascade(r);
   }
@@ -9934,7 +9937,11 @@ async function saveRequest(){
       parts.sample = _existingReqForEdit.parts.sample;
     }
   }
-  const status=computeOverallStatus(parts);
+  // ⚠️ همون باگ بحرانی که برای استعلام داخل/خارج فیکس کردیم: computeOverallStatus
+  // مقادیر نامعتبر ('pending'/'approved') برمی‌گردوند که با enum واقعی r.status
+  // ('new'/'follow'/'overdue'/'done'/'canceled') ناسازگار بود. برای ویرایش، status
+  // باید دست‌نخورده بمونه؛ برای ساخت جدید، باید 'new' باشه.
+  const status = _existingReqForEdit ? _existingReqForEdit.status : 'new';
 
   if(currentEditReqId){
     // ─── حالت ویرایش: آپدیت رکورد موجود، نه ساخت رکورد جدید ───
