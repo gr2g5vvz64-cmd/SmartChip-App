@@ -2768,6 +2768,17 @@ async function loadFromSheet() {
     if(document.getElementById('page-customers').classList.contains('active'))  renderCusts();
     if(document.getElementById('page-chequesreceived').classList.contains('active')) renderChequesReceived();
     if(document.getElementById('page-chequesreturned').classList.contains('active')) renderChequesReturned();
+    // ⚠️ این چک‌ها قبلاً ناقص بودن — صفحاتی که به requests وابسته‌ان ولی اینجا
+    // چک نمی‌شدن، بعد از اومدن داده‌ی جدید از سرور رفرش نمی‌شدن (حتی با زدن
+    // دکمه‌ی «بروزرسانی»)، اگه از قبل باز بودن — دقیقاً همون چیزی که باعث می‌شد
+    // «نیاز مشتری خارج» با داده‌ی کهنه بمونه
+    if(document.getElementById('page-foreigndeliv') && document.getElementById('page-foreigndeliv').classList.contains('active')) renderForeignNeed();
+    if(document.getElementById('page-domesticdeliv') && document.getElementById('page-domesticdeliv').classList.contains('active')) renderDomesticDeliv();
+    if(document.getElementById('page-warehouse') && document.getElementById('page-warehouse').classList.contains('active')) renderWarehouse();
+    if(document.getElementById('page-estelamat') && document.getElementById('page-estelamat').classList.contains('active')) renderEstelamatPage();
+    if(document.getElementById('page-estelamatforeign') && document.getElementById('page-estelamatforeign').classList.contains('active')) renderEstelamatForeignPage();
+    if(document.getElementById('page-bazdash') && document.getElementById('page-bazdash').classList.contains('active')) renderBazarganiDashboard();
+    if(document.getElementById('page-financedash') && document.getElementById('page-financedash').classList.contains('active')) renderFinanceDashboard();
     checkAndFireNotifications();
     fetchDeliveryFeedbackFromDjango().then(res=>{ if(res) deliveryFeedback=res; });
     // ── اگه از CRM با لینک مخصوص یک درخواست خاص اومدیم، فقط همون رو نشون بده ──
@@ -3828,11 +3839,16 @@ async function syncItemsToDjango(){
 // هنوز خالیه (مثلاً چون از لینک مستقیم وارد شدیم و صفحه زودتر از داده رندر شد)،
 // فوری یه تلاش دیگه برای بارگذاری می‌کنه. این دقیقاً همون فیکسیه که برای
 // تأمین‌کننده خارج جواب داد — الان مرکزی شده تا دیگه یادم نره جای دیگه‌ای بذارمش.
-function ensureCustomerMasterLoaded(){
-  if(!customerMaster.length && !window._loadingSupplierRetry){
-    window._loadingSupplierRetry=true;
-    loadCustomerMaster().finally(()=>{window._loadingSupplierRetry=false;});
+async function ensureCustomerMasterLoaded(){
+  if(customerMaster.length) return; // از قبل لود شده
+  if(window._loadingSupplierRetry){
+    // یه لود دیگه از قبل در حال اجراست — منتظرش بمون به‌جای شروع یه لود موازی دیگه
+    await window._customerMasterLoadPromise;
+    return;
   }
+  window._loadingSupplierRetry=true;
+  window._customerMasterLoadPromise = loadCustomerMaster().finally(()=>{window._loadingSupplierRetry=false;});
+  await window._customerMasterLoadPromise;
 }
 async function loadCustomerMaster() {
   const infoEl = document.getElementById('custLoadInfo');
@@ -5843,7 +5859,11 @@ function openChecksForCustomer(customerName){
 let invoiceRequests=[];
 // (تمام توابع صورتحساب‌ها حذف شدند — نیاز مالی الان فقط در CRM ثبت می‌شود)
 
-function renderCusts(){
+async function renderCusts(){
+  // قبل از هر چیز مطمئن شو customerMaster واقعاً لود شده — وگرنه fallback ناقص
+  // (فقط مشتریانی که تو CRM لید دارن، بدون صنف/استان/اولویت) فعال می‌شد که
+  // دقیقاً همون چیزی بود که باعث شد فقط ۱۱ مشتری با فیلد خالی دیده بشه
+  await ensureCustomerMasterLoaded();
   if (!custFiltersPopulated) populateCustFilterDropdowns();
 
   curCustCategory = document.getElementById('custCategoryFilter') ? document.getElementById('custCategoryFilter').value : '';
