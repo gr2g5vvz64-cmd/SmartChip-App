@@ -1018,6 +1018,7 @@ async function init(){
   }
   currentUser=userInfo;
   document.getElementById('userChipText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
+  loadCalendarHolidays(); // تقویم/تعطیلات از Django — برای محاسبه‌ی SLA لازمه
   // درخواست‌های موازی — یادآوری‌ها هم اضافه شدند
   try{
     const [whRes, pkRes] = await Promise.all([
@@ -1875,7 +1876,8 @@ function renderTableView(){
             } else if(allDone && fin && fin.crmConfirmed){
               blocks.push(`<span style="font-size:9px;color:var(--muted);">✅ مالی تکمیل</span>`);
             } else {
-              blocks.push(`<div><span style="font-size:10px;font-weight:700;color:var(--yellow)">💰 در انتظار مالی</span>
+              const slaB = linkedReq ? slaBadgeHTML(linkedReq.createdAt, 'finance') : '';
+              blocks.push(`<div><span style="font-size:10px;font-weight:700;color:var(--yellow)">💰 در انتظار مالی</span>${slaB}
                 <button onclick="openFinanceTick('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:1px 6px;margin-right:3px;background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.3);border-radius:4px;cursor:pointer;color:var(--accent);font-family:Vazirmatn,sans-serif">ویرایش</button></div>`);
             }
           }
@@ -1895,8 +1897,13 @@ function renderTableView(){
               const stage = reqId ? getOverallStageLabel(reqId) : null;
               const progLabel = stage ? stage.label : `📋 ${fn(cnt)} پارت`;
               const progColor = stage ? stage.color : 'var(--accent)';
+              let slaB = '';
+              if(linkedReq){
+                if(linkedReq.parts && linkedReq.parts.needMarket && !linkedReq.parts.marketQuoteComplete) slaB += slaBadgeHTML(linkedReq.createdAt, 'market');
+                if(linkedReq.parts && linkedReq.parts.needForeign && !linkedReq.parts.foreignQuoteComplete) slaB += slaBadgeHTML(linkedReq.createdAt, 'foreign');
+              }
               blocks.push(`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <span style="font-size:9.5px;font-weight:700;color:${progColor}">${progLabel}</span>
+                <span style="font-size:9.5px;font-weight:700;color:${progColor}">${progLabel}</span>${slaB}
                 <div style="display:flex;gap:3px;">
                 ${reqId?`<button onclick="openOrderStatusModal('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:1px 5px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);border-radius:4px;cursor:pointer;color:#4ade80;font-family:Vazirmatn,sans-serif">📦</button>`:''}
                 <button onclick="openEstelamatTickModal('${r.leadId}',${r.hIdx})" style="font-size:8px;padding:1px 5px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);border-radius:4px;cursor:pointer;color:#60a5fa;font-family:Vazirmatn,sans-serif">ویرایش</button>
@@ -2574,15 +2581,14 @@ function getSlaStatus(entry){
   const allItems=[...(parts.marketItems||[]),...(parts.foreignItems||[])];
   if(!allItems.length) return null;
   const allAnswered=allItems.every(it=>it.status!=='pending');
-  const now=new Date().toISOString();
   const isForeign=parts.needForeign;
-  const hoursElapsed=isForeign?businessHoursElapsed(entry.estelamatSentDate,now):(new Date(now)-new Date(entry.estelamatSentDate))/(1000*60*60);
-  const thresholdHours=isForeign?48:24;
+  // استاندارد دقیق: داخل=۲۴ ساعت کاری شمسی (بدون جمعه/تعطیل رسمی)، خارج=۷۲ ساعت کاری میلادی (بدون شنبه/یکشنبه/تعطیل چین)
+  const st = getSLAStatus(entry.estelamatSentDate, isForeign?'foreign':'market');
   return {
     answered:allAnswered,
-    hoursElapsed:Math.round(hoursElapsed),
-    thresholdHours,
-    overdue:!allAnswered && hoursElapsed>thresholdHours,
+    hoursElapsed:Math.round(st.hoursElapsed),
+    thresholdHours:st.threshold,
+    overdue:!allAnswered && st.overdue,
     deptLabel:isForeign?'بازرگانی (خارج)':'تدارکات (بازار)'
   };
 }
@@ -3820,6 +3826,86 @@ function gToJD(y,m,d){return 367*y-Math.floor(7*(y+Math.floor((m+9)/12))/4)-Math
 function jdToS(jd){const j=Math.floor(jd)+0.5;const dep=j-sToJD(475,1,1);const cyc=Math.floor(dep/1029983);const cr=dep%1029983;let yc=cr===1029982?2820:Math.floor((2134*Math.floor(cr/366)+2816*(cr%366)+2815)/1028522)+Math.floor(cr/366)+1;let year=yc+2820*cyc+474;if(year<=0)year--;const yd=j-sToJD(year,1,1)+1;let month=yd<=186?Math.ceil(yd/31):Math.ceil((yd-6)/30);let day=Math.floor(j-sToJD(year,month,1)+1);if(day<1){month--;if(month<1){month=12;year--;}day=Math.floor(j-sToJD(year,month,1)+1);}return{y:year,m:month,d:day};}
 function sDow(y,m,d){return(Math.floor(sToJD(y,m,d)+1.5)%7+1)%7;}
 function jdToGS(jd){const z=Math.floor(jd+.5);const a=Math.floor((z-1867216.25)/36524.25);const b=z+1+a-Math.floor(a/4);const c=b+1524;const dv=Math.floor((c-122.1)/365.25);const e=Math.floor(365.25*dv);const g=Math.floor((c-e)/30.6001);return{day:c-e-Math.floor(30.6001*g),month:g<13.5?g-1:g-13};}
+
+// ══════════════════════════════════════════════════════════════
+// سیستم SLA — تا امروز CRM اصلاً این رو نداشت. دقیقاً هم‌الگو با ERP، از همون
+// منبع واحد حقیقت (Django calendar_app) تغذیه می‌شه.
+// ══════════════════════════════════════════════════════════════
+const SLA_THRESHOLDS = {
+  market:   {hours:24, calendar:'shamsi'},
+  marketCollect: {hours:24, calendar:'shamsi'},
+  foreign:  {hours:72, calendar:'gregorian'},
+  finance:  {hours:24, calendar:'shamsi'},
+  warehouse:{hours:24, calendar:'shamsi'},
+};
+let SHAMSI_HOLIDAYS_SET = new Set();
+let CHINA_HOLIDAYS_SET = new Set();
+let CHINA_COMPENSATORY_SET = new Set();
+let GLOBAL_HOLIDAYS_SET = new Set();
+async function loadCalendarHolidays(){
+  try{
+    const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/calendar/list/');
+    if(!data) return;
+    SHAMSI_HOLIDAYS_SET = new Set();
+    (data.iran||[]).forEach(iso=>{
+      const [gy,gm,gd] = iso.split('-').map(Number);
+      try{ const jd=gToJD(gy,gm,gd); const sd=jdToS(jd); SHAMSI_HOLIDAYS_SET.add(sd.m+'/'+sd.d); }catch(e){}
+    });
+    CHINA_HOLIDAYS_SET = new Set(data.china_holiday||[]);
+    CHINA_COMPENSATORY_SET = new Set(data.china_compensatory||[]);
+    GLOBAL_HOLIDAYS_SET = new Set(data.global||[]);
+  }catch(e){ console.warn('⚠️ لود تقویم شکست خورد:', e); }
+}
+function isShamsiHoliday(y,m,d){ return SHAMSI_HOLIDAYS_SET.has(m+'/'+d); }
+function isShamsiBizDay(y,m,d){
+  try{
+    if(shamsiDowCal_safe(y,m,d)===6) return false;
+    if(isShamsiHoliday(y,m,d)) return false;
+    return true;
+  }catch(e){ return true; }
+}
+function isGregorianBizDay(jsDate){
+  const iso = jsDate.toISOString().slice(0,10);
+  if(CHINA_COMPENSATORY_SET.has(iso)) return true;
+  if(CHINA_HOLIDAYS_SET.has(iso) || GLOBAL_HOLIDAYS_SET.has(iso)) return false;
+  const dow=jsDate.getDay();
+  return dow!==0 && dow!==6;
+}
+function businessHoursElapsedByCalendar(startISO, calendarType){
+  if(!startISO) return 0;
+  const start=new Date(startISO);
+  const now=new Date();
+  if(isNaN(start.getTime()) || start>=now) return 0;
+  let hours=0, cursor=new Date(start), guard=0;
+  while(cursor<now && guard<20000){
+    guard++;
+    let next=new Date(cursor.getTime()+3600000);
+    if(next>now) next=now;
+    let isBiz;
+    if(calendarType==='gregorian'){
+      isBiz=isGregorianBizDay(cursor);
+    } else {
+      try{ const jd=gToJD(cursor.getFullYear(),cursor.getMonth()+1,cursor.getDate()); const sd=jdToS(jd); isBiz=isShamsiBizDay(sd.y,sd.m,sd.d); }
+      catch(e){ isBiz=true; }
+    }
+    if(isBiz) hours += (next-cursor)/3600000;
+    cursor=next;
+  }
+  return hours;
+}
+function getSLAStatus(startISO, category){
+  const cfg=SLA_THRESHOLDS[category];
+  if(!cfg || !startISO) return {overdue:false, hoursElapsed:0, threshold:cfg?cfg.hours:0};
+  const hoursElapsed=businessHoursElapsedByCalendar(startISO, cfg.calendar);
+  return {overdue: hoursElapsed>=cfg.hours, hoursElapsed, threshold:cfg.hours};
+}
+// نشان کوچیک SLA — برای نمایش تو جدول اصلی CRM، کنار وضعیت هر لید
+function slaBadgeHTML(startISO, category){
+  const st=getSLAStatus(startISO, category);
+  if(!st.overdue) return '';
+  return `<span style="font-size:9px;font-weight:700;color:#f87171;background:rgba(239,68,68,.1);padding:2px 6px;border-radius:5px;margin-right:4px;">⏰ ${Math.floor(st.hoursElapsed)}/${st.threshold}س</span>`;
+}
+
 
 // تعطیلات ثابت شمسی — هر سال در همان روز ثابت می‌مانند
 const IR_H={'1/1':'نوروز','1/2':'نوروز','1/3':'نوروز','1/4':'نوروز','1/12':'جمهوری اسلامی','1/13':'سیزده‌به‌در','3/14':'رحلت امام','3/15':'قیام ۱۵ خرداد','11/22':'پیروزی انقلاب','12/29':'ملی شدن نفت'};
