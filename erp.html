@@ -3858,7 +3858,8 @@ async function loadCustomerMaster() {
       const data = await dres.json();
       customerMaster = data.map(customerFromApiERP);
       console.log(`📇 پایگاه مشتریان از Django بارگذاری شد: ${customerMaster.length} مشتری`);
-      if(infoEl) infoEl.innerHTML = `📇 ${fn(customerMaster.length)} مشتری بارگذاری شد (از Django)`;
+      const priorityCount = customerMaster.filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim())).length;
+      if(infoEl) infoEl.innerHTML = `📇 ${fn(customerMaster.length)} رکورد بارگذاری شد (شامل مشتری/تأمین‌کننده/همه) — از این تعداد، ${fn(priorityCount)} تا مشتری اولویت‌دار (۱/۵/۹) هستن`;
       reRenderIfSupplierPageActive();
       return;
     }
@@ -3872,7 +3873,8 @@ async function loadCustomerMaster() {
     if (res.error) console.warn('⚠️ خطای پایگاه مشتریان:', res.error);
     if (infoEl) {
       const ok = res.totalRowsInSheet && customerMaster.length >= res.totalRowsInSheet * 0.95;
-      infoEl.innerHTML = `📇 ${fn(customerMaster.length)} مشتری بارگذاری شد (fallback گوگل‌شیت)` +
+      const priorityCount2 = customerMaster.filter(c=>['1','5','9'].includes(fa2en(String(c.priority||'')).trim())).length;
+      infoEl.innerHTML = `📇 ${fn(customerMaster.length)} رکورد بارگذاری شد (fallback گوگل‌شیت) — ${fn(priorityCount2)} تا اولویت‌دار` +
         (res.totalRowsInSheet ? ` (شیت ${fn(res.totalRowsInSheet)} ردیف دارد)` : '') +
         (res.error ? ` — <span style="color:var(--red)">⚠️ ${res.error}</span>` : '');
     }
@@ -8463,7 +8465,10 @@ function renderBotStatusPanel(){
   const allRelatedSuppliers = [...new Set(shipments.filter(s=>!['delivered','canceled'].includes(s.status)).map(s=>s.supplier).filter(Boolean))];
 
   function buildSection(names, isSupplier){
-    const invites = botInvites.filter(b=>names.includes(b.customer) || (isSupplier ? isForeignSupplierName(b.customer) : !isForeignSupplierName(b.customer)));
+    // دعوت‌نامه‌های کارمند (که customer شون پسوند «:STAFF» داره) اصلاً نباید اینجا
+    // بیان — اون‌ها مال تب «کارمندان و مدیریت»ان، نه مشتری/تأمین‌کننده
+    const relevantInvites = botInvites.filter(b=>!(b.customer||'').includes(':STAFF'));
+    const invites = relevantInvites.filter(b=>names.includes(b.customer) || (isSupplier ? isForeignSupplierName(b.customer) : !isForeignSupplierName(b.customer)));
     const connected = invites.filter(b=>b.telegramConnected||b.baleConnected);
     const pending = invites.filter(b=>!b.telegramConnected&&!b.baleConnected);
     const notInvited = names.filter(n=>!botInvites.find(b=>b.customer===n));
@@ -8497,6 +8502,8 @@ function renderBotStatusPanel(){
       <span style="color:var(--muted)">دعوت: ${b.inviteDate}</span>
       <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto"
         onclick="${resendFn}('${b.customer.replace(/'/g,"\\'")}')">📱 ارسال واتس‌اپ</button>
+      <button class="action-btn" style="font-size:9px;padding:2px 7px;color:#f87171;border-color:rgba(239,68,68,.35)"
+        onclick="deleteBotInvite(${b.id},'${b.customer.replace(/'/g,"\\'")}')">🗑️ حذف</button>
     </div>`).join('')}`:''}
     ${data.connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px">🟢 وصل شده‌ها:</div>
     ${data.connected.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
@@ -8504,6 +8511,8 @@ function renderBotStatusPanel(){
       ${b.telegramConnected?'<span style="color:#0088cc;font-size:10px">✈️ تلگرام</span>':''}
       ${b.baleConnected?'<span style="color:#0070e0;font-size:10px">💙 بله</span>':''}
       <span style="color:var(--muted);font-size:10px">${b.connectedDate||''}</span>
+      <button class="action-btn" style="font-size:9px;padding:2px 7px;margin-right:auto;color:#f87171;border-color:rgba(239,68,68,.35)"
+        onclick="deleteBotInvite(${b.id},'${b.customer.replace(/'/g,"\\'")}')">🗑️ حذف</button>
     </div>`).join('')}`:''}
     ${data.notInvited.length?`<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;margin-top:10px">⚪ دعوت‌نشده‌ها:</div>
     ${data.notInvited.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card);border-radius:8px;margin-bottom:4px;font-size:11px;">
@@ -8547,6 +8556,21 @@ async function loadStaffListForBotPanel(){
     if(res.ok){ staffListForAssignment = await res.json(); window._staffListLoaded = true; }
   }catch(e){ console.error('🔴 خطای بارگذاری لیست کارمندان:', e); }
   renderStaffBotTab();
+}
+async function deleteBotInvite(id, customerName){
+  if(!confirm(`دعوت‌نامه‌ی «${customerName}» کامل حذف بشه؟`)) return;
+  try{
+    const res = await fetch(`https://smartchip-backend.onrender.com/api/bot/invites/${id}/`, {method:'DELETE'});
+    if(res.ok || res.status===204){
+      botInvites = botInvites.filter(b=>b.id!==id);
+      renderBotStatusPanel();
+      toast('✅ دعوت‌نامه حذف شد');
+    } else {
+      logAndShowError('حذف دعوت‌نامه بات', 'سرور جواب '+res.status+' داد');
+    }
+  }catch(e){
+    logAndShowError('حذف دعوت‌نامه بات — خطای شبکه', e);
+  }
 }
 function renderStaffBotTab(){
   const el = document.getElementById('botCatBodyStaff');
