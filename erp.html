@@ -11232,7 +11232,10 @@ function buildBotInviteMessage(customerName, inviteId){
     +'با تشکر — اسمارت‌چیپ';
 }
 async function sendSupplierBotInviteWhatsApp(supplierName){
-  var cm=(customerMaster||[]).find(function(c){return c.name===supplierName;})||{};
+  // اگه بیش از یه رکورد با این اسم باشه (مثلاً به‌خاطر تکراری‌بودن تو گوگل‌شیت)،
+  // اونی که واقعاً موبایل داره رو ترجیح بده — نه صرفاً اولین match رو
+  var matches=(customerMaster||[]).filter(function(c){return c.name===supplierName;});
+  var cm=matches.find(function(c){return c.mobile;}) || matches[0] || {};
   if(!cm.mobile){ toast('⚠️ موبایل تأمین‌کننده در شیت مشتریان نیست'); return; }
   var existing = (botInvites||[]).find(function(b){return b.customer===supplierName;});
   var inviteId = existing && existing.id;
@@ -11260,7 +11263,8 @@ async function sendSupplierBotInviteWhatsApp(supplierName){
   toast('⚠️ این تأمین‌کننده قبلاً دعوت شده — از «resendSupplierBotInvite» استفاده کن');
 }
 function resendSupplierBotInvite(supplierName){
-  var cm=(customerMaster||[]).find(function(c){return c.name===supplierName;})||{};
+  var matches=(customerMaster||[]).filter(function(c){return c.name===supplierName;});
+  var cm=matches.find(function(c){return c.mobile;}) || matches[0] || {};
   var existing = (botInvites||[]).find(function(b){return b.customer===supplierName;});
   if(!existing || !cm.mobile){ toast('⚠️ اطلاعات کافی نیست'); return; }
   var msg = 'شرکت '+supplierName+' عزیز،\n'
