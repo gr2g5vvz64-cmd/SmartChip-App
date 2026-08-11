@@ -1182,6 +1182,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button id="syncCustomersBtn" class="action-btn" style="font-size:11px;padding:6px 12px;" onclick="syncCustomersToDjango()">🔄 همگام‌سازی مشتریان از گوگل‌شیت</button>
         <button id="syncItemsBtn" class="action-btn" style="font-size:11px;padding:6px 12px;" onclick="syncItemsToDjango()">🔄 همگام‌سازی وزن قطعات از گوگل‌شیت</button>
+        <div id="syncProgressPanel" style="display:none;margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:12px;"></div>
       </div>
       <div class="filter-row" id="custFilter">
         <button class="fpill active" onclick="fCust('all',this)">همه</button>
@@ -2920,12 +2921,9 @@ let chequesReturned = [];  // چک‌های برگشتی       // دعوت‌ه�
 // اطلاعات کامل مشتریان از شیت CUSTOMER (نام، صنف، استان، زیرصنف)
 let customerMaster = [];
 
-// نام‌های واقعی کالا از شیت Verified_Weights — برای autocomplete در فرم سفارش
-let itemMaster = [];
-async function loadItemMaster() {
-  const res = await sheetCall('getItemMaster');
-  if (res && res.items) itemMaster = res.items;
-}
+// نام‌های کالا دیگه یکجا تو حافظه لود نمی‌شن (۳۲هزار+ ردیف بود، هم سنگین هم به
+// گوگل‌اپ‌اسکریپت وابسته بود). الان searchItemAutocomplete مستقیم و زنده از
+// Django (/api/items/search/) می‌خونه — نگاه کن پایین‌تر تو همین فایل.
 
 // اقلام سفارشی که در حال ساخت است (فرم سفارش جدید) — هر آیتم: {name, qty, eta}
 let currentOrderItems = [];
@@ -3755,48 +3753,68 @@ async function deletePaidChequeInDjangoERP(id){
 async function syncCustomersToDjango(){
   const btn = document.getElementById('syncCustomersBtn');
   if(btn) btn.disabled = true;
-  toast('⏳ در حال خواندن مشتریان از گوگل‌شیت...');
+  const t0 = Date.now();
+  showSyncProgress('⏳ <b>مرحله ۱ از ۲</b> — در حال خوندن مشتریان از گوگل‌شیت...');
   try{
     const res = await sheetCall('getCustomerMaster');
     const items = (res && res.customerMaster) || [];
-    if(!items.length){ toast('⚠ چیزی از گوگل‌شیت خونده نشد'); if(btn) btn.disabled=false; return; }
-    toast(`⏳ در حال ارسال ${items.length} مشتری به Django...`);
+    if(!items.length){ showSyncProgress('⚠ چیزی از گوگل‌شیت خونده نشد'); if(btn) btn.disabled=false; return; }
+    showSyncProgress(`⏳ <b>مرحله ۲ از ۲</b> — ${fn(items.length)} مشتری در حال ارسال به Django...`);
     const syncRes = await fetch('https://smartchip-backend.onrender.com/api/customers/sync/', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
     });
     const data = await syncRes.json();
+    const totalSec = Math.round((Date.now()-t0)/1000);
     if(data.ok){
-      toast(`✅ همگام‌سازی مشتریان تمام شد — ${data.created} جدید، ${data.updated} آپدیت شد`);
+      showSyncProgress(`✅ <b>تمام شد</b> — ${fn(data.created)} جدید، ${fn(data.updated)} آپدیت شد (${totalSec} ثانیه)`);
+      hideSyncProgress(6000);
       loadCustomerMaster(); // رفرش محلی هم بشه
     } else {
-      toast('❌ همگام‌سازی ناموفق بود: '+(data.error||''));
+      showSyncProgress('❌ همگام‌سازی ناموفق بود: '+(data.error||'نامشخص'));
     }
   }catch(e){
-    toast('❌ خطا: '+e.message);
+    showSyncProgress('❌ خطا: '+e.message);
   }
   if(btn) btn.disabled = false;
+}
+
+function showSyncProgress(html){
+  const p = document.getElementById('syncProgressPanel');
+  if(!p) return;
+  p.style.display='block';
+  p.innerHTML=html;
+}
+function hideSyncProgress(delayMs){
+  setTimeout(()=>{ const p=document.getElementById('syncProgressPanel'); if(p) p.style.display='none'; }, delayMs||4000);
 }
 
 async function syncItemsToDjango(){
   const btn = document.getElementById('syncItemsBtn');
   if(btn) btn.disabled = true;
-  toast('⏳ در حال خواندن وزن قطعات از گوگل‌شیت (ممکنه کمی طول بکشه، ۳۲هزار+ ردیفه)...');
+  const t0 = Date.now();
+  showSyncProgress('⏳ <b>مرحله ۱ از ۲</b> — در حال خوندن وزن قطعات از گوگل‌شیت (۳۲هزار+ ردیفه، معمولاً ۱۵ تا ۴۵ ثانیه طول می‌کشه)...');
   try{
     const res = await sheetCall('getAllItemWeights');
     const items = (res && res.items) || [];
-    if(!items.length){ toast('⚠ چیزی از گوگل‌شیت خونده نشد: '+(res&&res.error||'')); if(btn) btn.disabled=false; return; }
-    toast(`⏳ در حال ارسال ${items.length} پارت به Django (صبر کن)...`);
+    if(!items.length){
+      showSyncProgress('⚠ چیزی از گوگل‌شیت خونده نشد: '+(res&&res.error||'نامشخص'));
+      if(btn) btn.disabled=false; return;
+    }
+    const t1 = Date.now();
+    showSyncProgress(`⏳ <b>مرحله ۲ از ۲</b> — ${fn(items.length)} پارت خونده شد (${Math.round((t1-t0)/1000)} ثانیه طول کشید). الان در حال ارسال به Django — این مرحله معمولاً ۱۰ تا ۳۰ ثانیه می‌کشه، لطفاً از این صفحه خارج نشو...`);
     const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
     });
     const data = await syncRes.json();
+    const totalSec = Math.round((Date.now()-t0)/1000);
     if(data.ok){
-      toast(`✅ همگام‌سازی وزن قطعات تمام شد — ${data.created} جدید، ${data.updated} آپدیت شد`);
+      showSyncProgress(`✅ <b>تمام شد</b> — ${fn(data.created)} پارت جدید، ${fn(data.updated)} پارت آپدیت شد. (کل زمان: ${totalSec} ثانیه)<br><span style="color:var(--muted);font-size:11px;">از همین الان می‌تونی سرچ پارت‌نامبر رو امتحان کنی — بدون نیاز به رفرش صفحه.</span>`);
+      hideSyncProgress(8000);
     } else {
-      toast('❌ همگام‌سازی ناموفق بود: '+(data.error||''));
+      showSyncProgress('❌ همگام‌سازی ناموفق بود: '+(data.error||'نامشخص'));
     }
   }catch(e){
-    toast('❌ خطا: '+e.message);
+    showSyncProgress('❌ خطا: '+e.message);
   }
   if(btn) btn.disabled = false;
 }
@@ -8503,33 +8521,8 @@ async function sendStaffBotInviteWhatsApp(staffId){
 
 
 // ══════════════════════════════════════════════════════════════
-// سرچ سریع — لود یه‌بار، سرچ همیشه زیر ۱ ثانیه
+// سرچ پارت‌نامبر — الان مستقیم و زنده از Django (نه لود یکجای ۳۲هزار ردیف تو حافظه)
 // ══════════════════════════════════════════════════════════════
-let _partsLoaded = false;
-let _allParts = []; // ۳۲,۰۰۰+ پارت در حافظه
-
-async function ensurePartsLoaded(){
-  if(_partsLoaded) return;
-  try{
-    const res = await sheetCall('getItemMaster');
-    _allParts = (res&&res.items)||[];
-    _partsLoaded = true;
-    console.log('✅ پارت‌نامبرها لود شد:', _allParts.length);
-  }catch(e){ console.warn('parts load error:', e); }
-}
-
-function searchPartsLocal(query){
-  if(!query||!_allParts.length) return [];
-  const q = query.toLowerCase();
-  const exact=[], starts=[], contains=[];
-  for(const name of _allParts){
-    const lower = name.toLowerCase();
-    if(lower === q)              exact.push(name);
-    else if(lower.startsWith(q)) starts.push(name);
-    else if(lower.includes(q))   contains.push(name);
-  }
-  return [...exact, ...starts, ...contains].slice(0,25);
-}
 
 // سرچ سریع مشتریان
 function searchCustomersLocal(query){
@@ -10299,17 +10292,26 @@ function searchFreeRemCustAC(val){
   box.style.display='block';
 }
 
+let _itemSearchTimer=null;
+let _itemSearchSeq=0; // برای جلوگیری از race condition — جواب قدیمی نباید جواب جدیدتر رو رد کنه
 function searchItemAutocomplete(val){
   const box=document.getElementById('itemAutocompleteList');
   if(!val||val.trim().length<1){box.style.display='none';return;}
-  const q=normalizeFa(val);
-  const allMatches=itemMaster.filter(name=>normalizeFa(name).includes(q));
-  const matches=allMatches.slice(0,100);
-  if(!matches.length){box.style.display='none';return;}
-  box.innerHTML=matches.map(name=>`
-    <div onclick="pickItemFromAutocomplete('${name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">${name}</div>`).join('')
-    + (allMatches.length>50?`<div style="padding:8px 14px;font-size:11px;color:var(--accent);text-align:center;background:var(--card)">${fn(allMatches.length-50)} نتیجه‌ی دیگر هم هست — برای باریک‌تر شدن، حروف بیشتری تایپ کن</div>`:'');
+  clearTimeout(_itemSearchTimer);
   box.style.display='block';
+  box.innerHTML='<div style="padding:8px 14px;font-size:11px;color:var(--muted)">در حال جستجو...</div>';
+  const mySeq = ++_itemSearchSeq;
+  _itemSearchTimer=setTimeout(async()=>{
+    let items=[];
+    try{
+      const data=await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(val.trim()));
+      items=(data&&data.items)||[];
+    }catch(e){}
+    if(mySeq!==_itemSearchSeq) return; // یه سرچ جدیدتر تو راهه، این جواب کهنه رو دور بریز
+    if(!items.length){box.innerHTML='<div style="padding:8px 14px;font-size:11px;color:var(--muted)">چیزی پیدا نشد</div>';return;}
+    box.innerHTML=items.map(name=>`
+      <div onclick="pickItemFromAutocomplete('${name.replace(/'/g,"\\'")}')" style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">${name}</div>`).join('');
+  }, 250); // ربع‌ثانیه صبر می‌کنه تا تایپ تموم بشه، بعد سرچ می‌زنه — جلوی اسپم درخواست رو می‌گیره
 }
 
 function searchItemSupplierMarketAC(val){
@@ -10327,16 +10329,23 @@ function searchItemSupplierMarketAC(val){
 }
 
 
+let _pqRowSearchTimer={};
 function searchProcurementQuickRowAC(inputEl,idx){
   const box=document.getElementById('pqRowAC'+idx);
   if(!box)return;
   const val=inputEl.value;
   if(!val||val.trim().length<1){box.style.display='none';return;}
-  const q=normalizeFa(val);
-  const matches=itemMaster.filter(name=>normalizeFa(name).includes(q)).slice(0,30);
-  if(!matches.length){box.style.display='none';return;}
-  box.innerHTML=matches.map(name=>`<div onclick="pickProcurementQuickRowItem(${idx},'${name.replace(/'/g,"\\'")}')" style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--border);font-size:11px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">${name}</div>`).join('');
-  box.style.display='block';
+  clearTimeout(_pqRowSearchTimer[idx]);
+  _pqRowSearchTimer[idx]=setTimeout(async()=>{
+    let items=[];
+    try{
+      const data=await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(val.trim()));
+      items=(data&&data.items)||[];
+    }catch(e){}
+    if(!items.length){box.style.display='none';return;}
+    box.innerHTML=items.map(name=>`<div onclick="pickProcurementQuickRowItem(${idx},'${name.replace(/'/g,"\\'")}')" style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--border);font-size:11px;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">${name}</div>`).join('');
+    box.style.display='block';
+  }, 250);
 }
 
 function searchShipArchive(v){curShipArchiveSearch=v;renderShipArchive();}
