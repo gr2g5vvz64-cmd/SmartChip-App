@@ -1103,6 +1103,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <!-- ══ DASHBOARD ══ -->
     <div class="page active" id="page-dashboard">
 
+      <div id="allUnitsSLAPanel"></div>
+
       <!-- 🔴 موارد فورس — اهمیت حیاتی، از هر سه بخش یکجا، همیشه بالاترین جا -->
       <div id="forcePriorityBox" style="display:none;background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(239,68,68,.05));border:2px solid #ef4444;border-radius:14px;margin-bottom:22px;overflow:hidden;">
         <div style="padding:14px 18px;border-bottom:1px solid rgba(239,68,68,.3);display:flex;align-items:center;gap:8px;">
@@ -1375,6 +1377,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
           اگه مشتری فقط بخشی از سفارش رو خواست، بقیه‌ش خودش تو انبار می‌مونه تا بعداً.
         </div>
       </details>
+      <div id="warehouseSLAPanel"></div>
       <div id="warehouseContent"></div>
     </div>
 
@@ -1473,6 +1476,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
 
     <!-- ══ تحویل بار داخل (آیتم‌های بازار تأیید‌شده، منتظر جمع‌آوری) ══ -->
     <div class="page" id="page-domesticdeliv">
+      <div id="domesticSLAPanel"></div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 16px;margin-bottom:16px;font-size:12px;color:var(--muted);">
         آیتم‌هایی که قیمت بازارشان تأیید شده — برو بگیر، و وقتی واقعاً جمع‌آوری کردی تیک «جمع‌آوری شد» را بزن. کلیک روی هر ردیف می‌برد به جزئیات همان درخواست.
       </div>
@@ -4232,6 +4236,8 @@ function renderPulseBar(){
 }
 
 function renderDash(){
+  const slaPanel=document.getElementById('allUnitsSLAPanel');
+  if(slaPanel && typeof buildAllUnitsSLASummaryHTML==='function') slaPanel.innerHTML = buildAllUnitsSLASummaryHTML();
   updateNavBadges();
   updateNavGroupSummaries();
   renderPulseBar();
@@ -5730,6 +5736,8 @@ function buildDomesticDelivRows(){
   return rows;
 }
 function renderDomesticDeliv(){
+  const slaEl=document.getElementById('domesticSLAPanel');
+  if(slaEl) slaEl.innerHTML = buildUnitSLAPanelHTML('market','تدارکات داخل — استعلام') + buildUnitSLAPanelHTML('marketCollect','تدارکات داخل — جمع‌آوری تا انبار');
   let rows=buildDomesticDelivRows();
   if(curDomesticDelivSearch){
     const q=normalizeFa(curDomesticDelivSearch);
@@ -6694,6 +6702,8 @@ function renderDebtCasesERP(){
 }
 
 function renderWarehouse(){
+  const slaEl=document.getElementById('warehouseSLAPanel');
+  if(slaEl) slaEl.innerHTML = buildUnitSLAPanelHTML('warehouse','انبار');
   renderPackPending();
   renderPackArchive();
   const el = document.getElementById('warehouseContent');
@@ -6701,8 +6711,15 @@ function renderWarehouse(){
   if(!warehouseItems.length){ el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏭</div><div class="empty-text">هنوز چیزی وارد انبار نشده</div></div>'; return; }
 
   // گروه‌بندی بر اساس مخفف مشتری (نه کد پیگیری دقیق) — تا BDL-01 و BDL-06 با هم تو یه جدول باشن
+  // فقط آیتم‌هایی که هنوز کارشون تموم نشده (ارسال نهایی نشدن) اینجا می‌مونن — بقیه بایگانی می‌شن
   const groups={};
+  const archivedItems=[];
   warehouseItems.forEach(w=>{
+    const myPackings=outboundPackings.filter(p=>(p.items||[]).some(it=>it.whId===w.id));
+    const anySent=myPackings.some(p=>p.sent);
+    const remaining=Math.max(0,(w.qtyTotal||0)-(w.qtySent||0));
+    const fullyDone = anySent && remaining<=0 && (w.qtyTotal||0)>0;
+    if(fullyDone){ archivedItems.push(w); return; }
     const prefix=getDisplayPrefix(w.displayNumber);
     if(!groups[prefix]) groups[prefix]=[];
     groups[prefix].push(w);
@@ -6791,19 +6808,49 @@ function renderWarehouse(){
       </div>`).join('');
   };
 
-  el.innerHTML = buildUrgentShipBannerHTML() + prefixes.map(prefix=>{
-    const items=groups[prefix];
-    const customerName=items[0].customer||'';
-    const readyCount = items.filter(w=>w.weighed && Math.max(0,(w.qtyTotal||0)-(w.qtySent||0))>0).length;
-    return `<div style="margin-bottom:22px;">
-      <div style="font-size:12.5px;font-weight:800;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-        <span>📌 ${prefix} — ${customerName} (${fn(items.length)} ردیف)</span>
-        ${readyCount>0?`<button class="action-btn" style="font-size:11px;padding:4px 10px;margin-right:auto;background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.35)" onclick="openPackingBuilderModal('${prefix.replace(/'/g,"\\'")}')">📦 ساخت پکینگ جدید (${fn(readyCount)} آماده)</button>`:''}
+  if(!prefixes.length && !archivedItems.length){
+    el.innerHTML = buildUrgentShipBannerHTML() + '<div class="empty-state"><div class="empty-icon">🏭</div><div class="empty-text">هنوز چیزی وارد انبار نشده</div></div>';
+  } else {
+    el.innerHTML = buildUrgentShipBannerHTML() + prefixes.map(prefix=>{
+      const items=groups[prefix];
+      const customerName=items[0].customer||'';
+      const readyCount = items.filter(w=>w.weighed && Math.max(0,(w.qtyTotal||0)-(w.qtySent||0))>0).length;
+      return `<div style="margin-bottom:22px;">
+        <div style="font-size:12.5px;font-weight:800;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <span>📌 ${prefix} — ${customerName} (${fn(items.length)} ردیف)</span>
+          ${readyCount>0?`<button class="action-btn" style="font-size:11px;padding:4px 10px;margin-right:auto;background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.35)" onclick="openPackingBuilderModal('${prefix.replace(/'/g,"\\'")}')">📦 ساخت پکینگ جدید (${fn(readyCount)} آماده)</button>`:''}
+        </div>
+        ${items.map(rowHTML).join('')}
+        ${packingsListHTML(prefix)}
+      </div>`;
+    }).join('');
+    if(!prefixes.length){
+      el.innerHTML += '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;">✅ همه‌چی ارسال شده — پایین رو برای بایگانی ببین</div>';
+    }
+  }
+
+  // بایگانی — آیتم‌هایی که کامل ارسال شدن، طبق درخواست کاربر دیگه اینجا (فعال) نمی‌مونن
+  if(archivedItems.length){
+    const archGroups={};
+    archivedItems.forEach(w=>{
+      const prefix=getDisplayPrefix(w.displayNumber);
+      if(!archGroups[prefix]) archGroups[prefix]=[];
+      archGroups[prefix].push(w);
+    });
+    el.innerHTML += `<details style="margin-top:24px;">
+      <summary style="font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer;padding:8px 0;">🗄️ بایگانی — کامل ارسال‌شده (${fn(archivedItems.length)})</summary>
+      <div style="margin-top:10px;">
+        ${Object.entries(archGroups).map(([prefix,items])=>`
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;">
+            <div style="font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:4px;">📌 ${prefix} — ${items[0].customer||''}</div>
+            ${items.map(w=>`<div style="font-size:11px;color:var(--text);padding:3px 0;display:flex;justify-content:space-between;">
+              <span>${w.name||'—'} — ${fn(w.qtyTotal||0)} عدد</span>
+              <span style="color:var(--green);font-size:10px;">✅ ارسال شد</span>
+            </div>`).join('')}
+          </div>`).join('')}
       </div>
-      ${items.map(rowHTML).join('')}
-      ${packingsListHTML(prefix)}
-    </div>`;
-  }).join('');
+    </details>`;
+  }
 }
 
 async function fixWarehouseQty(whId){
@@ -7005,13 +7052,9 @@ async function markPackingSent(pkId){
 }
 
 function updateWarehouseSLABadges(){
-  const active = warehouseItems.filter(w=>!w.projectClosed&&w.status!=='canceled');
-  let urgent = 0;
-  active.forEach(w=>{
-    if(!w.weighed && whHoursSince(w.dateISO||w.date)>6) urgent++;
-    if(w.weighed && !w.projectClosed && whHoursSince(w.weighedISO)>18) urgent++;
-  });
-  setBadge('warehouseBadge', urgent||active.length, urgent?'red':'green');
+  const urgent = collectSLAOverdueItems('warehouse').length;
+  const active = warehouseItems.filter(w=>!w.projectClosed&&w.status!=='canceled').length;
+  setBadge('warehouseBadge', urgent||active, urgent?'red':'green');
 }
 
 function exportShipmentsXlsx(){
@@ -8659,19 +8702,15 @@ function toggleNavGroup(id){
 }
 
 function restoreNavGroupStates(){
-  const states = JSON.parse(localStorage.getItem('navGroupStates')||'{}');
+  // طبق دستور کاربر: هر بار ERP باز می‌شه، همه‌ی آکاردیون‌ها بسته باشن — دیگه از
+  // localStorage وضعیت قبلی رو نمی‌خونیم، همیشه پیش‌فرض بسته‌ست
   document.querySelectorAll('.nav-group[id]').forEach(grp=>{
     const id = grp.id;
     const key = id.replace('ng-','');
     const items = document.getElementById('ngi-'+key);
     if(!items) return;
-    if(states[id] === true){
-      grp.classList.add('collapsed');
-      items.style.maxHeight = '0';
-    } else {
-      grp.classList.remove('collapsed');
-      items.style.maxHeight = 'none';
-    }
+    grp.classList.add('collapsed');
+    items.style.maxHeight = '0';
   });
   updateNavGroupSummaries();
 }
@@ -8700,10 +8739,17 @@ function updateNavGroupSummaries(){
   const openReqs = (requests||[]).filter(r=>!['done','canceled'].includes(r.status)).length;
   const el1=document.getElementById('ngs-sales');
   if(el1) el1.textContent = openReqs ? openReqs+' باز' : '';
-  const shipActive = (shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status)).length;
+  const shipActive = (shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status) && !s.sentToClearance).length;
   const el2=document.getElementById('ngs-foreign');
   if(el2) el2.textContent = shipActive ? shipActive+' محموله' : '';
-  const whActive = (warehouseItems||[]).filter(w=>!w.projectClosed).length;
+  const whActive = (warehouseItems||[]).filter(w=>{
+    if(w.projectClosed) return false;
+    const myPackings=(outboundPackings||[]).filter(p=>(p.items||[]).some(it=>it.whId===w.id));
+    const anySent=myPackings.some(p=>p.sent);
+    const remaining=Math.max(0,(w.qtyTotal||0)-(w.qtySent||0));
+    const fullyDone = anySent && remaining<=0 && (w.qtyTotal||0)>0;
+    return !fullyDone;
+  }).length;
   const el3=document.getElementById('ngs-warehouse');
   if(el3) el3.textContent = whActive ? whActive+' آیتم' : '';
   const retCheques = (chequesReturned||[]).filter(c=>c.status!=='done').length;
@@ -11335,7 +11381,7 @@ function renderBazarganiDashboard(){
   }
   html+='</div>';
 
-  el.innerHTML=html;
+  el.innerHTML = buildUnitSLAPanelHTML('foreign','بازرگانی خارج') + html;
 }
 
 
@@ -11493,13 +11539,38 @@ function openCalDayPopup(y,m,d){
 // ══════════════════════════════════════════════════════════════════
 const SLA_THRESHOLDS = {
   market:   {hours:24, calendar:'shamsi'},     // استعلام داخل
+  marketCollect: {hours:24, calendar:'shamsi'}, // تأیید شد، تا رسیدن دست انبار
   foreign:  {hours:72, calendar:'gregorian'},   // استعلام خارج (بازرگانی)
   finance:  {hours:24, calendar:'shamsi'},      // مالی
-  warehouse:{hours:24, calendar:'shamsi'},      // انبار (بعد از رسیدن بار)
+  warehouse:{hours:24, calendar:'shamsi'},      // انبار (بعد از رسیدن بار تا ارسال)
 };
 
+// تعطیلات رسمی شمسی ۱۴۰۵ — فقط اون‌هایی که «ثابت» هستن (هرسال دقیقاً همون
+// تاریخ، چون به گاه‌شماری خورشیدی وابسته‌ان، نه قمری) با اطمینان اینجا گذاشته
+// شدن. ⚠️ تعطیلات قمری (عید فطر، عید قربان، تاسوعا، عاشورا، اربعین، میلاد و
+// رحلت پیامبر و ائمه، غدیر) چون هرسال ۱۰-۱۱ روز جابه‌جا می‌شن، نمی‌تونم بدون
+// یه منبع رسمی و دقیق تعیین‌شون کنم — لطفاً از تقویم رسمی (مثل time.ir) این
+// روزها رو به فرمت 'ماه/روز' به همین لیست پایین اضافه کن.
+const SHAMSI_HOLIDAYS_1405 = new Set([
+  '1/1','1/2','1/3','1/4', // نوروز
+  '1/12', // روز جمهوری اسلامی
+  '1/13', // سیزده‌به‌در
+  '3/14', // رحلت امام خمینی
+  '3/15', // قیام ۱۵ خرداد
+  '11/22', // پیروزی انقلاب اسلامی
+  '12/29', // ملی‌شدن صنعت نفت
+  // ⬇️ تعطیلات قمری امسال رو اینجا اضافه کن (فرمت: 'ماه/روز',)
+]);
+function isShamsiHoliday(y,m,d){
+  return SHAMSI_HOLIDAYS_1405.has(m+'/'+d);
+}
+
 function isShamsiBizDay(y,m,d){
-  try{ return shamsiDowCal_safe(y,m,d)!==6; }catch(e){ return true; }
+  try{
+    if(shamsiDowCal_safe(y,m,d)===6) return false; // جمعه
+    if(isShamsiHoliday(y,m,d)) return false; // تعطیل رسمی
+    return true;
+  }catch(e){ return true; }
 }
 function isGregorianBizDay(jsDate){
   const dow=jsDate.getDay();
@@ -11550,6 +11621,115 @@ function slaOverdueBadgeHTML(startISO, category, delayReason){
   </div>`;
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// پنل SLA واحدها — برای هر واحد (مالی/داخل/خارج/انبار)، لیست کامل مواردی که
+// از مهلت مجاز گذشتن رو می‌سازه. یه تابع مرکزی، همه‌جا (داشبورد هر واحد +
+// داشبورد کلی مدیریت) از همینجا تغذیه می‌شه — تا هیچ‌وقت دو منطق جدا نداشته باشیم.
+// ══════════════════════════════════════════════════════════════
+function collectSLAOverdueItems(category){
+  const items=[];
+  if(category==='warehouse'){
+    // انبار قاعده‌ش فرق داره: از رسیدن بار (weighedISO) تا ارسال کامل (fullyDone)
+    (warehouseItems||[]).forEach(w=>{
+      if(!w.weighed || !w.weighedISO) return;
+      const myPackings=(outboundPackings||[]).filter(p=>(p.items||[]).some(it=>it.whId===w.id));
+      const anySent=myPackings.some(p=>p.sent);
+      const remaining=Math.max(0,(w.qtyTotal||0)-(w.qtySent||0));
+      const fullyDone = anySent && remaining<=0 && (w.qtyTotal||0)>0;
+      if(fullyDone) return; // تمومه، دیگه SLA معنا نداره
+      const st=getSLAStatus(w.weighedISO, 'warehouse');
+      if(st.overdue) items.push({customer:w.customer, code:w.displayNumber, label:w.name, hoursElapsed:st.hoursElapsed, threshold:st.threshold, reason:w.slaDelayReason||''});
+    });
+    return items;
+  }
+  // بقیه‌ی واحدها از requests.parts میان
+  (requests||[]).forEach(r=>{
+    if(!r.parts || r.status==='canceled' || r.status==='done') return;
+    const p=r.parts;
+    if(category==='market' && p.needMarket && p.marketItems && p.marketItems.some(it=>it.status==='pending')){
+      const st=getSLAStatus(r.createdAt,'market');
+      if(st.overdue) items.push({customer:r.customer, code:r.displayNumber, label:'🏬 استعلام داخل', hoursElapsed:st.hoursElapsed, threshold:st.threshold, reason:p.marketDelayReason||'', reqId:r.id});
+    }
+    if(category==='marketCollect' && p.needMarket && p.marketApproved && p.marketCollectStartISO){
+      const stillCollecting = p.marketItems && p.marketItems.some(it=>it.status==='approved'||it.status==='collecting');
+      if(stillCollecting){
+        const st=getSLAStatus(p.marketCollectStartISO,'marketCollect');
+        if(st.overdue) items.push({customer:r.customer, code:r.displayNumber, label:'📦 جمع‌آوری تا انبار', hoursElapsed:st.hoursElapsed, threshold:st.threshold, reason:p.marketCollectDelayReason||'', reqId:r.id});
+      }
+    }
+    if(category==='foreign' && p.needForeign && p.foreignItems && p.foreignItems.some(it=>it.status!=='delivered_to_customer'&&it.status!=='notfound'&&it.status!=='ordered_shipping'&&it.status!=='arrived')){
+      const st=getSLAStatus(r.createdAt,'foreign');
+      if(st.overdue) items.push({customer:r.customer, code:r.displayNumber, label:'🌍 استعلام خارج', hoursElapsed:st.hoursElapsed, threshold:st.threshold, reason:p.foreignDelayReason||'', reqId:r.id});
+    }
+    if(category==='finance' && p.needFinance && p.finance && !isFinanceFullyDone(p.finance)){
+      const st=getSLAStatus(r.createdAt,'finance');
+      if(st.overdue) items.push({customer:r.customer, code:r.displayNumber, label:'💰 مالی', hoursElapsed:st.hoursElapsed, threshold:st.threshold, reason:p.financeDelayReason||'', reqId:r.id});
+    }
+  });
+  return items.sort((a,b)=>b.hoursElapsed-a.hoursElapsed);
+}
+
+// HTML یه پنل کامل SLA برای یه واحد — برای داشبورد همون واحد استفاده می‌شه
+function buildUnitSLAPanelHTML(category, unitLabel){
+  const items=collectSLAOverdueItems(category);
+  if(!items.length){
+    return `<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:12px;padding:16px;margin-bottom:18px;text-align:center;">
+      <div style="font-size:13px;font-weight:800;color:var(--green);">✅ همه‌چی تو مهلته — هیچ کاری تو ${unitLabel} از مهلت مجاز نگذشته</div>
+    </div>`;
+  }
+  return `<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:16px;margin-bottom:18px;">
+    <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:10px;">⏰ ${fn(items.length)} مورد از مهلت مجاز ${unitLabel} گذشته</div>
+    ${items.map(it=>`<div style="background:var(--card);border-radius:8px;padding:9px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+      <div>
+        <strong style="font-size:12px;">${it.customer||'—'}</strong>
+        <span style="font-size:10px;color:var(--accent);margin-right:6px;">${it.code||''}</span>
+        <span style="font-size:10.5px;color:var(--muted);margin-right:6px;">${it.label}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10.5px;font-weight:700;color:#f87171;">${Math.floor(it.hoursElapsed)} از ${it.threshold} ساعت کاری</span>
+        ${it.reason?`<span style="font-size:9.5px;color:var(--muted);">دلیل: ${it.reason}</span>`:'<span style="font-size:9.5px;color:#f87171;">⚠️ بدون دلیل ثبت‌شده</span>'}
+        ${it.reqId?`<button class="action-btn" style="font-size:9px;padding:2px 8px;" onclick="openDetail('${it.reqId}')">مشاهده ›</button>`:''}
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// خلاصه‌ی کلی همه‌ی واحدها — برای داشبورد اصلی مدیریت
+function buildAllUnitsSLASummaryHTML(){
+  const units=[
+    {cat:'finance', label:'💰 مالی', threshold:'۲۴ ساعت کاری (بدون جمعه/تعطیل رسمی)'},
+    {cat:'market', label:'🏬 تدارکات داخل — استعلام', threshold:'۲۴ ساعت کاری (بدون جمعه/تعطیل رسمی)'},
+    {cat:'marketCollect', label:'📦 تدارکات داخل — جمع‌آوری تا انبار', threshold:'۲۴ ساعت کاری'},
+    {cat:'foreign', label:'🌍 بازرگانی خارج — استعلام', threshold:'۷۲ ساعت کاری (بدون شنبه/یکشنبه)'},
+    {cat:'warehouse', label:'🏭 انبار — تا ارسال', threshold:'۲۴ ساعت کاری (بدون جمعه/تعطیل رسمی)'},
+  ];
+  const rows=units.map(u=>{
+    const items=collectSLAOverdueItems(u.cat);
+    return {...u, count:items.length, items};
+  });
+  const totalOverdue=rows.reduce((s,r)=>s+r.count,0);
+  const headerColor = totalOverdue>0 ? '#f87171' : 'var(--green)';
+  let html=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:800;">⏰ وضعیت زمان‌بندی همه‌ی واحدها</div>
+      <div style="font-size:12px;font-weight:800;color:${headerColor}">${totalOverdue>0?fn(totalOverdue)+' مورد معوق کل شرکت':'✅ همه‌چی تو مهلته'}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">`;
+  rows.forEach(r=>{
+    const color = r.count>0 ? '#f87171' : 'var(--green)';
+    const bg = r.count>0 ? 'rgba(239,68,68,.07)' : 'rgba(34,197,94,.06)';
+    const border = r.count>0 ? 'rgba(239,68,68,.3)' : 'rgba(34,197,94,.25)';
+    html+=`<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:12px;">
+      <div style="font-size:11.5px;font-weight:700;margin-bottom:4px;">${r.label}</div>
+      <div style="font-size:20px;font-weight:800;color:${color};">${fn(r.count)}</div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">مهلت: ${r.threshold}</div>
+      ${r.count>0?`<div style="font-size:9.5px;color:${color};margin-top:4px;">بدترین: ${Math.floor(r.items[0].hoursElapsed)} ساعت — ${r.items[0].customer||''}</div>`:''}
+    </div>`;
+  });
+  html+='</div></div>';
+  return html;
+}
 
 function buildSLASectionHTML(req){
   const p=req.parts;
@@ -11803,7 +11983,7 @@ function renderFinanceDashboard(){
     </td>
   </tr></tfoot>`;
   html+='</table></div></div>';
-  el.innerHTML=html;
+  el.innerHTML = buildUnitSLAPanelHTML('finance','واحد مالی') + html;
 }
 
 

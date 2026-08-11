@@ -5609,7 +5609,7 @@ async function submitDomesticApproval(){
     return;
   }
 
-  if(req){ req.parts.marketApproved = true; }
+  if(req){ req.parts.marketApproved = true; req.parts.marketCollectStartISO = new Date().toISOString(); }
   closeModal('modalDomesticApproval');
 
   if(res.fullyRejected){
