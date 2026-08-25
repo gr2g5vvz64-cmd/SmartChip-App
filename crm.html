@@ -1021,12 +1021,19 @@ async function init(){
   loadCalendarHolidays(); // تقویم/تعطیلات از Django — برای محاسبه‌ی SLA لازمه
   // درخواست‌های موازی — یادآوری‌ها هم اضافه شدند
   try{
-    const [whRes, pkRes] = await Promise.all([
-      sheetCall('getWarehouseItems'),
-      sheetCall('getOutboundPackings')
-    ]);
-    cachedWarehouseItems=(whRes&&whRes.items)||[];
-    cachedOutboundPackings=(pkRes&&pkRes.packings)||[];
+    const djangoRes = await fetchWarehouseAndOutboundFromDjangoCRM();
+    if(djangoRes.items && djangoRes.packings){
+      cachedWarehouseItems = djangoRes.items;
+      cachedOutboundPackings = djangoRes.packings;
+    } else {
+      // Django در دسترس نبود — fallback به گوگل‌شیت (روش قدیمی)
+      const [whRes, pkRes] = await Promise.all([
+        sheetCall('getWarehouseItems'),
+        sheetCall('getOutboundPackings')
+      ]);
+      cachedWarehouseItems=(whRes&&whRes.items)||[];
+      cachedOutboundPackings=(pkRes&&pkRes.packings)||[];
+    }
   }catch(e){ console.error('خطای بارگذاری انبار/پکینگ:', e); }
   // چک‌ها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۲۳ مهاجرت)
   try{
@@ -1588,6 +1595,35 @@ function getFeedbackForEntry(trackingCode){
   if(!items.length) return null;
   return items[items.length-1]; // آخرین بازخورد ثبت‌شده برای این کد پیگیری
 }
+// ⚠️ فیکس مهم — قبلاً این دو فقط از گوگل‌اپ‌اسکریپت می‌اومدن (بدون هیچ اتصال
+// به Django)، در حالی که ERP از مدت‌ها پیش این داده رو مستقیم تو Django ذخیره
+// می‌کنه. یعنی وضعیتی که کارشناس فروش تو CRM می‌دید («محموله کجاست؟») از یه
+// منبع متروکه بود که دیگه هیچ‌وقت به‌روز نمی‌شد.
+const DJANGO_WAREHOUSE_API_CRM = 'https://smartchip-backend.onrender.com/api/ops/warehouse-items/';
+const DJANGO_OUTBOUND_API_CRM = 'https://smartchip-backend.onrender.com/api/ops/outbound-packings/';
+function whItemFromApiCRM(d){
+  return {id:d.id, plId:d.pl_id||'', shipId:d.ship_id||'', customer:d.customer||'',
+    displayNumber:d.display_number||'', name:d.name||'', supplier:d.supplier||'',
+    qtyTotal:d.qty_total||0, qtySent:d.qty_sent||0, source:d.source||'',
+    reqId:d.req_id||'', itemIdx:d.item_idx};
+}
+function outboundFromApiCRM(d){
+  return {id:d.id, customerPrefix:d.customer_prefix||'', customer:d.customer||'', items:d.items||[],
+    sent:!!d.sent, sentDate:d.sent_date||''};
+}
+async function fetchWarehouseAndOutboundFromDjangoCRM(){
+  try{
+    const [whData, pkData] = await Promise.all([
+      fetchJsonWithRetry(DJANGO_WAREHOUSE_API_CRM),
+      fetchJsonWithRetry(DJANGO_OUTBOUND_API_CRM),
+    ]);
+    return {
+      items: whData ? whData.map(whItemFromApiCRM) : null,
+      packings: pkData ? pkData.map(outboundFromApiCRM) : null,
+    };
+  }catch(e){ return {items:null, packings:null}; }
+}
+
 let cachedWarehouseItems=[]; // فقط خواندنی — برای نمایش مرحله‌ی زنده‌ی کار به کارشناس فروش
 let cachedOutboundPackings=[]; // فقط خواندنی — همینطور
 let debtCases=[]; // پرونده‌های وصول مطالبات (بدهی معوقه) — حالا از Django می‌آید، نه گوگل‌شیت
@@ -2966,13 +3002,18 @@ async function refreshCrmData(showFeedback){
   const btn=document.getElementById('manualRefreshBtnCrm');
   if(showFeedback && btn) btn.innerHTML='<span>⏳</span><span>در حال رفرش...</span>';
   try{
-    const [whRes, pkRes] = await Promise.all([
-      sheetCall('getWarehouseItems'), sheetCall('getOutboundPackings')
-    ]);
+    const djangoRes = await fetchWarehouseAndOutboundFromDjangoCRM();
+    if(djangoRes.items) cachedWarehouseItems = djangoRes.items;
+    if(djangoRes.packings) cachedOutboundPackings = djangoRes.packings;
+    if(!djangoRes.items || !djangoRes.packings){
+      const [whRes, pkRes] = await Promise.all([
+        sheetCall('getWarehouseItems'), sheetCall('getOutboundPackings')
+      ]);
+      if(!djangoRes.items && whRes&&whRes.items) cachedWarehouseItems=whRes.items;
+      if(!djangoRes.packings && pkRes&&pkRes.packings) cachedOutboundPackings=pkRes.packings;
+    }
     const djangoRequests = await fetchRequestsFromDjango();
     if(djangoRequests) cachedRequests = djangoRequests;
-    if(whRes&&whRes.items) cachedWarehouseItems=whRes.items;
-    if(pkRes&&pkRes.packings) cachedOutboundPackings=pkRes.packings;
     const djangoLeads = await fetchLeadsFromDjango();
     if(djangoLeads) leads = djangoLeads;
     const djangoCustomers = await fetchCustomersFromDjango();
@@ -4259,7 +4300,7 @@ function renderCrmCal(){
 
 // ─── توابع مفقود تقویم CRM ───
 function fa2en(s){ return (s||'').toString().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
-function parseIntFa(s){ return parseInt(fa2en(s)); }
+function parseIntFa(s){ return parseInt(fa2en(String(s||'')).replace(/,/g,'')) || 0; }
 function normalizeFa(s){
   return fa2en((s||'').toString().replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[إأآا]/g,'ا').replace(/ة/g,'ه').replace(/\s+/g,' ').trim().toLowerCase());
 }
