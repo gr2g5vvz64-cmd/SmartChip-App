@@ -461,35 +461,42 @@ async function syncFromSheet(){
     const items = gData && gData.items;
     if(!items || !items.length) throw new Error('چیزی از گوگل‌شیت خونده نشد');
 
-    status.textContent=`در حال ارسال ${items.length} ردیف به سرور...`;
-    // ۲. بفرست به Django تا آپدیت بشه
-    const sRes = await fetch(DJANGO_ITEMS_SYNC_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items})});
-    const sData = await sRes.json();
-    if(!sData.ok) throw new Error('ارسال به سرور ناموفق بود');
+    // همین‌جا، از همون داده‌ای که از گوگل‌شیت گرفتیم، rows رو می‌سازیم — قبلاً
+    // اینجا یه مرحله‌ی اضافه بود که دوباره کل ۳۲هزار ردیف رو از Django می‌خوند
+    // (که کاملاً زائد بود، چون همون داده رو همین الان داریم) — حذفش کردیم تا
+    // sync تقریباً نصف زمان قبل طول بکشه.
+    rows = items.map(d=>({
+      status: '✅ OK', part: d.partNumber||d.part_number,
+      g: d.unitQty||'', h: d.unitWeight||'', i: d.packQty||'', j: d.packWeight||'',
+      k: d.packWeightPerUnit||'', l: d.tubeQty||'', m: d.tubeWeight||'', n: d.tubeWeightPerUnit||'',
+      o: d.reelQty||'', p: d.reelWeight||'', q: d.reelWeightPerUnit||'',
+      r: d.bagQty||'', s: d.bagWeight||'', t: d.boxQty||'', u: d.boxWeight||'', v: d.boxWeightPerUnit||''
+    }));
+    window._priceSyncDone=true; console.log('Sync OK (نمایش فوری از گوگل‌شیت)، rows:', rows.length);
+    btn.classList.remove('syncing');
+    btn.classList.add('ok');
+    btn.textContent='✅';
+    status.textContent=`✅ نمایش آپدیت شد — ${fmt(items.length)} ردیف. در حال ارسال به سرور در پس‌زمینه...`;
+    status.style.color='var(--green)';
 
-    status.textContent='در حال بارگذاری نسخه‌ی تازه...';
-    // ۳. حالا از Django (که تازه آپدیت شد) بخون تو همین صفحه
-    const res=await fetch(DJANGO_ITEMS_API);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    if(data&&Array.isArray(data)&&data.length>0){
-      rows = data.map(d=>({
-        status: '✅ OK', part: d.part_number,
-        g: d.unit_qty||'', h: d.unit_weight||'', i: d.pack_qty||'', j: d.pack_weight||'',
-        k: d.pack_weight_per_unit||'', l: d.tube_qty||'', m: d.tube_weight||'', n: d.tube_weight_per_unit||'',
-        o: d.reel_qty||'', p: d.reel_weight||'', q: d.reel_weight_per_unit||'',
-        r: d.bag_qty||'', s: d.bag_weight||'', t: d.box_qty||'', u: d.box_weight||'', v: d.box_weight_per_unit||''
-      }));
-      window._priceSyncDone=true; console.log('Sync OK, rows:', rows.length);
-      btn.classList.remove('syncing');
-      btn.classList.add('ok');
-      btn.textContent='✅';
-      status.textContent=`✅ همگام‌سازی کامل شد — ${sData.created||0} جدید، ${sData.updated||0} آپدیت، جمعاً ${data.length} ردیف بارگذاری شد`;
-      status.style.color='var(--green)';
-      setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},5000);
-      return;
-    }
-    throw new Error('بارگذاری نهایی ناموفق بود');
+    // ۲. ارسال به Django تو پس‌زمینه انجام می‌شه — کاربر منتظرش نمی‌مونه، چون
+    // چیزی که کاربر می‌بینه (rows) از قبل از گوگل‌شیت پر شده
+    fetch(DJANGO_ITEMS_SYNC_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items})})
+      .then(r=>r.json())
+      .then(sData=>{
+        if(sData && sData.ok){
+          status.textContent=`✅ کامل شد — ${fmt(items.length)} ردیف (${sData.created||0} جدید، ${sData.updated||0} آپدیت روی سرور)`;
+        } else {
+          status.textContent='⚠️ نمایش آپدیت شد ولی ارسال به سرور ناموفق بود — بقیه‌ی کارمندان این آپدیت رو نمی‌بینن تا دوباره sync بزنی';
+          status.style.color='#fbbf24';
+        }
+      })
+      .catch(()=>{
+        status.textContent='⚠️ نمایش آپدیت شد ولی اتصال به سرور قطع شد — بقیه‌ی کارمندان این آپدیت رو نمی‌بینن تا دوباره sync بزنی';
+        status.style.color='#fbbf24';
+      });
+
+    setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},6000);
   }catch(e){
     console.error('Sync failed:',e.message);
     btn.classList.remove('syncing');
