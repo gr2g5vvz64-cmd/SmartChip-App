@@ -2421,21 +2421,78 @@ async function saveContactEntry(){
 
 // ─── تیک استعلام/مالی (موبایل) — همان فرم procurement ساده، بدون نام مشتری ───
 let mEstItems=[];
-// SLA پاسخگویی تدارکات/بازرگانی — همان منطق دسکتاپ
-function businessHoursElapsedM(startISO,endISO){
-  let cursor=new Date(startISO);
-  const end=new Date(endISO);
-  let total=0,guard=0;
-  while(cursor<end && guard<1000){
+// ══════════════════════════════════════════════════════════════
+// سیستم SLA — همون الگوی دقیق ERP/CRM (تعطیلات رسمی از Django، نه فقط
+// شنبه/یکشنبه‌ی ساده‌ی قبلی). قبلاً موبایل نسخه‌ی ناقص‌تری داشت (۴۸ ساعت
+// به‌جای ۷۲، بدون تعطیلات رسمی شمسی/چین) — این‌بار دقیقاً هماهنگ با بقیه‌ست.
+// ══════════════════════════════════════════════════════════════
+const SLA_THRESHOLDS = {
+  market:   {hours:24, calendar:'shamsi'},
+  marketCollect: {hours:24, calendar:'shamsi'},
+  foreign:  {hours:72, calendar:'gregorian'},
+  finance:  {hours:24, calendar:'shamsi'},
+  warehouse:{hours:24, calendar:'shamsi'},
+};
+let SHAMSI_HOLIDAYS_SET = new Set();
+let CHINA_HOLIDAYS_SET = new Set();
+let CHINA_COMPENSATORY_SET = new Set();
+let GLOBAL_HOLIDAYS_SET = new Set();
+async function loadCalendarHolidaysM(){
+  try{
+    const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/calendar/list/');
+    if(!data) return;
+    SHAMSI_HOLIDAYS_SET = new Set();
+    (data.iran||[]).forEach(iso=>{
+      const [gy,gm,gd] = iso.split('-').map(Number);
+      try{ const jd=gToJD(gy,gm,gd); const sd=jdToS(jd); SHAMSI_HOLIDAYS_SET.add(sd.m+'/'+sd.d); }catch(e){}
+    });
+    CHINA_HOLIDAYS_SET = new Set(data.china_holiday||[]);
+    CHINA_COMPENSATORY_SET = new Set(data.china_compensatory||[]);
+    GLOBAL_HOLIDAYS_SET = new Set(data.global||[]);
+  }catch(e){ console.warn('⚠️ لود تقویم شکست خورد:', e); }
+}
+function isShamsiHolidayM(y,m,d){ return SHAMSI_HOLIDAYS_SET.has(m+'/'+d); }
+function isShamsiBizDayM(y,m,d){
+  try{
+    if(sDow(y,m,d)===6) return false;
+    if(isShamsiHolidayM(y,m,d)) return false;
+    return true;
+  }catch(e){ return true; }
+}
+function isGregorianBizDayM(jsDate){
+  const iso = jsDate.toISOString().slice(0,10);
+  if(CHINA_COMPENSATORY_SET.has(iso)) return true;
+  if(CHINA_HOLIDAYS_SET.has(iso) || GLOBAL_HOLIDAYS_SET.has(iso)) return false;
+  const dow=jsDate.getDay();
+  return dow!==0 && dow!==6;
+}
+function businessHoursElapsedM(startISO, calendarType){
+  if(!startISO) return 0;
+  const start=new Date(startISO);
+  const now=new Date();
+  if(isNaN(start.getTime()) || start>=now) return 0;
+  let hours=0, cursor=new Date(start), guard=0;
+  while(cursor<now && guard<20000){
     guard++;
-    const dayEnd=new Date(cursor);
-    dayEnd.setHours(24,0,0,0);
-    const segEnd=dayEnd<end?dayEnd:end;
-    const isWeekend=cursor.getDay()===6||cursor.getDay()===0;
-    if(!isWeekend) total+=(segEnd-cursor)/(1000*60*60);
-    cursor=dayEnd;
+    let next=new Date(cursor.getTime()+3600000);
+    if(next>now) next=now;
+    let isBiz;
+    if(calendarType==='gregorian'){
+      isBiz=isGregorianBizDayM(cursor);
+    } else {
+      try{ const jd=gToJD(cursor.getFullYear(),cursor.getMonth()+1,cursor.getDate()); const sd=jdToS(jd); isBiz=isShamsiBizDayM(sd.y,sd.m,sd.d); }
+      catch(e){ isBiz=true; }
+    }
+    if(isBiz) hours += (next-cursor)/3600000;
+    cursor=next;
   }
-  return total;
+  return hours;
+}
+function getSLAStatusM(startISO, category){
+  const cfg=SLA_THRESHOLDS[category];
+  if(!cfg || !startISO) return {overdue:false, hoursElapsed:0, threshold:cfg?cfg.hours:0};
+  const hoursElapsed=businessHoursElapsedM(startISO, cfg.calendar);
+  return {overdue: hoursElapsed>=cfg.hours, hoursElapsed, threshold:cfg.hours};
 }
 function getSlaStatusM(entry){
   if(!entry.needsEstelamat||!entry.estelamatSentDate||!entry.procurementParts) return null;
@@ -2443,19 +2500,18 @@ function getSlaStatusM(entry){
   const allItems=[...(parts.marketItems||[]),...(parts.foreignItems||[])];
   if(!allItems.length) return null;
   const allAnswered=allItems.every(it=>it.status!=='pending');
-  const now=new Date().toISOString();
   const isForeign=parts.needForeign;
-  const hoursElapsed=isForeign?businessHoursElapsedM(entry.estelamatSentDate,now):(new Date(now)-new Date(entry.estelamatSentDate))/(1000*60*60);
-  const thresholdHours=isForeign?48:24;
-  return {answered:allAnswered, hoursElapsed:Math.round(hoursElapsed), thresholdHours, overdue:!allAnswered&&hoursElapsed>thresholdHours, deptLabel:isForeign?'بازرگانی (خارج)':'تدارکات (بازار)'};
+  const st=getSLAStatusM(entry.estelamatSentDate, isForeign?'foreign':'market');
+  return {answered:allAnswered, hoursElapsed:Math.round(st.hoursElapsed), thresholdHours:st.threshold,
+    overdue:!allAnswered&&st.overdue, deptLabel:isForeign?'بازرگانی (خارج)':'تدارکات (بازار)'};
 }
-// SLA پاسخگویی خودِ کارشناس فروش — جدا از تدارکات/بازرگانی، همیشه ۲۴ ساعت
+// SLA پاسخگویی خودِ کارشناس فروش — جدا از تدارکات/بازرگانی، همیشه ۲۴ ساعت کاری شمسی
 function getSalesResponseSlaM(entry){
   if(entry.completed||entry.canceled) return null;
   const hasResponded=entry.nextFollowUpText&&entry.nextFollowUpText.trim();
   if(hasResponded) return null;
-  const hoursElapsed=(new Date()-new Date(entry.date))/(1000*60*60);
-  return {hoursElapsed:Math.round(hoursElapsed), thresholdHours:24, overdue:hoursElapsed>24};
+  const st=getSLAStatusM(entry.date, 'finance'); // همون آستانه‌ی ۲۴ساعت‌کاری‌شمسی رو به‌عاریت می‌گیریم
+  return {hoursElapsed:Math.round(st.hoursElapsed), thresholdHours:st.threshold, overdue:st.overdue};
 }
 // صبح امروز (موبایل)
 function getMorningDataM(){
@@ -2491,8 +2547,13 @@ async function pickPcPart(name){
   document.getElementById('pcPartInput').value = name;
   document.getElementById('pcPartAC').style.display = 'none';
   document.getElementById('pcPartName').textContent = name;
-  // دریافت وزن از سرور
-  const res = await sheetCall('getItemWeight', { name });
+  // دریافت وزن — اول از Django (سریع‌تر و همیشه به‌روز)، اگه نشد از گوگل‌شیت
+  let res = null;
+  try{
+    const djRes = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/weight/?name='+encodeURIComponent(name));
+    if(djRes && djRes.found) res = djRes;
+  }catch(e){}
+  if(!res) res = await sheetCall('getItemWeight', { name });
   if(res && res.weightUnit !== undefined){
     document.getElementById('pcWeightUnit').textContent = res.weightUnit ? fn(res.weightUnit) + ' گرم' : '—';
     document.getElementById('pcWeightPack').textContent = res.weightPack ? fn(res.weightPack) + ' گرم' : '—';
@@ -3526,6 +3587,7 @@ async function init(){
   document.getElementById('connStatus').textContent='در حال اتصال...';
   try {
     await loadMasters();
+    loadCalendarHolidaysM(); // تقویم/تعطیلات از Django — برای محاسبه‌ی SLA لازمه
     if(isConnected){
       document.getElementById('connStatus').textContent='متصل';
       await loadSummary();
