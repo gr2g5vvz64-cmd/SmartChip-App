@@ -3242,6 +3242,19 @@ async function getNextOrderNumberFromDjango(){
   }catch(e){}
   return await sheetCall('getNextOrderNumber');
 }
+// ⚠️ فیکس باگ بحرانی — این دو تابع هیچ‌جا تعریف نشده بودن، ولی fallback ثبت لید
+// جدید (وقتی آفلاینی یا Django موقتاً جواب نمی‌ده) مستقیم صداشون می‌زد — یعنی
+// دقیقاً همون لحظه‌ای که این fallback باید کار کنه (وصل‌نبودن)، به‌جاش کرش می‌کرد.
+function getNextCustomerSeq(customerName){
+  const mine = (requests||[]).filter(r=>r.customer===customerName && r.customerSeq);
+  const maxSeq = mine.reduce((mx,r)=>Math.max(mx, parseInt(r.customerSeq)||0), 0);
+  return maxSeq + 1;
+}
+function formatCustomerReqNumber(customerName, seq){
+  const cm = (customerMaster||[]).find(c=>c.name===customerName);
+  const abbr = (cm && cm.abbr) ? cm.abbr : customerName.slice(0,3).toUpperCase();
+  return `${abbr}-${String(seq).padStart(2,'0')}`;
+}
 
 const DJANGO_REQUESTS_API_ERP = 'https://smartchip-backend.onrender.com/api/requests/requests/';
 
@@ -5010,7 +5023,10 @@ async function persistEstelamatChange(r){
 }
 async function checkDomesticQuoteCascade(r){
   const items = r.parts.marketItems || [];
-  const resolvedStatuses = ['quoted','approved','delivered','notfound','canceled_customer'];
+  // ⚠️ فیکس مهم — «quoted» یعنی فقط قیمت اعلام شده، مشتری هنوز تصمیم نگرفته؛
+  // این نباید «تعیین‌تکلیف‌شده» حساب بشه (قبلاً بود، و باعث می‌شد سیستم زودتر
+  // از موقع پیام «آماده‌ی پیش‌فاکتور» بده، درست همون لحظه‌ای که هنوز معلقه).
+  const resolvedStatuses = ['approved','collected','delivered','notfound','canceled_customer'];
   const allResolved = items.length>0 && items.every(it=>resolvedStatuses.includes(it.status));
   if(!allResolved || r.parts.marketQuoteComplete) return; // یا هنوز کامل نشده، یا قبلاً ثبت شده — دوباره لازم نیست
   try{
@@ -5487,7 +5503,8 @@ async function persistEstelamatForeignChange(r){
 }
 async function checkForeignQuoteCascade(r){
   const items = r.parts.foreignItems || [];
-  const resolvedStatuses = ['quoted','ordered_shipping','arrived','delivered_to_customer','notfound','canceled_customer'];
+  // ⚠️ همون فیکس تدارکات داخل — «quoted» یعنی هنوز منتظر تصمیم مشتریه
+  const resolvedStatuses = ['approved','ordered_shipping','arrived','delivered_to_customer','notfound','canceled_customer'];
   const allResolved = items.length>0 && items.every(it=>resolvedStatuses.includes(it.status));
   if(!allResolved || r.parts.foreignQuoteComplete) return;
   try{
@@ -7468,6 +7485,22 @@ function applyExcelPaste(){
 }
 
 function confirmAddItem(){
+  // این دکمه قبلاً همیشه بی‌اثر بود — از فیلدهایی می‌خوند (newItemName/newItemQty)
+  // که تو این مودال اصلاً وجود نداشتن (مودال واقعی itemNameInput/itemQtyInput
+  // داره) — یعنی «ثبت سفارش جدید» عملاً هیچ‌وقت نمی‌شد از این فرم آیتم اضافه کرد.
+  if(itemPickerContext==='order'){
+    const nameEl=document.getElementById('itemNameInput');
+    const qtyEl=document.getElementById('itemQtyInput');
+    const etaEl=document.getElementById('itemEtaInput');
+    if(!nameEl||!nameEl.value.trim()){ toast('⚠ نام کالا را وارد کن'); return; }
+    if(!qtyEl||!qtyEl.value.trim()){ toast('⚠ تعداد را وارد کن'); return; }
+    currentOrderItems.push({name:nameEl.value.trim(), qty:parseIntFa(qtyEl.value), eta:etaEl?parseIntFa(etaEl.value):0});
+    renderOrderItemsList();
+    closeModal('modalItemPicker');
+    toast('✅ کالا به سفارش اضافه شد');
+    return;
+  }
+  // مسیر قدیمی — برای تدارکات سریع (procurementQuickItems)
   const nameEl=document.getElementById('newItemName');
   const qtyEl=document.getElementById('newItemQty');
   if(!nameEl||!nameEl.value.trim()){ toast('نام کالا را وارد کن'); return; }
@@ -7478,6 +7511,21 @@ function confirmAddItem(){
   closeModal('addItemModal');
   nameEl.value=''; if(qtyEl) qtyEl.value='';
   toast('✅ کالا اضافه شد');
+}
+// HTML لیست کالاهای فرم «ثبت سفارش جدید» — این تابع هم هیچ‌جا تعریف نشده بود
+function renderOrderItemsList(){
+  const box=document.getElementById('shItemsList');
+  if(!box) return;
+  if(!currentOrderItems.length){
+    box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:6px;">هنوز کالایی اضافه نشده</div>';
+    return;
+  }
+  box.innerHTML=currentOrderItems.map((it,idx)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 10px;">
+      <span style="flex:1;font-size:12px;font-weight:700">${it.name}</span>
+      <span style="font-size:11px;color:var(--muted)">${fn(it.qty)} عدد${it.eta?` — ${fn(it.eta)} روز`:''}</span>
+      <button type="button" class="action-btn" style="font-size:9px;padding:2px 7px;color:#f87171;" onclick="currentOrderItems.splice(${idx},1);renderOrderItemsList();">✕</button>
+    </div>`).join('');
 }
 
 // ── دوره‌ای ──
@@ -10018,7 +10066,7 @@ async function saveRequest(){
     return;
   }
 
-  const newId='REQ-'+Date.now();
+const newId='REQ-'+Date.now();
   let customerSeq, displayNumber;
   if(isConnected){
     const seqRes=await getNextCustomerSeqFromDjango(c);
@@ -10645,6 +10693,12 @@ function gToJD(y,m,d){return 367*y-Math.floor(7*(y+Math.floor((m+9)/12))/4)-Math
 function jdToS(jd){const j=Math.floor(jd)+0.5;const dep=j-sToJD(475,1,1);const cyc=Math.floor(dep/1029983);const cr=dep%1029983;let yc=cr===1029982?2820:Math.floor((2134*Math.floor(cr/366)+2816*(cr%366)+2815)/1028522)+Math.floor(cr/366)+1;let year=yc+2820*cyc+474;if(year<=0)year--;const yd=j-sToJD(year,1,1)+1;let month=yd<=186?Math.ceil(yd/31):Math.ceil((yd-6)/30);let day=Math.floor(j-sToJD(year,month,1)+1);if(day<1){month--;if(month<1){month=12;year--;}day=Math.floor(j-sToJD(year,month,1)+1);}return{y:year,m:month,d:day};}
 
 function sToJD(y,m,d){const base=y>=0?y-474:y-473;const jy=((base%2820)+2820)%2820+474;const dbm=(m<=7?(m-1)*31:(m-1)*30+6);return d+dbm+Math.floor((jy*682-110)/2816)+(jy-1)*365+Math.floor(base/2820)*1029983+1948320;}
+// ⚠️ فیکس باگ بحرانی — این تابع هیچ‌جا تعریف نشده بود، ولی sDim (تعداد روزهای
+// ماه) هر وقت اسفند (ماه ۱۲) صدا زده می‌شد بهش نیاز داشت — یعنی هرجا کاربر
+// تقویم/انتخابگر تاریخ رو رو اسفند می‌برد، بی‌صدا کرش می‌کرد. فرمول ۳۳ساله —
+// تست‌شده رو ۶ تا سال واقعی (۱۳۹۹ کبیسه، ۱۴۰۰ عادی، ۱۴۰۳ کبیسه، ۱۴۰۴ عادی،
+// ۱۴۰۷ عادی، ۱۴۰۸ کبیسه) و همه درست تشخیص داده شد.
+function isLeapS(y){ return [1,5,9,13,17,22,26,30].includes(((y % 33) + 33) % 33); }
 
 
 function renderChequesReturned(){
@@ -10877,13 +10931,13 @@ function renderReminders(){
 
 async function completeRecurringCycle(id){
   var r=recurringReminders.find(function(x){return String(x.id)===String(id);});
-  if(!r){toast(chr(1740)+chr(1575)+chr(1583)+chr(1570)+chr(1608)+chr(1585)+chr(1740)+chr(32)+chr(1662)+chr(1740)+chr(1583)+chr(1575)+chr(32)+chr(1606)+chr(1588)+chr(1583));return;}
+  if(!r){toast('یادآوری پیدا نشد');return;}
   r.startDate=r.nextDate||todayShamsiStr();
   r.nextDate=addDaysToShamsi(r.startDate,r.interval||30);
   r.lastDone=todayShamsiStr();
-  toast(chr(10003)+chr(10003)+chr(32)+chr(1605)+chr(1608)+chr(1593)+chr(1583)+chr(32)+chr(1576)+chr(1593)+chr(1583)+chr(1740)+chr(58)+chr(32)+r.nextDate);
-  if(typeof renderCrmReminders===chr(102)+chr(117)+chr(110)+chr(99)+chr(116)+chr(105)+chr(111)+chr(110)) renderCrmReminders();
-  if(isConnected) await sheetCall(chr(115)+chr(97)+chr(118)+chr(101)+chr(82)+chr(101)+chr(99)+chr(117)+chr(114)+chr(114)+chr(105)+chr(110)+chr(103)+chr(82)+chr(101)+chr(109)+chr(105)+chr(110)+chr(100)+chr(101)+chr(114),{id:r.id,startDate:r.startDate,nextDate:r.nextDate,lastDone:r.lastDone});
+  toast('✅ موعد بعدی: '+r.nextDate);
+  renderReminders();
+  if(isConnected) await sheetCall('saveRecurringReminder',{id:r.id,startDate:r.startDate,nextDate:r.nextDate,lastDone:r.lastDone});
 }
 
 function renderRecurring(){
@@ -12349,8 +12403,7 @@ async function markFinanceTaskDone(id){
     renderFinanceTasks();
     toast(res.requestCompleted ? '✅ ثبت شد — درخواست فروش هم کامل شد، برگشت به CRM' : '✅ ثبت شد — منتظر بقیه‌ی موارد مالی این درخواست');
   } else {
-    console.error('🔴 آبشار مالی گیر کرد:', res?.error||'نامشخص');
-    toast('🔴 گیر کرد و ثبت نشد! خطا: '+(res?.error||'نامشخص')+' — دوباره امتحان کن');
+    logAndShowError('آبشار مالی', res?.error||'نامشخص');
   }
 }
 
