@@ -6474,6 +6474,7 @@ function debtCaseFromApi(d){
     handoffDate:d.handoff_date||'', financeLog:d.finance_log||[], salesLog:d.sales_log||[],
     salesClosedTick:!!d.sales_closed_tick, salesClosedDate:d.sales_closed_date||'',
     financeApproved:!!d.finance_approved, financeApprovedDate:d.finance_approved_date||'',
+    manuallyClosed:!!d.manually_closed, manuallyClosedDate:d.manually_closed_date||'', manuallyClosedNote:d.manually_closed_note||'',
     collected:d.collected||0, remaining:d.remaining!==undefined?d.remaining:d.total_debt};
 }
 async function fetchDebtCasesFromDjango(){
@@ -6577,6 +6578,29 @@ async function editDebtCaseTotalAmount(caseId){
     toast('🟡 سرور کند بود — ثبت محلی شد و ظرف چند لحظه هماهنگ می‌شه');
   } else {
     toast('⚠️ ذخیره ناموفق بود — دوباره امتحان کن');
+  }
+}
+async function completeDebtCaseManually(caseId, customerName){
+  const note = prompt(`چرا پرونده‌ی «${customerName}» رو با وجود مانده‌ی باقی می‌بندی؟\n(مثلاً: چشم‌پوشی از باقی‌مونده، توافق با مشتری، و غیره — این فقط برای خودت ثبت می‌شه)`);
+  if(note===null) return; // انصراف
+  const idx = debtCases.findIndex(d=>String(d.id)===String(caseId));
+  if(idx<0) return;
+  toast('⏳ در حال بستن پرونده...');
+  const result = await updateDebtCaseInDjango(caseId, {
+    manually_closed: true,
+    manually_closed_date: todayShamsiStr(),
+    manually_closed_note: note||''
+  });
+  if(result.success){
+    debtCases[idx] = result.data;
+    renderDebtCasesERP();
+    toast('✅ پرونده دستی بسته و بایگانی شد');
+  } else if(result.queued){
+    toast('🟡 سرور کند بود — محلی بسته شد و ظرف چند لحظه با سرور هماهنگ می‌شه');
+    debtCases[idx] = {...debtCases[idx], manuallyClosed:true, manuallyClosedDate:todayShamsiStr(), manuallyClosedNote:note||''};
+    renderDebtCasesERP();
+  } else {
+    toast('⚠️ بستن پرونده ناموفق بود — دوباره امتحان کن');
   }
 }
 async function deleteWholeDebtCase(caseId, customerName){
@@ -6697,8 +6721,10 @@ function toggleDebtArchive(){
 function renderDebtCasesERP(){
   const el = document.getElementById('debtCasesContentERP');
   if(!el) return;
-  const open = (debtCases||[]).filter(d=>d.remaining>0);
-  const closed = (debtCases||[]).filter(d=>d.remaining<=0);
+  // ⚠️ فیکس — قبلاً فقط remaining<=0 چک می‌شد. الان دستی هم می‌شه بست
+  // (مثلاً بابت چشم‌پوشی از باقی‌مونده)، بدون نیاز به حذف کامل پرونده.
+  const open = (debtCases||[]).filter(d=>d.remaining>0 && !d.manuallyClosed);
+  const closed = (debtCases||[]).filter(d=>d.remaining<=0 || d.manuallyClosed);
   setBadge('debtCaseBadgeERP', open.length);
 
   const rowHTML = d => {
@@ -6722,6 +6748,9 @@ function renderDebtCasesERP(){
         کل بدهی: ${fnMoney(d.totalDebt)} — وصول‌شده: ${fnMoney(d.collected)} — شروع: ${d.startDate||'—'}
         ${d.assignedTo?` — <span style="color:var(--accent)">ارجاع به: ${d.assignedTo} (${d.handoffDate})</span>`:''}
       </div>
+      ${d.manuallyClosed?`<div style="font-size:10.5px;color:#a855f7;margin-bottom:8px;background:rgba(168,85,247,.08);border-radius:6px;padding:6px 8px;">
+        🔒 دستی بسته شد — ${d.manuallyClosedDate}${d.manuallyClosedNote?`: «${d.manuallyClosedNote}»`:''}
+      </div>`:''}
       ${durationTxt?`<div style="font-size:10.5px;margin-bottom:8px;">${durationTxt}</div>`:''}
       ${(d.financeLog&&d.financeLog.length)?`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;background:var(--bg);border-radius:8px;padding:8px;">
         ${d.financeLog.map((l,li)=>`<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
@@ -6730,9 +6759,10 @@ function renderDebtCasesERP(){
           <button onclick="deleteDebtCollectionLog('${d.id}',${li})" style="font-size:9px;padding:1px 6px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:4px;color:var(--red);cursor:pointer;">🗑️ حذف</button>
         </div>`).join('')}
       </div>`:''}
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
         ${d.remaining>0?`<button class="action-btn" style="font-size:10px;" onclick="openDebtCollectionModal('${d.id}')">💰 ثبت وصولی</button>`:''}
         ${!d.assignedTo?`<button class="action-btn" style="font-size:10px;color:var(--accent);" onclick="handoffDebtCaseToSales('${d.id}')">📤 ارجاع به فروش (CRM)</button>`:''}
+        ${(d.remaining>0 && !d.manuallyClosed)?`<button class="action-btn" style="font-size:10px;color:#a855f7;border-color:rgba(168,85,247,.35);" onclick="completeDebtCaseManually('${d.id}','${d.customer.replace(/'/g,"\\'")}')">✅ تکمیل و بایگانی</button>`:''}
         <button class="action-btn" style="font-size:10px;color:var(--red);" onclick="deleteWholeDebtCase('${d.id}','${d.customer.replace(/'/g,"\\'")}')">🗑️ حذف کل این پرونده</button>
       </div>
     </div>`;
