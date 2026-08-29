@@ -9561,14 +9561,25 @@ function updateNavBadges(){
   setBadge('debtCaseBadgeERP', debtOpenCount);
   setBadge('chequesReturnedBadge', chqReturnedOpenCount);
 
+  // ⚠️ فیکس بحرانی دیگه — این ۴ تا badge قبلاً هیچ‌جای کد اصلاً setBadge
+  // نداشتن (بازخوردها) یا فقط تو رندر خودِ صفحه‌شون بودن (ترخیص، تسک مالی) —
+  // یعنی همیشه صفر می‌موندن تا کاربر خودش وارد اون صفحه‌ی خاص بشه.
+  const feedbackUnresolved = (dept)=> (deliveryFeedback||[]).filter(f=>
+    (f.departments||[]).includes(dept) && !(f.resolvedStatus && f.resolvedStatus[dept] && f.resolvedStatus[dept].resolved)
+  ).length;
+  setBadge('fbBadgeTadarokat', feedbackUnresolved('tadarokat'));
+  setBadge('fbBadgeBazargani', feedbackUnresolved('bazargani'));
+  setBadge('fbBadgeAnbar', feedbackUnresolved('anbar'));
+  setBadge('fbBadgeMali', feedbackUnresolved('mali'));
+  setBadge('financeTaskBadge', (financeTasks||[]).filter(t=>!t.done).length);
+  setBadge('clearanceBadge', (shipments||[]).filter(s=>s.sentToClearance && !s.clearedToWarehouse).length);
+
   const countMap = {
     'sales': (requests||[]).filter(r=>!['canceled','delivered'].includes(r.status)).length,
     'requests': (requests||[]).filter(r=>r.status==='new').length,
     'foreign-need': (requests||[]).filter(r=>r.needForeignEstelamat&&r.status!=='canceled').length,
     'estelamat-foreign': (requests||[]).filter(r=>r.parts&&r.parts.items&&r.parts.items.some(it=>it.type==='foreign'&&it.status!=='delivered')).length,
     'ship-tracking': (shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status)).length,
-    // ⚠️ قبلاً هاردکد صفر بود — الان مجموع واقعی چک برگشتی باز + پرونده مطالبات باز
-    'finance': debtOpenCount + chqReturnedOpenCount,
     'kanban': (requests||[]).filter(r=>!['canceled','delivered'].includes(r.status)).length,
   };
   Object.entries(countMap).forEach(([grp,cnt])=>{
