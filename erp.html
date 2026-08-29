@@ -5670,36 +5670,9 @@ function markForeignDeliveredToCustomer(safeKey){
   found.item.status='delivered_to_customer';
   found.item.deliveredToCustomerAt=new Date().toISOString();
   toast('✅ به مشتری تحویل داده شد');
-
-  // ── ثبت عملکرد تامین‌کننده خارج — مقایسه‌ی تاریخ واقعی با وعده‌ی پارت اول/دوم ──
-  try{
-    const [reqIdKey, itemIdxKeyStr]=safeKey.split('__');
-    const itemIdxKey=parseInt(itemIdxKeyStr);
-    const linkedShip=(shipments||[]).find(s=>String(s.reqId)===String(reqIdKey)&&Number(s.itemIdx)===itemIdxKey);
-    if(linkedShip){
-      const approvedQ=(found.item.quotes||[]).find(q=>q&&q.approved);
-      const todayStr=todayShamsiStr();
-      const todaySv=shamsiDateSortVal(todayStr);
-      const eta1Sv=shamsiDateSortVal(linkedShip.eta||'');
-      const eta2Sv=shamsiDateSortVal(linkedShip.eta2||'');
-      // ⚠️ فیکس — قبلاً فقط ۳ دسته بود (زودتر+دقیقاً‌ETA1 با هم یکی حساب می‌شدن).
-      // الان ۴ دسته‌ی دقیق: زودتر از ETA۱ / دقیقاً ETA۱ / بین ETA۱ تا ETA۲ / بعد از ETA۲
-      let result='early';
-      if(eta1Sv>=0){
-        if(todaySv===eta1Sv) result='on_eta1';
-        else if(todaySv>eta1Sv){
-          if(eta2Sv>=0 && todaySv<=eta2Sv) result='on_eta2';
-          else result='late';
-        }
-      }
-      foreignSupplierPerformance.unshift({
-        id:'FSP-'+Date.now(), supplier:linkedShip.supplier||'—', itemName:found.item.name||'',
-        approvedPrice:approvedQ?approvedQ.price:'', result, date:todayStr,
-        customer:found.r.customer, reqId:found.r.id
-      });
-      if(isConnected) addForeignSupplierPerformanceInDjango(foreignSupplierPerformance[0]);
-    }
-  }catch(perfErr){ /* بی‌خطر — اگه محموله‌ی مرتبط پیدا نشد، فقط ثبت عملکرد رد می‌شود */ }
+  // ⚠️ ثبت عملکرد تأمین‌کننده دیگه اینجا انجام نمی‌شه — منتقل شد به لحظه‌ی
+  // ورود به ترخیص (sendToSingleClearance)، چون از نظر بازرگانی کار همونجا
+  // تمومه؛ تحویل نهایی به مشتری کاملاً حوزه‌ی انبار/تحویله، نه بازرگانی.
 
   persistEstelamatForeignChange(found.r);
 }
@@ -6233,6 +6206,37 @@ async function sendToSingleClearance(shipId){
   if(s.sentToClearance){ toast('این آیتم قبلاً به ترخیص فرستاده شده'); return; }
   s.sentToClearance = true;
   await updateShipmentInDjangoERP(s);
+  // ⚠️ فیکس مهم — قبلاً عملکرد تأمین‌کننده فقط موقع «تحویل به مشتری» ثبت
+  // می‌شد که کاملاً بیرون از حوزه‌ی بازرگانیه (اون مرحله‌ی انبار/تحویله).
+  // از نظر بازرگانی، کار همینجا (ورود به ترخیص) تمومه، پس عملکرد همینجا ثبت می‌شه.
+  try{
+    const todayStr=todayShamsiStr();
+    const todaySv=shamsiDateSortVal(todayStr);
+    const eta1Sv=shamsiDateSortVal(s.eta||'');
+    const eta2Sv=shamsiDateSortVal(s.eta2||'');
+    let result='early';
+    if(eta1Sv>=0){
+      if(todaySv===eta1Sv) result='on_eta1';
+      else if(todaySv>eta1Sv){
+        if(eta2Sv>=0 && todaySv<=eta2Sv) result='on_eta2';
+        else result='late';
+      }
+    }
+    // قیمت تأییدشده رو از درخواست/آیتم مرتبط پیدا کن (اگه پیدا شد) — برای میانگین قیمت جدول عملکرد
+    let approvedPrice='';
+    const linkedReq=(requests||[]).find(r=>String(r.id)===String(s.reqId));
+    if(linkedReq && linkedReq.parts && linkedReq.parts.foreignItems && s.itemIdx!==undefined){
+      const linkedItem=linkedReq.parts.foreignItems[s.itemIdx];
+      const approvedQ=linkedItem && (linkedItem.quotes||[]).find(q=>q&&q.approved);
+      if(approvedQ) approvedPrice=approvedQ.price;
+    }
+    foreignSupplierPerformance.unshift({
+      id:'FSP-'+Date.now(), supplier:s.supplier||'—', itemName:s.desc||'',
+      approvedPrice, result, date:todayStr,
+      customer:s.customer||'', reqId:s.reqId||''
+    });
+    if(isConnected) addForeignSupplierPerformanceInDjango(foreignSupplierPerformance[0]);
+  }catch(perfErr){ /* بی‌خطر — اگه چیزی کم بود، فقط ثبت عملکرد رد می‌شود */ }
   renderShipments();
   renderClearance();
   // اگه این آیتم بخشی از یه پکینگ فعاله، تو تب «پکینگ‌ها» می‌شینه، نه «آیتم‌های تکی» —
@@ -11498,7 +11502,10 @@ function renderBazarganiDashboard(){
   if(!el) return;
 
   // ── بخش ۱: همه‌ی محموله‌های باز (نه فقط عقب‌افتاده) — برای پیگیری کارشناس بازرگانی ──
-  const activeShips=(shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status));
+  // ⚠️ فیکس مهم — قبلاً sentToClearance فراموش شده بود. وقتی محموله وارد ترخیص
+  // می‌شه، از نظر بازرگانی کار تمومه (مسئولیت به انبار/تحویل منتقل می‌شه) —
+  // دقیقاً همون معیاری که badge نوار کناری (shipActive) هم استفاده می‌کنه.
+  const activeShips=(shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status) && !s.sentToClearance);
   const STATUS_LABELS_BAZ={ordered:'📦 سفارش شده',shipped:'✈️ ارسال شده',transit:'🚢 در راه',customs:'🛃 گمرک'};
   const today=todayShamsiStr(); const todaySv=shamsiDateSortVal(today);
   const openRows = activeShips.map(s=>{
@@ -11546,7 +11553,7 @@ function renderBazarganiDashboard(){
       +'<th style="text-align:center;padding:8px;">وضعیت</th>'
       +'</tr></thead><tbody>';
     openRows.forEach(s=>{
-      const stageLabel = s.sentToClearance ? '🏛️ در حال ترخیص' : (STATUS_LABELS_BAZ[s.status] || s.status || '—');
+      const stageLabel = STATUS_LABELS_BAZ[s.status] || s.status || '—';
       const statusHtml = s.isOverdue
         ? `<span style="color:#f87171;font-weight:700;">🔴 ${fn(s.overdueDays)} روز عقب</span>`
         : `<span style="color:var(--green);">🟢 در مهلت</span>`;
