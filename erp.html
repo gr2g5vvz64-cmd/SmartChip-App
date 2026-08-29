@@ -5682,9 +5682,15 @@ function markForeignDeliveredToCustomer(safeKey){
       const todaySv=shamsiDateSortVal(todayStr);
       const eta1Sv=shamsiDateSortVal(linkedShip.eta||'');
       const eta2Sv=shamsiDateSortVal(linkedShip.eta2||'');
-      let result='first';
-      if(eta1Sv>=0 && todaySv>eta1Sv){
-        result = (eta2Sv>=0 && todaySv<=eta2Sv) ? 'second' : (eta2Sv>=0 ? 'late' : 'second');
+      // ⚠️ فیکس — قبلاً فقط ۳ دسته بود (زودتر+دقیقاً‌ETA1 با هم یکی حساب می‌شدن).
+      // الان ۴ دسته‌ی دقیق: زودتر از ETA۱ / دقیقاً ETA۱ / بین ETA۱ تا ETA۲ / بعد از ETA۲
+      let result='early';
+      if(eta1Sv>=0){
+        if(todaySv===eta1Sv) result='on_eta1';
+        else if(todaySv>eta1Sv){
+          if(eta2Sv>=0 && todaySv<=eta2Sv) result='on_eta2';
+          else result='late';
+        }
       }
       foreignSupplierPerformance.unshift({
         id:'FSP-'+Date.now(), supplier:linkedShip.supplier||'—', itemName:found.item.name||'',
@@ -11491,53 +11497,73 @@ function renderBazarganiDashboard(){
   const el=document.getElementById('bazDashContent');
   if(!el) return;
 
-  // ── بخش ۱: تعداد سفارش فعال هر تامین‌کننده (لحظه‌ای) ──
+  // ── بخش ۱: همه‌ی محموله‌های باز (نه فقط عقب‌افتاده) — برای پیگیری کارشناس بازرگانی ──
   const activeShips=(shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status));
-  const bySupplierActive={};
-  activeShips.forEach(s=>{
-    const sup=s.supplier||'—';
-    bySupplierActive[sup]=(bySupplierActive[sup]||0)+1;
-  });
-  const activeRows=Object.entries(bySupplierActive).sort((a,b)=>b[1]-a[1]);
+  const STATUS_LABELS_BAZ={ordered:'📦 سفارش شده',shipped:'✈️ ارسال شده',transit:'🚢 در راه',customs:'🛃 گمرک'};
+  const today=todayShamsiStr(); const todaySv=shamsiDateSortVal(today);
+  const openRows = activeShips.map(s=>{
+    const eta2Sv = s.eta2?shamsiDateSortVal(s.eta2):-1;
+    const isOverdue = eta2Sv>=0 && todaySv>eta2Sv;
+    const overdueDays = isOverdue?diffShamsiDays(s.eta2,today):0;
+    return {...s, isOverdue, overdueDays};
+  }).sort((a,b)=>b.overdueDays-a.overdueDays);
 
-  // ── بخش ۲: عملکرد تاریخی (پارت اول/دوم) هر تامین‌کننده ──
+  // ── بخش ۲: عملکرد تاریخی — ۴ دسته‌ی دقیق (زودتر/ETA۱/ETA۲/بعد از ETA۲) ──
+  // ⚠️ سازگار با داده‌ی قدیمی: رکوردهای قدیمی فقط 'first'/'second'/'late' داشتن؛
+  // 'first' قدیمی رو زیر ستون «زودتر یا ETA۱» جمع می‌زنیم چون تفکیک دقیق‌ترش
+  // دیگه ممکن نیست (داده‌ی خام قدیمی این ریزه‌کاری رو نداشت).
   const bySupplierPerf={};
   (foreignSupplierPerformance||[]).forEach(p=>{
     const sup=p.supplier||'—';
-    if(!bySupplierPerf[sup]) bySupplierPerf[sup]={first:0,second:0,late:0,prices:[]};
-    if(p.result==='first') bySupplierPerf[sup].first++;
-    else if(p.result==='second') bySupplierPerf[sup].second++;
+    if(!bySupplierPerf[sup]) bySupplierPerf[sup]={early:0,onEta1:0,onEta2:0,late:0,prices:[]};
+    if(p.result==='early') bySupplierPerf[sup].early++;
+    else if(p.result==='on_eta1' || p.result==='first') bySupplierPerf[sup].onEta1++;
+    else if(p.result==='on_eta2' || p.result==='second') bySupplierPerf[sup].onEta2++;
     else if(p.result==='late') bySupplierPerf[sup].late++;
     const pNum=parseFloat(String(p.approvedPrice||'').replace(/,/g,''));
     if(!isNaN(pNum)) bySupplierPerf[sup].prices.push(pNum);
   });
   const perfRows=Object.entries(bySupplierPerf).map(([sup,d])=>{
-    const total=d.first+d.second+d.late;
+    const total=d.early+d.onEta1+d.onEta2+d.late;
     const avgPrice=d.prices.length?(d.prices.reduce((a,b)=>a+b,0)/d.prices.length):0;
-    const firstPct=total?Math.round(d.first/total*100):0;
-    return {sup,total,first:d.first,second:d.second,late:d.late,firstPct,avgPrice};
+    const onTimePct=total?Math.round((d.early+d.onEta1)/total*100):0;
+    return {sup,total,early:d.early,onEta1:d.onEta1,onEta2:d.onEta2,late:d.late,onTimePct,avgPrice};
   }).sort((a,b)=>b.total-a.total);
 
   let html='';
 
-  // کارت‌های سفارش فعال
-  html+='<div style="background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:14px;"><div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;">🚢 سفارش‌های فعال هر تامین‌کننده</div>';
-  if(!activeRows.length){
-    html+='<div style="font-size:11px;color:var(--muted);padding:10px;">هیچ سفارش فعالی نیست</div>';
+  // پنل محموله‌های باز — با وضعیت/مرحله‌ی فعلی هرکدوم
+  html+='<div style="background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:14px;"><div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;">🚢 محموله‌های باز — برای پیگیری ('+fn(openRows.length)+' مورد)</div>';
+  if(!openRows.length){
+    html+='<div style="font-size:11px;color:var(--muted);padding:10px;">هیچ محموله‌ی بازی نیست — همه‌چیز بایگانی شده</div>';
   } else {
-    html+='<div style="display:flex;gap:10px;flex-wrap:wrap;">';
-    activeRows.forEach(([sup,cnt])=>{
-      html+=`<div style="background:var(--card);border-radius:10px;padding:12px 16px;min-width:140px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;">${sup}</div>
-        <div style="font-size:20px;font-weight:800;color:var(--accent);">${fn(cnt)} <span style="font-size:11px;color:var(--muted);font-weight:400;">سفارش</span></div>
-      </div>`;
+    html+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+    html+='<thead><tr style="border-bottom:1px solid var(--border);">'
+      +'<th style="text-align:right;padding:8px;">تامین‌کننده</th>'
+      +'<th style="text-align:right;padding:8px;">مشتری</th>'
+      +'<th style="text-align:center;padding:8px;">مرحله</th>'
+      +'<th style="text-align:center;padding:8px;">ETA۲</th>'
+      +'<th style="text-align:center;padding:8px;">وضعیت</th>'
+      +'</tr></thead><tbody>';
+    openRows.forEach(s=>{
+      const stageLabel = s.sentToClearance ? '🏛️ در حال ترخیص' : (STATUS_LABELS_BAZ[s.status] || s.status || '—');
+      const statusHtml = s.isOverdue
+        ? `<span style="color:#f87171;font-weight:700;">🔴 ${fn(s.overdueDays)} روز عقب</span>`
+        : `<span style="color:var(--green);">🟢 در مهلت</span>`;
+      html+=`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px;font-weight:700;">${s.supplier||'—'}</td>
+        <td style="padding:8px;">${s.customer||'—'}</td>
+        <td style="text-align:center;padding:8px;">${stageLabel}</td>
+        <td style="text-align:center;padding:8px;">${s.eta2||'—'}</td>
+        <td style="text-align:center;padding:8px;">${statusHtml}</td>
+      </tr>`;
     });
-    html+='</div>';
+    html+='</tbody></table></div>';
   }
   html+='</div>';
 
-  // جدول عملکرد تاریخی
-  html+='<div style="background:var(--surface);border-radius:12px;padding:14px 16px;"><div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;">📊 عملکرد تاریخی تحویل (پارت اول / دوم)</div>';
+  // جدول عملکرد تاریخی — ۴ دسته‌ی دقیق، شامل بایگانی‌شده‌ها هم می‌شه (کلی، نه فقط باز)
+  html+='<div style="background:var(--surface);border-radius:12px;padding:14px 16px;"><div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;">📊 عملکرد کلی هر تامین‌کننده (همه‌ی محموله‌ها، رسیده و نرسیده)</div>';
   if(!perfRows.length){
     html+='<div style="font-size:11px;color:var(--muted);padding:10px;">هنوز داده‌ی کافی ثبت نشده — با هر «تحویل به مشتری» در استعلامات خارج، اینجا خودکار پر می‌شود</div>';
   } else {
@@ -11545,18 +11571,20 @@ function renderBazarganiDashboard(){
     html+='<thead><tr style="border-bottom:1px solid var(--border);">'
       +'<th style="text-align:right;padding:8px;">تامین‌کننده</th>'
       +'<th style="text-align:center;padding:8px;">تعداد کل</th>'
-      +'<th style="text-align:center;padding:8px;">پارت اول ✅</th>'
-      +'<th style="text-align:center;padding:8px;">پارت دوم ⚠️</th>'
-      +'<th style="text-align:center;padding:8px;">دیرتر از موعد ❌</th>'
+      +'<th style="text-align:center;padding:8px;">زودتر ✅</th>'
+      +'<th style="text-align:center;padding:8px;">دقیقاً ETA۱ 🟢</th>'
+      +'<th style="text-align:center;padding:8px;">دقیقاً ETA۲ ⚠️</th>'
+      +'<th style="text-align:center;padding:8px;">بعد از ETA۲ ❌</th>'
       +'<th style="text-align:center;padding:8px;">میانگین قیمت</th>'
       +'</tr></thead><tbody>';
     perfRows.forEach(r=>{
-      const firstColor=r.firstPct>=70?'var(--green)':(r.firstPct>=40?'var(--yellow)':'var(--red)');
+      const onTimeColor=r.onTimePct>=70?'var(--green)':(r.onTimePct>=40?'var(--yellow)':'var(--red)');
       html+=`<tr style="border-bottom:1px solid var(--border);">
         <td style="padding:8px;font-weight:700;">${r.sup}</td>
-        <td style="text-align:center;padding:8px;">${fn(r.total)}</td>
-        <td style="text-align:center;padding:8px;color:${firstColor};font-weight:700;">${fn(r.first)} (${fn(r.firstPct)}٪)</td>
-        <td style="text-align:center;padding:8px;color:var(--yellow);">${fn(r.second)}</td>
+        <td style="text-align:center;padding:8px;">${fn(r.total)} <span style="color:${onTimeColor};font-size:9.5px;">(${fn(r.onTimePct)}٪ به‌موقع)</span></td>
+        <td style="text-align:center;padding:8px;color:var(--green);font-weight:700;">${fn(r.early)}</td>
+        <td style="text-align:center;padding:8px;color:var(--green);">${fn(r.onEta1)}</td>
+        <td style="text-align:center;padding:8px;color:var(--yellow);">${fn(r.onEta2)}</td>
         <td style="text-align:center;padding:8px;color:var(--red);">${fn(r.late)}</td>
         <td style="text-align:center;padding:8px;">${r.avgPrice?r.avgPrice.toLocaleString('en-US',{maximumFractionDigits:2}):'—'}</td>
       </tr>`;
@@ -11565,7 +11593,7 @@ function renderBazarganiDashboard(){
   }
   html+='</div>';
 
-  el.innerHTML = buildOverdueShipmentsPanelHTML() + buildUnitSLAPanelHTML('foreign','بازرگانی خارج') + html;
+  el.innerHTML = buildUnitSLAPanelHTML('foreign','بازرگانی خارج') + html;
 }
 
 
@@ -11923,28 +11951,7 @@ function getOverdueActiveShipments(){
     return {...s, overdueDays};
   }).sort((a,b)=>b.overdueDays-a.overdueDays);
 }
-function buildOverdueShipmentsPanelHTML(){
-  const list = getOverdueActiveShipments();
-  if(!list.length){
-    return `<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:12px;padding:16px;margin-bottom:18px;text-align:center;">
-      <div style="font-size:13px;font-weight:800;color:var(--green);">✅ هیچ محموله‌ی بازی از موعد تحویل رد نشده</div>
-    </div>`;
-  }
-  return `<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:16px;margin-bottom:18px;">
-    <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:10px;">🚨 ${fn(list.length)} محموله‌ی باز از موعد تحویل (ETA۲) رد شده:</div>
-    ${list.map(s=>`<div style="background:var(--card);border-radius:8px;padding:9px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-      <div>
-        <strong style="font-size:12px;">${s.id||''}</strong>
-        <span style="font-size:10px;color:var(--accent);margin-right:6px;">${s.customer||''}</span>
-        <span style="font-size:10.5px;color:var(--muted);margin-right:6px;">تأمین‌کننده: ${s.supplier||'—'}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:10.5px;font-weight:700;color:#f87171;">${fn(s.overdueDays)} روز از ETA۲ (${s.eta2}) گذشته</span>
-        <button class="action-btn" style="font-size:9px;padding:2px 8px;" onclick="showPage('shipments')">مشاهده ›</button>
-      </div>
-    </div>`).join('')}
-  </div>`;
-}
+
 function buildAllUnitsSLASummaryHTML(){
   const units=[
     {cat:'finance', label:'💰 مالی', threshold:'۲۴ ساعت کاری (بدون جمعه/تعطیل رسمی)'},
@@ -11958,6 +11965,8 @@ function buildAllUnitsSLASummaryHTML(){
     return {...u, count:items.length, items};
   });
   const overdueShipments = getOverdueActiveShipments();
+  const allActiveShipments = (shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status));
+  const archivedShipments = (shipments||[]).filter(s=>['delivered','canceled'].includes(s.status));
   const totalOverdue=rows.reduce((s,r)=>s+r.count,0) + overdueShipments.length;
   const headerColor = totalOverdue>0 ? '#f87171' : 'var(--green)';
   let html=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;">
@@ -11977,17 +11986,17 @@ function buildAllUnitsSLASummaryHTML(){
       ${r.count>0?`<div style="font-size:9.5px;color:${color};margin-top:4px;">بدترین: ${Math.floor(r.items[0].hoursElapsed)} ساعت — ${r.items[0].customer||''}</div>`:''}
     </div>`;
   });
-  // کارت جدید — محموله‌هایی که از ETA۲ (وعده‌ی دوم تحویل) رد شدن، جدا از SLA
-  // چون این مربوط به تأخیر تأمین‌کننده‌ست، نه سرعت پاسخگویی داخلی
+  // کارت مدیریت — فقط کلیات (تعداد، نه اینکه کدوم تأمین‌کننده) — طبق درخواست
+  // صریح: «برای مدیریت کلیات مهمه نه اینکه کدوم تأمین‌کننده خطا داشته»
   {
     const color = overdueShipments.length>0 ? '#f87171' : 'var(--green)';
     const bg = overdueShipments.length>0 ? 'rgba(239,68,68,.07)' : 'rgba(34,197,94,.06)';
     const border = overdueShipments.length>0 ? 'rgba(239,68,68,.3)' : 'rgba(34,197,94,.25)';
     html+=`<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:12px;cursor:pointer;" onclick="showPage('bazdash')">
-      <div style="font-size:11.5px;font-weight:700;margin-bottom:4px;">🚚 محموله‌های عقب از تحویل (ETA۲)</div>
-      <div style="font-size:20px;font-weight:800;color:${color};">${fn(overdueShipments.length)}</div>
-      <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">تأخیر تأمین‌کننده، نه پاسخگویی داخلی</div>
-      ${overdueShipments.length>0?`<div style="font-size:9.5px;color:${color};margin-top:4px;">بدترین: ${fn(overdueShipments[0].overdueDays)} روز — ${overdueShipments[0].supplier||''}</div>`:''}
+      <div style="font-size:11.5px;font-weight:700;margin-bottom:4px;">🚚 وضعیت کلی محموله‌های بازرگانی خارج</div>
+      <div style="font-size:20px;font-weight:800;color:${color};">${fn(allActiveShipments.length)} <span style="font-size:11px;font-weight:400;color:var(--muted);">باز</span></div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">از این تعداد، ${fn(overdueShipments.length)} تا از موعد تحویل رد شده</div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:2px;">${fn(archivedShipments.length)} محموله تا الان بایگانی (تحویل/کنسل) شده</div>
     </div>`;
   }
   html+='</div></div>';
