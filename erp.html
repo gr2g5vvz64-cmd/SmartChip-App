@@ -10643,7 +10643,23 @@ function renderShipArchive(){
         <div style="color:var(--muted);font-size:10px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.desc||''}</div>
       </div>
       <div style="color:var(--green);font-size:10px;white-space:nowrap">✅ ${s.completedDate||'—'}</div>
+      <button class="action-btn" style="font-size:9px;padding:3px 8px;color:var(--red);border-color:rgba(239,68,68,.35);flex-shrink:0;" onclick="deleteArchivedShipment('${s.id}')" title="حذف کامل — برای داده‌های تستی که آمار داشبورد رو خراب می‌کنن">🗑️</button>
     </div>`).join(''):'<div class="empty-state" style="padding:20px"><div class="empty-icon">🗄️</div><div class="empty-text">بایگانی خالی است</div></div>';
+}
+async function deleteArchivedShipment(shipId){
+  const s = (shipments||[]).find(x=>String(x.id)===String(shipId));
+  if(!s) return;
+  if(!confirm(`محموله‌ی «${shipId}» (${s.supplier||'—'}) کامل و برای همیشه حذف بشه؟\nاین برای پاک‌کردن داده‌های تستی/اشتباهیه که آمار داشبورد رو خراب می‌کنن — قابل بازگشت نیست.`)) return;
+  toast('⏳ در حال حذف...');
+  const ok = await deleteShipmentInDjangoERP(shipId);
+  if(ok){
+    shipments = shipments.filter(x=>String(x.id)!==String(shipId));
+    renderShipArchive();
+    renderDash();
+    toast('✅ حذف شد — آمار داشبورد به‌روز شد');
+  } else {
+    toast('⚠️ حذف ناموفق بود — دوباره امتحان کن');
+  }
 }
 
 function searchTaskArchive(v){curTaskArchiveSearch=v;renderTaskArchive();}
@@ -11600,7 +11616,7 @@ function renderBazarganiDashboard(){
   }
   html+='</div>';
 
-  el.innerHTML = buildUnitSLAPanelHTML('foreign','بازرگانی خارج') + html;
+  el.innerHTML = buildUnitSLAPanelHTML('foreign','بازرگانی خارج','⚠️ این فقط سرعت پاسخ به استعلام رو می‌سنجه، نه تأخیر تحویل محموله — برای وضعیت تحویل، به جدول «محموله‌های باز» پایین‌تر نگاه کن.') + html;
 }
 
 
@@ -11914,15 +11930,18 @@ function collectSLAOverdueItems(category){
 }
 
 // HTML یه پنل کامل SLA برای یه واحد — برای داشبورد همون واحد استفاده می‌شه
-function buildUnitSLAPanelHTML(category, unitLabel){
+function buildUnitSLAPanelHTML(category, unitLabel, scopeNote){
   const items=collectSLAOverdueItems(category);
+  const noteHtml = scopeNote ? `<div style="font-size:10px;color:var(--muted);margin-top:4px;">${scopeNote}</div>` : '';
   if(!items.length){
     return `<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:12px;padding:16px;margin-bottom:18px;text-align:center;">
       <div style="font-size:13px;font-weight:800;color:var(--green);">✅ همه‌چی تو مهلته — هیچ کاری تو ${unitLabel} از مهلت مجاز نگذشته</div>
+      ${noteHtml}
     </div>`;
   }
   return `<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:16px;margin-bottom:18px;">
     <div style="font-size:13px;font-weight:800;color:#f87171;margin-bottom:10px;">⏰ ${fn(items.length)} مورد از مهلت مجاز ${unitLabel} گذشته</div>
+    ${noteHtml}
     ${items.map(it=>`<div style="background:var(--card);border-radius:8px;padding:9px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
       <div>
         <strong style="font-size:12px;">${it.customer||'—'}</strong>
