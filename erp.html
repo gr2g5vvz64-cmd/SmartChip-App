@@ -9551,13 +9551,24 @@ function computeOverallStatus(parts){
 
 
 function updateNavBadges(){
+  // ⚠️ فیکس مهم — این دو تا قبلاً یا اصلاً به‌روز نمی‌شدن (chequesReturnedBadge)
+  // یا فقط وقتی کاربر خودش وارد اون صفحه‌ی خاص می‌شد آپدیت می‌شدن
+  // (debtCaseBadgeERP تو renderDebtCasesERP) — یعنی تا نوار کناری رو باز
+  // نمی‌کردی، از وجودشون خبردار نمی‌شدی. الان همینجا (تابع مرکزی که همیشه
+  // موقع لود/رفرش صدا زده می‌شه) حساب می‌شن.
+  const debtOpenCount = (debtCases||[]).filter(d=>(d.remaining!==undefined?d.remaining:d.totalDebt)>0 && !d.manuallyClosed).length;
+  const chqReturnedOpenCount = (chequesReturned||[]).filter(c=>c.status!=='done').length;
+  setBadge('debtCaseBadgeERP', debtOpenCount);
+  setBadge('chequesReturnedBadge', chqReturnedOpenCount);
+
   const countMap = {
     'sales': (requests||[]).filter(r=>!['canceled','delivered'].includes(r.status)).length,
     'requests': (requests||[]).filter(r=>r.status==='new').length,
     'foreign-need': (requests||[]).filter(r=>r.needForeignEstelamat&&r.status!=='canceled').length,
     'estelamat-foreign': (requests||[]).filter(r=>r.parts&&r.parts.items&&r.parts.items.some(it=>it.type==='foreign'&&it.status!=='delivered')).length,
     'ship-tracking': (shipments||[]).filter(s=>!['delivered','canceled'].includes(s.status)).length,
-    'finance': 0,
+    // ⚠️ قبلاً هاردکد صفر بود — الان مجموع واقعی چک برگشتی باز + پرونده مطالبات باز
+    'finance': debtOpenCount + chqReturnedOpenCount,
     'kanban': (requests||[]).filter(r=>!['canceled','delivered'].includes(r.status)).length,
   };
   Object.entries(countMap).forEach(([grp,cnt])=>{
