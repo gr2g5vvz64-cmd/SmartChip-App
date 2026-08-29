@@ -6775,6 +6775,10 @@ function renderDebtCasesERP(){
   const open = (debtCases||[]).filter(d=>d.remaining>0 && !d.manuallyClosed);
   const closed = (debtCases||[]).filter(d=>d.remaining<=0 || d.manuallyClosed);
   setBadge('debtCaseBadgeERP', open.length);
+  // ⚠️ فیکس مهم — این تابع ممکنه مستقل از renderDash صدا زده بشه (مثلاً وقتی
+  // خودِ همین صفحه یه اکشن انجام می‌ده)؛ اگه فقط badge تکی رو ست کنیم و گروه
+  // رو صدا نزنیم، عدد گروه («مالی») تا دفعه‌ی بعدی renderDash کهنه می‌مونه.
+  if(typeof updateNavGroupSummaries==='function') updateNavGroupSummaries();
 
   const rowHTML = d => {
     const durationTxt = (d.remaining<=0 && d.startDate) ? (()=>{
@@ -7238,6 +7242,7 @@ function exportShipmentsXlsx(){
 function renderShipments(){
   renderShipArchive();
   setBadge('clearanceBadge', shipments.filter(s=>s.sentToClearance && !s.clearedToWarehouse).length);
+  if(typeof updateNavGroupSummaries==='function') updateNavGroupSummaries();
   let list = shipments.filter(s => s.status !== 'delivered' && s.status !== 'canceled' && !s.sentToClearance);
   const search = (document.getElementById('shipSearchQ') || {value:''}).value.trim();
   const filterStatus = (document.getElementById('shipFilterStatus') || {value:''}).value;
@@ -12394,6 +12399,10 @@ async function resolveDeptFeedback(id, deptKey){
   const f=(deliveryFeedback||[]).find(x=>String(x.id)===String(id));
   if(f){ if(!f.resolvedStatus) f.resolvedStatus={}; f.resolvedStatus[deptKey]={resolved:true, note}; }
   renderDeptFeedback(deptKey);
+  // ⚠️ فیکس — قبلاً بعد از رفع بازخورد، badge نوار کناری اصلاً آپدیت نمی‌شد
+  // (نه تکی نه گروه) تا وقتی renderDash دوباره صدا زده بشه.
+  if(typeof updateNavBadges==='function') updateNavBadges();
+  if(typeof updateNavGroupSummaries==='function') updateNavGroupSummaries();
   await markFeedbackDeptResolvedInDjango(id, deptKey, note);
   toast('✅ ثبت شد');
 }
@@ -12543,6 +12552,7 @@ function renderFinanceTasks(){
 
   const badgeEl=document.getElementById('financeTaskBadge');
   if(badgeEl){ badgeEl.style.display=pending.length>0?'inline-block':'none'; badgeEl.textContent=pending.length; }
+  if(typeof updateNavGroupSummaries==='function') updateNavGroupSummaries();
 
   function taskCard(t){
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:9px;${t.done?'opacity:.55;':''}">
