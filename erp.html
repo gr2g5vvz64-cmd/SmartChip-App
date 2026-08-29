@@ -994,7 +994,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       </div>
       <div class="nav-group-items" id="ngi-sales" style="max-height:none">
         <button class="nav-item" onclick="showPage('requests')"><span class="nav-icon">📋</span><span>درخواست‌ها</span><span class="nbadge red" id="urgentBadge" style="display:none">0</span></button>
-        
+        <button class="nav-item" onclick="showPage('samples')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('customers')"><span class="nav-icon">👥</span><span>مشتریان</span></button>
       </div>
     </div>
@@ -1040,6 +1040,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <button class="nav-item" onclick="curEstelamatForeignCustomer=null;estelamatForeignFilterRequestId=null;showPage('estelamatforeign')"><span class="nav-icon">🌍</span><span>استعلامات خارج</span></button>
         <button class="nav-item" onclick="showPage('shipments')"><span class="nav-icon">🚢</span><span>ردیابی محموله‌ها</span><span class="nbadge orange" id="shipBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('clearance')"><span class="nav-icon">🛃</span><span>ترخیص</span><span class="nbadge red" id="clearanceBadge" style="display:none">0</span></button>
+        <button class="nav-item" onclick="showPage('samples-bazargani')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadgeBazargani" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('deptfeedback-bazargani')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeBazargani" style="display:none">0</span></button>
       </div>
     </div>
@@ -1052,6 +1053,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="nav-group-items" id="ngi-warehouse" style="max-height:none">
         <button class="nav-item" onclick="showPage('warehouse')"><span class="nav-icon">🏭</span><span>ورودی انبار</span><span class="nbadge green" id="warehouseBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('addresses');loadAddressesIfNeeded()"><span class="nav-icon">📍</span><span>آدرس مشتریان</span></button>
+        <button class="nav-item" onclick="showPage('samples-anbar')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadgeAnbar" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('deptfeedback-anbar')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeAnbar" style="display:none">0</span></button>
       </div>
     </div>
@@ -1168,6 +1170,35 @@ textarea.form-control{resize:vertical;min-height:70px;}
         </div>
       </div>
     </div>
+
+    <!-- ══ نمونه‌ها — فروش ══ -->
+    <div class="page" id="page-samples">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 16px;margin-bottom:16px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:15px">🧪</span>
+        <span>بعد از اینکه انبار یه نمونه رو ارسال کرد، خودکار همین‌جا سطر می‌سازه. دلیل فیدبک مشتری رو انتخاب کن — واحد مقصد خودکار تعیین می‌شه. بعد از پاسخ واحد(ها)، با مشتری صحبت کن و «تکمیل» یا «کنسل» بزن.</span>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><div class="sec-title">🧪 نمونه‌های ارسال‌شده — پیگیری فروش</div><div class="search-box"><span>🔍</span><input type="text" id="samplesSearchQ" placeholder="جستجو: مشتری، کالا..." oninput="searchSamples(this.value)"/></div></div>
+        <table><thead><tr>
+          <th>مشتری</th><th>کالا</th><th>تعداد</th><th>تاریخ ارسال</th><th>کارشناس مشتری</th>
+          <th>دلیل فیدبک</th><th>توضیحات مشتری</th><th>واحد مقصد</th><th>وضعیت پاسخ</th><th>اقدام</th>
+        </tr></thead><tbody id="samplesBody"></tbody></table>
+      </div>
+      <div class="sec-hdr" style="margin-top:30px;cursor:pointer" onclick="toggleArchive('samples')">
+        <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی (تکمیل‌شده / کنسل‌شده) <span id="samplesArchiveCount" style="font-size:11px"></span></div>
+        <span id="samplesArchiveChevron" style="color:var(--muted)">›</span>
+      </div>
+      <div id="samplesArchiveBox" style="display:none;">
+        <div class="tbl-wrap" style="opacity:.85">
+          <div class="tbl-hdr"><div class="search-box"><span>🔍</span><input type="text" id="samplesArchiveSearch" placeholder="جستجو در بایگانی..." oninput="searchSamplesArchive(this.value)"/></div></div>
+          <table><thead><tr><th>مشتری</th><th>کالا</th><th>دلیل</th><th>واحد(ها)</th><th>پاسخ واحد</th><th>وضعیت نهایی</th><th>توضیح تکمیلی</th><th>تاریخ بایگانی</th></tr></thead><tbody id="samplesArchiveBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ نمونه‌ها — بازرگانی / انبار (مشترک، پارامتری بر اساس دپارتمان) ══ -->
+    <div class="page" id="page-samples-bazargani"><div id="samplesDeptContent-bazargani"></div></div>
+    <div class="page" id="page-samples-anbar"><div id="samplesDeptContent-anbar"></div></div>
 
     <!-- ══ KANBAN ══ -->
     <div class="page" id="page-pipeline">
@@ -2713,13 +2744,14 @@ async function loadFromSheet() {
     }catch(e){ console.error('⚠️ خطا تو بارگذاری انبار/آدرس‌ها:', e); }
 
     try{
-      const [djangoFeedback, djangoUrgent, djangoFinTasks] = await Promise.all([
-        fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango()
+      const [djangoFeedback, djangoUrgent, djangoFinTasks, djangoSamples] = await Promise.all([
+        fetchDeliveryFeedbackFromDjango(), fetchUrgentShipRequestsFromDjango(), fetchFinanceTasksFromDjango(), fetchSampleFeedbacksFromDjango()
       ]);
       if(djangoFeedback) deliveryFeedback = djangoFeedback;
       if(djangoUrgent) urgentShipRequests = djangoUrgent;
       if(djangoFinTasks) financeTasks = djangoFinTasks;
-    }catch(e){ console.error('⚠️ خطا تو بارگذاری بازخورد تحویل/سفارش فوری/تسک مالی:', e); }
+      if(djangoSamples) sampleFeedbacks = djangoSamples;
+    }catch(e){ console.error('⚠️ خطا تو بارگذاری بازخورد تحویل/سفارش فوری/تسک مالی/نمونه‌ها:', e); }
 
     try{
       const djangoSuggestions = await fetchSuggestionsFromDjango();
@@ -2764,6 +2796,9 @@ async function loadFromSheet() {
     if(gate) gate.style.display='none';
     renderDash();
     if(document.getElementById('page-requests').classList.contains('active'))   renderReqs();
+    if(document.getElementById('page-samples').classList.contains('active'))    renderSamplesSales();
+    if(document.getElementById('page-samples-bazargani').classList.contains('active')) renderSamplesDept('bazargani');
+    if(document.getElementById('page-samples-anbar').classList.contains('active'))     renderSamplesDept('anbar');
     if(document.getElementById('page-shipments').classList.contains('active'))  renderShipments();
     if(document.getElementById('page-tasks').classList.contains('active'))      renderTasks();
     if(document.getElementById('page-customers').classList.contains('active'))  renderCusts();
@@ -3603,6 +3638,53 @@ async function linkFeedbackNewRequestInDjango(id, newRequestId){
   }catch(e){ return false; }
 }
 
+// ══════════════════════════════════════════════════════════════
+// نمونه‌ها (SampleFeedback) — سیستم کاملاً مستقل و جدا از DeliveryFeedback
+// (۱۴۰۵/۰۶/۰۷) — چرخه‌ی خودش رو داره: خودکار بعد از ارسال ساخته می‌شه، دلیل
+// فیدبک چندانتخابیِ فروش خودش دپارتمان(های) مقصد رو قفل می‌کنه، هر دپارتمان
+// جدا جواب می‌ده و جدا بایگانی می‌شه، فروش در پایان تکمیل/کنسل می‌زنه.
+// ══════════════════════════════════════════════════════════════
+const DJANGO_SAMPLES_API = 'https://smartchip-backend.onrender.com/api/samples/sample-feedback/';
+let sampleFeedbacks = [];
+const SAMPLE_REASONS = [
+  {key:'quality',  label:'😕 عدم کیفیت',            dept:'bazargani'},
+  {key:'mismatch', label:'📋 عدم تطابق با درخواست',  dept:'bazargani'},
+  {key:'price',    label:'💰 قیمت بالا',             dept:'bazargani'},
+  {key:'damage',   label:'📦 شکستن/خرابی',           dept:'anbar'},
+];
+const SAMPLE_DEPT_LABELS = {bazargani:'🌍 بازرگانی', anbar:'🏭 انبار'};
+
+function sampleFbFromApi(d){
+  return { id:d.id, requestId:d.request_id||'', itemIdx:(d.item_idx===null||d.item_idx===undefined)?null:d.item_idx,
+    trackingCode:d.tracking_code||'', customer:d.customer||'', itemName:d.item_name||'', qty:d.qty||'',
+    assignee:d.assignee||'', sentDate:d.sent_date||'', reasons:d.reasons||[], customerNote:d.customer_note||'',
+    departments:d.departments||[], deptNotes:d.dept_notes||{}, status:d.status||'open', finalNote:d.final_note||'',
+    archived:!!d.archived, archivedDate:d.archived_date||'', createdDate:d.created_date||'' };
+}
+function sampleFbToApi(s){
+  return { request_id:s.requestId||'', item_idx:(s.itemIdx===undefined?null:s.itemIdx), tracking_code:s.trackingCode||'',
+    customer:s.customer||'', item_name:s.itemName||'', qty:s.qty||'', assignee:s.assignee||'', sent_date:s.sentDate||'',
+    reasons:s.reasons||[], customer_note:s.customerNote||'', departments:s.departments||[], dept_notes:s.deptNotes||{},
+    status:s.status||'open', final_note:s.finalNote||'', archived:!!s.archived, archived_date:s.archivedDate||'',
+    created_date:s.createdDate||'' };
+}
+async function fetchSampleFeedbacksFromDjango(){
+  const data = await fetchJsonWithRetry(DJANGO_SAMPLES_API);
+  return data ? data.map(sampleFbFromApi) : null;
+}
+async function createSampleFeedbackInDjango(s){
+  try{
+    const res = await fetch(DJANGO_SAMPLES_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(sampleFbToApi(s))});
+    if(!res.ok) return null;
+    return sampleFbFromApi(await res.json());
+  }catch(e){ console.error('خطای ساخت ردیف نمونه در Django:', e); return null; }
+}
+async function updateSampleFeedbackInDjango(id, patch){
+  const r = await djangoFetch(DJANGO_SAMPLES_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)}, 'آپدیت نمونه '+id);
+  if(r.queued) toast('🟡 تغییر نمونه در صف ماند');
+  return r.ok;
+}
+
 // ── ۵. درخواست ارسال فوری (UrgentShipRequest) — شناسه عددی خودکار Django ──
 const DJANGO_URGENT_API = 'https://smartchip-backend.onrender.com/api/ops/urgent-ship-requests/';
 function urgentFromApi(d){
@@ -4140,7 +4222,8 @@ function showPage(p){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
   const pg=document.getElementById('page-'+p);
   if(pg) pg.classList.add('active');
-  const titles={dashboard:'داشبورد',requests:'درخواست‌های فروش',customers:'مشتریان',cprofile:'پروفایل مشتری',procurement:'نیاز مشتری',estelamat:'استعلامات',estelamatforeign:'استعلامات خارج',bazdash:'داشبورد بازرگانی',financedash:'داشبورد مالی',financetasks:'تسک‌های مالی (از CRM)',
+  const titles={dashboard:'داشبورد',requests:'درخواست‌های فروش',samples:'نمونه‌ها',customers:'مشتریان',cprofile:'پروفایل مشتری',procurement:'نیاز مشتری',estelamat:'استعلامات',estelamatforeign:'استعلامات خارج',bazdash:'داشبورد بازرگانی',financedash:'داشبورد مالی',financetasks:'تسک‌های مالی (از CRM)',
+    'samples-bazargani':'نمونه‌ها — بازرگانی','samples-anbar':'نمونه‌ها — انبار',
     'deptfeedback-tadarokat':'بازخورد — تدارکات','deptfeedback-bazargani':'بازخورد — بازرگانی',
     'deptfeedback-mali':'بازخورد — مالی','deptfeedback-anbar':'بازخورد — انبار',
     feedbackdash:'عملکرد واحدها (بازخورد)',
@@ -4163,6 +4246,9 @@ function showPage(p){
   }
   if(p==='dashboard')     renderDash();
   if(p==='requests')      renderReqs();
+  if(p==='samples')       renderSamplesSales();
+  if(p==='samples-bazargani') renderSamplesDept('bazargani');
+  if(p==='samples-anbar') renderSamplesDept('anbar');
   if(p==='pipeline')      renderPipeline();
   if(p==='customers')     renderCusts();
   if(p==='procurement')   renderCustNeed();
@@ -7160,6 +7246,30 @@ async function markPackingSent(pkId){
   for(const it of (p.items||[])){
     if(it.reqId && it.itemIdx!==undefined){
       markLinkedItemStatus(it.reqId, it.itemIdx, 'delivered_to_customer', it.source);
+      // ⚠️ نمونه‌ها (۱۴۰۵/۰۶/۰۷): نمونه فقط از مسیر بازرگانی خارج رد می‌شه (isSample
+      // همیشه رو foreignItems ست می‌شه، هیچ‌وقت رو marketItems). دقیقاً همین لحظه —
+      // که انبار پکینگ رو «ارسال شد» می‌زنه — خودکار یه سطر تو صفحه‌ی «نمونه‌ها»ی
+      // فروش ساخته می‌شه تا کارشناس فروش پیگیری کنه.
+      if(it.source==='foreign'){
+        const rqS = requests.find(x=>String(x.id)===String(it.reqId));
+        const srcItem = rqS && rqS.parts && rqS.parts.foreignItems && rqS.parts.foreignItems[it.itemIdx];
+        if(srcItem && srcItem.isSample){
+          const sf = {
+            requestId: it.reqId, itemIdx: it.itemIdx, trackingCode: (rqS&&rqS.displayNumber)||'',
+            customer: p.customer||(rqS&&rqS.customer)||'', itemName: it.name||srcItem.name||'',
+            qty: it.qty||srcItem.qty||'', assignee: (rqS&&rqS.assignee)||'', sentDate: p.sentDate,
+            reasons: [], customerNote: '', departments: [], deptNotes: {}, status: 'open',
+            finalNote: '', archived: false, archivedDate: '', createdDate: todayShamsiStr()
+          };
+          createSampleFeedbackInDjango(sf).then(saved=>{
+            if(saved){
+              sampleFeedbacks.push(saved);
+              updateNavBadges(); updateNavGroupSummaries();
+              if(document.getElementById('page-samples')&&document.getElementById('page-samples').classList.contains('active')) renderSamplesSales();
+            }
+          });
+        }
+      }
       // آبشار اتمی جدید — برای هم داخل هم خارج، چک کامل‌شدن + ثبت تاریخچه + بایگانی خودکار
       if(it.source==='domestic' || it.source==='market' || it.source==='foreign'){
         const kind = it.source==='foreign' ? 'foreign' : 'domestic';
@@ -9578,6 +9688,17 @@ function updateNavBadges(){
   setBadge('fbBadgeMali', feedbackUnresolved('mali'));
   setBadge('financeTaskBadge', (financeTasks||[]).filter(t=>!t.done).length);
   setBadge('clearanceBadge', (shipments||[]).filter(s=>s.sentToClearance && !s.clearedToWarehouse).length);
+
+  // نمونه‌ها — سمت فروش: هر ردیفی که هنوز ارجاع نشده، یا همه‌ی واحدهای درگیرش
+  // جواب دادن (یعنی الان نوبت فروشه که به مشتری گزارش بده) نیاز به توجه داره
+  const samplesActive = (sampleFeedbacks||[]).filter(s=>!s.archived);
+  const samplesDeptDone = (s,d)=> s.deptNotes && s.deptNotes[d] && s.deptNotes[d].referredBack;
+  const samplesNeedsSalesAttn = samplesActive.filter(s=>
+    !s.departments || !s.departments.length || s.departments.every(d=>samplesDeptDone(s,d))
+  );
+  setBadge('samplesBadge', samplesNeedsSalesAttn.length);
+  setBadge('samplesBadgeBazargani', samplesActive.filter(s=>(s.departments||[]).includes('bazargani') && !samplesDeptDone(s,'bazargani')).length);
+  setBadge('samplesBadgeAnbar', samplesActive.filter(s=>(s.departments||[]).includes('anbar') && !samplesDeptDone(s,'anbar')).length);
 
   const countMap = {
     'sales': (requests||[]).filter(r=>!['canceled','delivered'].includes(r.status)).length,
@@ -12355,6 +12476,165 @@ async function reliableUpdateRequestParts(id, parts, extraFields){
 
 
 const FEEDBACK_DEPT_LABELS={anbar:'🏭 انبار', bazargani:'🌍 بازرگانی', tadarokat:'🏬 تدارکات', mali:'💰 مالی'};
+
+// ══════════════════════════════════════════════════════════════
+// نمونه‌ها — رندر و تعامل (سمت فروش + سمت دپارتمان‌ها)
+// ══════════════════════════════════════════════════════════════
+let curSamplesSearch='', curSamplesArchiveSearch='';
+function searchSamples(v){ curSamplesSearch=v; renderSamplesSales(); }
+function searchSamplesArchive(v){ curSamplesArchiveSearch=v; renderSamplesArchive(); }
+
+function sampleReasonLabel(key){ return (SAMPLE_REASONS.find(r=>r.key===key)||{}).label || key; }
+function sampleReasonPillsHTML(s){
+  return SAMPLE_REASONS.map(r=>{
+    const active=(s.reasons||[]).includes(r.key);
+    return `<button class="fpill${active?' active':''}" style="font-size:10px;padding:4px 8px;margin:2px 0" onclick="toggleSampleReason('${s.id}','${r.key}')">${r.label}</button>`;
+  }).join('<br>');
+}
+function sampleDeptChipsHTML(s){
+  if(!s.departments||!s.departments.length) return '<span style="color:var(--muted);font-size:11px">— هنوز ارجاع نشده —</span>';
+  return s.departments.map(d=>`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:var(--card);border:1px solid var(--border);margin-inline-end:4px;display:inline-block;margin-bottom:3px">${SAMPLE_DEPT_LABELS[d]||d}</span>`).join('');
+}
+function sampleStatusColumnHTML(s){
+  if(!s.departments||!s.departments.length) return '<span style="color:var(--muted);font-size:11px">دلیل رو انتخاب کن</span>';
+  return s.departments.map(d=>{
+    const dn=(s.deptNotes||{})[d];
+    if(dn && dn.referredBack) return `<div style="margin-bottom:5px;font-size:11px"><strong>${SAMPLE_DEPT_LABELS[d]||d}:</strong> <span style="color:#4ade80">${dn.note||'—'}</span></div>`;
+    return `<div style="margin-bottom:5px;font-size:11px;color:var(--muted)">⏳ منتظر پاسخ ${SAMPLE_DEPT_LABELS[d]||d}</div>`;
+  }).join('');
+}
+// دلیل‌ها همیشه دپارتمان مقصد رو خودکار و قفل محاسبه می‌کنن — کارشناس نمی‌تونه دستی عوضش کنه
+async function toggleSampleReason(id,key){
+  const s=(sampleFeedbacks||[]).find(x=>String(x.id)===String(id));
+  if(!s) return;
+  if(!s.reasons) s.reasons=[];
+  const idx=s.reasons.indexOf(key);
+  if(idx>=0) s.reasons.splice(idx,1); else s.reasons.push(key);
+  s.departments=[...new Set(s.reasons.map(r=>(SAMPLE_REASONS.find(x=>x.key===r)||{}).dept).filter(Boolean))];
+  renderSamplesSales();
+  updateNavBadges(); updateNavGroupSummaries();
+  await updateSampleFeedbackInDjango(s.id, {reasons:s.reasons, departments:s.departments});
+}
+async function saveSampleCustomerNote(id,val){
+  const s=(sampleFeedbacks||[]).find(x=>String(x.id)===String(id));
+  if(!s) return;
+  s.customerNote=val;
+  await updateSampleFeedbackInDjango(s.id, {customer_note:val});
+}
+async function completeSample(id,finalStatus){
+  const s=(sampleFeedbacks||[]).find(x=>String(x.id)===String(id));
+  if(!s) return;
+  const note=prompt(finalStatus==='completed'?'توضیح تکمیلی (بعد صحبت با مشتری):':'دلیل کنسل شدن:', s.finalNote||'');
+  if(note===null) return;
+  s.finalNote=note; s.status=finalStatus; s.archived=true; s.archivedDate=todayShamsiStr();
+  renderSamplesSales();
+  updateNavBadges(); updateNavGroupSummaries();
+  await updateSampleFeedbackInDjango(s.id, {final_note:note, status:finalStatus, archived:true, archived_date:s.archivedDate});
+  toast(finalStatus==='completed' ? '✅ تکمیل شد و بایگانی شد' : '🚫 کنسل شد و بایگانی شد');
+}
+function sampleRowHTML(s){
+  return `<tr>
+    <td><strong>${s.customer}</strong>${s.trackingCode?`<div style="font-size:10px;color:var(--muted)">${s.trackingCode}</div>`:''}</td>
+    <td>${s.itemName||'—'}</td>
+    <td>${fn(s.qty||'—')}</td>
+    <td style="color:var(--muted);font-size:11px;white-space:nowrap">${s.sentDate||'—'}</td>
+    <td>${s.assignee?ac(s.assignee):'—'}</td>
+    <td style="min-width:130px">${sampleReasonPillsHTML(s)}</td>
+    <td><textarea rows="2" style="width:150px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:11px" placeholder="صحبت‌های مشتری..." onchange="saveSampleCustomerNote('${s.id}',this.value)">${s.customerNote||''}</textarea></td>
+    <td style="min-width:110px">${sampleDeptChipsHTML(s)}</td>
+    <td style="min-width:150px">${sampleStatusColumnHTML(s)}</td>
+    <td style="white-space:nowrap">
+      <button class="action-btn" style="color:var(--green)" onclick="completeSample('${s.id}','completed')">✅ تکمیل</button>
+      <button class="action-btn" style="color:var(--red)" onclick="completeSample('${s.id}','canceled')">🚫 کنسل</button>
+    </td>
+  </tr>`;
+}
+function renderSamplesSales(){
+  let active=(sampleFeedbacks||[]).filter(s=>!s.archived);
+  if(curSamplesSearch){
+    const q=normalizeFa(curSamplesSearch);
+    active=active.filter(s=>normalizeFa(s.customer||'').includes(q)||normalizeFa(s.itemName||'').includes(q));
+  }
+  active.sort((a,b)=>shamsiDateSortVal(b.sentDate)-shamsiDateSortVal(a.sentDate));
+  const el=document.getElementById('samplesBody');
+  if(el) el.innerHTML = active.length ? active.map(sampleRowHTML).join('') :
+    `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🧪</div><div class="empty-text">فعلاً نمونه‌ای در انتظار پیگیری نیست</div></div></td></tr>`;
+  renderSamplesArchive();
+}
+function renderSamplesArchive(){
+  let done=(sampleFeedbacks||[]).filter(s=>s.archived);
+  const cntEl=document.getElementById('samplesArchiveCount');
+  if(cntEl) cntEl.textContent=`(${fn(done.length)} مورد)`;
+  if(curSamplesArchiveSearch){
+    const q=normalizeFa(curSamplesArchiveSearch);
+    done=done.filter(s=>normalizeFa(s.customer||'').includes(q)||normalizeFa(s.itemName||'').includes(q));
+  }
+  done.sort((a,b)=>shamsiDateSortVal(b.archivedDate)-shamsiDateSortVal(a.archivedDate));
+  const el=document.getElementById('samplesArchiveBody');
+  if(!el) return;
+  el.innerHTML = done.length ? done.map(s=>`<tr style="opacity:.85">
+    <td>${s.customer}</td><td>${s.itemName||'—'}</td>
+    <td style="font-size:11px">${(s.reasons||[]).map(sampleReasonLabel).join('، ')||'—'}</td>
+    <td style="font-size:11px">${sampleDeptChipsHTML(s)}</td>
+    <td style="font-size:11px">${sampleStatusColumnHTML(s)}</td>
+    <td>${s.status==='completed'?'<span style="color:#4ade80">✅ تکمیل</span>':'<span style="color:#f87171">🚫 کنسل</span>'}</td>
+    <td style="font-size:11px;max-width:180px">${s.finalNote||'—'}</td>
+    <td style="font-size:11px;color:var(--muted);white-space:nowrap">${s.archivedDate||'—'}</td>
+  </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🗄️</div><div class="empty-text">بایگانی خالی است</div></div></td></tr>`;
+}
+
+// ── سمت دپارتمان‌ها (بازرگانی/انبار) — فقط ردیف‌های ارجاع‌شده به همون واحد ──
+async function saveDeptNoteAndRefer(id, dept, noteVal, referBack){
+  const s=(sampleFeedbacks||[]).find(x=>String(x.id)===String(id));
+  if(!s) return;
+  if(!s.deptNotes) s.deptNotes={};
+  const prevDate=(s.deptNotes[dept]&&s.deptNotes[dept].referredBackDate)||'';
+  s.deptNotes[dept]={ note:noteVal||'', referredBack:!!referBack, referredBackDate: referBack?todayShamsiStr():prevDate };
+  renderSamplesDept(dept);
+  updateNavBadges(); updateNavGroupSummaries();
+  await updateSampleFeedbackInDjango(s.id, {dept_notes:s.deptNotes});
+  if(referBack) toast('✅ به فروش ارجاع شد');
+}
+function renderSamplesDept(deptKey){
+  const el=document.getElementById('samplesDeptContent-'+deptKey);
+  if(!el) return;
+  const isDone=s=>s.deptNotes && s.deptNotes[deptKey] && s.deptNotes[deptKey].referredBack;
+  const items=(sampleFeedbacks||[]).filter(s=>(s.departments||[]).includes(deptKey));
+  const active=items.filter(s=>!isDone(s));
+  const done=items.filter(isDone);
+  function row(s, readonly){
+    const dn=(s.deptNotes||{})[deptKey]||{};
+    return `<tr>
+      <td><strong>${s.customer}</strong></td>
+      <td>${s.itemName||'—'}</td>
+      <td>${fn(s.qty||'—')}</td>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${s.sentDate||'—'}</td>
+      <td>${s.assignee?ac(s.assignee):'—'}</td>
+      <td style="min-width:160px">${readonly
+        ? `<div style="font-size:11.5px">${dn.note||'—'}</div>`
+        : `<textarea rows="2" style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:11.5px" placeholder="توضیحات واحد..." id="sdNote_${deptKey}_${s.id}">${dn.note||''}</textarea>`}</td>
+      <td style="white-space:nowrap">${readonly
+        ? `<span style="color:#4ade80;font-size:11px">✅ ارجاع شد به فروش</span>`
+        : `<button class="btn btn-primary btn-sm" onclick="saveDeptNoteAndRefer('${s.id}','${deptKey}', document.getElementById('sdNote_${deptKey}_${s.id}').value, true)">✅ ارجاع به فروش</button>`}</td>
+    </tr>`;
+  }
+  el.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-hdr"><div class="sec-title">🧪 نمونه‌های ارجاع‌شده — ${SAMPLE_DEPT_LABELS[deptKey]||deptKey}</div></div>
+      <table><thead><tr><th>مشتری</th><th>کالا</th><th>تعداد</th><th>تاریخ ارسال</th><th>کارشناس مشتری</th><th>توضیحات</th><th></th></tr></thead>
+      <tbody>${active.length?active.map(s=>row(s,false)).join(''):'<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🧪</div><div class="empty-text">فعلاً نمونه‌ای ارجاع نشده</div></div></td></tr>'}</tbody></table>
+    </div>
+    <div class="sec-hdr" style="margin-top:24px;cursor:pointer" onclick="toggleArchive('samplesDept${deptKey}')">
+      <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی <span style="font-size:11px">(${fn(done.length)} مورد)</span></div>
+      <span id="samplesDept${deptKey}ArchiveChevron" style="color:var(--muted)">›</span>
+    </div>
+    <div id="samplesDept${deptKey}ArchiveBox" style="display:none;">
+      <div class="tbl-wrap" style="opacity:.85">
+        <table><thead><tr><th>مشتری</th><th>کالا</th><th>تعداد</th><th>تاریخ ارسال</th><th>کارشناس مشتری</th><th>توضیحات</th><th></th></tr></thead>
+        <tbody>${done.length?done.map(s=>row(s,true)).join(''):'<tr><td colspan="7">بایگانی خالی است</td></tr>'}</tbody></table>
+      </div>
+    </div>`;
+}
 
 function renderDeptFeedback(deptKey){
   const el=document.getElementById('deptFeedbackContent-'+deptKey);
