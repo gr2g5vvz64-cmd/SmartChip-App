@@ -5154,9 +5154,14 @@ function updateEstelamatQuote(safeKey,qIdx,field,value){
 
 // ─── autocomplete تامین‌کننده در جدول استعلامات — از پایگاه مشتریان (شیت CUSTOMER) ───
 function getDomesticSupplierNames(){
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): قبلاً فقط فاصله/نیم‌فاصله حذف می‌شد، نه حروف عربی/فارسی
+  // (ی/ي، ک/ك) — چون تو شیت CUSTOMER اسم‌ها/مقادیر با ترکیب هر دو نوشته می‌شن،
+  // مقایسه‌ی خام هیچ‌وقت مطابقت پیدا نمی‌کرد و لیست همیشه خالی برمی‌گشت. الان از
+  // normalizeFa (همون قانون طلایی خودِ پروژه) استفاده می‌شه.
+  const target = normalizeFa('بازار الکترونیک').replace(/\s+/g,'');
   return (customerMaster||[]).filter(c=>{
-    const cat=(c.category||'').replace(/[\s\u200c]+/g,'');
-    return cat.includes('بازارالکترونیک');
+    const cat=normalizeFa(c.category||'').replace(/\s+/g,'');
+    return cat.includes(target);
   }).map(c=>c.name);
 }
 function searchEstelamatSupplierAC(inputEl, acId){
@@ -5169,7 +5174,7 @@ function searchEstelamatSupplierAC(inputEl, acId){
   const m=DOMESTIC_SUPPLIERS.filter(s=>normalizeFa(s.toLowerCase()).includes(q)).slice(0,15);
   if(!m.length){box.style.display='none';return;}
   box.style.display='block';
-  box.innerHTML=m.map(name=>`<div onmousedown="document.getElementById('${acId}').previousElementSibling.value='${name.replace(/'/g,"\\'")}';document.getElementById('${acId}').style.display='none'"
+  box.innerHTML=m.map(name=>`<div onmousedown="pickEstelamatSupplier(this,'${acId}','${name.replace(/'/g,"\\'")}')"
     style="padding:7px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">${name}</div>`).join('');
 }
 let estelamatSupplierJustPicked=false;
@@ -5179,8 +5184,11 @@ function pickEstelamatSupplier(divEl, acId, name){
   const input=box.previousElementSibling;
   input.value=name;
   box.style.display='none';
-  // استخراج safeKey و qIdx از acId با فرمت estSupplierAC_{reqId}_{itemIdx}_{qIdx}
-  const parts=acId.replace('estSupplierAC_','').split('_');
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): این پیشوند قبلاً 'estSupplierAC_' بود ولی acId واقعی
+  // که ساخته می‌شه 'estSupAC_'ه — یعنی این تابع هیچ‌وقت درست پارس نمی‌شد و
+  // اصلاً هم صدا زده نمی‌شد (کد قدیمی به‌جاش منطق inline جدا داشت). الان هم
+  // پیشوند درست شد هم واقعاً از همینجا صدا زده می‌شه.
+  const parts=acId.replace('estSupAC_','').split('_');
   const qIdx=parseInt(parts[parts.length-1]);
   const itemIdx=parts[parts.length-2];
   const reqId=parts.slice(0,parts.length-2).join('_');
@@ -5197,7 +5205,10 @@ function handleEstelamatSupplierBlur(inputEl, safeKey, qIdx){
   updateEstelamatQuote(safeKey, qIdx, 'supplier', inputEl.value);
 }
 document.addEventListener('click',function(e){
-  document.querySelectorAll('[id^="estSupplierAC_"]').forEach(box=>{
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): پیشوند قبلاً 'estSupplierAC_' بود، acId واقعی
+  // 'estSupAC_'ه — یعنی این selector هیچ‌وقت هیچ باکسی رو پیدا نمی‌کرد و
+  // دراپ‌داون هیچ‌وقت با کلیک بیرون بسته نمی‌شد.
+  document.querySelectorAll('[id^="estSupAC_"]').forEach(box=>{
     if(!e.target.closest('#'+box.id) && e.target!==box.previousElementSibling){
       box.style.display='none';
     }
