@@ -380,10 +380,11 @@ textarea.form-control{resize:vertical;min-height:70px;}
   </div>
 
   <!-- HOME GRID — همه ۱۰ کاشی در یک صفحه، بدون اسکرول -->
-  <div class="hero-card" onclick="renderMobileMorning();openSheet('mobileMorning')">
+  <div class="hero-card" id="morningBtnM" onclick="renderMobileMorning();openSheet('mobileMorning')">
     <div class="hero-day" id="heroDay"></div>
     <div class="hero-stat" id="heroStat">در حال بارگذاری...</div>
     <div class="hero-sub" id="heroSub"></div>
+    <div id="morningBadgeMobile" style="display:none;font-size:11px;font-weight:800;color:#ef4444;margin-top:4px;"></div>
   </div>
 
   <div class="mega-tile" onclick="openSheet('crmHub')" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);">
@@ -1080,6 +1081,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="action-btn-big" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;background:rgba(20,184,166,.06);border-color:rgba(20,184,166,.25);margin-bottom:8px;" onclick="closeSheet('erpHub');openShipTrackingSheet();openSheet('shipTracking')">
         <div class="action-icon-circle" style="background:rgba(20,184,166,.15);">🚢</div>
         <div class="action-label" style="color:#2dd4bf;">ردیابی محموله‌ها</div>
+        <span id="shipTrackBadge" style="display:none;margin-inline-start:auto;font-size:10px;font-weight:800;color:#ef4444;"></span>
       </div>
       <div class="action-btn-big" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;background:rgba(20,184,166,.06);border-color:rgba(20,184,166,.25);margin-bottom:8px;" onclick="openBazDashSheetM()">
         <div class="action-icon-circle" style="background:rgba(20,184,166,.15);">📊</div>
@@ -2526,71 +2528,13 @@ function getMorningDataM(){
     pendingReferrals:allE.filter(x=>x.entry.workReferral&&!x.entry.referralUnitResponse&&!x.entry.workReferralResponse),
   };
 }
-// ══ ماشین حساب قیمت‌دهی ══
-let pcSelectedPart = null;
-function searchPcPart(val){
-  const dd = document.getElementById('pcPartAC');
-  if(!val || val.trim().length < 2){ dd.style.display='none'; return; }
-  dd.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:var(--muted)">در حال جستجو...</div>';
-  dd.style.display = 'block';
-  clearTimeout(window._pcPartTimer);
-  window._pcPartTimer = setTimeout(async()=>{
-    const matches = await liveSearchParts(val);
-    if(!matches.length){ dd.style.display='none'; return; }
-    dd.innerHTML = matches.map(n =>
-      `<div onclick="pickPcPart('${n.replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;">${n}</div>`
-    ).join('');
-    dd.style.display = 'block';
-  }, 250);
-}
-async function pickPcPart(name){
-  document.getElementById('pcPartInput').value = name;
-  document.getElementById('pcPartAC').style.display = 'none';
-  document.getElementById('pcPartName').textContent = name;
-  // دریافت وزن — اول از Django (سریع‌تر و همیشه به‌روز)، اگه نشد از گوگل‌شیت
-  let res = null;
-  try{
-    const djRes = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/weight/?name='+encodeURIComponent(name));
-    if(djRes && djRes.found) res = djRes;
-  }catch(e){}
-  if(!res) res = await sheetCall('getItemWeight', { name });
-  if(res && res.weightUnit !== undefined){
-    document.getElementById('pcWeightUnit').textContent = res.weightUnit ? fn(res.weightUnit) + ' گرم' : '—';
-    document.getElementById('pcWeightPack').textContent = res.weightPack ? fn(res.weightPack) + ' گرم' : '—';
-    pcSelectedPart = res;
-  } else {
-    document.getElementById('pcWeightUnit').textContent = '—';
-    document.getElementById('pcWeightPack').textContent = '—';
-    pcSelectedPart = null;
-  }
-  document.getElementById('pcPartInfo').style.display = 'block';
-  calcPrice();
-}
-function calcPrice(){
-  const qty = parseFloat((document.getElementById('pcQty').value || '0').replace(/,/g,'')) || 0;
-  const unitPrice = parseFloat(document.getElementById('pcUnitPrice').value) || 0;
-  const usdRate = parseFloat((document.getElementById('pcUsdRate').value || '0').replace(/,/g,'')) || 0;
-  const margin = parseFloat(document.getElementById('pcMargin').value) || 0;
-  const freight = parseFloat(document.getElementById('pcFreight').value) || 0;
-  if(!qty || !unitPrice || !usdRate){ document.getElementById('pcResults').style.display='none'; return; }
-  const fob = qty * unitPrice;
-  // وزن برای باربری
-  const weightKg = pcSelectedPart && pcSelectedPart.weightPack ? (qty * pcSelectedPart.weightPack / 1000) : 0;
-  const freightTotal = weightKg > 0 && freight > 0 ? weightKg * freight : 0;
-  const totalUsd = fob + freightTotal;
-  const costPerUnit = (totalUsd * usdRate) / qty;
-  const salePerUnit = costPerUnit * (1 + margin / 100);
-  document.getElementById('pcTotalFob').textContent = '$' + fob.toFixed(2);
-  document.getElementById('pcTotalFreight').textContent = freightTotal > 0 ? '$' + freightTotal.toFixed(2) : '—';
-  document.getElementById('pcTotalUsd').textContent = '$' + totalUsd.toFixed(2);
-  document.getElementById('pcCostPerUnit').textContent = Number(Math.round(costPerUnit)).toLocaleString('fa-IR') + ' ﷼';
-  document.getElementById('pcSalePerUnit').textContent = Number(Math.round(salePerUnit)).toLocaleString('fa-IR') + ' ﷼';
-  document.getElementById('pcResults').style.display = 'block';
-}
-document.addEventListener('click', e => {
-  if(!e.target.closest('#pcPartAC') && e.target.id !== 'pcPartInput')
-    document.getElementById('pcPartAC').style.display = 'none';
-});
+// ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): این کل بلوک «ماشین‌حساب قیمت‌دهی» قدیمی حذف شد.
+// SmartChip-Lessons-Learned.md قبلاً ثبت کرده بود که این حذف شده، ولی در واقع
+// فقط ورودی HTML واقعی‌ش (pcQty/pcUsdRate با پیشوند فعلی pcCalc/pcFmtHdr پایین‌تر
+// تو فایل) جایگزین شده بود — بدنه‌ی قدیمی (searchPcPart/pickPcPart/calcPrice) و
+// مهم‌تر از همه یه document.addEventListener('click', ...) سراسری بدون هیچ
+// null-گارد جا مونده بود که رو *هر کلیکی، هرجای اپ موبایل* اجرا می‌شد و چون
+// pcPartAC وجود نداشت، هر بار تو کنسول خطا پرت می‌کرد.
 
 function openShipTrackingSheet(){
   if(isConnected && !cachedShipments.length) loadSummary().then(renderMobileShipments);

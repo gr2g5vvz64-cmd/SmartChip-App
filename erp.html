@@ -7659,8 +7659,15 @@ function renderProcurementQuickRows(){
 function initProcurementQuickRows(){ renderProcurementQuickRows(); }
 
 function applyExcelPaste(){
-  const txt=document.getElementById('excelPasteArea');
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): قبلاً از یه id ناموجود (excelPasteArea) می‌خوند —
+  // textarea واقعی تو HTML اسمش excelPasteInput بود، پس این دکمه همیشه با
+  // «متنی وارد نشده» شکست می‌خورد حتی وقتی کاربر واقعاً پیست کرده بود. علاوه‌براین
+  // چک‌باکس‌های «داخل»/«خارج» که کاربر می‌بینه و می‌زنه اصلاً خونده نمی‌شدن —
+  // همیشه هر دو false هاردکد بودن.
+  const txt=document.getElementById('excelPasteInput');
   if(!txt||!txt.value.trim()){ toast('⚠️ متنی وارد نشده'); return; }
+  const needMarket = !!(document.getElementById('excelPasteMarket')||{}).checked;
+  const needForeign = !!(document.getElementById('excelPasteForeign')||{}).checked;
   const lines=txt.value.trim().split('\n').filter(l=>l.trim());
   lines.forEach((line,i)=>{
     const parts=line.split('	');
@@ -7671,10 +7678,12 @@ function applyExcelPaste(){
       procurementQuickItems.push({name:'',qty:'',needMarket:false,needForeign:false});
     procurementQuickItems[i].name=name;
     procurementQuickItems[i].qty=qty;
+    procurementQuickItems[i].needMarket=needMarket;
+    procurementQuickItems[i].needForeign=needForeign;
   });
   renderProcurementQuickRows&&renderProcurementQuickRows();
   txt.value='';
-  document.getElementById('excelPasteSection')&&(document.getElementById('excelPasteSection').style.display='none');
+  document.getElementById('excelPasteBox')&&(document.getElementById('excelPasteBox').style.display='none');
   toast(`✅ ${lines.length} ردیف از اکسل اضافه شد`);
 }
 
@@ -7921,34 +7930,9 @@ function openAddressModal(customerName){
 }
 
 // (نسخه‌ی قدیمی renderAddressList حذف شد — نسخه‌ی جدیدتر با فیکس receiverName پایین‌تر است)
-
-async function saveNewAddress(){
-  const customer = document.getElementById('addrCustomerName').value.trim();
-  const title    = document.getElementById('addrNewTitle').value.trim();
-  const full     = document.getElementById('addrNewFull').value.trim();
-  const city     = document.getElementById('addrNewCity').value.trim();
-  const postal   = document.getElementById('addrNewPostal').value.trim();
-  const phone    = document.getElementById('addrNewPhone').value.trim();
-  const contact  = document.getElementById('addrNewContact').value.trim();
-  const note     = document.getElementById('addrNewNote').value.trim();
-
-  if(!title || !full){ toast('⚠️ عنوان و آدرس کامل الزامی است'); return; }
-
-  const newAddr = {
-    id: 'ADDR-'+Date.now(), customer, title, full, city,
-    postal, phone, contact, note, active: true,
-    createdDate: todayShamsiStr()
-  };
-  customerAddresses.push(newAddr);
-  renderAddressList(customer);
-  // پاک کردن فرم
-  ['addrNewTitle','addrNewFull','addrNewCity','addrNewPostal',
-   'addrNewPhone','addrNewContact','addrNewNote'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  toast('✅ آدرس ذخیره شد');
-  await saveCustomerAddressInDjango(newAddr);
-}
+// ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): saveNewAddress حذف شد — یه فرم تک‌ردیفی قدیمی بود که به
+// فیلدهای ناموجود (addrNewTitle و بقیه) اشاره می‌کرد و هیچ دکمه‌ای دیگه صداش نمی‌زد؛
+// فرم واقعی و فعال الان چندردیفی‌ه (addAddrEntry/saveAllAddresses پایین‌تر).
 
 async function deleteAddress(id){
   if(!confirm('این آدرس حذف شود؟')) return;

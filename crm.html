@@ -2259,15 +2259,6 @@ function updateMorningBadge(){
   if(badge){ if(urgent>0){badge.textContent=fn(urgent);badge.style.display='inline-block';}else{badge.style.display='none';} }
 }
 function renderMorningView(){
-  // باکس آماده تسویه
-  if(typeof warehouseItems!=='undefined'&&warehouseItems.length){
-    const ready=warehouseItems.filter(w=>!w.projectClosed&&w.weightDoneISO&&!w.invoiceDone);
-    const box=document.getElementById('readyToInvoiceBox');
-    const cnt=document.getElementById('readyInvoiceCount');
-    if(box){box.style.display=ready.length?'block':'none';}
-    if(cnt){cnt.textContent=ready.length||'';}
-    renderReadyToInvoice();
-  }
   const d=getMorningData();
   const now=new Date();
   const todayLong=now.toLocaleDateString('fa-IR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -2286,6 +2277,10 @@ function renderMorningView(){
       <div class="dash-section" style="text-align:center;margin-bottom:0;padding:14px 10px;${d.procOverdue.length?'background:rgba(239,68,68,.08)':''}"><div style="font-size:28px;font-weight:800;color:${d.procOverdue.length?'var(--red)':'var(--green)'}">${fn(d.procOverdue.length)}</div><div style="font-size:10px;color:var(--muted);margin-top:3px;">استعلام تأخیر</div></div>
       <div class="dash-section" style="text-align:center;margin-bottom:0;padding:14px 10px;${d.pendingReferrals.length?'background:rgba(251,146,60,.08)':''}"><div style="font-size:28px;font-weight:800;color:${d.pendingReferrals.length?'var(--orange)':'var(--green)'}">${fn(d.pendingReferrals.length)}</div><div style="font-size:10px;color:var(--muted);margin-top:3px;">ارجاع بی‌جواب</div></div>
     </div>
+    <div class="dash-section" id="readyToInvoiceBox" style="display:none;border-right:3px solid var(--green);">
+      <div class="dash-section-title" style="color:var(--green)">📦 آماده‌ی تسویه <span id="readyInvoiceCount" style="font-size:11px;color:var(--muted);font-weight:400;"></span></div>
+      <div id="readyToInvoiceList"></div>
+    </div>
     ${d.salesSlaOverdue.length?`<div class="dash-section" style="border-right:3px solid var(--red);"><div class="dash-section-title" style="color:var(--red)">🚨 فوری — پاسخ فروش تأخیر دارد (بیش از ۲۴ ساعت)</div>${d.salesSlaOverdue.map(makeEntryRow).join('')}</div>`:''}
     ${d.salesSlaWarning.length?`<div class="dash-section" style="border-right:3px solid var(--yellow);"><div class="dash-section-title" style="color:var(--yellow)">⚠️ کمتر از ۴ ساعت به پایان SLA فروش مانده</div>${d.salesSlaWarning.map(makeEntryRow).join('')}</div>`:''}
     ${d.procOverdue.length?`<div class="dash-section" style="border-right:3px solid var(--red);"><div class="dash-section-title" style="color:var(--red)">🚨 استعلام‌هایی که باید امروز از واحد بپرسی — SLA گذشته</div>${d.procOverdue.map(x=>{const s=getSlaStatus(x.entry);return`<div style="display:flex;gap:10px;padding:9px 12px;background:var(--card);border-radius:8px;margin-bottom:6px;"><span style="font-size:10px;color:var(--accent);font-weight:700;">${x.entry.trackingCode||''}</span><span style="font-size:11px;font-weight:600;">${x.customer}</span><span style="font-size:10px;color:var(--muted);flex:1">${s.deptLabel}</span><span style="font-size:10px;color:var(--red);font-weight:700;">${fn(s.hoursElapsed)}/${fn(s.thresholdHours)}س</span></div>`;}).join('')}</div>`:''}
@@ -2302,6 +2297,18 @@ function renderMorningView(){
     })()}
     ${!d.salesSlaOverdue.length&&!d.procOverdue.length&&!d.pendingReferrals.length?`<div style="text-align:center;padding:40px 20px;color:var(--muted);"><div style="font-size:40px;margin-bottom:12px;">✅</div><div style="font-size:14px;font-weight:700;color:var(--green);">همه‌چیز به‌موقع است!</div><div style="font-size:11px;margin-top:6px;">هیچ SLA یا ارجاع بی‌جوابی نداری.</div></div>`:''}
   </div>`;
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): این بلوک قبلاً بالای تابع، *قبل از* اینکه innerHTML بالا
+  // اصلاً اجرا بشه، سعی می‌کرد readyToInvoiceBox رو پیدا کنه — یعنی همیشه null بود
+  // (چون تازه چند خط پایین‌تر ساخته می‌شد) و این باکس هیچ‌وقت واقعاً دیده نمی‌شد.
+  // الان بعد از ساخته‌شدن واقعی HTML اجرا می‌شه.
+  if(typeof warehouseItems!=='undefined'&&warehouseItems.length){
+    const ready=warehouseItems.filter(w=>!w.projectClosed&&w.weightDoneISO&&!w.invoiceDone);
+    const box=document.getElementById('readyToInvoiceBox');
+    const cnt=document.getElementById('readyInvoiceCount');
+    if(box){box.style.display=ready.length?'block':'none';}
+    if(cnt){cnt.textContent=ready.length?`(${fn(ready.length)})`:'';}
+    renderReadyToInvoice();
+  }
 }
 // modal helpers برای یادآوری و تقویم
 function openModal(type){
@@ -2404,17 +2411,9 @@ function toggleEstelamatTick(leadId,hIdx,checked){
 }
 let curEstelamatTickRowKey=null;
 let estelamatTickItems=[];
-function toggleFinOptions(checked){
-  document.getElementById('finOptionsBox').style.display=checked?'block':'none';
-  if(!checked){
-    ['finOptInvoice','finOptProforma','finOptCheque','finOptSayyadi'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-    document.getElementById('chequeDetailsBox').style.display='none';
-  }
-}
-function toggleChequeDetails(checked){
-  document.getElementById('chequeDetailsBox').style.display=checked?'block':'none';
-}
-
+// ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): toggleFinOptions و toggleChequeDetails حذف شدن — هیچ‌جا
+// صدا زده نمی‌شدن و به idهای ناموجود (finOptionsBox/chequeDetailsBox/finOptInvoice
+// و بقیه) اشاره می‌کردن؛ فیلدهای مالی فعال الان با پیشوند qff_ کار می‌کنن.
 
 async function openEstelamatTickModal(leadId, hIdx){
   curEstelamatTickRowKey = {leadId, hIdx};
@@ -4634,42 +4633,10 @@ function toShamsiCompact(dateStr){
 }
 
 
-// ══════════════════════════════════════════════════════════════
-// فرم ثبت تماس سریع
-// ══════════════════════════════════════════════════════════════
-let _qcFormOpen = true;
-
-// (نسخه‌ی قدیمی و مرده toggleQuickForm که به عناصر حذف‌شده اشاره می‌کرد، حذف شد)
-
-function searchQCCustomer(val){
-  const dd = document.getElementById('qcCustomerAC');
-  if(!val||val.length<1){dd.style.display='none';return;}
-  const q = normalizeFa(val.toLowerCase());
-  const matches = rankCustomerMatches(q, customerMaster||[])
-    .slice(0,12).map(c=>c.name);
-  if(!matches.length){dd.style.display='none';return;}
-  dd.style.display='block';
-  dd.innerHTML = matches.map(n=>`<div
-    onclick="selectQCCustomer('${n.replace(/'/g,"\\'")}')"
-    style="padding:8px 12px;cursor:pointer;font-size:12px;font-weight:600;
-      border-bottom:1px solid var(--border)">${n}</div>`).join('');
-}
-
-function selectQCCustomer(name){
-  document.getElementById('qcCustomer').value = name;
-  document.getElementById('qcCustomerAC').style.display = 'none';
-}
-
-function clearQuickForm(){
-  ['qcCustomer','qcNote','qcFollowDate','qcFollowNote'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  ['qcFinance','qcPurchase'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.checked=false;
-  });
-  document.getElementById('qcCustomer').focus();
-}
-
+// ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): _qcFormOpen و توابع searchQCCustomer/selectQCCustomer/
+// clearQuickForm حذف شدن — بازمانده‌ی یه فرم «ثبت تماس سریع» قدیمی (پیشوند qc)
+// بودن که toggleQuickForm قدیمیش قبلاً حذف شده بود ولی این سه تا جا مونده بودن؛
+// هیچ ورودی HTML دیگه‌ای صداشون نمی‌زد. فرم فعال الان پایین‌تره (پیشوند qf_).
 
 // ══════════════════════════════════════════════════════════════
 // فرم ثبت تماس سریع
@@ -4786,30 +4753,10 @@ function fmtQfQty(el){
   else el.value='';
 }
 
-function qfSampleSearchItem(val){
-  const dd = document.getElementById('qf_sampleItemAC');
-  if(!dd) return;
-  if(!val||val.length<2){dd.style.display='none';return;}
+// ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): qfSampleSearchItem/qfShowSampleItemAC حذف شدن — یه ورودی
+// «نمونه» تک‌ردیفی قدیمی (qf_sampleItem) بودن که هیچ input ای دیگه صداشون نمی‌زد؛
+// جایگزین‌شده با سیستم چندردیفی فعلی (qfRenderSampleRows / qfSample_${idx}).
 
-  dd.innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">در حال جستجو...</div>';
-  dd.style.display='block';
-  clearTimeout(window._qfSampleTimer);
-  window._qfSampleTimer = setTimeout(async()=>{
-    const matches = await liveSearchParts(val);
-    qfShowSampleItemAC(dd, val, matches);
-  }, 250);
-}
-function qfShowSampleItemAC(dd, val, matches){
-  if(!matches.length){dd.style.display='none';return;}
-  const esc = val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  dd.style.display='block';
-  dd.innerHTML = matches.map(n=>{
-    const safe = n.replace(/'/g,"\\'");
-    const hl = n.replace(new RegExp(esc,'gi'),m=>`<strong style="color:var(--accent)">${m}</strong>`);
-    return `<div onmousedown="document.getElementById('qf_sampleItem').value='${safe}';document.getElementById('qf_sampleItemAC').style.display='none'"
-      style="padding:7px 12px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)">${hl}</div>`;
-  }).join('');
-}
 function qfSearchPart(idx, val){
   const dd = document.getElementById('qfPartAC_'+idx);
   if(!dd) return;
