@@ -1087,6 +1087,12 @@ async function init(){
   }catch(e){ console.error('خطای بارگذاری یادآوری‌ها:', e); }
   // شماره‌ی بعدی ID یادآوری دوره‌ای
   if(recurringReminders.length) nextRecId=Math.max(...recurringReminders.map(r=>Number(String(r.id).replace(/\D/g,''))||0))+1;
+  // ⚠️ فیکس مهم (۱۴۰۵/۰۶/۰۷): isConnected اینجا صریحاً true می‌شه — چون همه‌ی بلوک‌های بالا
+  // با موفقیت (یا حداقل بدون کرش) اجرا شدن. قبلاً isConnected فقط داخل sheetCall (گوگل‌شیت
+  // قدیمی) ست می‌شد که دیگه تقریباً هیچ‌وقت تو یه نشست سالم صدا زده نمی‌شه — یعنی همیشه false
+  // می‌موند و باعث می‌شد ساخت/آپدیت لید (reliableAddLead/reliableUpdateLead) همیشه بی‌صدا
+  // skip بشه، حتی وقتی Django کاملاً سالم بود. همین الگو تو ERP از قبل درست بود (خط ۲۷۶۱).
+  isConnected = true;
   // الان همه‌ی داده‌ها (لیدها، درخواست‌ها، محموله‌ها، ...) واقعاً رسیدن — تازه الان صفحه رو نشون بده
   document.getElementById('crmLoadingState').style.display='none';
   document.getElementById('appLayout').style.display='flex';
@@ -5023,7 +5029,10 @@ async function completeRecurringCycle(id){
   r.lastDone=todayShamsiStr();
   toast('✓✓ موعد بعدی: '+r.nextDate);
   renderRecurring();
-  if(isConnected) await sheetCall('saveRecurringReminder',{id:r.id,startDate:r.startDate,nextDate:r.nextDate,lastDone:r.lastDone});
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): قبلاً اینجا sheetCall('saveRecurringReminder',...) صدا زده می‌شد —
+  // یه endpoint گوگل‌شیت قدیمی که اصلاً به Django (جایی که این داده واقعاً ازش خونده می‌شه)
+  // ربطی نداشت. یعنی تکمیل چرخه‌ی دوره‌ای هیچ‌وقت واقعاً ذخیره نمی‌شد و با رفرش از بین می‌رفت.
+  await updateRecurringReminderInDjango(r.id, r);
 }
 
 

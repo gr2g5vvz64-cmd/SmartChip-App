@@ -11059,7 +11059,10 @@ async function completeRecurringCycle(id){
   r.lastDone=todayShamsiStr();
   toast('✅ موعد بعدی: '+r.nextDate);
   renderReminders();
-  if(isConnected) await sheetCall('saveRecurringReminder',{id:r.id,startDate:r.startDate,nextDate:r.nextDate,lastDone:r.lastDone});
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): قبلاً اینجا sheetCall('saveRecurringReminder',...) صدا زده می‌شد —
+  // یه endpoint گوگل‌شیت قدیمی که به Django (جایی که این داده واقعاً ازش خونده می‌شه) ربطی
+  // نداشت. یعنی تکمیل چرخه‌ی دوره‌ای هیچ‌وقت واقعاً ذخیره نمی‌شد و با رفرش از بین می‌رفت.
+  await updateRecurringReminderInDjangoERP(r.id, r);
 }
 
 function renderRecurring(){

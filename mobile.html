@@ -3588,6 +3588,13 @@ async function init(){
   try {
     await loadMasters();
     loadCalendarHolidaysM(); // تقویم/تعطیلات از Django — برای محاسبه‌ی SLA لازمه
+    // ⚠️ فیکس مهم (۱۴۰۵/۰۶/۰۷): isConnected اینجا صریحاً true می‌شه چون loadMasters بدون
+    // کرش تموم شد. قبلاً isConnected فقط داخل sheetCall (گوگل‌شیت قدیمی) ست می‌شد که چون
+    // Django الان منبع اصلیه، در یه نشست سالم اصلاً صدا زده نمی‌شد — یعنی isConnected همیشه
+    // false می‌موند و صفحه‌ی اصلی موبایل همیشه رو حالت «آفلاین» گیر می‌کرد (نه فقط خلاصه/
+    // یادآوری لود نمی‌شد، بلکه ثبت سفارش، ثبت محموله، یادآوری آزاد، لینک دعوت بات، و رفرش
+    // دوره‌ای هم همه بی‌صدا skip می‌شدن، چون همه به همین isConnected گیر بودن).
+    isConnected = true;
     if(isConnected){
       document.getElementById('connStatus').textContent='متصل';
       await loadSummary();
