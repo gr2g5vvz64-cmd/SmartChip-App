@@ -4265,7 +4265,10 @@ function renderPulseBar(){
 
     const clearanceQueue = (shipments||[]).filter(s=>s.sentToClearance && !s.clearedToWarehouse).length;
     const packReady = (outboundPackings||[]).filter(p=>!p.sent).length;
-    const debtOpen = (debtCases||[]).filter(d=>(d.remaining!==undefined?d.remaining:d.totalDebt)>0).length;
+    // ⚠️ فیکس — فراموش شده بود که پرونده‌های «دستی بسته‌شده» (manuallyClosed)
+    // رو هم حساب کنه، دقیقاً مثل چیزی که renderDebtCasesERP از قبل چک می‌کرد.
+    // همین باعث می‌شد این نوار عدد اشتباه (بیشتر از واقعیت) نشون بده.
+    const debtOpen = (debtCases||[]).filter(d=>(d.remaining!==undefined?d.remaining:d.totalDebt)>0 && !d.manuallyClosed).length;
 
     const pills = [
       pulsePill(overdueReq, 'پاسخ عقب‌افتاده', 'red', "showPage('requests')"),
