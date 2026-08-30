@@ -3845,30 +3845,33 @@ function openGlobalSearchSheetM(){
 function globalSearchM(val){
   const box=document.getElementById('globalSearchResultsM');
   if(!val||val.trim().length<2){box.innerHTML='';return;}
-  const q=val.trim().toLowerCase();
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): قبلاً فقط toLowerCase بود — حروف عربی/فارسی (ی/ي، ک/ك)
+  // رو یکسان نمی‌دید، پس سرچ سراسری با تایپ معمولی خیلی از مشتری‌ها/چک‌ها رو
+  // پیدا نمی‌کرد (همون باگی که تو سرچ تأمین‌کننده‌ی استعلامات ERP هم بود).
+  const q=normalizeFa(val.trim());
   let html='';
 
-  const leadMatches=(leads||[]).filter(l=>(l.customer||'').toLowerCase().includes(q)).slice(0,8);
+  const leadMatches=(leads||[]).filter(l=>normalizeFa(l.customer||'').includes(q)).slice(0,8);
   if(leadMatches.length){
     html+='<div style="font-size:11px;font-weight:800;color:#a78bfa;margin:8px 0 4px;">👤 مشتریان ('+fn(leadMatches.length)+')</div>';
     leadMatches.forEach(l=>{ html+=`<div style="background:var(--card);border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px;">${l.customer}</div>`; });
   }
-  const chqRecMatches=(chequesReceived||[]).filter(c=>(c.customer||'').toLowerCase().includes(q)||(c.transferor||'').toLowerCase().includes(q)).slice(0,8);
+  const chqRecMatches=(chequesReceived||[]).filter(c=>normalizeFa(c.customer||'').includes(q)||normalizeFa(c.transferor||'').includes(q)).slice(0,8);
   if(chqRecMatches.length){
     html+='<div style="font-size:11px;font-weight:800;color:#4ade80;margin:8px 0 4px;">💳 چک دریافتی ('+fn(chqRecMatches.length)+')</div>';
     chqRecMatches.forEach(c=>{ html+=`<div style="background:var(--card);border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px;">${c.transferor||c.customer} — سررسید ${c.dueDate||'—'}</div>`; });
   }
-  const chqPaidMatches=(paidCheques||[]).filter(c=>(c.beneficiary||'').toLowerCase().includes(q)).slice(0,8);
+  const chqPaidMatches=(paidCheques||[]).filter(c=>normalizeFa(c.beneficiary||'').includes(q)).slice(0,8);
   if(chqPaidMatches.length){
     html+='<div style="font-size:11px;font-weight:800;color:#f87171;margin:8px 0 4px;">💸 چک پرداختی ('+fn(chqPaidMatches.length)+')</div>';
     chqPaidMatches.forEach(c=>{ html+=`<div style="background:var(--card);border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px;">${c.beneficiary} — سررسید ${c.dueDate||'—'}</div>`; });
   }
-  const reqMatches=(cachedRequests||[]).filter(r=>(r.customer||'').toLowerCase().includes(q)||(r.displayNumber||'').toLowerCase().includes(q)).slice(0,8);
+  const reqMatches=(cachedRequests||[]).filter(r=>normalizeFa(r.customer||'').includes(q)||normalizeFa(r.displayNumber||'').includes(q)).slice(0,8);
   if(reqMatches.length){
     html+='<div style="font-size:11px;font-weight:800;color:#f0a500;margin:8px 0 4px;">📋 درخواست‌ها ('+fn(reqMatches.length)+')</div>';
     reqMatches.forEach(r=>{ html+=`<div style="background:var(--card);border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px;">${r.customer} — ${r.displayNumber||''}</div>`; });
   }
-  const remMatches=(cachedFreeReminders||[]).filter(r=>(r.desc||'').toLowerCase().includes(q)||(r.customer||'').toLowerCase().includes(q)).slice(0,8);
+  const remMatches=(cachedFreeReminders||[]).filter(r=>normalizeFa(r.desc||'').includes(q)||normalizeFa(r.customer||'').includes(q)).slice(0,8);
   if(remMatches.length){
     html+='<div style="font-size:11px;font-weight:800;color:#a78bfa;margin:8px 0 4px;">🔔 یادآوری ('+fn(remMatches.length)+')</div>';
     remMatches.forEach(r=>{ html+=`<div style="background:var(--card);border-radius:8px;padding:8px 12px;margin-bottom:4px;font-size:12px;">${r.desc} ${r.customer?'— '+r.customer:''}</div>`; });

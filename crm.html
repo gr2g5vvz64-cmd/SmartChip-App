@@ -4661,13 +4661,16 @@ function toggleQuickForm(show){
 function qfSearchCustomer(val){
   const dd = document.getElementById('qf_customerAC');
   if(!val||val.length<1){dd.style.display='none';return;}
-  const q = val.toLowerCase();
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۰۷): قبلاً فقط toLowerCase بود — حروف عربی/فارسی (ی/ي، ک/ك)
+  // که تو اسم شرکت‌های شیت CUSTOMER زیاد قاطی‌ان رو یکسان نمی‌دید، پس با تایپ
+  // معمولی (کیبورد فارسی) خیلی از مشتری‌ها اصلاً پیدا نمی‌شدن.
+  const q = normalizeFa(val);
   // فقط مشتریانی که تو ستون Z شیت CUSTOMER اولویت ۱، ۵ یا ۹ دارن — طبق تصمیم قبلی
   const PRIORITY_SET = ['1','5','9'];
   const src = (customerMaster&&customerMaster.length)
     ? customerMaster.filter(c=>PRIORITY_SET.includes(fa2en(String(c.priority||'')).trim()))
     : [...new Map((leads||[]).map(l=>([l.customer,{name:l.customer}]))).values()];
-  const matches = src.filter(c=>c.name&&c.name.toLowerCase().includes(q)).slice(0,15);
+  const matches = src.filter(c=>c.name&&normalizeFa(c.name).includes(q)).slice(0,15);
   if(!matches.length){dd.style.display='none';return;}
   dd.style.display='block';
   dd.innerHTML = matches.map(c=>`<div
