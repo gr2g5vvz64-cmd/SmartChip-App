@@ -4996,6 +4996,7 @@ function estelamatItemCardHTML(reqId,itemIdx,item){
         <input class="form-control" style="font-size:9px;padding:3px 5px;width:100%"
           value="${q.supplier.replace(/"/g,'&quot;')}" ${disabled?'disabled':''}
           oninput="searchEstelamatSupplierAC(this,'${acId}')"
+          onfocus="ensureCustomerMasterLoaded()"
           onblur="setTimeout(()=>handleEstelamatSupplierBlur(this,'${safeKey}',${qIdx}),200)"
           placeholder="تامین‌کننده"/>
         <div id="${acId}" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:99;
@@ -5169,6 +5170,14 @@ function searchEstelamatSupplierAC(inputEl, acId){
   if(!box) return;
   const val=inputEl.value;
   if(!val||val.trim().length<1){box.style.display='none';return;}
+  // ⚠️ فیکس ایمنی (۱۴۰۵/۰۶/۰۸): اگه customerMaster هنوز خالیه (مثلاً کاربر
+  // خیلی سریع تایپ کرده و onfocus فرصت کامل‌شدن لود رو نداشته)، خودش صبر
+  // می‌کنه لود تموم بشه و دوباره همین جستجو رو تکرار می‌کنه — به‌جای اینکه
+  // ساکت هیچی نشون نده.
+  if(!customerMaster || !customerMaster.length){
+    ensureCustomerMasterLoaded().then(()=>searchEstelamatSupplierAC(inputEl, acId));
+    return;
+  }
   const q=normalizeFa(val.trim().toLowerCase());
   const DOMESTIC_SUPPLIERS = getDomesticSupplierNames();
   const m=DOMESTIC_SUPPLIERS.filter(s=>normalizeFa(s.toLowerCase()).includes(q)).slice(0,15);
