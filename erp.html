@@ -4373,7 +4373,6 @@ function renderDash(){
   const slaPanel=document.getElementById('allUnitsSLAPanel');
   if(slaPanel && typeof buildAllUnitsSLASummaryHTML==='function') slaPanel.innerHTML = buildAllUnitsSLASummaryHTML();
   updateNavBadges();
-  updateNavGroupSummaries();
   renderPulseBar();
   if(!window._navGroupsRestored){ window._navGroupsRestored=true; restoreNavGroupStates(); }
   const follow=requests.filter(r=>r.status==='follow').length;
@@ -4499,6 +4498,14 @@ function renderDash(){
   const dt=tasks.filter(t=>t.status!=='done').slice(0,3);
   document.getElementById('dashTasks').innerHTML=dt.length?dt.map(t=>taskCardHTML(t)).join(''):
     emptyBox('📌','کار ارجاعی ندارید');
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): updateNavGroupSummaries() قبلاً اول همین تابع صدا زده
+  // می‌شد — یعنی *قبل از* اینکه setBadge('procBadge', ...) و بقیه‌ی badgeهای
+  // همین renderDash (که پایین‌ترن) اصلاً اجرا بشن. نتیجه: مجموع گروه («تدارکات»)
+  // همیشه با مقدار قدیمی/پیش‌فرضِ badge تکی حساب می‌شد، نه مقدار تازه — و چون
+  // هیچ‌جای دیگه‌ای هم دوباره صداش نمی‌زد، این عدد تا آخر عمر همون نشست غلط
+  // می‌موند (حتی با باز/بسته‌کردن اکاردیون). الان آخرِ تابع صدا زده می‌شه، بعد
+  // از اینکه همه‌ی badgeهای تکی این renderDash واقعاً به‌روز شدن.
+  updateNavGroupSummaries();
 }
 
 // ══════════════════════════════════════════
@@ -4806,6 +4813,11 @@ function renderCustNeed(){
     rows=rows.filter(r=>normalizeFa(r.customer).includes(q));
   }
   setBadge('procBadge', rows.length);
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): طبق قانون طلایی («هرجا badge تکی مستقل ست می‌شه، باید
+  // updateNavGroupSummaries هم صدا زده بشه») — این تابع مستقل از renderDash هم
+  // صدا زده می‌شه (مثلاً وقتی خودِ همین صفحه یه اکشن انجام می‌ده)، پس نباید
+  // منتظر renderDash بعدی بمونه تا عدد گروه («تدارکات») درست بشه.
+  if(typeof updateNavGroupSummaries==='function') updateNavGroupSummaries();
   const el=document.getElementById('custNeedBody');
   if(!rows.length){el.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">موردی نیست</div></div></td></tr>`;return;}
   el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openEstelamat('${r.requestId}')">
@@ -4828,6 +4840,10 @@ let curCustNeedArchiveSearch='';
 function searchCustNeedArchive(v){curCustNeedArchiveSearch=v;renderCustNeedArchive();}
 function renderCustNeedArchive(){
   let rows=buildCustNeedRows().filter(r=>r.totalItems>0 && r.resolved===r.totalItems);
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): buildCustNeedRows عمداً قدیمی‌ترین‌بالا سورت می‌کنه
+  // (برای لیست فعال، منطق صف FIFO درسته) — ولی بایگانی باید برعکس باشه:
+  // جدیدترین بالا. اینجا جدا و دوباره سورت می‌شه، بدون دست‌زدن به تابع مشترک.
+  rows.sort((a,b)=>shamsiDateSortVal(b.date)-shamsiDateSortVal(a.date));
   const countEl=document.getElementById('custneedArchiveCount');
   if(countEl) countEl.textContent=`(${fn(rows.length)} مورد)`;
   if(curCustNeedArchiveSearch){
@@ -5345,6 +5361,9 @@ function searchForeignNeed(v){curForeignNeedSearch=v;renderForeignNeed();}
 function searchForeignNeedArchive(v){curForeignNeedArchiveSearch=v;renderForeignNeedArchive();}
 function renderForeignNeedArchive(){
   let rows=buildForeignNeedRows().filter(r=>r.isArchived);
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): همون فیکس renderCustNeedArchive — buildForeignNeedRows
+  // عمداً قدیمی‌ترین‌بالا سورت می‌کنه (برای لیست فعال)، بایگانی باید برعکس باشه.
+  rows.sort((a,b)=>shamsiDateSortVal(b.date)-shamsiDateSortVal(a.date));
   const countEl=document.getElementById('foreignneedArchiveCount');
   if(countEl) countEl.textContent=`(${fn(rows.length)} مورد)`;
   if(curForeignNeedArchiveSearch){
@@ -5974,6 +5993,9 @@ let curDomesticPurchaseArchiveSearch='';
 function searchDomesticPurchaseArchive(v){curDomesticPurchaseArchiveSearch=v;renderDomesticPurchaseArchive();}
 function renderDomesticPurchaseArchive(){
   let rows=[...domesticPurchaseArchive];
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): این آرایه هیچ‌وقت سورت نمی‌شد — به ترتیب اضافه‌شدن
+  // (قدیمی‌ترین اول) می‌موند. الان جدیدترین (بر اساس purchaseDate) بالا میاد.
+  rows.sort((a,b)=>shamsiDateSortVal(b.purchaseDate)-shamsiDateSortVal(a.purchaseDate));
   const countEl=document.getElementById('domesticpurchaseArchiveCount');
   if(countEl) countEl.textContent=`(${fn(rows.length)} مورد)`;
   if(curDomesticPurchaseArchiveSearch){
@@ -7265,7 +7287,15 @@ async function markPackingSent(pkId){
   p.sentISO=new Date().toISOString();
   for(const it of (p.items||[])){
     if(it.reqId && it.itemIdx!==undefined){
-      markLinkedItemStatus(it.reqId, it.itemIdx, 'delivered_to_customer', it.source);
+      // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): قبلاً همیشه 'delivered_to_customer' نوشته می‌شد،
+      // حتی برای آیتم‌های بازار داخلی — ولی همه‌ی چک‌های «تموم‌شدن» آیتم داخلی
+      // (مثل marketDone تو renderDomesticPurchase، یا resolved تو
+      // buildCustNeedRows) دنبال رشته‌ی دقیق 'delivered' می‌گردن، نه
+      // 'delivered_to_customer'. یعنی انبار درست ثبت می‌کرد ولی چون رشته‌ی
+      // نوشته‌شده با خونده‌شده یکی نبود، آیتم داخلی هیچ‌وقت تو نیاز مشتری/
+      // استعلامات/جمع‌آوری «حل‌شده» دیده نمی‌شد و بایگانی هم نمی‌شد.
+      const doneStatus = it.source==='foreign' ? 'delivered_to_customer' : 'delivered';
+      markLinkedItemStatus(it.reqId, it.itemIdx, doneStatus, it.source);
       // ⚠️ نمونه‌ها (۱۴۰۵/۰۶/۰۷): نمونه فقط از مسیر بازرگانی خارج رد می‌شه (isSample
       // همیشه رو foreignItems ست می‌شه، هیچ‌وقت رو marketItems). دقیقاً همین لحظه —
       // که انبار پکینگ رو «ارسال شد» می‌زنه — خودکار یه سطر تو صفحه‌ی «نمونه‌ها»ی
