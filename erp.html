@@ -8696,9 +8696,15 @@ function isForeignSupplierName(name){
 }
 // لیست داینامیک تأمین‌کنندگان خارج — از رو صنف تو جدول مشتریان (نه لیست ثابت قدیمی)
 function getForeignSupplierNames(){
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۰): همون باگ نرمال‌سازی که تو getDomesticSupplierNames
+  // بود، اینجا هم بود — فقط فاصله حذف می‌شد، حروف عربی/فارسی (ی/ي، ک/ك) نه.
+  // نکته: بعد از normalizeFa، «تأمین» و «تامین» (با/بدون همزه) خودشون یکی
+  // می‌شن (آ/أ/إ همه به ا تبدیل می‌شن) — پس دیگه لازم نیست هر دو حالت رو
+  // جدا چک کنیم.
+  const target = normalizeFa('تامین کننده خارج').replace(/\s+/g,'');
   return (customerMaster||[]).filter(c=>{
-    const cat=(c.category||'').replace(/[\s\u200c]+/g,'');
-    return cat.includes('تامینکنندهخارج') || cat.includes('تأمینکنندهخارج');
+    const cat=normalizeFa(c.category||'').replace(/\s+/g,'');
+    return cat.includes(target);
   }).map(c=>c.name);
 }
 
