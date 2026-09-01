@@ -3773,18 +3773,25 @@ function updateProspectsBadge(){
   }
 }
 
+function isManagementRole(){
+  const role = (currentUser||{}).role || '';
+  return ['owner','admin'].includes(role);
+}
 function renderProspectsView(){
   const el = document.getElementById('prospectsView');
   if(!el) return;
   updateProspectsBadge();
   updateApprovalsBadge();
+  updateMgmtBadge();
   el.innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn ${curProspectSubTab==='create'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('create')">🆕 ساخت مشتری</button>
       <button class="btn ${curProspectSubTab==='quickform'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('quickform')">📞 فرم جذب سریع</button>
-      <button class="btn ${curProspectSubTab==='table'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('table')">📋 جدول جذب مشتری</button>
+      <button class="btn ${curProspectSubTab==='customers'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('customers')">👥 مشتریان</button>
+      <button class="btn ${curProspectSubTab==='table'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('table')">📋 جدول ثبت</button>
       <button class="btn ${curProspectSubTab==='stats'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('stats')">📊 داشبورد</button>
       ${isSalesSupOrAbove() ? `<button class="btn ${curProspectSubTab==='approvals'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('approvals')" style="position:relative">✅ تاییدها<span id="approvalsBadgeInline" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-right:4px"></span></button>` : ''}
+      ${isManagementRole() ? `<button class="btn ${curProspectSubTab==='mgmt'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('mgmt')" style="position:relative">🔔 تایید مدیریت<span id="mgmtBadgeInline" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-right:4px"></span></button>` : ''}
     </div>
     <div id="prospectsSubContent"></div>
   `;
@@ -3796,9 +3803,11 @@ function renderProspectsSubContent(){
   if(!c) return;
   if(curProspectSubTab==='create') renderProspectCreateForm(c);
   else if(curProspectSubTab==='quickform') renderProspectQuickForm(c);
+  else if(curProspectSubTab==='customers') renderCustomersPage(c);
   else if(curProspectSubTab==='table') renderProspectTable(c);
   else if(curProspectSubTab==='stats') renderProspectStats(c);
   else if(curProspectSubTab==='approvals') renderProspectApprovals(c);
+  else if(curProspectSubTab==='mgmt') renderManagementApprovals(c);
 }
 async function updateApprovalsBadge(){
   if(!isSalesSupOrAbove()) return;
@@ -3844,7 +3853,163 @@ async function submitApprovalDecision(approvalId, decision){
   const row = document.getElementById('approvalRow_'+approvalId);
   if(row) row.remove();
   updateApprovalsBadge();
+  updateMgmtBadge();
 }
+// ── صفحه‌ی تایید مدیریت تو خودِ CRM — علاوه‌بر تلگرام (طبق تصمیم کاربر: هر دو) ──
+async function updateMgmtBadge(){
+  if(!isManagementRole()) return;
+  const count = await fetchPendingApprovalsCount('management');
+  const badge = document.getElementById('mgmtBadgeInline');
+  if(badge){ badge.textContent = fn(count); badge.style.display = count>0 ? 'inline-block' : 'none'; }
+}
+async function renderManagementApprovals(c){
+  c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
+  const items = await fetchPendingApprovals('management');
+  if(!items.length){ c.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">چیزی در انتظار تایید نیست</div></div>`; return; }
+  c.innerHTML = `<div style="font-size:11px;color:var(--muted);margin-bottom:10px">این‌ها همون درخواست‌هایی هستن که از طریق تلگرام هم براتون فرستاده شدن — از هرکدوم از این دو راه که جواب بدید، کافیه.</div>` +
+    items.map(a=>`
+    <div class="dash-section" id="mgmtApprovalRow_${a.id}">
+      <div style="font-size:13px;font-weight:700">${a.customer_name}</div>
+      <div style="font-size:11px;color:var(--muted);margin:4px 0 10px">${a.customer_phone||'—'} · اولویت فعلی: ${a.customer_priority||'ندارد'} · درخواست «${a.requested_by_name}» · ${a.requested_date}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitMgmtApprovalDecision(${a.id},'approved')">✅ بله، اجازه بده</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--red)" onclick="submitMgmtApprovalDecision(${a.id},'rejected')">❌ خیر</button>
+      </div>
+    </div>`).join('');
+}
+async function submitMgmtApprovalDecision(approvalId, decision){
+  const res = await resolveApprovalInDjango(approvalId, decision);
+  if(!res.ok){ toast('❌ '+res.error); return; }
+  toast(decision==='approved' ? '✅ تایید شد' : '❌ رد شد');
+  const row = document.getElementById('mgmtApprovalRow_'+approvalId);
+  if(row) row.remove();
+  updateMgmtBadge();
+}
+// ══ زیربخش جدید — 👥 مشتریان (یکپارچه: قدیم + جدید) ══
+function getAllCustomersUnified(){
+  const prospectNames = new Set((prospects||[]).map(p=>normalizeFa(p.name)));
+  const out = [];
+  (prospects||[]).forEach(p=>{
+    out.push({ source:'prospect', name:p.name, phone:p.phone1||p.phone2||'', province:p.province||'',
+      category:p.category||'', priority:'', status:p.status, assigneeName:p.assigneeName||'', prospectRef:p });
+  });
+  (customerMaster||[]).forEach(cm=>{
+    if(prospectNames.has(normalizeFa(cm.name||''))) return; // از قبل به‌عنوان Prospect اومده، دوباره نشون نده
+    out.push({ source:'customer', name:cm.name, phone:cm.mobile||'', province:cm.province||'',
+      category:cm.category||'', priority:String(cm.priority||'').trim(), status:'old_customer', assigneeName:'', prospectRef:null });
+  });
+  return out;
+}
+let curCustomersSearch='';
+function renderCustomersPage(c){
+  c.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-hdr"><div class="sec-title">👥 مشتریان (قدیم و جدید)</div><div class="search-box"><span>🔍</span><input type="text" id="pCustomersSearch" placeholder="جستجو: نام، تلفن..." oninput="searchCustomersPage(this.value)"/></div></div>
+      <table><thead><tr>
+        <th>نام</th><th>تلفن</th><th>استان</th><th>صنف</th><th>اولویت/وضعیت</th><th>کارشناس فعلی</th>
+      </tr></thead><tbody id="pCustomersBody"></tbody></table>
+    </div>
+  `;
+  renderCustomersPageBody();
+}
+function searchCustomersPage(v){ curCustomersSearch=v; renderCustomersPageBody(); }
+function renderCustomersPageBody(){
+  let rows = getAllCustomersUnified();
+  if(curCustomersSearch){
+    const q = normalizeFa(curCustomersSearch);
+    const qDigits = curCustomersSearch.replace(/\D/g,'');
+    rows = rows.filter(r=>normalizeFa(r.name).includes(q) || (qDigits.length>=4 && (r.phone||'').includes(qDigits)));
+  }
+  rows.sort((a,b)=>(a.name||'').localeCompare(b.name||'','fa'));
+  window._customersPageRows = rows;
+  const body = document.getElementById('pCustomersBody');
+  if(!body) return;
+  body.innerHTML = rows.length ? rows.map((r,idx)=>`
+    <tr style="cursor:pointer" onclick="openCustomerDetailModal(${idx})">
+      <td><strong>${r.name}</strong></td>
+      <td style="font-size:11px">${r.phone||'—'}</td>
+      <td style="font-size:11px">${r.province||'—'}</td>
+      <td style="font-size:11px">${r.category||'—'}</td>
+      <td>${r.source==='customer'?`<span style="font-size:11px;color:${['1','5','9'].includes(r.priority)?'var(--green)':'var(--muted)'}">اولویت ${r.priority||'ندارد'}</span>`:prospectStatusChip(r.prospectRef)}</td>
+      <td style="font-size:11px">${r.assigneeName?ac(r.assigneeName):'—'}</td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+}
+let curCustomerDetailTab='basic';
+function openCustomerDetailModal(idx){
+  const r = (window._customersPageRows||[])[idx];
+  if(!r) return;
+  curCustomerDetailTab = 'basic';
+  const html = `
+    <div class="modal-overlay open" id="customerDetailOverlay" onclick="if(event.target===this) closeCustomerDetailModal()">
+      <div class="modal" style="max-width:520px">
+        <div class="modal-hdr"><div class="modal-title">${r.name}</div><button class="close-btn" onclick="closeCustomerDetailModal()">✕</button></div>
+        <div style="padding:0 16px;display:flex;gap:4px;border-bottom:1px solid var(--border)">
+          <button class="btn btn-ghost btn-sm" id="custTabBtnBasic" onclick="switchCustomerDetailTab(${idx},'basic')" style="border-radius:0;border-bottom:2px solid var(--accent)">📋 اطلاعات اولیه</button>
+          <button class="btn btn-ghost btn-sm" id="custTabBtnHistory" onclick="switchCustomerDetailTab(${idx},'history')" style="border-radius:0;border-bottom:2px solid transparent">💬 هیستوری مکالمات</button>
+        </div>
+        <div style="padding:16px;max-height:65vh;overflow-y:auto" id="customerDetailBody"></div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  renderCustomerDetailTabContent(idx);
+}
+function switchCustomerDetailTab(idx, tab){
+  curCustomerDetailTab = tab;
+  document.getElementById('custTabBtnBasic').style.borderBottom = tab==='basic' ? '2px solid var(--accent)' : '2px solid transparent';
+  document.getElementById('custTabBtnHistory').style.borderBottom = tab==='history' ? '2px solid var(--accent)' : '2px solid transparent';
+  renderCustomerDetailTabContent(idx);
+}
+function renderCustomerDetailTabContent(idx){
+  const r = (window._customersPageRows||[])[idx];
+  const body = document.getElementById('customerDetailBody');
+  if(!r || !body) return;
+  if(curCustomerDetailTab==='basic'){
+    if(r.source==='prospect'){
+      const p = r.prospectRef;
+      const contactsHtml = (p.contacts&&p.contacts.length) ? p.contacts.map(ct=>`<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)"><strong>${prospectRoleLabel(ct.role)}</strong> — ${ct.name||'—'} ${ct.mobile?'· 📱 '+ct.mobile:''}</div>`).join('') : '<div style="font-size:11px;color:var(--muted)">مخاطبی ثبت نشده</div>';
+      const addressesHtml = (p.addresses&&p.addresses.length) ? p.addresses.map(a=>`<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)"><strong>${prospectAddressLabel(a.type)}</strong><div style="color:var(--muted)">${a.address}</div></div>`).join('') : '<div style="font-size:11px;color:var(--muted)">آدرسی ثبت نشده</div>';
+      body.innerHTML = `
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${[p.phone1,p.phone2].filter(Boolean).join(' · ')||'—'} ${p.province?' · 📍 '+p.province:''} ${p.category?' · 🏷️ '+p.category+(p.subcat?' / '+p.subcat:''):''}</div>
+        <div style="background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10.5px;color:var(--muted)">
+          👤 ساخته‌شده توسط ${p.createdByName||'—'} — ${p.createdDate||'—'} ${p.createdTime?'ساعت '+p.createdTime:''}<br>
+          🔎 نحوه‌ی آشنایی: ${prospectDiscoveryLabel(p.discoveryMethod)||'—'}<br>
+          📄 ${p.hasContract?'دارای قرارداد همکاری':'بدون قرارداد همکاری'}
+          ${isSalesSupOrAbove() ? `<br>💰 اعتبار: ${p.creditAmount?fn(p.creditAmount)+' تومان':'تعیین نشده'}` : ''}
+        </div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px">مخاطبین</div>${contactsHtml}
+        <div style="font-size:12px;font-weight:700;margin:10px 0 6px">آدرس‌ها</div>${addressesHtml}
+      `;
+    } else {
+      const allowed = ['1','5','9'].includes(r.priority);
+      body.innerHTML = `
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${r.phone||'—'} ${r.province?' · 📍 '+r.province:''} ${r.category?' · 🏷️ '+r.category:''}</div>
+        <div style="background:var(--card);border-radius:8px;padding:10px;font-size:11px">این یه مشتری قدیمی از فایل کلی مشتریانه — اطلاعات تکمیلی (مخاطبین/آدرس/قرارداد) فقط بعد از شروع پیگیری (از «فرم جذب سریع») ثبت می‌شه.</div>
+        <div style="margin-top:10px;font-size:11px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${r.priority||'ندارد'} ${allowed?'(مجاز برای تماس/فروش)':'(نیاز به تایید مدیریت برای پیگیری)'}</div>
+      `;
+    }
+  } else {
+    if(r.source==='prospect'){
+      const p = r.prospectRef;
+      const historyHtml = (p.reservationHistory&&p.reservationHistory.length) ? p.reservationHistory.map(h=>`
+        <div style="background:var(--card);border-radius:8px;padding:8px;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:700">${h.staff_name} — ${h.start} تا ${h.end} (${h.outcome==='timeout'?'مهلت تموم شد':h.outcome==='converted'?'جذب شد':'آزادسازی دستی'})</div>
+          ${prospectActivityLogHTML(h.activity_log)}
+        </div>`).join('') : '';
+      body.innerHTML = `
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px">فعالیت‌های رزرو فعلی${p.assigneeName?' — کارشناس: '+p.assigneeName:''}</div>
+        ${prospectActivityLogHTML(p.activityLog)}
+        ${historyHtml ? `<div style="font-size:12px;font-weight:700;margin:14px 0 6px;color:var(--muted)">تاریخچه‌ی کارشناسان قبلی</div>${historyHtml}` : ''}
+      `;
+    } else {
+      body.innerHTML = `<div style="font-size:11px;color:var(--muted)">هنوز هیچ کارشناسی رو این مشتری فعالیتی ثبت نکرده. از «فرم جذب سریع» می‌تونی شروع کنی.</div>`;
+    }
+  }
+}
+function closeCustomerDetailModal(){
+  const el = document.getElementById('customerDetailOverlay');
+  if(el) el.remove();
+}
+
 async function renderProspectStats(c){
   c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
   const stats = await fetchProspectStatsFromDjango();
@@ -3892,74 +4057,94 @@ const PROSPECT_SUBCATEGORIES = {
 let _prospectNewContacts = [];
 function renderProspectCreateForm(c){
   _prospectNewContacts = [];
+  _prospectNewAddresses = [];
   c.innerHTML = `
-    <div class="dash-section" style="max-width:560px">
-      <div class="sec-title" style="margin-bottom:12px">🆕 ثبت مشتری بالقوه‌ی جدید</div>
-      <label class="form-label">نام مشتری *</label>
-      <input class="form-control" id="pNewName" oninput="checkProspectNewLive()" placeholder="نام کامل شرکت/شخص"/>
+    <div class="dash-section" style="max-width:480px">
+      <div class="sec-title" style="margin-bottom:14px">🆕 ثبت مشتری بالقوه‌ی جدید</div>
 
-      <div style="display:flex;gap:10px;margin-top:10px">
-        <div style="flex:1"><label class="form-label">تلفن شرکت ۱ * (۱۱ رقمی)</label><input class="form-control" id="pNewPhone1" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11"/></div>
-        <div style="flex:1"><label class="form-label">تلفن شرکت ۲ (۱۱ رقمی)</label><input class="form-control" id="pNewPhone2" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11"/></div>
-      </div>
-      <div id="pNewWarning" style="margin-top:8px"></div>
+      <details open style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">📇 اطلاعات پایه</summary>
+        <div style="padding-top:10px">
+          <label class="form-label">نام مشتری <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="pNewName" oninput="checkProspectNewLive()" placeholder="نام کامل شرکت/شخص"/>
 
-      <label class="form-label" style="margin-top:10px">استان *</label>
-      <input class="form-control" id="pNewProvince" list="pProvinceList" placeholder="جستجو/انتخاب استان..." autocomplete="off" oninput="checkProspectFormValidity()"/>
-      <datalist id="pProvinceList">${IRAN_PROVINCES.map(p=>`<option value="${p}">`).join('')}</datalist>
+          <label class="form-label" style="margin-top:10px">تلفن شرکت ۱ <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="pNewPhone1" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11"/>
 
-      <div style="display:flex;gap:10px;margin-top:10px">
-        <div style="flex:1">
-          <label class="form-label">صنف *</label>
+          <label class="form-label" style="margin-top:10px">تلفن شرکت ۲</label>
+          <input class="form-control" id="pNewPhone2" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11"/>
+
+          <div id="pNewWarning" style="margin-top:8px"></div>
+
+          <label class="form-label" style="margin-top:10px">استان <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="pNewProvince" list="pProvinceList" placeholder="جستجو/انتخاب استان..." autocomplete="off" oninput="checkProspectFormValidity()"/>
+          <datalist id="pProvinceList">${IRAN_PROVINCES.map(p=>`<option value="${p}">`).join('')}</datalist>
+        </div>
+      </details>
+
+      <details style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">🏷️ صنف و زیرصنف</summary>
+        <div style="padding-top:10px">
+          <label class="form-label">صنف <span style="color:var(--red)">*</span></label>
           <select class="form-control" id="pNewCategory" onchange="onProspectCategoryChange()">
             <option value="">— انتخاب کن —</option>
             ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
           </select>
+
+          <div id="pNewSubcatBox" style="margin-top:10px">
+            <label class="form-label">زیرصنف</label>
+            <input class="form-control" id="pNewSubcat" placeholder="اول صنف رو انتخاب کن" disabled/>
+          </div>
         </div>
-        <div style="flex:1" id="pNewSubcatBox">
-          <label class="form-label">زیرصنف</label>
-          <input class="form-control" id="pNewSubcat" placeholder="اول صنف رو انتخاب کن" disabled/>
+      </details>
+
+      <details style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">🤝 آشنایی، قرارداد و اعتبار</summary>
+        <div style="padding-top:10px">
+          <label class="form-label">نحوه‌ی آشنایی با مشتری</label>
+          <select class="form-control" id="pNewDiscovery">
+            <option value="">— انتخاب کن —</option>
+            ${PROSPECT_DISCOVERY_METHODS.map(d=>`<option value="${d.key}">${d.label}</option>`).join('')}
+          </select>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;background:var(--card);border-radius:8px;padding:10px">
+            <input type="checkbox" id="pNewHasContract" style="width:16px;height:16px"/>
+            <label for="pNewHasContract" style="font-size:12px;margin:0;cursor:pointer">این مشتری قرارداد همکاری دارد</label>
+          </div>
+
+          ${isSalesSupOrAbove() ? `
+          <label class="form-label" style="margin-top:10px">💰 مبلغ اعتبار مشتری</label>
+          <input class="form-control" id="pNewCredit" placeholder="مبلغ به تومان..."/>
+          ` : `
+          <div style="margin-top:10px;font-size:11px;color:var(--muted);background:var(--card);border-radius:8px;padding:8px 10px">
+            💰 مبلغ اعتبار — فقط سرپرست فروش تعیین می‌کنه. بعد از ثبت، خودکار براش درخواست می‌ره.
+          </div>
+          `}
         </div>
-      </div>
+      </details>
 
-      <label class="form-label" style="margin-top:10px">نحوه‌ی آشنایی با مشتری</label>
-      <select class="form-control" id="pNewDiscovery">
-        <option value="">— انتخاب کن —</option>
-        ${PROSPECT_DISCOVERY_METHODS.map(d=>`<option value="${d.key}">${d.label}</option>`).join('')}
-      </select>
-
-      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;background:var(--card);border-radius:8px;padding:10px">
-        <input type="checkbox" id="pNewHasContract" style="width:16px;height:16px"/>
-        <label for="pNewHasContract" style="font-size:12px;margin:0;cursor:pointer">این مشتری قرارداد همکاری دارد (وگرنه هر فروش نیاز به تایید سرپرست فروش دارد)</label>
-      </div>
-
-      ${isSalesSupOrAbove() ? `
-      <label class="form-label" style="margin-top:10px">💰 مبلغ اعتبار مشتری (فقط سرپرست فروش/مدیریت)</label>
-      <input class="form-control" id="pNewCredit" placeholder="مبلغ به تومان..."/>
-      ` : `
-      <div style="margin-top:10px;font-size:11px;color:var(--muted);background:var(--card);border-radius:8px;padding:8px 10px">
-        💰 مبلغ اعتبار — فقط سرپرست فروش می‌تونه تعیینش کنه. بعد از ثبت، خودکار براش یه درخواست می‌ره.
-      </div>
-      `}
-
-      <label class="form-label" style="margin-top:14px">یادداشت اولیه</label>
-      <textarea class="form-control" id="pNewNote" rows="2"></textarea>
-
-      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <label class="form-label" style="margin:0">آدرس‌ها (شرکت / دفتر / کارخانه)</label>
-          <button class="btn btn-ghost btn-sm" onclick="addProspectAddressRow()">+ افزودن آدرس</button>
+      <details style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">📍 آدرس‌ها</summary>
+        <div style="padding-top:10px">
+          <div id="pNewAddressesBox"></div>
+          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="addProspectAddressRow()">+ افزودن آدرس</button>
         </div>
-        <div id="pNewAddressesBox"></div>
-      </div>
+      </details>
 
-      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <label class="form-label" style="margin:0">مخاطبین شرکت * (حداقل یکی، با نام و همراه)</label>
-          <button class="btn btn-ghost btn-sm" onclick="addProspectContactRow()">+ افزودن مخاطب</button>
+      <details open style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">👤 مخاطبین شرکت <span style="color:var(--red)">*</span></summary>
+        <div style="padding-top:10px">
+          <div id="pNewContactsBox"></div>
+          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="addProspectContactRow()">+ افزودن مخاطب</button>
         </div>
-        <div id="pNewContactsBox"></div>
-      </div>
+      </details>
+
+      <details style="margin-bottom:10px">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">📝 یادداشت</summary>
+        <div style="padding-top:10px">
+          <textarea class="form-control" id="pNewNote" rows="2"></textarea>
+        </div>
+      </details>
 
       <div id="pNewMissingFields" style="font-size:10.5px;color:var(--red);margin-top:10px"></div>
       <button class="btn btn-primary" id="pNewSubmitBtn" style="width:100%;margin-top:8px" onclick="submitNewProspect()" disabled>ثبت مشتری</button>
@@ -4360,7 +4545,7 @@ let curProspectFilters = {province:'', category:'', status:'', hasContract:'', d
 function renderProspectTable(c){
   c.innerHTML = `
     <div class="tbl-wrap">
-      <div class="tbl-hdr"><div class="sec-title">📋 جدول جذب مشتری</div><div class="search-box"><span>🔍</span><input type="text" id="pTableSearch" placeholder="جستجو: نام، تلفن، کارشناس..." oninput="searchProspectTable(this.value)"/></div></div>
+      <div class="tbl-hdr"><div class="sec-title">📋 جدول ثبت</div><div class="search-box"><span>🔍</span><input type="text" id="pTableSearch" placeholder="جستجو: نام، تلفن، کارشناس..." oninput="searchProspectTable(this.value)"/></div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px">
         <select class="form-control" style="width:auto" onchange="setProspectFilter('province',this.value)">
           <option value="">همه‌ی استان‌ها</option>
@@ -4376,19 +4561,10 @@ function renderProspectTable(c){
           <option value="reserved">🔒 رزرو</option>
           <option value="acquired">✅ جذب‌شده</option>
         </select>
-        <select class="form-control" style="width:auto" onchange="setProspectFilter('hasContract',this.value)">
-          <option value="">قرارداد — همه</option>
-          <option value="yes">دارای قرارداد</option>
-          <option value="no">بدون قرارداد</option>
-        </select>
-        <select class="form-control" style="width:auto" onchange="setProspectFilter('discovery',this.value)">
-          <option value="">نحوه‌ی آشنایی — همه</option>
-          ${PROSPECT_DISCOVERY_METHODS.map(d=>`<option value="${d.key}">${d.label}</option>`).join('')}
-        </select>
         <button class="btn btn-ghost btn-sm" onclick="clearProspectFilters()">پاک‌کردن فیلترها</button>
       </div>
       <table><thead><tr>
-        <th>نام</th><th>تلفن</th><th>استان</th><th>صنف</th><th>وضعیت</th><th>کارشناس فعلی</th><th>مهلت</th><th>فعالیت</th><th>ساخته‌شده توسط</th><th>تاریخ ساخت</th>
+        <th>نام مشتری</th><th>کارشناس فعلی</th><th>تاریخ ساخت</th><th>اولویت‌بندی</th><th>آخرین صحبت انجام‌شده</th><th>پیگیری بعدی</th><th>وضعیت</th>
       </tr></thead><tbody id="pTableBody"></tbody></table>
     </div>
   `;
@@ -4401,6 +4577,11 @@ function clearProspectFilters(){
   renderProspectTableBody();
 }
 function searchProspectTable(v){ curProspectTableSearch=v; renderProspectTableBody(); }
+function findCustomerPriority(name){
+  const target = normalizeFa(name||'');
+  const m = (customerMaster||[]).find(c=>normalizeFa(c.name||'')===target);
+  return m ? String(m.priority||'').trim() : '';
+}
 function renderProspectTableBody(){
   let rows = [...(prospects||[])];
   if(curProspectTableSearch){
@@ -4411,25 +4592,23 @@ function renderProspectTableBody(){
   if(f.province) rows = rows.filter(p=>p.province===f.province);
   if(f.category) rows = rows.filter(p=>p.category===f.category);
   if(f.status) rows = rows.filter(p=>p.status===f.status);
-  if(f.hasContract==='yes') rows = rows.filter(p=>p.hasContract);
-  if(f.hasContract==='no') rows = rows.filter(p=>!p.hasContract);
-  if(f.discovery) rows = rows.filter(p=>p.discoveryMethod===f.discovery);
   rows.sort((a,b)=>shamsiDateSortVal(b.createdDate)-shamsiDateSortVal(a.createdDate));
   const body = document.getElementById('pTableBody');
   if(!body) return;
-  body.innerHTML = rows.length ? rows.map(p=>`
+  body.innerHTML = rows.length ? rows.map(p=>{
+    const lastActivity = (p.activityLog&&p.activityLog.length) ? p.activityLog[p.activityLog.length-1] : null;
+    const priority = findCustomerPriority(p.name);
+    return `
     <tr style="cursor:pointer" onclick="openProspectDetail(${p.id})">
       <td><strong>${p.name}</strong>${p.hasContract?' <span style="color:var(--green);font-size:10px">📄</span>':''}</td>
-      <td style="font-size:11px">${p.phone1||p.phone2||'—'}</td>
-      <td style="font-size:11px">${p.province||'—'}</td>
-      <td style="font-size:11px">${p.category||'—'}</td>
-      <td>${prospectStatusChip(p)}</td>
-      <td>${p.assigneeName?ac(p.assigneeName):'—'}</td>
-      <td>${p.status==='reserved'?prospectDeadlineChip(p):'—'}</td>
-      <td style="text-align:center">${fn((p.activityLog||[]).length)}</td>
-      <td style="font-size:11px">${p.createdByName?ac(p.createdByName):'—'}</td>
+      <td style="font-size:11px">${p.assigneeName?ac(p.assigneeName):'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${p.createdDate||'—'}${p.createdTime?' - '+p.createdTime:''}</td>
-    </tr>`).join('') : `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+      <td style="font-size:11px;color:${['1','5','9'].includes(priority)?'var(--green)':'var(--muted)'}">${priority||'—'}</td>
+      <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lastActivity?(lastActivity.said||lastActivity.heard||'—'):'—'}</td>
+      <td style="font-size:11px;color:var(--accent)">${lastActivity?(lastActivity.next_followup||'—'):'—'}</td>
+      <td>${prospectStatusChip(p)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
 }
 
 // ── جزئیات یه مشتری بالقوه (از جدول یا فرم جذب سریع باز می‌شه) ──
