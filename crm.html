@@ -1817,6 +1817,15 @@ async function updateProspectInDjango(id, patch){
     return {ok:true, data:prospectFromApi(j)};
   }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
+async function startOldCustomerTracking(name, phone, priority){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+'start-old-customer/', {method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customer_name:name, customer_phone:phone, customer_priority:priority, staff_id:currentUser.email||'', staff_name:currentUser.name||currentUser.email})});
+    const j = await res.json().catch(()=>({}));
+    if(j.ok) return {ok:true, data:prospectFromApi(j.data)};
+    return {ok:false, error:j.error||'خطا', pending:!!j.pending};
+  }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
+}
 async function reserveProspectInDjango(id){
   try{
     const res = await fetch(DJANGO_PROSPECTS_API+id+'/reserve/', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -4222,33 +4231,82 @@ function searchProspectForQuickForm(val){
   if(!val || val.trim().length<1){ box.style.display='none'; return; }
   const q = normalizeFa(val.trim());
   const qDigits = val.replace(/\D/g,'');
-  // ⚠️ (۱۴۰۵/۰۶/۱۱) طبق درخواست کاربر: وقتی تماس ورودی میاد و کارشناس فقط
-  // شماره رو داره، باید بتونه با همون شماره هم پیدا کنه، نه فقط با اسم.
-  const matches = (prospects||[]).filter(p=>{
+  // ⚠️ فیکس (۱۴۰۵/۰۶/۱۳): قبلاً فقط تو prospects (مشتریان بالقوه‌ی جدید)
+  // می‌گشت — هیچ‌وقت تو customerMaster (مشتریان قدیمی واقعی) نگاه نمی‌کرد.
+  // یعنی سرچ هر مشتری قدیمی و واقعی «چیزی پیدا نشد» می‌داد. الان هر دو منبع
+  // با هم گشته می‌شن.
+  const prospectMatches = (prospects||[]).filter(p=>{
     if(p.status==='acquired') return false;
     if(normalizeFa(p.name).includes(q)) return true;
     if(qDigits.length>=4 && ((p.phone1||'').includes(qDigits) || (p.phone2||'').includes(qDigits))) return true;
     return false;
-  }).slice(0,10);
+  }).map(p=>({source:'prospect', id:p.id, name:p.name, phone:p.phone1||p.phone2||'', status:p.status, assigneeName:p.assigneeName, priority:''}));
+
+  const prospectNames = new Set(prospectMatches.map(m=>normalizeFa(m.name)));
+  const customerMatches = (customerMaster||[]).filter(c=>{
+    if(prospectNames.has(normalizeFa(c.name||''))) return false; // اگه از قبل به‌عنوان Prospect پیدا شده، دوباره نشون نده
+    if(normalizeFa(c.name||'').includes(q)) return true;
+    if(qDigits.length>=4 && (c.mobile||'').includes(qDigits)) return true;
+    return false;
+  }).map(c=>({source:'customer', name:c.name, phone:c.mobile||'', status:'old_customer', assigneeName:'', priority:String(c.priority||'').trim()}));
+
+  const matches = [...prospectMatches, ...customerMatches].slice(0,12);
   if(!matches.length){ box.style.display='none'; return; }
   box.style.display='block';
-  box.innerHTML = matches.map(p=>`
-    <div onmousedown="selectProspectForQuickForm(${p.id})" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">
-      ${p.name} <span style="color:var(--muted);font-size:10px">${p.phone1||p.phone2||''}</span> ${p.status==='reserved'?`<span style="color:var(--muted);font-size:10px">(رزرو ${p.assigneeName})</span>`:'<span style="color:var(--green);font-size:10px">(آزاد)</span>'}
+  box.innerHTML = matches.map((m,idx)=>`
+    <div onmousedown="selectProspectForQuickForm(${idx})" data-idx="${idx}" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">
+      ${m.name} <span style="color:var(--muted);font-size:10px">${m.phone||''}</span>
+      ${m.source==='customer'?`<span style="color:var(--accent);font-size:10px">(مشتری قدیمی${m.priority?' — اولویت '+m.priority:' — بدون اولویت'})</span>`
+        : m.status==='reserved'?`<span style="color:var(--muted);font-size:10px">(رزرو ${m.assigneeName})</span>`:'<span style="color:var(--green);font-size:10px">(آزاد)</span>'}
     </div>`).join('');
+  window._pQfCurrentMatches = matches;
 }
-function selectProspectForQuickForm(id){
+let _pQfSelectedOldCustomer = null;
+function selectProspectForQuickForm(idx){
   document.getElementById('pQfSearchAC').style.display='none';
-  const p = prospects.find(x=>x.id===id);
-  if(!p) return;
-  document.getElementById('pQfSearch').value = p.name;
-  _pQfSelectedId = id;
+  const m = (window._pQfCurrentMatches||[])[idx];
+  if(!m) return;
+  document.getElementById('pQfSearch').value = m.name;
   const box = document.getElementById('pQfSelectedBox');
   const myName = currentUser.name||currentUser.email;
-  if(p.status==='reserved' && p.assigneeName!==myName){
-    box.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:8px;padding:10px;font-size:12px;color:var(--red)">⚠️ این مشتری الان رزرو «${p.assigneeName}» است — نمی‌تونی روش فعالیت ثبت کنی.</div>`;
+
+  if(m.source==='prospect'){
+    const p = prospects.find(x=>x.id===m.id);
+    if(!p) return;
+    _pQfSelectedId = p.id;
+    _pQfSelectedOldCustomer = null;
+    if(p.status==='reserved' && p.assigneeName!==myName){
+      box.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:8px;padding:10px;font-size:12px;color:var(--red)">⚠️ این مشتری الان رزرو «${p.assigneeName}» است — نمی‌تونی روش فعالیت ثبت کنی.</div>`;
+      return;
+    }
+    renderQuickFormActivityBox(p);
+  } else {
+    // ⚠️ (۱۴۰۵/۰۶/۱۳) مشتری قدیمی — هنوز Prospect نداره، باید اول شروع پیگیری بشه
+    _pQfSelectedId = null;
+    _pQfSelectedOldCustomer = m;
+    box.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">این یه مشتری قدیمی و واقعیه — اولویت فروش: <strong>${m.priority||'ندارد'}</strong></div>
+      <button class="btn btn-primary btn-sm" style="width:100%" onclick="startTrackingOldCustomerFromQf()">🔓 شروع پیگیری این مشتری</button>
+    `;
+  }
+}
+async function startTrackingOldCustomerFromQf(){
+  const m = _pQfSelectedOldCustomer;
+  if(!m) return;
+  const res = await startOldCustomerTracking(m.name, m.phone, m.priority);
+  const box = document.getElementById('pQfSelectedBox');
+  if(!res.ok){
+    box.innerHTML = `<div style="background:rgba(240,165,0,.12);border:1px solid var(--yellow);border-radius:8px;padding:10px;font-size:12px">⏳ ${res.error}</div>`;
     return;
   }
+  prospects.push(res.data);
+  _pQfSelectedId = res.data.id;
+  _pQfSelectedOldCustomer = null;
+  toast('✅ پیگیری این مشتری شروع شد');
+  renderQuickFormActivityBox(res.data);
+}
+function renderQuickFormActivityBox(p){
+  const box = document.getElementById('pQfSelectedBox');
   const historyHtml = (p.reservationHistory&&p.reservationHistory.length) ? `
     <div style="font-size:11px;color:var(--muted);margin:8px 0 4px">تاریخچه‌ی تلاش‌های قبلی:</div>
     ${p.reservationHistory.map(h=>`<div style="font-size:10px;color:var(--muted);padding:3px 0">• ${h.staff_name} (${h.start} تا ${h.end}, ${h.outcome==='timeout'?'مهلت تموم شد':h.outcome==='converted'?'جذب شد':'آزادسازی دستی'})</div>`).join('')}
@@ -4258,6 +4316,7 @@ function selectProspectForQuickForm(id){
     ${prospectActivityLogHTML(p.activityLog)}
   ` : '';
   box.innerHTML = `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📅 ساخته‌شده: ${p.createdDate||'—'} توسط ${p.createdByName||'—'} — کارشناس فعلی: <strong>${p.assigneeName||'—'}</strong></div>
     ${historyHtml}${curLogHtml}
     <label class="form-label" style="margin-top:10px">نوع فعالیت</label>
     <select class="form-control" id="pQfType">${PROSPECT_ACTIVITY_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}</select>
