@@ -193,7 +193,7 @@ function renderForm(){
       <button class="btn btn-primary" onclick="addStaffMember()">+ افزودن</button>
     </div>
     <table>
-      <thead><tr><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th></tr></thead>
+      <thead><tr><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th><th></th></tr></thead>
       <tbody id="staffTableBody"></tbody>
     </table>
   `;
@@ -218,8 +218,61 @@ function renderTable(){
       <td>${s.mobile||'—'}</td>
       <td>${ROLE_LABELS[s.role]||s.role}</td>
       <td><button class="btn btn-ghost btn-sm" style="color:${s.active?'var(--green)':'var(--red)'}" onclick="toggleStaffActive('${s.email}',${!s.active})">${s.active?'✅ فعال':'❌ غیرفعال'}</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openEditStaffModal('${s.email}')">✏️ ویرایش</button></td>
       <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeStaffMember('${s.email}')">حذف</button></td>
     </tr>`).join('');
+}
+function openEditStaffModal(email){
+  const s = staffList.find(x=>x.email===email);
+  if(!s) return;
+  const roleOptions = Object.keys(ROLE_LABELS).filter(k=>!['admin','sales','ops','finance'].includes(k)); // نسخه‌های قدیمی رو تو دراپ‌داون نشون نده
+  const html = `
+    <div id="editStaffOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999" onclick="if(event.target===this) closeEditStaffModal()">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:340px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px">✏️ ویرایش — ${s.email}</div>
+        <label class="form-label">نام</label>
+        <input class="form-control" id="editStaffName" value="${(s.name||'').replace(/"/g,'&quot;')}" style="margin-bottom:10px"/>
+        <label class="form-label">موبایل</label>
+        <input class="form-control" id="editStaffMobile" value="${s.mobile||''}" style="margin-bottom:10px"/>
+        <label class="form-label">سمت</label>
+        <select class="form-control" id="editStaffRole" style="margin-bottom:14px">
+          ${roleOptions.map(k=>`<option value="${k}" ${s.role===k?'selected':''}>${ROLE_LABELS[k]}</option>`).join('')}
+        </select>
+        <div id="editStaffError" style="color:var(--red);font-size:11px;margin-bottom:8px;display:none"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" style="flex:1" onclick="submitEditStaff('${email}')">💾 ذخیره</button>
+          <button class="btn btn-ghost" style="flex:1" onclick="closeEditStaffModal()">انصراف</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+function closeEditStaffModal(){
+  const el = document.getElementById('editStaffOverlay');
+  if(el) el.remove();
+}
+async function submitEditStaff(email){
+  const patch = {
+    name: document.getElementById('editStaffName').value.trim(),
+    mobile: document.getElementById('editStaffMobile').value.trim(),
+    role: document.getElementById('editStaffRole').value,
+  };
+  try{
+    const res = await fetch(DJANGO_STAFF_API+encodeURIComponent(email)+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+    if(!res.ok){
+      const err = document.getElementById('editStaffError');
+      err.textContent = 'ذخیره ناموفق بود';
+      err.style.display = 'block';
+      return;
+    }
+  }catch(e){
+    const err = document.getElementById('editStaffError');
+    err.textContent = '⚠️ اتصال به سرور برقرار نشد';
+    err.style.display = 'block';
+    return;
+  }
+  closeEditStaffModal();
+  await loadStaff();
 }
 async function addStaffMember(){
   const email=document.getElementById('newEmail').value.trim().toLowerCase();

@@ -1102,6 +1102,8 @@ async function init(){
     updateMgmtBadge();
     const activeNames = await fetchActiveCustomerNamesFromDjango();
     if(activeNames) activeCustomerNames = activeNames;
+    const staffL = await fetchStaffListFromDjango();
+    if(staffL) staffListForAssignment = staffL;
   }catch(e){ console.error('خطای بارگذاری مشتریان بالقوه:', e); }
   // یادآوری آزاد/دوره‌ای — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۷ مهاجرت)
   try{
@@ -1774,6 +1776,24 @@ function findDebtCase(id){ return (debtCases||[]).find(x=>String(x.id)===String(
 // اتصال داده‌ی مشتریان به Django — مرحله ۳ مهاجرت (بعد از دسته ۱)
 // ══════════════════════════════════════════════════════════════
 const DJANGO_CUSTOMERS_API = 'https://smartchip-backend.onrender.com/api/customers/customers/';
+const DJANGO_STAFF_API_CRM = 'https://smartchip-backend.onrender.com/api/staff/staff/';
+const ROLE_LABELS_CRM={
+  owner:'مدیریت', sup_sales:'سرپرست فروش', sup_trade:'سرپرست بازرگانی',
+  sup_procurement:'سرپرست تدارکات', sup_finance:'سرپرست مالی', sup_warehouse:'سرپرست انبار',
+  office:'مسئول دفتر', sales_expert:'کارشناس فروش', accounting:'حسابداری',
+  warehouse_keeper:'انباردار', trade_expert:'کارشناس بازرگانی', procurement_staff:'تدارکات',
+  service:'خدمات', parts_mgmt:'مدیریت قطعات', pcb_mgmt:'مدیریت برد مدارچاپی',
+  admin:'مدیریت', sales:'کارشناس فروش', ops:'تدارکات/بازرگانی', finance:'حسابداری',
+};
+let staffListForAssignment = [];
+async function fetchStaffListFromDjango(){
+  try{
+    const res = await fetch(DJANGO_STAFF_API_CRM);
+    if(!res.ok) return null;
+    const data = await res.json();
+    return (data||[]).filter(s=>s.active);
+  }catch(e){ return null; }
+}
 
 // تبدیل رکورد Django به همون شکلی که کل کد فعلی CRM انتظار داره — این یعنی
 // rankCustomerMatches و هر ۱۴ تابع سرچ نیازی به تغییر ندارن، چون customerMaster
@@ -4206,7 +4226,10 @@ function openOldCustomerEditModal(idx){
             ${['1','2','3','4','5','6','7','8','9'].map(n=>`<option value="${n}" ${String(cm.priority)===n?'selected':''}>${priorityLabel(n)}</option>`).join('')}
           </select>
           <label class="form-label" style="margin-top:10px">کارشناس مسئول</label>
-          <input class="form-control" id="ocEditAssignedStaff" value="${cm.assignedStaffName||''}" placeholder="نام کارشناس..."/>
+          <select class="form-control" id="ocEditAssignedStaff">
+            <option value="">— بدون کارشناس مسئول —</option>
+            ${staffListForAssignment.map(s=>`<option value="${s.name}" ${cm.assignedStaffName===s.name?'selected':''}>${s.name} (${ROLE_LABELS_CRM[s.role]||s.role})</option>`).join('')}
+          </select>
           <label class="form-label" style="margin-top:10px">یادداشت</label>
           <textarea class="form-control" id="ocEditNote" rows="2">${cm.note||''}</textarea>
           <div id="ocEditWarning" style="margin-top:8px"></div>
