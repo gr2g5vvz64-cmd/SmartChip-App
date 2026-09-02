@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
 <title>👥 SmartChip CRM</title>
 <!--
   ════════════════════════════════════════════════════
@@ -129,6 +130,10 @@ body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);m
 .close-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
 .form-label{font-size:12px;color:var(--muted);margin-bottom:5px;display:block;font-weight:600;}
 .form-control{width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:13px;outline:none;margin-bottom:14px;}
+/* ⚠️ (۱۴۰۵/۰۶/۱۳) لایه‌ی دوم محافظت — بعضی مرورگرها رو خودِ option حتی با
+   color-scheme:light هم گاهی بی‌توجهی می‌کنن؛ این تضمین می‌کنه متن سفید
+   رو پس‌زمینه‌ی روشن هیچ‌وقت دیده نشه. */
+.form-control option{color:#000;background:#fff;}
 .form-control:focus{border-color:var(--accent);}
 textarea.form-control{min-height:80px;resize:vertical;}
 .status-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
@@ -281,7 +286,27 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
     <div class="crm-nav">
       <button class="crm-nav-item active" id="tabBtnMorning" onclick="showCrmTab('morning')"><span class="crm-nav-icon">☀️</span><span>صبح امروز</span><span class="crm-nav-badge" id="morningBadge" style="display:none"></span></button>
       <button class="crm-nav-item" id="tabBtnDashboard" onclick="showCrmTab('dashboard')"><span class="crm-nav-icon">📊</span><span>داشبورد</span></button>
-      <button class="crm-nav-item" id="tabBtnProspects" onclick="showCrmTab('prospects')"><span class="crm-nav-icon">🎯</span><span>جذب مشتری</span><span class="crm-nav-badge" id="prospectsBadge" style="display:none"></span></button>
+
+      <!-- گروه جذب مشتری — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش -->
+      <div style="margin-top:2px;">
+        <button class="crm-nav-item" id="prospGroupToggle" onclick="toggleProspNavGroup()" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🎯</span><span>جذب مشتری</span></span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span class="crm-nav-badge" id="prospectsBadge" style="display:none"></span>
+            <span id="prospGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
+          </span>
+        </button>
+        <div id="prospNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
+          <button class="crm-nav-item" id="tabBtnProspCreate" onclick="showCrmTab('prospCreate')" style="font-size:12px;"><span class="crm-nav-icon">🆕</span><span>ساخت مشتری</span></button>
+          <button class="crm-nav-item" id="tabBtnProspQuick" onclick="showCrmTab('prospQuick')" style="font-size:12px;"><span class="crm-nav-icon">📞</span><span>فرم جذب سریع</span></button>
+          <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" style="font-size:12px;"><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
+          <button class="crm-nav-item" id="tabBtnProspTable" onclick="showCrmTab('prospTable')" style="font-size:12px;"><span class="crm-nav-icon">📋</span><span>جدول ثبت</span></button>
+          <button class="crm-nav-item" id="tabBtnProspStats" onclick="showCrmTab('prospStats')" style="font-size:12px;"><span class="crm-nav-icon">📊</span><span>داشبورد من</span></button>
+          <button class="crm-nav-item" id="tabBtnProspMgmtStats" onclick="showCrmTab('prospMgmtStats')" style="font-size:12px;display:none"><span class="crm-nav-icon">📈</span><span>داشبورد مدیریت</span></button>
+          <button class="crm-nav-item" id="tabBtnProspApprovals" onclick="showCrmTab('prospApprovals')" style="font-size:12px;display:none"><span class="crm-nav-icon">✅</span><span>تاییدها</span><span class="crm-nav-badge" id="approvalsBadgeInline" style="display:none"></span></button>
+          <button class="crm-nav-item" id="tabBtnProspMgmt" onclick="showCrmTab('prospMgmt')" style="font-size:12px;display:none"><span class="crm-nav-icon">🔔</span><span>تایید مدیریت</span><span class="crm-nav-badge" id="mgmtBadgeInline" style="display:none"></span></button>
+        </div>
+      </div>
       <button onclick="toggleQuickForm(true)"
         style="background:var(--accent);color:var(--accent-text);border:none;border-radius:20px;
         padding:6px 14px;font-family:Vazirmatn,sans-serif;font-weight:800;font-size:11px;
@@ -1084,6 +1109,11 @@ async function init(){
     const djangoProspects = await fetchProspectsFromDjango();
     prospects = djangoProspects || [];
     updateProspectsBadge();
+    updateProspNavVisibility();
+    updateApprovalsBadge();
+    updateMgmtBadge();
+    const activeNames = await fetchActiveCustomerNamesFromDjango();
+    if(activeNames) activeCustomerNames = activeNames;
   }catch(e){ console.error('خطای بارگذاری مشتریان بالقوه:', e); }
   // یادآوری آزاد/دوره‌ای — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۷ مهاجرت)
   try{
@@ -1151,7 +1181,14 @@ function renderToolbar(){
     </div>
 
     <div id="debtsView" style="display:none;padding:16px;"></div>
-    <div id="prospectsView" style="display:none;padding:16px;"></div>
+    <div id="prospCreateView" style="display:none;padding:16px;"></div>
+    <div id="prospQuickView" style="display:none;padding:16px;"></div>
+    <div id="prospCustomersView" style="display:none;padding:16px;"></div>
+    <div id="prospTableView" style="display:none;padding:16px;"></div>
+    <div id="prospStatsView" style="display:none;padding:16px;"></div>
+    <div id="prospMgmtStatsView" style="display:none;padding:16px;"></div>
+    <div id="prospApprovalsView" style="display:none;padding:16px;"></div>
+    <div id="prospMgmtView" style="display:none;padding:16px;"></div>
 
     <div id="calendarView" style="display:none;padding:16px;">
       <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(240,165,0,.15),rgba(232,99,10,.08));border:1px solid rgba(240,165,0,.3);border-radius:12px;padding:11px 18px;margin-bottom:14px;">
@@ -1324,7 +1361,8 @@ function renderToolbar(){
   `;
 }
 function showCrmTab(tab){
-  ['morning','table','archive','dashboard','remTomorrow','remRecurring','remFree','calendar','debts','prospects'].forEach(t=>{
+  ['morning','table','archive','dashboard','remTomorrow','remRecurring','remFree','calendar','debts',
+   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospApprovals','prospMgmt'].forEach(t=>{
     const btn=document.getElementById('tabBtn'+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn) btn.classList.toggle('active', t===tab);
   });
@@ -1339,7 +1377,14 @@ function showCrmTab(tab){
   _s('remFreeView',      tab==='remFree'     ?'block':'none');
   _s('calendarView',  tab==='calendar'  ?'block':'none');
   _s('debtsView',     tab==='debts'     ?'block':'none');
-  _s('prospectsView', tab==='prospects' ?'block':'none');
+  _s('prospCreateView',    tab==='prospCreate'   ?'block':'none');
+  _s('prospQuickView',     tab==='prospQuick'    ?'block':'none');
+  _s('prospCustomersView', tab==='prospCustomers'?'block':'none');
+  _s('prospTableView',     tab==='prospTable'    ?'block':'none');
+  _s('prospStatsView',     tab==='prospStats'    ?'block':'none');
+  _s('prospMgmtStatsView', tab==='prospMgmtStats'?'block':'none');
+  _s('prospApprovalsView', tab==='prospApprovals'?'block':'none');
+  _s('prospMgmtView',      tab==='prospMgmt'     ?'block':'none');
   // فرم سریع فقط در تب جدول کامل
   const qf = document.getElementById('quickContactForm');
   if(qf) qf.style.display = tab==='table' ? 'block' : 'none';
@@ -1352,12 +1397,34 @@ function showCrmTab(tab){
   if(tab==='remFree')      { renderFreeReminders(); renderRequestLinkedReminders(); }
   if(tab==='calendar')  { initCal(); renderCal(); }
   if(tab==='debts')     renderDebtsView();
-  if(tab==='prospects') renderProspectsView();
+  if(tab==='prospCreate')    renderProspectCreateForm(document.getElementById('prospCreateView'));
+  if(tab==='prospQuick')     renderProspectQuickForm(document.getElementById('prospQuickView'));
+  if(tab==='prospCustomers') renderCustomersPage(document.getElementById('prospCustomersView'));
+  if(tab==='prospTable')     renderProspectTable(document.getElementById('prospTableView'));
+  if(tab==='prospStats')     renderProspectStats(document.getElementById('prospStatsView'));
+  if(tab==='prospMgmtStats') renderManagementDashboard(document.getElementById('prospMgmtStatsView'));
+  if(tab==='prospApprovals') renderProspectApprovals(document.getElementById('prospApprovalsView'));
+  if(tab==='prospMgmt')      renderManagementApprovals(document.getElementById('prospMgmtView'));
+  // ⚠️ (۱۴۰۵/۰۶/۱۳) فیکس: این فراخوانی قبلاً فقط یه‌بار موقع init صدا زده
+  // می‌شد — اگه currentUser هنوز کامل لود نشده بود، دکمه‌های تاییدها/تایید
+  // مدیریت مخفی می‌موندن و هیچ‌وقت درست نمی‌شدن. الان هر بار تعویض تب هم
+  // دوباره چک می‌شه، پس با هر تاخیری تو لود نقش، خودش رو اصلاح می‌کنه.
+  updateProspNavVisibility();
   // اگه یکی از سه زیرمنوی یادآوریه، گروهش تو نوار کناری خودکار باز بمونه
   if(['remTomorrow','remRecurring','remFree'].includes(tab) && !_remNavOpen) toggleRemNavGroup();
+  if(['prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospApprovals','prospMgmt'].includes(tab) && !_prospNavOpen) toggleProspNavGroup();
   updateRemNavBadges();
   const rb=document.getElementById('remBadge');
   if(rb){const cnt=(freeReminders||[]).filter(r=>!r.done).length;rb.textContent=fn(cnt);rb.style.display=cnt?'inline-block':'none';}
+}
+let _prospNavOpen = false;
+function toggleProspNavGroup(){
+  _prospNavOpen = !_prospNavOpen;
+  const box = document.getElementById('prospNavSubItems');
+  const arrow = document.getElementById('prospGroupArrow');
+  if(box) box.style.maxHeight = _prospNavOpen ? '380px' : '0';
+  if(arrow) arrow.textContent = _prospNavOpen ? '⌃' : '⌄';
+  updateProspNavVisibility();
 }
 let _remNavOpen = false;
 function toggleRemNavGroup(){
@@ -1741,6 +1808,22 @@ async function fetchCustomersFromDjango(){
   const data = await fetchJsonWithRetry(DJANGO_CUSTOMERS_API);
   return data ? data.map(customerFromApi) : null;
 }
+async function updateCustomerInDjango(id, patch){
+  try{
+    const res = await fetch(DJANGO_CUSTOMERS_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+    if(!res.ok) return {ok:false, error:'ویرایش ناموفق بود'};
+    return {ok:true, data:customerFromApi(await res.json())};
+  }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
+}
+let activeCustomerNames = new Set();
+async function fetchActiveCustomerNamesFromDjango(){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+'active-customers/');
+    if(!res.ok) return null;
+    const j = await res.json();
+    return new Set(j.active_customer_names||[]);
+  }catch(e){ return null; }
+}
 
 // ══════════════════════════════════════════════════════════════
 // اتصال یادآوری آزاد و دوره‌ای به Django — مرحله ۷ مهاجرت (دسته یادآوری‌ها/تسک‌ها)
@@ -1823,7 +1906,7 @@ async function startOldCustomerTracking(name, phone, priority){
       body:JSON.stringify({customer_name:name, customer_phone:phone, customer_priority:priority, staff_id:currentUser.email||'', staff_name:currentUser.name||currentUser.email})});
     const j = await res.json().catch(()=>({}));
     if(j.ok) return {ok:true, data:prospectFromApi(j.data)};
-    return {ok:false, error:j.error||'خطا', pending:!!j.pending};
+    return {ok:false, error:j.error||'خطا', pending:!!j.pending, approvalId:j.approval_id||null};
   }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
 async function reserveProspectInDjango(id){
@@ -1834,11 +1917,11 @@ async function reserveProspectInDjango(id){
     return j.ok ? {ok:true, data:prospectFromApi(j.data)} : {ok:false, error:j.error||'رزرو ناموفق بود'};
   }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
-async function logProspectActivityInDjango(id, type, said, heard, nextFollowup){
+async function logProspectActivityInDjango(id, type, said, heard, nextFollowup, followupDate){
   try{
     const res = await fetch(DJANGO_PROSPECTS_API+id+'/log-activity/', {method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({staff_id:currentUser.email||'', staff_name:currentUser.name||currentUser.email, type, time:nowTimeStr(),
-        said:said||'', heard:heard||'', next_followup:nextFollowup||''})});
+        said:said||'', heard:heard||'', next_followup:nextFollowup||'', followup_date:followupDate||''})});
     const j = await res.json();
     return j.ok ? prospectFromApi(j.data) : null;
   }catch(e){ return null; }
@@ -1855,12 +1938,21 @@ async function acquireProspectInDjango(id, via){
     const res = await fetch(DJANGO_PROSPECTS_API+id+'/acquire/', {method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({via})});
     const j = await res.json();
-    return j.ok ? prospectFromApi(j.data) : null;
-  }catch(e){ return null; }
+    if(j.ok) return {ok:true, data:prospectFromApi(j.data)};
+    return {ok:false, error:j.error||'ثبت جذب ناموفق بود', needsCredit:!!j.needs_credit};
+  }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
 async function fetchProspectStatsFromDjango(){
   try{
-    const res = await fetch(DJANGO_PROSPECTS_API+'stats/');
+    const staffName = encodeURIComponent(currentUser.name||currentUser.email||'');
+    const res = await fetch(DJANGO_PROSPECTS_API+'stats/?staff_name='+staffName);
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+async function fetchTeamStatsFromDjango(period){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+'team-stats/?period='+(period||'month'));
     if(!res.ok) return null;
     return await res.json();
   }catch(e){ return null; }
@@ -3742,7 +3834,6 @@ function debtStatusLabel(c){
 // ══════════════════════════════════════════════════════════════
 // جذب مشتری — رندر و تعامل (۳ زیربخش: ساخت مشتری / فرم جذب سریع / جدول)
 // ══════════════════════════════════════════════════════════════
-let curProspectSubTab = 'create';
 
 function prospectDaysLeft(p){
   if(!p.reservationDeadline) return null;
@@ -3777,37 +3868,16 @@ function isManagementRole(){
   const role = (currentUser||{}).role || '';
   return ['owner','admin'].includes(role);
 }
-function renderProspectsView(){
-  const el = document.getElementById('prospectsView');
-  if(!el) return;
-  updateProspectsBadge();
-  updateApprovalsBadge();
-  updateMgmtBadge();
-  el.innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn ${curProspectSubTab==='create'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('create')">🆕 ساخت مشتری</button>
-      <button class="btn ${curProspectSubTab==='quickform'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('quickform')">📞 فرم جذب سریع</button>
-      <button class="btn ${curProspectSubTab==='customers'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('customers')">👥 مشتریان</button>
-      <button class="btn ${curProspectSubTab==='table'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('table')">📋 جدول ثبت</button>
-      <button class="btn ${curProspectSubTab==='stats'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('stats')">📊 داشبورد</button>
-      ${isSalesSupOrAbove() ? `<button class="btn ${curProspectSubTab==='approvals'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('approvals')" style="position:relative">✅ تاییدها<span id="approvalsBadgeInline" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-right:4px"></span></button>` : ''}
-      ${isManagementRole() ? `<button class="btn ${curProspectSubTab==='mgmt'?'btn-primary':'btn-ghost'} btn-sm" onclick="switchProspectSubTab('mgmt')" style="position:relative">🔔 تایید مدیریت<span id="mgmtBadgeInline" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-right:4px"></span></button>` : ''}
-    </div>
-    <div id="prospectsSubContent"></div>
-  `;
-  renderProspectsSubContent();
-}
-function switchProspectSubTab(tab){ curProspectSubTab = tab; renderProspectsView(); }
-function renderProspectsSubContent(){
-  const c = document.getElementById('prospectsSubContent');
-  if(!c) return;
-  if(curProspectSubTab==='create') renderProspectCreateForm(c);
-  else if(curProspectSubTab==='quickform') renderProspectQuickForm(c);
-  else if(curProspectSubTab==='customers') renderCustomersPage(c);
-  else if(curProspectSubTab==='table') renderProspectTable(c);
-  else if(curProspectSubTab==='stats') renderProspectStats(c);
-  else if(curProspectSubTab==='approvals') renderProspectApprovals(c);
-  else if(curProspectSubTab==='mgmt') renderManagementApprovals(c);
+// ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: به‌جای تب‌های افقی بالای محتوا، این بخش
+// حالا مثل «یادآوری‌ها» یه گروه آکاردئونی تو خودِ نوار کناریه — هر زیرمنو
+// یه صفحه‌ی کاملاً مستقل (با showCrmTab) داره، نه یه تب داخل یه کانتینر مشترک.
+function updateProspNavVisibility(){
+  const supBtn = document.getElementById('tabBtnProspApprovals');
+  if(supBtn) supBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  const mgmtBtn = document.getElementById('tabBtnProspMgmt');
+  if(mgmtBtn) mgmtBtn.style.display = isManagementRole() ? 'flex' : 'none';
+  const mgmtStatsBtn = document.getElementById('tabBtnProspMgmtStats');
+  if(mgmtStatsBtn) mgmtStatsBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
 }
 async function updateApprovalsBadge(){
   if(!isSalesSupOrAbove()) return;
@@ -3891,61 +3961,114 @@ function getAllCustomersUnified(){
   const out = [];
   (prospects||[]).forEach(p=>{
     out.push({ source:'prospect', name:p.name, phone:p.phone1||p.phone2||'', province:p.province||'',
-      category:p.category||'', priority:'', status:p.status, assigneeName:p.assigneeName||'', prospectRef:p });
+      category:p.category||'', priority:'', status:p.status, assigneeName:p.assigneeName||'', prospectRef:p,
+      isActive: activeCustomerNames.has(normalizeFa(p.name)) });
   });
   (customerMaster||[]).forEach(cm=>{
     if(prospectNames.has(normalizeFa(cm.name||''))) return; // از قبل به‌عنوان Prospect اومده، دوباره نشون نده
     out.push({ source:'customer', name:cm.name, phone:cm.mobile||'', province:cm.province||'',
-      category:cm.category||'', priority:String(cm.priority||'').trim(), status:'old_customer', assigneeName:'', prospectRef:null });
+      category:cm.category||'', priority:String(cm.priority||'').trim(), status:'old_customer', assigneeName:'', prospectRef:null, customerId:cm.id,
+      isActive: activeCustomerNames.has(normalizeFa(cm.name||'')) });
   });
   return out;
 }
 let curCustomersSearch='';
+let curCustomersFilters = {province:'', category:'', source:'', active:''};
 function renderCustomersPage(c){
   c.innerHTML = `
     <div class="tbl-wrap">
-      <div class="tbl-hdr"><div class="sec-title">👥 مشتریان (قدیم و جدید)</div><div class="search-box"><span>🔍</span><input type="text" id="pCustomersSearch" placeholder="جستجو: نام، تلفن..." oninput="searchCustomersPage(this.value)"/></div></div>
+      <div class="tbl-hdr"><div class="sec-title">👥 مشتریان (قدیم و جدید) <span id="customersTotalCount" style="font-size:11px;color:var(--muted);font-weight:400"></span></div><div class="search-box"><span>🔍</span><input type="text" id="pCustomersSearch" placeholder="جستجو: نام، تلفن..." oninput="searchCustomersPage(this.value)"/></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px">
+        <select class="form-control" style="width:auto" onchange="setCustomersFilter('province',this.value)">
+          <option value="">همه‌ی استان‌ها</option>
+          ${IRAN_PROVINCES.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        </select>
+        <select class="form-control" style="width:auto" onchange="setCustomersFilter('category',this.value)">
+          <option value="">همه‌ی صنف‌ها</option>
+          ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+        </select>
+        <select class="form-control" style="width:auto" onchange="setCustomersFilter('source',this.value)">
+          <option value="">قدیمی + جدید</option>
+          <option value="customer">فقط مشتریان قدیمی</option>
+          <option value="prospect">فقط مشتریان بالقوه‌ی جدید</option>
+        </select>
+        <select class="form-control" style="width:auto" onchange="setCustomersFilter('active',this.value)">
+          <option value="">فعال + غیرفعال</option>
+          <option value="yes">✅ فقط فعال (خریدکرده)</option>
+          <option value="no">⭕ فقط غیرفعال</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="clearCustomersFilters()">پاک‌کردن فیلترها</button>
+      </div>
       <table><thead><tr>
-        <th>نام</th><th>تلفن</th><th>استان</th><th>صنف</th><th>اولویت/وضعیت</th><th>کارشناس فعلی</th>
+        <th>نام</th><th>تلفن</th><th>استان</th><th>صنف</th><th>وضعیت خرید</th><th>اولویت/وضعیت رزرو</th><th>کارشناس فعلی</th><th></th>
       </tr></thead><tbody id="pCustomersBody"></tbody></table>
     </div>
   `;
   renderCustomersPageBody();
 }
+function setCustomersFilter(key, val){ curCustomersFilters[key]=val; renderCustomersPageBody(); }
+function clearCustomersFilters(){
+  curCustomersFilters = {province:'', category:'', source:'', active:''};
+  document.querySelectorAll('#prospCustomersView select').forEach(s=>s.value='');
+  renderCustomersPageBody();
+}
 function searchCustomersPage(v){ curCustomersSearch=v; renderCustomersPageBody(); }
 function renderCustomersPageBody(){
   let rows = getAllCustomersUnified();
+  const totalAll = rows.length;
   if(curCustomersSearch){
     const q = normalizeFa(curCustomersSearch);
     const qDigits = curCustomersSearch.replace(/\D/g,'');
     rows = rows.filter(r=>normalizeFa(r.name).includes(q) || (qDigits.length>=4 && (r.phone||'').includes(qDigits)));
   }
+  const f = curCustomersFilters;
+  if(f.province) rows = rows.filter(r=>r.province===f.province);
+  if(f.category) rows = rows.filter(r=>r.category===f.category);
+  if(f.source) rows = rows.filter(r=>r.source===f.source);
+  if(f.active==='yes') rows = rows.filter(r=>r.isActive);
+  if(f.active==='no') rows = rows.filter(r=>!r.isActive);
   rows.sort((a,b)=>(a.name||'').localeCompare(b.name||'','fa'));
   window._customersPageRows = rows;
+  const countEl = document.getElementById('customersTotalCount');
+  if(countEl) countEl.textContent = `— ${fn(rows.length)} از ${fn(totalAll)} مشتری`;
   const body = document.getElementById('pCustomersBody');
   if(!body) return;
   body.innerHTML = rows.length ? rows.map((r,idx)=>`
     <tr style="cursor:pointer" onclick="openCustomerDetailModal(${idx})">
-      <td><strong>${r.name}</strong></td>
+      <td><strong>${r.name}</strong> ${r.source==='customer'?`<span style="font-size:9px;background:var(--muted);color:var(--surface);padding:1px 6px;border-radius:8px;margin-right:4px">قدیمی</span>`:`<span style="font-size:9px;background:var(--accent);color:var(--accent-text);padding:1px 6px;border-radius:8px;margin-right:4px">جدید</span>`}</td>
       <td style="font-size:11px">${r.phone||'—'}</td>
       <td style="font-size:11px">${r.province||'—'}</td>
       <td style="font-size:11px">${r.category||'—'}</td>
+      <td>${r.isActive?'<span style="color:var(--green);font-size:11px;font-weight:700">✅ فعال</span>':'<span style="color:var(--muted);font-size:11px">⭕ غیرفعال</span>'}</td>
       <td>${r.source==='customer'?`<span style="font-size:11px;color:${['1','5','9'].includes(r.priority)?'var(--green)':'var(--muted)'}">اولویت ${r.priority||'ندارد'}</span>`:prospectStatusChip(r.prospectRef)}</td>
       <td style="font-size:11px">${r.assigneeName?ac(r.assigneeName):'—'}</td>
-    </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+      <td>${r.source==='customer' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startTrackingFromCustomersPage(${idx})">🔓 شروع پیگیری</button>` : ''}</td>
+    </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+}
+async function startTrackingFromCustomersPage(idx){
+  const r = (window._customersPageRows||[])[idx];
+  if(!r || r.source!=='customer') return;
+  const res = await startOldCustomerTracking(r.name, r.phone, r.priority);
+  if(!res.ok){ toast(res.pending ? '📨 '+res.error : '❌ '+res.error); return; }
+  prospects.push(res.data);
+  toast('✅ پیگیری شروع شد — از «فرم جذب سریع» ادامه بده');
+  renderCustomersPageBody();
 }
 let curCustomerDetailTab='basic';
 function openCustomerDetailModal(idx){
   const r = (window._customersPageRows||[])[idx];
   if(!r) return;
   curCustomerDetailTab = 'basic';
+  window._custDetailIdx = idx;
+  const editBtnHtml = r.source==='prospect' ? `<button class="btn btn-ghost btn-sm" onclick="openProspectEditModal(${r.prospectRef.id})">✏️ ویرایش</button>`
+    : r.customerId ? `<button class="btn btn-ghost btn-sm" onclick="openOldCustomerEditModal(${idx})">✏️ ویرایش</button>` : '';
   const html = `
     <div class="modal-overlay open" id="customerDetailOverlay" onclick="if(event.target===this) closeCustomerDetailModal()">
       <div class="modal" style="max-width:520px">
-        <div class="modal-hdr"><div class="modal-title">${r.name}</div><button class="close-btn" onclick="closeCustomerDetailModal()">✕</button></div>
+        <div class="modal-hdr"><div class="modal-title">${r.name}</div><div style="display:flex;gap:8px;align-items:center">${editBtnHtml}<button class="close-btn" onclick="closeCustomerDetailModal()">✕</button></div></div>
         <div style="padding:0 16px;display:flex;gap:4px;border-bottom:1px solid var(--border)">
           <button class="btn btn-ghost btn-sm" id="custTabBtnBasic" onclick="switchCustomerDetailTab(${idx},'basic')" style="border-radius:0;border-bottom:2px solid var(--accent)">📋 اطلاعات اولیه</button>
-          <button class="btn btn-ghost btn-sm" id="custTabBtnHistory" onclick="switchCustomerDetailTab(${idx},'history')" style="border-radius:0;border-bottom:2px solid transparent">💬 هیستوری مکالمات</button>
+          <button class="btn btn-ghost btn-sm" id="custTabBtnHistory" onclick="switchCustomerDetailTab(${idx},'history')" style="border-radius:0;border-bottom:2px solid transparent">📜 تاریخچه مکالمات</button>
         </div>
         <div style="padding:16px;max-height:65vh;overflow-y:auto" id="customerDetailBody"></div>
       </div>
@@ -3966,8 +4089,27 @@ function renderCustomerDetailTabContent(idx){
   if(curCustomerDetailTab==='basic'){
     if(r.source==='prospect'){
       const p = r.prospectRef;
+      const myName = currentUser.name||currentUser.email;
       const contactsHtml = (p.contacts&&p.contacts.length) ? p.contacts.map(ct=>`<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)"><strong>${prospectRoleLabel(ct.role)}</strong> — ${ct.name||'—'} ${ct.mobile?'· 📱 '+ct.mobile:''}</div>`).join('') : '<div style="font-size:11px;color:var(--muted)">مخاطبی ثبت نشده</div>';
       const addressesHtml = (p.addresses&&p.addresses.length) ? p.addresses.map(a=>`<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)"><strong>${prospectAddressLabel(a.type)}</strong><div style="color:var(--muted)">${a.address}</div></div>`).join('') : '<div style="font-size:11px;color:var(--muted)">آدرسی ثبت نشده</div>';
+      // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: این مودال باید خودکفا باشه — دیگه
+      // نیازی نباشه برای ویرایش/جذب/آزادسازی بری تو «جدول ثبت»
+      let actionsBoxHtml = '';
+      if(p.status==='reserved' && p.assigneeName===myName){
+        actionsBoxHtml = `
+          <div style="background:rgba(240,165,0,.08);border:1px solid var(--yellow);border-radius:8px;padding:10px;margin-top:14px">
+            <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">🔒 رزرو — کارشناس: ${p.assigneeName} &nbsp;·&nbsp; ${prospectDeadlineChip(p)}</div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitProspectAcquire(${p.id},'market')">✅ جذب — بازار</button>
+              <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitProspectAcquire(${p.id},'foreign')">✅ جذب — خارج</button>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;color:var(--red)" onclick="submitProspectRelease(${p.id})">🚫 آزادسازی</button>
+          </div>`;
+      } else if(p.status==='reserved'){
+        actionsBoxHtml = `<div style="font-size:11px;color:var(--muted);margin-top:14px">🔒 رزرو «${p.assigneeName}» است ${prospectDeadlineChip(p)}</div>`;
+      } else if(p.status==='available'){
+        actionsBoxHtml = `<button class="btn btn-primary btn-sm" style="width:100%;margin-top:14px" onclick="doReserveProspectFromDetail(${p.id})">🔒 رزرو کن</button>`;
+      }
       body.innerHTML = `
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${[p.phone1,p.phone2].filter(Boolean).join(' · ')||'—'} ${p.province?' · 📍 '+p.province:''} ${p.category?' · 🏷️ '+p.category+(p.subcat?' / '+p.subcat:''):''}</div>
         <div style="background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10.5px;color:var(--muted)">
@@ -3976,8 +4118,10 @@ function renderCustomerDetailTabContent(idx){
           📄 ${p.hasContract?'دارای قرارداد همکاری':'بدون قرارداد همکاری'}
           ${isSalesSupOrAbove() ? `<br>💰 اعتبار: ${p.creditAmount?fn(p.creditAmount)+' تومان':'تعیین نشده'}` : ''}
         </div>
+        ${p.note ? `<div style="font-size:11px;margin-bottom:10px"><strong style="color:var(--text)">📝 یادداشت:</strong> <span style="color:var(--muted)">${p.note}</span></div>` : ''}
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">مخاطبین</div>${contactsHtml}
         <div style="font-size:12px;font-weight:700;margin:10px 0 6px">آدرس‌ها</div>${addressesHtml}
+        ${actionsBoxHtml}
       `;
     } else {
       const allowed = ['1','5','9'].includes(r.priority);
@@ -3985,20 +4129,40 @@ function renderCustomerDetailTabContent(idx){
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${r.phone||'—'} ${r.province?' · 📍 '+r.province:''} ${r.category?' · 🏷️ '+r.category:''}</div>
         <div style="background:var(--card);border-radius:8px;padding:10px;font-size:11px">این یه مشتری قدیمی از فایل کلی مشتریانه — اطلاعات تکمیلی (مخاطبین/آدرس/قرارداد) فقط بعد از شروع پیگیری (از «فرم جذب سریع») ثبت می‌شه.</div>
         <div style="margin-top:10px;font-size:11px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${r.priority||'ندارد'} ${allowed?'(مجاز برای تماس/فروش)':'(نیاز به تایید مدیریت برای پیگیری)'}</div>
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:14px" onclick="closeCustomerDetailModal();showCrmTab('prospQuick');document.getElementById('pQfSearch').value='${r.name.replace(/'/g,"\\'")}';searchProspectForQuickForm('${r.name.replace(/'/g,"\\'")}');">🔓 شروع پیگیری (فرم جذب سریع)</button>
       `;
     }
   } else {
     if(r.source==='prospect'){
       const p = r.prospectRef;
-      const historyHtml = (p.reservationHistory&&p.reservationHistory.length) ? p.reservationHistory.map(h=>`
-        <div style="background:var(--card);border-radius:8px;padding:8px;margin-bottom:6px">
-          <div style="font-size:11px;font-weight:700">${h.staff_name} — ${h.start} تا ${h.end} (${h.outcome==='timeout'?'مهلت تموم شد':h.outcome==='converted'?'جذب شد':'آزادسازی دستی'})</div>
-          ${prospectActivityLogHTML(h.activity_log)}
-        </div>`).join('') : '';
+      const totalCalls = (p.activityLog||[]).length + (p.reservationHistory||[]).reduce((s,h)=>s+(h.activity_log||[]).length,0);
+      const totalReps = new Set([p.assigneeName, ...(p.reservationHistory||[]).map(h=>h.staff_name)].filter(Boolean)).size;
+      const firstDate = p.reservationHistory && p.reservationHistory.length ? p.reservationHistory[0].start : (p.reservationStart||p.createdDate);
+      // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: ابتدایی‌ترین اطلاعات (تاریخ ساخت،
+      // کارشناس سازنده، نحوه‌ی آشنایی) باید اول از همه بیاد — قبل از هر
+      // فعالیتی — چون این نقطه‌ی شروعِ کل داستان این مشتریه.
+      const creationHtml = `
+        <div style="background:var(--card);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">🏁 نقطه‌ی شروع</div>
+          <div style="font-size:10.5px;color:var(--muted)">
+            📅 تاریخ ساخت: <strong style="color:var(--text)">${p.createdDate||'—'}</strong>${p.createdTime?' ساعت '+p.createdTime:''}<br>
+            👤 کارشناس سازنده: <strong style="color:var(--text)">${p.createdByName||'—'}</strong><br>
+            🔎 نحوه‌ی آشنایی: <strong style="color:var(--text)">${prospectDiscoveryLabel(p.discoveryMethod)||'—'}</strong>
+          </div>
+        </div>
+        <div style="font-size:10.5px;color:var(--muted);margin-bottom:12px">
+          📊 خلاصه: ${fn(totalReps)} کارشناس · ${fn(totalCalls)} فعالیت ثبت‌شده · از ${firstDate||'—'} تا امروز
+        </div>`;
+      const historyHtml = (p.reservationHistory&&p.reservationHistory.length) ? p.reservationHistory.slice().reverse().map(h=>`
+        <details style="background:var(--card);border-radius:8px;padding:8px;margin-bottom:6px">
+          <summary style="cursor:pointer;font-size:11px;font-weight:700">${h.staff_name} — ${h.start} تا ${h.end} (${h.outcome==='timeout'?'مهلت تموم شد':h.outcome==='converted'?'جذب شد':'آزادسازی دستی'}) — ${fn((h.activity_log||[]).length)} فعالیت</summary>
+          <div style="margin-top:8px">${prospectActivityLogHTML(h.activity_log)}</div>
+        </details>`).join('') : '';
       body.innerHTML = `
+        ${creationHtml}
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">فعالیت‌های رزرو فعلی${p.assigneeName?' — کارشناس: '+p.assigneeName:''}</div>
         ${prospectActivityLogHTML(p.activityLog)}
-        ${historyHtml ? `<div style="font-size:12px;font-weight:700;margin:14px 0 6px;color:var(--muted)">تاریخچه‌ی کارشناسان قبلی</div>${historyHtml}` : ''}
+        ${historyHtml ? `<div style="font-size:12px;font-weight:700;margin:14px 0 6px;color:var(--muted)">تاریخچه‌ی کارشناسان قبلی (برای باز کردن هرکدوم کلیک کن)</div>${historyHtml}` : ''}
       `;
     } else {
       body.innerHTML = `<div style="font-size:11px;color:var(--muted)">هنوز هیچ کارشناسی رو این مشتری فعالیتی ثبت نکرده. از «فرم جذب سریع» می‌تونی شروع کنی.</div>`;
@@ -4010,20 +4174,200 @@ function closeCustomerDetailModal(){
   if(el) el.remove();
 }
 
+// ── ویرایش مشتری قدیمی (فایل کلی Customer — نه Prospect) ──
+function openOldCustomerEditModal(idx){
+  const r = (window._customersPageRows||[])[idx];
+  if(!r || !r.customerId) return;
+  const cm = (customerMaster||[]).find(x=>x.id===r.customerId);
+  if(!cm) return;
+  closeCustomerDetailModal();
+  const html = `
+    <div class="modal-overlay open" id="oldCustEditOverlay" onclick="if(event.target===this) closeOldCustomerEditModal()">
+      <div class="modal" style="max-width:420px">
+        <div class="modal-hdr"><div class="modal-title">✏️ ویرایش — ${cm.name}</div><button class="close-btn" onclick="closeOldCustomerEditModal()">✕</button></div>
+        <div style="padding:16px">
+          <label class="form-label">نام مشتری</label>
+          <input class="form-control" id="ocEditName" value="${(cm.name||'').replace(/"/g,'&quot;')}"/>
+          <label class="form-label" style="margin-top:10px">تلفن</label>
+          <input class="form-control" id="ocEditMobile" value="${cm.mobile||''}" maxlength="11"/>
+          <label class="form-label" style="margin-top:10px">استان</label>
+          <input class="form-control" id="ocEditProvince" list="pProvinceList" value="${cm.province||''}"/>
+          <label class="form-label" style="margin-top:10px">صنف</label>
+          <select class="form-control" id="ocEditCategory">
+            <option value="">— انتخاب —</option>
+            ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}" ${cm.category===cat?'selected':''}>${cat}</option>`).join('')}
+          </select>
+          <label class="form-label" style="margin-top:10px">زیرصنف</label>
+          <input class="form-control" id="ocEditSubcat" value="${cm.subcat||''}"/>
+          <label class="form-label" style="margin-top:10px">اولویت فروش</label>
+          <select class="form-control" id="ocEditPriority">
+            <option value="">— ندارد —</option>
+            ${['1','2','3','4','5','6','7','8','9'].map(n=>`<option value="${n}" ${String(cm.priority)===n?'selected':''}>${n}</option>`).join('')}
+          </select>
+          <div id="ocEditWarning" style="margin-top:8px"></div>
+          <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="submitOldCustomerEdit(${cm.id})">💾 ذخیره تغییرات</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+function closeOldCustomerEditModal(){
+  const el = document.getElementById('oldCustEditOverlay');
+  if(el) el.remove();
+}
+async function submitOldCustomerEdit(id){
+  const patch = {
+    name: document.getElementById('ocEditName').value.trim(),
+    mobile: document.getElementById('ocEditMobile').value.trim(),
+    province: document.getElementById('ocEditProvince').value.trim(),
+    category: document.getElementById('ocEditCategory').value,
+    subcat: document.getElementById('ocEditSubcat').value.trim(),
+    priority: document.getElementById('ocEditPriority').value,
+  };
+  if(!patch.name){ toast('⚠️ نام الزامی است'); return; }
+  const res = await updateCustomerInDjango(id, patch);
+  if(!res.ok){
+    const wb = document.getElementById('ocEditWarning');
+    if(wb) wb.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:8px;padding:8px;font-size:11px;color:var(--red)">${res.error}</div>`;
+    return;
+  }
+  const idx = (customerMaster||[]).findIndex(x=>x.id===id);
+  if(idx>=0) customerMaster[idx] = res.data;
+  toast('✅ ویرایش ذخیره شد');
+  closeOldCustomerEditModal();
+  refreshCurrentProspectView();
+}
+
 async function renderProspectStats(c){
   c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
   const stats = await fetchProspectStatsFromDjango();
   if(!stats){ c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">دریافت آمار ناموفق بود</div></div>`; return; }
+  const myName = currentUser.name||currentUser.email;
+  const myRow = (stats.by_staff||[]).find(s=>s.staff_name===myName) || {active_count:0, calls_today:0, acquired_count:0};
+  const my = stats.my || {};
+
+  const deadlineHtml = (my.deadline_warnings||[]).length ? my.deadline_warnings.map(w=>`
+    <div style="font-size:10.5px;padding:3px 0;color:${w.days_left<=3?'var(--red)':'#b45309'}">${w.days_left<=3?'🔴':'🟡'} ${w.name} — ${w.days_left<0?'مهلت تموم شده':fn(w.days_left)+' روز مونده'}</div>
+  `).join('') : `<div style="font-size:10.5px;color:var(--muted)">چیزی نزدیک مهلت نیست 👍</div>`;
+
+  const neglectedHtml = (my.neglected||[]).length ? my.neglected.map(n=>`
+    <div style="font-size:10.5px;padding:3px 0;color:#7a1a1a">${n.name} — ${fn(n.days_since)} روز از آخرین تماس گذشته</div>
+  `).join('') : `<div style="font-size:10.5px;color:var(--muted)">همه‌چیز به‌روزه 👍</div>`;
+
+  const followupsHtml = (my.upcoming_followups||[]).length ? my.upcoming_followups.map(f=>`
+    <div style="font-size:10.5px;padding:3px 0">${f.is_today?'امروز':'فردا'} — <strong>${f.name}</strong>${f.text?': '+f.text:''}</div>
+  `).join('') : `<div style="font-size:10.5px;color:var(--muted)">پیگیری برنامه‌ریزی‌شده‌ای برای امروز/فردا نداری</div>`;
+
+  const convRateHtml = my.conversion_rate!=null ? `${fn(my.conversion_rate)}٪` : '—';
+
   c.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
-      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:24px;font-weight:800;color:var(--muted)">${fn(stats.available_count)}</div><div style="font-size:10px;color:var(--muted)">در انتظار رزرو</div></div>
-      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:24px;font-weight:800;color:var(--accent)">${fn(stats.reserved_count)}</div><div style="font-size:10px;color:var(--muted)">در حال پیگیری</div></div>
-      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:24px;font-weight:800;color:var(--green)">${fn(stats.acquired_count)}</div><div style="font-size:10px;color:var(--muted)">جذب‌شده</div></div>
+    <div class="sec-title" style="margin-bottom:12px">📊 داشبورد من — ${myName}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:22px;font-weight:800;color:var(--accent)">${fn(myRow.active_count)}</div><div style="font-size:10px;color:var(--muted)">مشتری زیردست</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:22px;font-weight:800;color:var(--text)">${fn(myRow.calls_today)}</div><div style="font-size:10px;color:var(--muted)">تماس امروز</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:22px;font-weight:800;color:var(--green)">${fn(myRow.acquired_count)}</div><div style="font-size:10px;color:var(--muted)">جذب کل</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:22px;font-weight:800;color:#c2410c">${convRateHtml}</div><div style="font-size:10px;color:var(--muted)">نرخ تبدیل من</div></div>
     </div>
-    <div class="tbl-wrap"><table><thead><tr><th>کارشناس</th><th>مشتری زیردست</th><th>تماس امروز</th><th>جذب‌شده</th></tr></thead><tbody>${
-      stats.by_staff.length ? stats.by_staff.map(s=>`<tr><td>${ac(s.staff_name)}</td><td>${fn(s.active_count)}</td><td>${fn(s.calls_today)}</td><td>${fn(s.acquired_count)}</td></tr>`).join('')
+
+    <div style="background:rgba(240,165,0,.12);border:1px solid var(--yellow);border-radius:8px;padding:10px;margin-bottom:12px">
+      <div style="font-size:11.5px;font-weight:700;margin-bottom:6px">⏰ مهلت‌های نزدیک — پیگیری فوری</div>
+      ${deadlineHtml}
+    </div>
+
+    <div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:8px;padding:10px;margin-bottom:12px">
+      <div style="font-size:11.5px;font-weight:700;margin-bottom:6px">😴 مدت‌هاست دست نزدی (بیش از ۱۰ روز)</div>
+      ${neglectedHtml}
+    </div>
+
+    <div class="dash-section">
+      <div style="font-size:11.5px;font-weight:700;margin-bottom:6px">📅 پیگیری‌های امروز و فردا (از یادآوری‌هام)</div>
+      ${followupsHtml}
+    </div>
+
+    <div class="tbl-wrap" style="margin-top:16px"><table><thead><tr><th>کارشناس</th><th>مشتری زیردست</th><th>تماس امروز</th><th>جذب‌شده</th></tr></thead><tbody>${
+      stats.by_staff.length ? stats.by_staff.map(s=>`<tr${s.staff_name===myName?' style="background:var(--card);font-weight:700"':''}><td>${ac(s.staff_name)}</td><td>${fn(s.active_count)}</td><td>${fn(s.calls_today)}</td><td>${fn(s.acquired_count)}</td></tr>`).join('')
       : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">داده‌ای نیست</td></tr>'
     }</tbody></table></div>`;
+}
+
+// ══ داشبورد مدیریت — رتبه‌بندی کارشناسان برای پورسانت ══
+let curMgmtStatsPeriod = 'month';
+async function renderManagementDashboard(c){
+  c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
+  const stats = await fetchTeamStatsFromDjango(curMgmtStatsPeriod);
+  if(!stats){ c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">دریافت آمار ناموفق بود</div></div>`; return; }
+  const periodLabels = {month:'این ماه', quarter:'این فصل', year:'امسال'};
+  const medalFor = i => i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+  const monthsSorted = Object.keys(stats.monthly_trend||{}).sort().slice(-3);
+  const maxTrend = Math.max(1, ...monthsSorted.map(m=>stats.monthly_trend[m]));
+
+  c.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="sec-title" style="margin:0">📈 داشبورد مدیریت — جذب مشتری</div>
+      <select class="form-control" style="width:auto;margin-bottom:0" onchange="curMgmtStatsPeriod=this.value;renderManagementDashboard(document.getElementById('prospMgmtStatsView'))">
+        <option value="month" ${curMgmtStatsPeriod==='month'?'selected':''}>این ماه</option>
+        <option value="quarter" ${curMgmtStatsPeriod==='quarter'?'selected':''}>این فصل</option>
+        <option value="year" ${curMgmtStatsPeriod==='year'?'selected':''}>امسال</option>
+      </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:20px;font-weight:800">${fn(stats.team_acquired)}</div><div style="font-size:9.5px;color:var(--muted)">جذب کل — ${periodLabels[curMgmtStatsPeriod]}</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:20px;font-weight:800;color:var(--green)">${stats.team_conversion_rate!=null?fn(stats.team_conversion_rate)+'٪':'—'}</div><div style="font-size:9.5px;color:var(--muted)">نرخ تبدیل تیم</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:20px;font-weight:800">${fn(stats.in_progress_count)}</div><div style="font-size:9.5px;color:var(--muted)">در حال پیگیری</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:20px;font-weight:800;color:#c2410c">${fn(stats.lost_count)}</div><div style="font-size:9.5px;color:var(--muted)">ازدست‌رفته</div></div>
+      <div class="dash-section" style="text-align:center;margin-bottom:0"><div style="font-size:20px;font-weight:800;color:#b45309">${fn(stats.pending_management_approvals)}</div><div style="font-size:9.5px;color:var(--muted)">تایید در انتظار شما</div></div>
+    </div>
+
+    <div class="tbl-wrap" style="margin-bottom:16px">
+      <div class="tbl-hdr"><div class="sec-title">🏆 عملکرد کارشناسان — برای پورسانت (${periodLabels[curMgmtStatsPeriod]})</div></div>
+      <table><thead><tr><th>کارشناس</th><th>جذب</th><th>فعالیت کل</th><th>نرخ تبدیل</th><th>میانگین روز تا جذب</th><th>ازدست‌رفته</th></tr></thead><tbody>${
+        stats.leaderboard.length ? stats.leaderboard.map((s,i)=>`
+          <tr${i%2===1?' style="background:var(--card)"':''}>
+            <td style="font-weight:700">${medalFor(i)} ${ac(s.staff_name)}</td>
+            <td style="color:var(--green);font-weight:700">${fn(s.acquired_count)}</td>
+            <td>${fn(s.total_activities)}</td>
+            <td style="color:${s.conversion_rate!=null && s.conversion_rate<20?'var(--red)':'var(--text)'}">${s.conversion_rate!=null?fn(s.conversion_rate)+'٪':'—'}</td>
+            <td>${s.avg_days_to_acquire!=null?fn(s.avg_days_to_acquire):'—'}</td>
+            <td style="color:${s.lost_count>2?'var(--red)':'var(--text)'}">${fn(s.lost_count)}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">داده‌ای نیست</td></tr>'
+      }</tbody></table>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div class="dash-section" style="flex:1;min-width:220px">
+        <div style="font-size:11px;font-weight:700;margin-bottom:10px">📈 روند جذب تیم (۳ ماه اخیر)</div>
+        <div style="display:flex;gap:14px;align-items:end;height:60px">
+          ${monthsSorted.map(m=>`<div style="text-align:center"><div style="background:var(--border);width:24px;height:${Math.max(6,stats.monthly_trend[m]/maxTrend*50)}px;border-radius:3px 3px 0 0;margin:0 auto"></div><div style="font-size:9px;margin-top:3px">${m.slice(5)} — ${fn(stats.monthly_trend[m])}</div></div>`).join('') || '<div style="font-size:10px;color:var(--muted)">داده‌ای نیست</div>'}
+        </div>
+      </div>
+      <div class="dash-section" style="flex:1;min-width:220px">
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px">🏬🌍 بازار در برابر خارج</div>
+        <div style="font-size:10.5px;color:var(--muted);padding:3px 0">🏬 بازار: ${fn(stats.market_count)} مورد</div>
+        <div style="font-size:10.5px;color:var(--muted);padding:3px 0">🌍 خارج: ${fn(stats.foreign_count)} مورد</div>
+      </div>
+    </div>
+
+    <div class="dash-section">
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px">🟢⚪ مشتریان فعال در برابر غیرفعال (کل فایل مشتریان)</div>
+      ${renderActiveInactiveSummary()}
+    </div>`;
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۴) مشتری «فعال» = حداقل یه سفارش بازار تکمیل‌شده یا یه
+// محموله‌ی خارجی داره — این محاسبه از رو داده‌ی یکپارچه‌ی خودِ فرانت‌اند
+// انجام می‌شه (که از `active-customers/` پر شده)، نیازی به فراخوانی جدا نیست.
+function renderActiveInactiveSummary(){
+  const rows = getAllCustomersUnified();
+  const activeCount = rows.filter(r=>r.isActive).length;
+  const inactiveCount = rows.length - activeCount;
+  const pct = rows.length ? Math.round(activeCount/rows.length*100) : 0;
+  return `
+    <div style="display:flex;gap:16px;align-items:center">
+      <div><span style="font-size:20px;font-weight:800;color:var(--green)">${fn(activeCount)}</span> <span style="font-size:10.5px;color:var(--muted)">فعال</span></div>
+      <div><span style="font-size:20px;font-weight:800;color:var(--muted)">${fn(inactiveCount)}</span> <span style="font-size:10.5px;color:var(--muted)">غیرفعال</span></div>
+      <div style="font-size:10.5px;color:var(--muted)">(${fn(pct)}٪ از کل ${fn(rows.length)} مشتری خرید کردن)</div>
+    </div>`;
 }
 
 // ══ زیربخش ۱ — ساخت مشتری (چک ضدتکراری سخت‌گیرانه روی نام و تلفن) ══
@@ -4059,97 +4403,51 @@ function renderProspectCreateForm(c){
   _prospectNewContacts = [];
   _prospectNewAddresses = [];
   c.innerHTML = `
-    <div class="dash-section" style="max-width:480px">
-      <div class="sec-title" style="margin-bottom:14px">🆕 ثبت مشتری بالقوه‌ی جدید</div>
+    <div class="sec-title" style="margin-bottom:10px">🆕 ثبت مشتری بالقوه‌ی جدید</div>
 
-      <details open style="margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">📇 اطلاعات پایه</summary>
-        <div style="padding-top:10px">
-          <label class="form-label">نام مشتری <span style="color:var(--red)">*</span></label>
-          <input class="form-control" id="pNewName" oninput="checkProspectNewLive()" placeholder="نام کامل شرکت/شخص"/>
-
-          <label class="form-label" style="margin-top:10px">تلفن شرکت ۱ <span style="color:var(--red)">*</span></label>
-          <input class="form-control" id="pNewPhone1" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11"/>
-
-          <label class="form-label" style="margin-top:10px">تلفن شرکت ۲</label>
-          <input class="form-control" id="pNewPhone2" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11"/>
-
-          <div id="pNewWarning" style="margin-top:8px"></div>
-
-          <label class="form-label" style="margin-top:10px">استان <span style="color:var(--red)">*</span></label>
-          <input class="form-control" id="pNewProvince" list="pProvinceList" placeholder="جستجو/انتخاب استان..." autocomplete="off" oninput="checkProspectFormValidity()"/>
-          <datalist id="pProvinceList">${IRAN_PROVINCES.map(p=>`<option value="${p}">`).join('')}</datalist>
-        </div>
-      </details>
-
-      <details style="margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">🏷️ صنف و زیرصنف</summary>
-        <div style="padding-top:10px">
-          <label class="form-label">صنف <span style="color:var(--red)">*</span></label>
-          <select class="form-control" id="pNewCategory" onchange="onProspectCategoryChange()">
-            <option value="">— انتخاب کن —</option>
-            ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
-          </select>
-
-          <div id="pNewSubcatBox" style="margin-top:10px">
-            <label class="form-label">زیرصنف</label>
-            <input class="form-control" id="pNewSubcat" placeholder="اول صنف رو انتخاب کن" disabled/>
-          </div>
-        </div>
-      </details>
-
-      <details style="margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">🤝 آشنایی، قرارداد و اعتبار</summary>
-        <div style="padding-top:10px">
-          <label class="form-label">نحوه‌ی آشنایی با مشتری</label>
-          <select class="form-control" id="pNewDiscovery">
-            <option value="">— انتخاب کن —</option>
-            ${PROSPECT_DISCOVERY_METHODS.map(d=>`<option value="${d.key}">${d.label}</option>`).join('')}
-          </select>
-
-          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;background:var(--card);border-radius:8px;padding:10px">
-            <input type="checkbox" id="pNewHasContract" style="width:16px;height:16px"/>
-            <label for="pNewHasContract" style="font-size:12px;margin:0;cursor:pointer">این مشتری قرارداد همکاری دارد</label>
-          </div>
-
-          ${isSalesSupOrAbove() ? `
-          <label class="form-label" style="margin-top:10px">💰 مبلغ اعتبار مشتری</label>
-          <input class="form-control" id="pNewCredit" placeholder="مبلغ به تومان..."/>
-          ` : `
-          <div style="margin-top:10px;font-size:11px;color:var(--muted);background:var(--card);border-radius:8px;padding:8px 10px">
-            💰 مبلغ اعتبار — فقط سرپرست فروش تعیین می‌کنه. بعد از ثبت، خودکار براش درخواست می‌ره.
-          </div>
-          `}
-        </div>
-      </details>
-
-      <details style="margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">📍 آدرس‌ها</summary>
-        <div style="padding-top:10px">
-          <div id="pNewAddressesBox"></div>
-          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="addProspectAddressRow()">+ افزودن آدرس</button>
-        </div>
-      </details>
-
-      <details open style="margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">👤 مخاطبین شرکت <span style="color:var(--red)">*</span></summary>
-        <div style="padding-top:10px">
-          <div id="pNewContactsBox"></div>
-          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="addProspectContactRow()">+ افزودن مخاطب</button>
-        </div>
-      </details>
-
-      <details style="margin-bottom:10px">
-        <summary style="cursor:pointer;font-weight:700;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">📝 یادداشت</summary>
-        <div style="padding-top:10px">
-          <textarea class="form-control" id="pNewNote" rows="2"></textarea>
-        </div>
-      </details>
-
-      <div id="pNewMissingFields" style="font-size:10.5px;color:var(--red);margin-top:10px"></div>
-      <button class="btn btn-primary" id="pNewSubmitBtn" style="width:100%;margin-top:8px" onclick="submitNewProspect()" disabled>ثبت مشتری</button>
-      <div style="font-size:10px;color:var(--muted);margin-top:8px">بعد از ثبت، از «فرم جذب سریع» می‌تونی روش کار کنی (تماس، مراجعه، …).</div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>نام مشتری *</th><th>تلفن ۱ *</th><th>تلفن ۲</th><th>استان *</th><th>صنف *</th><th>زیرصنف</th>
+        <th>نحوه آشنایی</th><th>قرارداد</th>${isSalesSupOrAbove()?'<th>اعتبار</th>':''}<th>یادداشت</th>
+      </tr></thead><tbody><tr>
+        <td><input class="form-control" id="pNewName" oninput="checkProspectNewLive()" placeholder="نام کامل" style="min-width:140px"/></td>
+        <td><input class="form-control" id="pNewPhone1" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11" style="min-width:120px"/></td>
+        <td><input class="form-control" id="pNewPhone2" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11" style="min-width:120px"/></td>
+        <td><input class="form-control" id="pNewProvince" list="pProvinceList" placeholder="استان..." autocomplete="off" oninput="checkProspectFormValidity()" style="min-width:110px"/>
+          <datalist id="pProvinceList">${IRAN_PROVINCES.map(p=>`<option value="${p}">`).join('')}</datalist></td>
+        <td><select class="form-control" id="pNewCategory" onchange="onProspectCategoryChange()" style="min-width:130px">
+          <option value="">— انتخاب —</option>
+          ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+        </select></td>
+        <td id="pNewSubcatBox"><input class="form-control" id="pNewSubcat" placeholder="اول صنف" disabled style="min-width:110px"/></td>
+        <td><select class="form-control" id="pNewDiscovery" style="min-width:130px">
+          <option value="">— انتخاب —</option>
+          ${PROSPECT_DISCOVERY_METHODS.map(d=>`<option value="${d.key}">${d.label}</option>`).join('')}
+        </select></td>
+        <td style="text-align:center"><input type="checkbox" id="pNewHasContract" style="width:18px;height:18px"/></td>
+        ${isSalesSupOrAbove() ? `<td><input class="form-control" id="pNewCredit" placeholder="تومان" style="min-width:100px"/></td>` : ''}
+        <td><input class="form-control" id="pNewNote" placeholder="یادداشت..." style="min-width:140px"/></td>
+      </tr></tbody></table>
     </div>
+    <div id="pNewWarning" style="margin-top:8px"></div>
+
+    <div class="tbl-wrap" style="margin-top:16px">
+      <div class="tbl-hdr"><div class="sec-title">👤 مخاطبین شرکت *</div><button class="btn btn-ghost btn-sm" onclick="addProspectContactRow()">+ افزودن مخاطب</button></div>
+      <table><thead><tr><th>سمت کاری</th><th>نام طرف حساب</th><th>شماره همراه</th><th>داخلی</th><th></th></tr></thead>
+        <tbody id="pNewContactsBox"></tbody>
+      </table>
+    </div>
+
+    <div class="tbl-wrap" style="margin-top:16px">
+      <div class="tbl-hdr"><div class="sec-title">📍 آدرس‌ها</div><button class="btn btn-ghost btn-sm" onclick="addProspectAddressRow()">+ افزودن آدرس</button></div>
+      <table><thead><tr><th style="width:140px">نوع</th><th>آدرس</th><th></th></tr></thead>
+        <tbody id="pNewAddressesBox"></tbody>
+      </table>
+    </div>
+
+    <div id="pNewMissingFields" style="font-size:10.5px;color:var(--red);margin-top:12px"></div>
+    <button class="btn btn-primary" id="pNewSubmitBtn" style="width:100%;margin-top:8px" onclick="submitNewProspect()" disabled>ثبت مشتری</button>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px">بعد از ثبت، از «فرم جذب سریع» می‌تونی روش کار کنی (تماس، مراجعه، …).</div>
   `;
   addProspectAddressRow();
   addProspectContactRow();
@@ -4160,16 +4458,14 @@ function onProspectCategoryChange(){
   const box = document.getElementById('pNewSubcatBox');
   const subOptions = PROSPECT_SUBCATEGORIES[cat];
   if(subOptions){
-    box.innerHTML = `<label class="form-label">زیرصنف</label>
-      <select class="form-control" id="pNewSubcat" onchange="checkProspectFormValidity()">
-        <option value="">— انتخاب کن —</option>
+    box.innerHTML = `<select class="form-control" id="pNewSubcat" onchange="checkProspectFormValidity()" style="min-width:110px">
+        <option value="">— انتخاب —</option>
         ${subOptions.map(s=>`<option value="${s}">${s}</option>`).join('')}
       </select>`;
   } else if(cat){
-    box.innerHTML = `<label class="form-label">زیرصنف (زیرگروه ثابتی نداره — دستی بنویس یا خالی بذار)</label>
-      <input class="form-control" id="pNewSubcat" placeholder="اختیاری..." oninput="checkProspectFormValidity()"/>`;
+    box.innerHTML = `<input class="form-control" id="pNewSubcat" placeholder="دستی یا خالی..." oninput="checkProspectFormValidity()" style="min-width:110px"/>`;
   } else {
-    box.innerHTML = `<label class="form-label">زیرصنف</label><input class="form-control" id="pNewSubcat" placeholder="اول صنف رو انتخاب کن" disabled/>`;
+    box.innerHTML = `<input class="form-control" id="pNewSubcat" placeholder="اول صنف" disabled style="min-width:110px"/>`;
   }
   checkProspectFormValidity();
 }
@@ -4227,13 +4523,13 @@ function renderProspectAddressesBox(){
   const box = document.getElementById('pNewAddressesBox');
   if(!box) return;
   box.innerHTML = _prospectNewAddresses.map((a,idx)=>`
-    <div style="background:var(--card);border-radius:8px;padding:10px;margin-bottom:8px;position:relative">
-      ${_prospectNewAddresses.length>1?`<button onclick="removeProspectAddressRow(${idx})" style="position:absolute;top:6px;left:6px;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">✕</button>`:''}
-      <select class="form-control" onchange="updateProspectAddressField(${idx},'type',this.value)">
+    <tr>
+      <td><select class="form-control" onchange="updateProspectAddressField(${idx},'type',this.value)">
         ${PROSPECT_ADDRESS_TYPES.map(t=>`<option value="${t.key}" ${a.type===t.key?'selected':''}>${t.label}</option>`).join('')}
-      </select>
-      <textarea class="form-control" rows="2" placeholder="متن کامل آدرس..." style="margin-top:6px" oninput="updateProspectAddressField(${idx},'address',this.value)">${a.address}</textarea>
-    </div>`).join('');
+      </select></td>
+      <td><input class="form-control" placeholder="متن کامل آدرس..." value="${a.address}" oninput="updateProspectAddressField(${idx},'address',this.value)"/></td>
+      <td>${_prospectNewAddresses.length>1?`<button onclick="removeProspectAddressRow(${idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>`:''}</td>
+    </tr>`).join('');
 }
 function addProspectContactRow(){
   if(_prospectNewContacts.length>=10){ toast('⚠️ حداکثر ۱۰ مخاطب برای هر مشتری'); return; }
@@ -4254,18 +4550,15 @@ function renderProspectContactsBox(){
   const box = document.getElementById('pNewContactsBox');
   if(!box) return;
   box.innerHTML = _prospectNewContacts.map((ct,idx)=>`
-    <div style="background:var(--card);border-radius:8px;padding:10px;margin-bottom:8px;position:relative">
-      ${_prospectNewContacts.length>1?`<button onclick="removeProspectContactRow(${idx})" style="position:absolute;top:6px;left:6px;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">✕</button>`:''}
-      <label class="form-label">سمت کاری</label>
-      <select class="form-control" onchange="updateProspectContactField(${idx},'role',this.value)">
+    <tr>
+      <td><select class="form-control" onchange="updateProspectContactField(${idx},'role',this.value)" style="min-width:130px">
         ${PROSPECT_CONTACT_ROLES.map(r=>`<option value="${r.key}" ${ct.role===r.key?'selected':''}>${r.label}</option>`).join('')}
-      </select>
-      <div style="display:flex;gap:8px;margin-top:6px">
-        <input class="form-control" placeholder="نام طرف حساب *" value="${ct.name}" oninput="updateProspectContactField(${idx},'name',this.value)"/>
-        <input class="form-control" placeholder="شماره همراه * (۱۱ رقمی)" value="${ct.mobile}" maxlength="11" oninput="updateProspectContactField(${idx},'mobile',this.value)"/>
-        <input class="form-control" placeholder="داخلی" value="${ct.extension}" style="max-width:90px" oninput="updateProspectContactField(${idx},'extension',this.value)"/>
-      </div>
-    </div>`).join('');
+      </select></td>
+      <td><input class="form-control" placeholder="نام طرف حساب *" value="${ct.name}" oninput="updateProspectContactField(${idx},'name',this.value)" style="min-width:130px"/></td>
+      <td><input class="form-control" placeholder="۱۱ رقمی *" value="${ct.mobile}" maxlength="11" oninput="updateProspectContactField(${idx},'mobile',this.value)" style="min-width:110px"/></td>
+      <td><input class="form-control" placeholder="داخلی" value="${ct.extension}" style="max-width:80px" oninput="updateProspectContactField(${idx},'extension',this.value)"/></td>
+      <td>${_prospectNewContacts.length>1?`<button onclick="removeProspectContactRow(${idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>`:''}</td>
+    </tr>`).join('');
 }
 let _prospectNewCheckTimer=null;
 let _prospectApprovedRequestId = null;
@@ -4368,16 +4661,10 @@ async function submitNewProspect(){
   const result = await createProspectInDjango(payload);
   if(!result.ok){ toast('❌ '+result.error); return; }
   prospects.push(result.data);
-  // ⚠️ طبق تصمیم کاربر: اگه ساخته‌شده توسط سرپرست فروش/مدیریت نبوده، باید
-  // خودکار یه درخواست «تعیین مبلغ اعتبار» برای سرپرست فروش بره
-  if(!isSalesSupOrAbove()){
-    await createApprovalRequestInDjango({
-      type:'credit_amount_needed', target_role:'sup_sales', prospect:result.data.id,
-      customer_name:result.data.name, customer_phone:result.data.phone1,
-      requested_by_id:currentUser.email||'', requested_by_name:currentUser.name||currentUser.email,
-      requested_date:todayShamsiStr(),
-    });
-  }
+  // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم اصلاح‌شده‌ی کاربر: درخواست تعیین اعتبار دیگه
+  // موقع *ساخت* مشتری فرستاده نمی‌شه — بلکه دقیقاً موقع «جذب شد» زدن چک
+  // می‌شه (تو submitProspectAcquire) چون اونجاست که واقعاً لازمه قبل از
+  // سفارش‌گذاری اعتبار مشخص شده باشه.
   toast('✅ مشتری بالقوه ثبت شد — به فایل کلی مشتریان هم اضافه شد');
   document.getElementById('pNewName').value='';
   document.getElementById('pNewPhone1').value='';
@@ -4425,7 +4712,7 @@ function searchProspectForQuickForm(val){
     if(normalizeFa(p.name).includes(q)) return true;
     if(qDigits.length>=4 && ((p.phone1||'').includes(qDigits) || (p.phone2||'').includes(qDigits))) return true;
     return false;
-  }).map(p=>({source:'prospect', id:p.id, name:p.name, phone:p.phone1||p.phone2||'', status:p.status, assigneeName:p.assigneeName, priority:''}));
+  }).map(p=>({source:'prospect', id:p.id, name:p.name, phone:p.phone1||p.phone2||'', status:p.status, assigneeName:p.assigneeName, priority:'', category:p.category||'', subcat:p.subcat||''}));
 
   const prospectNames = new Set(prospectMatches.map(m=>normalizeFa(m.name)));
   const customerMatches = (customerMaster||[]).filter(c=>{
@@ -4433,14 +4720,15 @@ function searchProspectForQuickForm(val){
     if(normalizeFa(c.name||'').includes(q)) return true;
     if(qDigits.length>=4 && (c.mobile||'').includes(qDigits)) return true;
     return false;
-  }).map(c=>({source:'customer', name:c.name, phone:c.mobile||'', status:'old_customer', assigneeName:'', priority:String(c.priority||'').trim()}));
+  }).map(c=>({source:'customer', name:c.name, phone:c.mobile||'', status:'old_customer', assigneeName:'', priority:String(c.priority||'').trim(), category:c.category||'', subcat:c.subcat||''}));
 
   const matches = [...prospectMatches, ...customerMatches].slice(0,12);
   if(!matches.length){ box.style.display='none'; return; }
   box.style.display='block';
   box.innerHTML = matches.map((m,idx)=>`
     <div onmousedown="selectProspectForQuickForm(${idx})" data-idx="${idx}" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">
-      ${m.name} <span style="color:var(--muted);font-size:10px">${m.phone||''}</span>
+      <span style="font-weight:700">${m.name}</span> <span style="color:var(--muted);font-size:10px">${m.phone||''}</span>
+      ${m.category?`<div style="font-size:10px;font-weight:400;color:var(--muted);margin-top:1px">${m.category}${m.subcat?' / '+m.subcat:''}</div>`:''}
       ${m.source==='customer'?`<span style="color:var(--accent);font-size:10px">(مشتری قدیمی${m.priority?' — اولویت '+m.priority:' — بدون اولویت'})</span>`
         : m.status==='reserved'?`<span style="color:var(--muted);font-size:10px">(رزرو ${m.assigneeName})</span>`:'<span style="color:var(--green);font-size:10px">(آزاد)</span>'}
     </div>`).join('');
@@ -4469,19 +4757,30 @@ function selectProspectForQuickForm(idx){
     // ⚠️ (۱۴۰۵/۰۶/۱۳) مشتری قدیمی — هنوز Prospect نداره، باید اول شروع پیگیری بشه
     _pQfSelectedId = null;
     _pQfSelectedOldCustomer = m;
+    const allowed = ['1','5','9'].includes(m.priority);
     box.innerHTML = `
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">این یه مشتری قدیمی و واقعیه — اولویت فروش: <strong>${m.priority||'ندارد'}</strong></div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:800;color:var(--text)">${m.name}</div>
+        ${m.category?`<div style="font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px">${m.category}${m.subcat?' / '+m.subcat:''}</div>`:''}
+        <div style="font-size:11px;margin-top:8px;color:var(--text)">${m.phone?'📞 '+m.phone:'<span style="color:var(--muted)">شماره‌ای ثبت نشده</span>'}</div>
+        <div style="font-size:11px;margin-top:8px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${m.priority||'ندارد'}</div>
+      </div>
       <button class="btn btn-primary btn-sm" style="width:100%" onclick="startTrackingOldCustomerFromQf()">🔓 شروع پیگیری این مشتری</button>
     `;
   }
 }
+let _pQfPendingApprovalId = null;
 async function startTrackingOldCustomerFromQf(){
   const m = _pQfSelectedOldCustomer;
   if(!m) return;
   const res = await startOldCustomerTracking(m.name, m.phone, m.priority);
   const box = document.getElementById('pQfSelectedBox');
   if(!res.ok){
-    box.innerHTML = `<div style="background:rgba(240,165,0,.12);border:1px solid var(--yellow);border-radius:8px;padding:10px;font-size:12px">⏳ ${res.error}</div>`;
+    _pQfPendingApprovalId = res.approvalId;
+    box.innerHTML = `<div style="background:rgba(240,165,0,.12);border:1px solid var(--yellow);border-radius:8px;padding:10px;font-size:12px">
+      ⏳ ${res.error}
+      ${res.approvalId ? `<button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" onclick="checkQfOldCustomerApprovalStatus()">🔄 بررسی وضعیت تایید</button>` : ''}
+    </div>`;
     return;
   }
   prospects.push(res.data);
@@ -4490,8 +4789,33 @@ async function startTrackingOldCustomerFromQf(){
   toast('✅ پیگیری این مشتری شروع شد');
   renderQuickFormActivityBox(res.data);
 }
+async function checkQfOldCustomerApprovalStatus(){
+  if(!_pQfPendingApprovalId){ toast('⚠️ درخواستی برای بررسی نیست'); return; }
+  const ar = await fetchApprovalRequestStatus(_pQfPendingApprovalId);
+  const box = document.getElementById('pQfSelectedBox');
+  if(!ar){ toast('❌ خطا در بررسی وضعیت'); return; }
+  if(ar.status==='pending'){ toast('⏳ هنوز جوابی از مدیریت نیومده'); return; }
+  if(ar.status==='rejected'){
+    toast('❌ مدیریت اجازه نداد');
+    if(box) box.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:8px;padding:10px;font-size:11px;color:var(--red)">❌ مدیریت اجازه‌ی کار روی این مشتری رو نداد.</div>`;
+    return;
+  }
+  // approved — حالا واقعاً می‌شه رزروش کرد
+  toast('✅ مدیریت تایید کرد — دوباره «شروع پیگیری» رو بزن');
+  if(_pQfSelectedOldCustomer) startTrackingOldCustomerFromQf();
+}
 function renderQuickFormActivityBox(p){
   const box = document.getElementById('pQfSelectedBox');
+  const priority = findCustomerPriority(p.name);
+  const priorityHtml = priority
+    ? `<span style="color:${['1','5','9'].includes(priority)?'var(--green)':'var(--red)'}">اولویت فروش: ${priority}</span>`
+    : `<span style="color:var(--muted)">اولویت فروش: ندارد</span>`;
+  // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: آدرس لازم نیست اینجا باشه، فقط شماره‌های
+  // شرکت و شماره‌ی هر مخاطب با حفظ سمتش
+  const phonesHtml = [p.phone1,p.phone2].filter(Boolean).map(ph=>`📞 ${ph}`).join(' &nbsp; ') || '<span style="color:var(--muted)">شماره‌ای ثبت نشده</span>';
+  const contactsHtml = (p.contacts&&p.contacts.length) ? p.contacts.filter(ct=>ct.name||ct.mobile).map(ct=>
+    `<div style="font-size:10.5px;padding:2px 0">👤 ${ct.name||'—'} <span style="color:var(--muted)">(${prospectRoleLabel(ct.role)})</span>${ct.mobile?' — 📱 '+ct.mobile:''}${ct.extension?' داخلی '+ct.extension:''}</div>`
+  ).join('') : '';
   const historyHtml = (p.reservationHistory&&p.reservationHistory.length) ? `
     <div style="font-size:11px;color:var(--muted);margin:8px 0 4px">تاریخچه‌ی تلاش‌های قبلی:</div>
     ${p.reservationHistory.map(h=>`<div style="font-size:10px;color:var(--muted);padding:3px 0">• ${h.staff_name} (${h.start} تا ${h.end}, ${h.outcome==='timeout'?'مهلت تموم شد':h.outcome==='converted'?'جذب شد':'آزادسازی دستی'})</div>`).join('')}
@@ -4500,18 +4824,39 @@ function renderQuickFormActivityBox(p){
     <div style="font-size:11px;color:var(--muted);margin:8px 0 4px">فعالیت‌های همین رزرو:</div>
     ${prospectActivityLogHTML(p.activityLog)}
   ` : '';
+  const actionsHtml = p.status==='reserved' ? `
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitProspectAcquire(${p.id},'market')">✅ جذب شد — بازار</button>
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitProspectAcquire(${p.id},'foreign')">✅ جذب شد — خارج</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;color:var(--red)" onclick="submitProspectRelease(${p.id})">🚫 دیگه پیگیری نمی‌کنم — آزادش کن</button>
+  ` : '';
+
   box.innerHTML = `
-    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📅 ساخته‌شده: ${p.createdDate||'—'} توسط ${p.createdByName||'—'} — کارشناس فعلی: <strong>${p.assigneeName||'—'}</strong></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:800;color:var(--text)">${p.name}</div>
+      ${p.category?`<div style="font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px">${p.category}${p.subcat?' / '+p.subcat:''}</div>`:''}
+      <div style="font-size:11px;margin-top:8px;color:var(--text)">${phonesHtml}</div>
+      ${contactsHtml}
+      <div style="font-size:11px;margin-top:8px">${priorityHtml}${p.status==='reserved'?' &nbsp;·&nbsp; '+prospectDeadlineChip(p):''}</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">📅 ساخته‌شده: ${p.createdDate||'—'} توسط ${p.createdByName||'—'} — کارشناس فعلی: <strong style="color:var(--text)">${p.assigneeName||'—'}</strong></div>
+    </div>
     ${historyHtml}${curLogHtml}
     <label class="form-label" style="margin-top:10px">نوع فعالیت</label>
     <select class="form-control" id="pQfType">${PROSPECT_ACTIVITY_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}</select>
-    <label class="form-label" style="margin-top:10px">💬 چی گفتم</label>
-    <textarea class="form-control" id="pQfSaid" rows="2" placeholder="خلاصه‌ی حرفی که زدم..."></textarea>
-    <label class="form-label" style="margin-top:10px">👂 چی شنیدم</label>
+    <label class="form-label" style="margin-top:10px">📝 شرح مذاکره</label>
+    <textarea class="form-control" id="pQfSaid" rows="2" placeholder="خلاصه‌ی مذاکره‌ی انجام‌شده..."></textarea>
+    <label class="form-label" style="margin-top:10px">📋 بازخورد مشتری</label>
     <textarea class="form-control" id="pQfHeard" rows="2" placeholder="پاسخ/واکنش مشتری..."></textarea>
-    <label class="form-label" style="margin-top:10px">🔜 پیگیری بعدی چیه</label>
-    <textarea class="form-control" id="pQfNextFollowup" rows="2" placeholder="قدم بعدی مشخص (مثلاً: سه‌شنبه دوباره تماس بگیرم)..."></textarea>
+    <label class="form-label" style="margin-top:10px">📌 اقدام بعدی</label>
+    <textarea class="form-control" id="pQfNextFollowup" rows="2" placeholder="اقدام بعدی مشخص..."></textarea>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="openDatePicker('pQfFollowupDate')">📅 تعیین تاریخ یادآوری</button>
+      <input class="form-control" id="pQfFollowupDate" readonly placeholder="بدون یادآوری" style="margin-bottom:0;max-width:140px;cursor:pointer" onclick="openDatePicker('pQfFollowupDate')"/>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px">اگه تاریخ بذاری، خودکار میره تو تقویم و یادآوری‌های خودت</div>
     <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="submitQuickFormActivity()">ثبت</button>
+    ${actionsHtml}
   `;
 }
 async function submitQuickFormActivity(){
@@ -4520,7 +4865,7 @@ async function submitQuickFormActivity(){
   if(!p) return;
   if(p.status==='available'){
     const res = await reserveProspectInDjango(p.id);
-    if(!res.ok){ toast('❌ '+res.error); const fresh=await fetchProspectsFromDjango(); if(fresh) prospects=fresh; renderProspectQuickForm(document.getElementById('prospectsSubContent')); return; }
+    if(!res.ok){ toast('❌ '+res.error); const fresh=await fetchProspectsFromDjango(); if(fresh) prospects=fresh; renderProspectQuickForm(document.getElementById('prospQuickView')); return; }
     const idx = prospects.findIndex(x=>x.id===p.id);
     if(idx>=0) prospects[idx]=res.data;
     p = res.data;
@@ -4529,14 +4874,23 @@ async function submitQuickFormActivity(){
   const said = document.getElementById('pQfSaid').value.trim();
   const heard = document.getElementById('pQfHeard').value.trim();
   const nextFollowup = document.getElementById('pQfNextFollowup').value.trim();
-  const updated = await logProspectActivityInDjango(p.id, type, said, heard, nextFollowup);
+  const followupDate = document.getElementById('pQfFollowupDate').value.trim();
+  const updated = await logProspectActivityInDjango(p.id, type, said, heard, nextFollowup, followupDate);
   if(!updated){ toast('❌ ثبت فعالیت ناموفق بود'); return; }
   const idx = prospects.findIndex(x=>x.id===p.id);
   if(idx>=0) prospects[idx]=updated;
-  toast(type==='sample_sent' ? '✅ ثبت شد — مهلت به ۱۲۰ روز تمدید شد' : '✅ فعالیت ثبت شد');
+  // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: اگه تاریخ یادآوری تعیین شده، خودکار
+  // بره تو تقویم/یادآوری‌های خودِ کارشناس — همون سیستم یادآوری آزاد موجود
+  if(followupDate){
+    await createFreeReminderInDjango({
+      customer: p.name, desc: 'پیگیری «'+p.name+'»'+(nextFollowup?': '+nextFollowup:''), date: followupDate,
+      category: 'followup', assigneeId: currentUser.email||'', assigneeName: currentUser.name||currentUser.email,
+    });
+  }
+  toast(type==='sample_sent' ? '✅ ثبت شد — مهلت به ۱۲۰ روز تمدید شد' : (followupDate ? '✅ فعالیت ثبت شد و یادآوری تو تقویمت رفت' : '✅ فعالیت ثبت شد'));
   _pQfSelectedId = null;
   updateProspectsBadge();
-  renderProspectQuickForm(document.getElementById('prospectsSubContent'));
+  renderProspectQuickForm(document.getElementById('prospQuickView'));
 }
 
 // ══ زیربخش ۳ — جدول جذب مشتری (واحد، با سرچ) ══
@@ -4573,7 +4927,7 @@ function renderProspectTable(c){
 function setProspectFilter(key, val){ curProspectFilters[key]=val; renderProspectTableBody(); }
 function clearProspectFilters(){
   curProspectFilters = {province:'', category:'', status:'', hasContract:'', discovery:''};
-  document.querySelectorAll('#prospectsSubContent select').forEach(s=>s.value='');
+  document.querySelectorAll('#prospTableView select').forEach(s=>s.value='');
   renderProspectTableBody();
 }
 function searchProspectTable(v){ curProspectTableSearch=v; renderProspectTableBody(); }
@@ -4684,9 +5038,9 @@ function prospectActivityLogHTML(log){
   return [...log].reverse().map(a=>`
     <div style="font-size:11px;padding:8px 0;border-bottom:1px solid var(--border)">
       <div><strong>${prospectActivityLabel(a.type)}</strong> — ${a.date}${a.time?' ساعت '+a.time:''} <span style="color:var(--muted)">(${a.staff_name})</span></div>
-      ${a.said?`<div style="margin-top:4px"><span style="color:var(--muted)">💬 چی گفت:</span> ${a.said}</div>`:''}
-      ${a.heard?`<div style="margin-top:2px"><span style="color:var(--muted)">👂 چی شنید:</span> ${a.heard}</div>`:''}
-      ${a.next_followup?`<div style="margin-top:2px;color:var(--accent)"><span>🔜 پیگیری بعدی:</span> ${a.next_followup}</div>`:''}
+      ${a.said?`<div style="margin-top:4px"><span style="color:var(--muted)">📝 شرح مذاکره:</span> ${a.said}</div>`:''}
+      ${a.heard?`<div style="margin-top:2px"><span style="color:var(--muted)">📋 بازخورد مشتری:</span> ${a.heard}</div>`:''}
+      ${a.next_followup?`<div style="margin-top:2px;color:var(--accent)"><span>📌 اقدام بعدی:</span> ${a.next_followup}${a.followup_date?' — یادآوری: '+a.followup_date:''}</div>`:''}
       ${a.note?`<div style="color:var(--muted);margin-top:2px">${a.note}</div>`:''}
     </div>`).join('');
 }
@@ -4701,6 +5055,7 @@ function openProspectEditModal(id){
   const p = prospects.find(x=>x.id===id);
   if(!p) return;
   closeProspectDetail();
+  closeCustomerDetailModal();
   _prospectEditId = id;
   _prospectEditContacts = JSON.parse(JSON.stringify(p.contacts&&p.contacts.length?p.contacts:[{role:'management',name:'',mobile:'',extension:''}]));
   _prospectEditAddresses = JSON.parse(JSON.stringify(p.addresses&&p.addresses.length?p.addresses:[{type:'company',address:''}]));
@@ -4870,9 +5225,27 @@ async function submitProspectEdit(){
   if(idx>=0) prospects[idx]=result.data;
   toast('✅ ویرایش ذخیره شد');
   closeProspectEditModal();
-  renderProspectsSubContent();
+  refreshCurrentProspectView();
 }
 
+// ⚠️ (۱۴۰۵/۰۶/۱۳) جایگزین renderProspectsSubContent قدیمی که با تبدیل به
+// نوار کناری آکاردئونی حذف شده بود ولی ۵ جا هنوز صداش می‌زدن (باگ واقعی —
+// audit.py صداهای تابع حذف‌شده رو چک نمی‌کنه، فقط getElementById رو).
+// این تابع، هرکدوم از صفحات جذب مشتری که الان واقعاً بازه رو پیدا و رفرش می‌کنه.
+function refreshCurrentProspectView(){
+  const map = {
+    prospCreateView: () => renderProspectCreateForm(document.getElementById('prospCreateView')),
+    prospQuickView: () => renderProspectQuickForm(document.getElementById('prospQuickView')),
+    prospCustomersView: () => renderCustomersPage(document.getElementById('prospCustomersView')),
+    prospTableView: () => renderProspectTable(document.getElementById('prospTableView')),
+    prospStatsView: () => renderProspectStats(document.getElementById('prospStatsView')),
+    prospMgmtStatsView: () => renderManagementDashboard(document.getElementById('prospMgmtStatsView')),
+  };
+  for(const [id, fn] of Object.entries(map)){
+    const el = document.getElementById(id);
+    if(el && el.style.display!=='none'){ fn(); return; }
+  }
+}
 async function doReserveProspectFromDetail(id){
   const p = prospects.find(x=>x.id===id);
   if(p && p.reservationHistory && p.reservationHistory.length){
@@ -4882,13 +5255,13 @@ async function doReserveProspectFromDetail(id){
     if(!ok) return;
   }
   const res = await reserveProspectInDjango(id);
-  if(!res.ok){ toast('❌ '+res.error); const fresh=await fetchProspectsFromDjango(); if(fresh) prospects=fresh; closeProspectDetail(); renderProspectsSubContent(); return; }
+  if(!res.ok){ toast('❌ '+res.error); const fresh=await fetchProspectsFromDjango(); if(fresh) prospects=fresh; closeProspectDetail(); refreshCurrentProspectView(); return; }
   const idx = prospects.findIndex(x=>x.id===id);
   if(idx>=0) prospects[idx]=res.data;
   toast('✅ رزرو شد');
   closeProspectDetail();
   updateProspectsBadge();
-  renderProspectsSubContent();
+  refreshCurrentProspectView();
 }
 async function submitProspectRelease(id){
   if(!confirm('مطمئنی؟ این مشتری از رزرو تو خارج می‌شه و برای بقیه قابل‌رزرو می‌شه.')) return;
@@ -4899,18 +5272,51 @@ async function submitProspectRelease(id){
   toast('🚫 آزاد شد');
   closeProspectDetail();
   updateProspectsBadge();
-  renderProspectsSubContent();
+  refreshCurrentProspectView();
 }
 async function submitProspectAcquire(id, via){
+  const p = prospects.find(x=>x.id===id);
+  if(!p) return;
+  // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: قبل از جذب، اعتبار مشتری باید مشخص
+  // شده باشه. اگه خودِ سرپرست فروش/مدیریت داره جذب رو می‌زنه، همینجا ازش
+  // می‌گیریم. اگه کارشناس عادیه، درخواست برای سرپرست فروش می‌ره و جذب
+  // متوقف می‌مونه تا اون تعیینش کنه.
+  if(!p.creditAmount){
+    if(isSalesSupOrAbove()){
+      const amount = prompt('قبل از ثبت جذب، مبلغ اعتبار این مشتری رو وارد کن (تومان):');
+      if(!amount || !amount.trim()){ toast('⚠️ بدون تعیین اعتبار نمی‌شه جذب رو ثبت کرد'); return; }
+      const cr = await updateProspectCreditInDjango(id, amount.trim());
+      if(!cr.ok){ toast('❌ '+cr.error); return; }
+      const idx0 = prospects.findIndex(x=>x.id===id);
+      if(idx0>=0) prospects[idx0]=cr.data;
+    } else {
+      const pending = await fetchPendingApprovals('sup_sales');
+      const already = pending.some(a=>a.type==='credit_amount_needed' && a.prospect===id);
+      if(!already){
+        await createApprovalRequestInDjango({
+          type:'credit_amount_needed', target_role:'sup_sales', prospect:id,
+          customer_name:p.name, customer_phone:p.phone1,
+          requested_by_id:currentUser.email||'', requested_by_name:currentUser.name||currentUser.email,
+          requested_date:todayShamsiStr(),
+        });
+      }
+      alert('اعتبار این مشتری هنوز توسط سرپرست فروش تعیین نشده.\n\nیه درخواست فرستاده شد. بعد از تعیین اعتبار، دوباره برگرد و «جذب شد» رو بزن.');
+      return;
+    }
+  }
   if(!confirm(`تأیید می‌کنی این مشتری جذب شد (سفارش ${via==='foreign'?'خارج':'بازار'} ثبت شد)؟`)) return;
-  const updated = await acquireProspectInDjango(id, via);
-  if(!updated){ toast('❌ ثبت جذب ناموفق بود'); return; }
+  const res = await acquireProspectInDjango(id, via);
+  if(!res.ok){
+    if(res.needsCredit){ toast('⚠️ '+res.error); return; }
+    toast('❌ '+res.error); return;
+  }
   const idx = prospects.findIndex(x=>x.id===id);
-  if(idx>=0) prospects[idx]=updated;
+  if(idx>=0) prospects[idx]=res.data;
   toast('🎉 جذب ثبت شد! حالا برو تو فرم ثبت سفارش، لید رو بساز و ادامه بده.');
   closeProspectDetail();
+  closeCustomerDetailModal();
   updateProspectsBadge();
-  renderProspectsSubContent();
+  refreshCurrentProspectView();
 }
 
 function renderDebtsView(){
