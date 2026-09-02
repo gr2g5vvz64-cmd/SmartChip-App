@@ -345,7 +345,6 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
         <input id="globalSearchInput" class="form-control" style="font-size:12px;padding:7px 12px;" placeholder="🔎 جستجوی سراسری — مشتری، چک، یادآوری..." oninput="globalSearch(this.value)" onfocus="if(this.value)globalSearch(this.value)"/>
         <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 4px);right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-height:400px;overflow-y:auto;z-index:200;"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="syncCustomersToDjangoCRM()" title="همگام‌سازی مشتریان از گوگل‌شیت">👥 sync</button>
       <button class="btn btn-ghost btn-sm" onclick="syncItemsToDjangoCRM()" title="همگام‌سازی وزن قطعات از گوگل‌شیت">⚖️ sync</button>
       <button class="btn btn-ghost btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="تغییر بین حالت شب و روز">🌙 حالت روز</button>
     </div>
@@ -864,22 +863,11 @@ function showOfflineQueueDetailCRM(){
 }
 updateDjangoSyncUICRM();
 
-// ── همگام‌سازی مشتریان/وزن قطعات از گوگل‌شیت (CRM) ──
-async function syncCustomersToDjangoCRM(){
-  toast('⏳ در حال خواندن مشتریان از گوگل‌شیت...');
-  try{
-    const res = await sheetCall('getCustomerMaster');
-    const items = (res && res.customerMaster) || [];
-    if(!items.length){ toast('⚠ چیزی از گوگل‌شیت خونده نشد'); return; }
-    toast(`⏳ در حال ارسال ${items.length} مشتری به Django...`);
-    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/customers/sync/', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
-    });
-    const data = await syncRes.json();
-    if(data.ok) toast(`✅ همگام‌سازی تمام شد — ${data.created} جدید، ${data.updated} آپدیت شد`);
-    else toast('❌ همگام‌سازی ناموفق بود');
-  }catch(e){ toast('❌ خطا: '+e.message); }
-}
+// ── همگام‌سازی وزن قطعات از گوگل‌شیت (CRM) ──
+// ⚠️ (۱۴۰۵/۰۶/۱۴) تابع «همگام‌سازی مشتریان از گوگل‌شیت» اینجا بود و حذف شد —
+// چون جنگو تنها مرجع مشتریانه، این تابع دیگه نه‌تنها لازم نبود بلکه خطرناک
+// بود: می‌تونست داده‌ی تازه‌ای که تو CRM ویرایش شده رو با نسخه‌ی قدیمی گوگل‌شیت
+// بازنویسی کنه.
 async function syncItemsToDjangoCRM(){
   toast('⏳ در حال خواندن وزن قطعات (ممکنه کمی طول بکشه)...');
   try{
@@ -1801,7 +1789,12 @@ function customerFromApi(d){
     mobile: d.mobile||'',
     priority: d.priority||'',
     telegram: d.telegram_chat_id||'',
-    bale: d.bale_chat_id||''
+    bale: d.bale_chat_id||'',
+    note: d.note||'',
+    vip: d.vip||'',
+    assignedStaffId: d.assigned_staff_id||'',
+    assignedStaffName: d.assigned_staff_name||'',
+    changeHistory: d.change_history||[]
   };
 }
 async function fetchCustomersFromDjango(){
@@ -3044,7 +3037,7 @@ function renderCategoryPieSection(){
   const aiColors={active:'#4ade80',inactive:'#8b8f9c'};
   const aiLabels={active:'فعال (لید دارد)',inactive:'غیرفعال (بدون لید)'};
   const prColors={p1:'#f87171',p5:'#fbbf24',p9:'#4ade80'};
-  const prLabels={p1:'اولویت ۱',p5:'اولویت ۲',p9:'اولویت ۳'};
+  const prLabels={p1:'خیلی مهم',p5:'مهم',p9:'مشتریان قابل‌اعتماد'};
   box.innerHTML=`
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">${tabs}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -3184,15 +3177,15 @@ function renderDashboard(){
     </div>
 
     <div class="dash-section">
-      <div class="dash-section-title" style="color:var(--red)">🔴 مشتریان اولویت بالا — ${fn(highNeverContacted)} از ${fn(high.length)} پیگیری نشده</div>
+      <div class="dash-section-title" style="color:var(--red)">🔴 مشتریان خیلی مهم — ${fn(highNeverContacted)} از ${fn(high.length)} پیگیری نشده</div>
       ${renderPriorityRows(high)}
     </div>
     <div class="dash-section">
-      <div class="dash-section-title" style="color:var(--yellow)">🟡 مشتریان اولویت دوم — ${fn(midNeverContacted)} از ${fn(mid.length)} پیگیری نشده</div>
+      <div class="dash-section-title" style="color:var(--yellow)">🟡 مشتریان مهم — ${fn(midNeverContacted)} از ${fn(mid.length)} پیگیری نشده</div>
       ${renderPriorityRows(mid)}
     </div>
     <div class="dash-section">
-      <div class="dash-section-title" style="color:var(--green)">🟢 مشتریان اولویت سوم — ${fn(lowNeverContacted)} از ${fn(low.length)} پیگیری نشده</div>
+      <div class="dash-section-title" style="color:var(--green)">🟢 مشتریان قابل‌اعتماد — ${fn(lowNeverContacted)} از ${fn(low.length)} پیگیری نشده</div>
       ${renderPriorityRows(low)}
     </div>
 
@@ -3940,7 +3933,7 @@ async function renderManagementApprovals(c){
     items.map(a=>`
     <div class="dash-section" id="mgmtApprovalRow_${a.id}">
       <div style="font-size:13px;font-weight:700">${a.customer_name}</div>
-      <div style="font-size:11px;color:var(--muted);margin:4px 0 10px">${a.customer_phone||'—'} · اولویت فعلی: ${a.customer_priority||'ندارد'} · درخواست «${a.requested_by_name}» · ${a.requested_date}</div>
+      <div style="font-size:11px;color:var(--muted);margin:4px 0 10px">${a.customer_phone||'—'} · اولویت فعلی: ${priorityLabel(a.customer_priority)} · درخواست «${a.requested_by_name}» · ${a.requested_date}</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitMgmtApprovalDecision(${a.id},'approved')">✅ بله، اجازه بده</button>
         <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--red)" onclick="submitMgmtApprovalDecision(${a.id},'rejected')">❌ خیر</button>
@@ -4040,7 +4033,7 @@ function renderCustomersPageBody(){
       <td style="font-size:11px">${r.province||'—'}</td>
       <td style="font-size:11px">${r.category||'—'}</td>
       <td>${r.isActive?'<span style="color:var(--green);font-size:11px;font-weight:700">✅ فعال</span>':'<span style="color:var(--muted);font-size:11px">⭕ غیرفعال</span>'}</td>
-      <td>${r.source==='customer'?`<span style="font-size:11px;color:${['1','5','9'].includes(r.priority)?'var(--green)':'var(--muted)'}">اولویت ${r.priority||'ندارد'}</span>`:prospectStatusChip(r.prospectRef)}</td>
+      <td>${r.source==='customer'?`<span style="font-size:11px;color:${['1','5','9'].includes(r.priority)?'var(--green)':'var(--muted)'}">${priorityLabel(r.priority)}</span>`:prospectStatusChip(r.prospectRef)}</td>
       <td style="font-size:11px">${r.assigneeName?ac(r.assigneeName):'—'}</td>
       <td>${r.source==='customer' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startTrackingFromCustomersPage(${idx})">🔓 شروع پیگیری</button>` : ''}</td>
     </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
@@ -4128,7 +4121,7 @@ function renderCustomerDetailTabContent(idx){
       body.innerHTML = `
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${r.phone||'—'} ${r.province?' · 📍 '+r.province:''} ${r.category?' · 🏷️ '+r.category:''}</div>
         <div style="background:var(--card);border-radius:8px;padding:10px;font-size:11px">این یه مشتری قدیمی از فایل کلی مشتریانه — اطلاعات تکمیلی (مخاطبین/آدرس/قرارداد) فقط بعد از شروع پیگیری (از «فرم جذب سریع») ثبت می‌شه.</div>
-        <div style="margin-top:10px;font-size:11px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${r.priority||'ندارد'} ${allowed?'(مجاز برای تماس/فروش)':'(نیاز به تایید مدیریت برای پیگیری)'}</div>
+        <div style="margin-top:10px;font-size:11px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${priorityLabel(r.priority)} ${allowed?'(مجاز برای تماس/فروش)':'(نیاز به تایید مدیریت برای پیگیری)'}</div>
         <button class="btn btn-primary btn-sm" style="width:100%;margin-top:14px" onclick="closeCustomerDetailModal();showCrmTab('prospQuick');document.getElementById('pQfSearch').value='${r.name.replace(/'/g,"\\'")}';searchProspectForQuickForm('${r.name.replace(/'/g,"\\'")}');">🔓 شروع پیگیری (فرم جذب سریع)</button>
       `;
     }
@@ -4202,10 +4195,25 @@ function openOldCustomerEditModal(idx){
           <label class="form-label" style="margin-top:10px">اولویت فروش</label>
           <select class="form-control" id="ocEditPriority">
             <option value="">— ندارد —</option>
-            ${['1','2','3','4','5','6','7','8','9'].map(n=>`<option value="${n}" ${String(cm.priority)===n?'selected':''}>${n}</option>`).join('')}
+            ${['1','2','3','4','5','6','7','8','9'].map(n=>`<option value="${n}" ${String(cm.priority)===n?'selected':''}>${priorityLabel(n)}</option>`).join('')}
           </select>
+          <label class="form-label" style="margin-top:10px">کارشناس مسئول</label>
+          <input class="form-control" id="ocEditAssignedStaff" value="${cm.assignedStaffName||''}" placeholder="نام کارشناس..."/>
+          <label class="form-label" style="margin-top:10px">یادداشت</label>
+          <textarea class="form-control" id="ocEditNote" rows="2">${cm.note||''}</textarea>
           <div id="ocEditWarning" style="margin-top:8px"></div>
           <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="submitOldCustomerEdit(${cm.id})">💾 ذخیره تغییرات</button>
+
+          ${(cm.changeHistory&&cm.changeHistory.length) ? `
+          <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:10px">
+            <div style="font-size:11px;font-weight:700;margin-bottom:6px">📜 تاریخچه‌ی تغییرات</div>
+            <div style="max-height:150px;overflow-y:auto">
+              ${cm.changeHistory.slice().reverse().map(h=>`
+                <div style="font-size:10px;color:var(--muted);padding:3px 0;border-bottom:1px solid var(--border)">
+                  ${h.date||''} ${h.time?'ساعت '+h.time:''} — <strong style="color:var(--text)">${h.by||'نامشخص'}</strong> فیلد «${h.field}» رو از «${h.old||'خالی'}» به «${h.new||'خالی'}» تغییر داد
+                </div>`).join('')}
+            </div>
+          </div>` : ''}
         </div>
       </div>
     </div>`;
@@ -4223,6 +4231,13 @@ async function submitOldCustomerEdit(id){
     category: document.getElementById('ocEditCategory').value,
     subcat: document.getElementById('ocEditSubcat').value.trim(),
     priority: document.getElementById('ocEditPriority').value,
+    assigned_staff_name: document.getElementById('ocEditAssignedStaff').value.trim(),
+    note: document.getElementById('ocEditNote').value.trim(),
+    // ⚠️ (۱۴۰۵/۰۶/۱۴) برای ثبت خودکار تاریخچه‌ی تغییرات سمت سرور — کی،
+    // چه تاریخ/ساعتی این ویرایش رو انجام داد
+    changed_by: currentUser.name||currentUser.email||'',
+    changed_date: todayShamsiStr(),
+    changed_time: nowTimeStr(),
   };
   if(!patch.name){ toast('⚠️ نام الزامی است'); return; }
   const res = await updateCustomerInDjango(id, patch);
@@ -4388,6 +4403,15 @@ function prospectRoleLabel(key){ return (PROSPECT_CONTACT_ROLES.find(r=>r.key===
 
 // ⚠️ (۱۴۰۵/۰۶/۱۱) طبق تصمیم کاربر — صنف حالا یه لیست بسته و ثابته (نه متن آزاد)
 // تا با فاصله/نگارش‌های مختلف کارشناسان مختلف، سرچ بعدی گمراه نشه.
+// ⚠️ (۱۴۰۵/۰۶/۱۴) طبق تصمیم کاربر: از این به بعد هرجای پلتفرم که اولویت
+// مشتری نشون داده می‌شه، به‌جای عدد خام (۱/۵/۹) باید برچسب معنادار بیاد.
+function priorityLabel(p){
+  const s = String(p||'').trim();
+  if(s==='1') return 'خیلی مهم';
+  if(s==='5') return 'مهم';
+  if(s==='9') return 'مشتریان قابل‌اعتماد';
+  return s || 'ندارد';
+}
 const PROSPECT_CATEGORIES = [
   'لوازم خانگی','خانه هوشمند','محافظ برق','اتوماسیون صنعتی','طراح و تعمیرگار','خودرویی',
   'ردیاب','حفاظتی','مخابراتی','تجهیزات پزشکی','منبع تغذیه سوئیچینگ','کنترل درب و کنترل رله',
@@ -4581,7 +4605,7 @@ function checkProspectNewLive(){
       if(m.needs_management_approval){
         const safeName=(m.name||'').replace(/'/g,"\\'"), safePhone=(m.phone||'').replace(/'/g,"\\'"), safePr=(m.priority||'').replace(/'/g,"\\'");
         return `<div style="background:rgba(240,165,0,.12);border:1px solid var(--yellow);border-radius:8px;padding:8px 10px;font-size:11px;margin-bottom:4px">
-          ⚠️ «${m.name}» از قبل تو فایل مشتریان هست (اولویت فروش: ${m.priority||'ندارد'}، خارج از ۱/۵/۹) — کار روی این مشتری نیاز به تایید مدیریت داره.
+          ⚠️ «${m.name}» از قبل تو فایل مشتریان هست (اولویت فروش: ${priorityLabel(m.priority)}، خارج از ۱/۵/۹) — کار روی این مشتری نیاز به تایید مدیریت داره.
           <button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%" onclick="requestManagementApprovalForOldCustomer('${safeName}','${safePhone}','${safePr}')">📨 درخواست تایید مدیریت</button>
         </div>`;
       }
@@ -4729,7 +4753,7 @@ function searchProspectForQuickForm(val){
     <div onmousedown="selectProspectForQuickForm(${idx})" data-idx="${idx}" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">
       <span style="font-weight:700">${m.name}</span> <span style="color:var(--muted);font-size:10px">${m.phone||''}</span>
       ${m.category?`<div style="font-size:10px;font-weight:400;color:var(--muted);margin-top:1px">${m.category}${m.subcat?' / '+m.subcat:''}</div>`:''}
-      ${m.source==='customer'?`<span style="color:var(--accent);font-size:10px">(مشتری قدیمی${m.priority?' — اولویت '+m.priority:' — بدون اولویت'})</span>`
+      ${m.source==='customer'?`<span style="color:var(--accent);font-size:10px">(مشتری قدیمی — ${priorityLabel(m.priority)})</span>`
         : m.status==='reserved'?`<span style="color:var(--muted);font-size:10px">(رزرو ${m.assigneeName})</span>`:'<span style="color:var(--green);font-size:10px">(آزاد)</span>'}
     </div>`).join('');
   window._pQfCurrentMatches = matches;
@@ -4763,7 +4787,7 @@ function selectProspectForQuickForm(idx){
         <div style="font-size:14px;font-weight:800;color:var(--text)">${m.name}</div>
         ${m.category?`<div style="font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px">${m.category}${m.subcat?' / '+m.subcat:''}</div>`:''}
         <div style="font-size:11px;margin-top:8px;color:var(--text)">${m.phone?'📞 '+m.phone:'<span style="color:var(--muted)">شماره‌ای ثبت نشده</span>'}</div>
-        <div style="font-size:11px;margin-top:8px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${m.priority||'ندارد'}</div>
+        <div style="font-size:11px;margin-top:8px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${priorityLabel(m.priority)}</div>
       </div>
       <button class="btn btn-primary btn-sm" style="width:100%" onclick="startTrackingOldCustomerFromQf()">🔓 شروع پیگیری این مشتری</button>
     `;
@@ -4808,7 +4832,7 @@ function renderQuickFormActivityBox(p){
   const box = document.getElementById('pQfSelectedBox');
   const priority = findCustomerPriority(p.name);
   const priorityHtml = priority
-    ? `<span style="color:${['1','5','9'].includes(priority)?'var(--green)':'var(--red)'}">اولویت فروش: ${priority}</span>`
+    ? `<span style="color:${['1','5','9'].includes(priority)?'var(--green)':'var(--red)'}">اولویت فروش: ${priorityLabel(priority)}</span>`
     : `<span style="color:var(--muted)">اولویت فروش: ندارد</span>`;
   // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: آدرس لازم نیست اینجا باشه، فقط شماره‌های
   // شرکت و شماره‌ی هر مخاطب با حفظ سمتش

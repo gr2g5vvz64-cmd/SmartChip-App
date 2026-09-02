@@ -1217,7 +1217,6 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="page" id="page-customers">
       <div id="custLoadInfo" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:11px;color:var(--muted);"></div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button id="syncCustomersBtn" class="action-btn" style="font-size:11px;padding:6px 12px;" onclick="syncCustomersToDjango()">🔄 همگام‌سازی مشتریان از گوگل‌شیت</button>
         <button id="syncItemsBtn" class="action-btn" style="font-size:11px;padding:6px 12px;" onclick="syncItemsToDjango()">🔄 همگام‌سازی وزن قطعات از گوگل‌شیت</button>
         <div id="syncProgressPanel" style="display:none;margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:12px;"></div>
       </div>
@@ -3866,33 +3865,9 @@ async function deletePaidChequeInDjangoERP(id){
 // همگام‌سازی دستی مشتریان/وزن قطعات از گوگل‌شیت به Django — هروقت خودت تو گوگل‌شیت
 // چیزی عوض کردی، همین دکمه رو بزن تا Django هم به‌روز بشه
 // ══════════════════════════════════════════════════════════════
-async function syncCustomersToDjango(){
-  const btn = document.getElementById('syncCustomersBtn');
-  if(btn) btn.disabled = true;
-  const t0 = Date.now();
-  showSyncProgress('⏳ <b>مرحله ۱ از ۲</b> — در حال خوندن مشتریان از گوگل‌شیت...');
-  try{
-    const res = await sheetCall('getCustomerMaster');
-    const items = (res && res.customerMaster) || [];
-    if(!items.length){ showSyncProgress('⚠ چیزی از گوگل‌شیت خونده نشد'); if(btn) btn.disabled=false; return; }
-    showSyncProgress(`⏳ <b>مرحله ۲ از ۲</b> — ${fn(items.length)} مشتری در حال ارسال به Django...`);
-    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/customers/sync/', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
-    });
-    const data = await syncRes.json();
-    const totalSec = Math.round((Date.now()-t0)/1000);
-    if(data.ok){
-      showSyncProgress(`✅ <b>تمام شد</b> — ${fn(data.created)} جدید، ${fn(data.updated)} آپدیت شد (${totalSec} ثانیه)`);
-      hideSyncProgress(6000);
-      loadCustomerMaster(); // رفرش محلی هم بشه
-    } else {
-      showSyncProgress('❌ همگام‌سازی ناموفق بود: '+(data.error||'نامشخص'));
-    }
-  }catch(e){
-    showSyncProgress('❌ خطا: '+e.message);
-  }
-  if(btn) btn.disabled = false;
-}
+// ⚠️ (۱۴۰۵/۰۶/۱۴) تابع «همگام‌سازی مشتریان از گوگل‌شیت» اینجا بود و حذف شد —
+// جنگو تنها مرجع مشتریانه، این تابع دیگه خطرناک بود (می‌تونست داده‌ی تازه‌ی
+// جنگو رو با نسخه‌ی قدیمی گوگل‌شیت بازنویسی کنه).
 
 function showSyncProgress(html){
   const p = document.getElementById('syncProgressPanel');
