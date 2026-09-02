@@ -4393,15 +4393,18 @@ function renderDash(){
   setBadge('taskBadge',pendTasks);
   setBadge('shipBadge',activeShips);
   // نیاز مشتری — تعداد مشتریانی که هنوز آیتم بازار ناتمام دارند
-  const custNeedMap={};
-  requests.forEach(r=>{
-    if(!r.parts||!r.parts.needMarket) return;
-    (r.parts.marketItems||[]).forEach(it=>{
-      if(it.status!=='delivered' && it.status!=='notfound' && it.status!=='canceled_customer') custNeedMap[r.customer]=true;
-    });
-  });
-  setBadge('procBadge', Object.keys(custNeedMap).length);
-  const pendingForeignDelivCount = buildForeignNeedRows().filter(r=>r.resolved<r.totalItems).length;
+  // ⚠️ (۱۴۰۵/۰۶/۱۴) فیکس باگ واقعی مشابه: اینجا قبلاً تعداد *مشتریان یکتا*
+  // شمرده می‌شد، ولی خودِ صفحه (`renderCustNeed`) تعداد *درخواست‌های باز*
+  // (ردیف‌ها) رو می‌شمره. اگه یه مشتری دو درخواست باز جدا داشته باشه، این دو
+  // عدد با هم فرق می‌کردن — دقیقاً همون کلاس باگی که تو «نیاز مشتری خارج» بود.
+  setBadge('procBadge', buildCustNeedRows().filter(r=>r.resolved<r.totalItems).length);
+  // می‌شد (یعنی «هرچی کامل بایگانی نشده») — ولی خودِ صفحه (`renderForeignNeed`)
+  // با `needsInquiry` فیلتر می‌کنه (فقط چیزی که واقعاً منتظر استعلامه). این دو
+  // تعریف با هم فرق داشتن: موردی که مرحله‌ی استعلومش تموم شده و الان فقط
+  // منتظر تحویل نهاییه (approved/ordered_shipping/arrived)، تو نسخه‌ی قدیمی
+  // شمرده می‌شد ولی تو صفحه دیده نمی‌شد — همون چیزی که کاربر گزارش داد
+  // (نشان می‌گه ۲، صفحه خالیه). الان هر دو دقیقاً یه تعریف دارن.
+  const pendingForeignDelivCount = buildForeignNeedRows().filter(r=>r.needsInquiry).length;
   setBadge('foreignDelivBadge',pendingForeignDelivCount);
   const pendingDomesticDelivCount=requests.reduce((sum,r)=>{
     if(!r.parts||!r.parts.needMarket) return sum;
