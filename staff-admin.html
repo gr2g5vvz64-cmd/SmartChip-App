@@ -193,7 +193,7 @@ function renderForm(){
       <button class="btn btn-primary" onclick="addStaffMember()">+ افزودن</button>
     </div>
     <table>
-      <thead><tr><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th><th></th></tr></thead>
+      <thead><tr><th>شماره پرسنلی</th><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th><th></th></tr></thead>
       <tbody id="staffTableBody"></tbody>
     </table>
   `;
@@ -210,9 +210,14 @@ async function loadStaff(){
 }
 function renderTable(){
   const el=document.getElementById('staffTableBody');
-  if(!staffList.length){el.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">هنوز کارمندی ثبت نشده</td></tr>';return;}
-  el.innerHTML=staffList.map(s=>`
+  if(!staffList.length){el.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted)">هنوز کارمندی ثبت نشده</td></tr>';return;}
+  // ⚠️ (۱۴۰۵/۰۶/۱۴) طبق درخواست کاربر: شماره پرسنلی صعودی و همیشگی —
+  // همون id پیش‌فرض جنگو که هیچ‌وقت با حذف رکورد دوباره استفاده نمی‌شه،
+  // پس همیشه می‌شه فهمید تا الان چند نفر کارمند اومدن (بدون توجه به اینکه
+  // چندتاشون هنوز فعالن یا حذف شدن).
+  el.innerHTML=staffList.slice().sort((a,b)=>a.id-b.id).map(s=>`
     <tr>
+      <td style="color:var(--muted);font-size:11px">#${s.id}</td>
       <td>${s.email}</td>
       <td>${s.name||'—'}</td>
       <td>${s.mobile||'—'}</td>
@@ -229,7 +234,9 @@ function openEditStaffModal(email){
   const html = `
     <div id="editStaffOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999" onclick="if(event.target===this) closeEditStaffModal()">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:340px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:14px">✏️ ویرایش — ${s.email}</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px">✏️ ویرایش — شماره پرسنلی #${s.id}</div>
+        <label class="form-label">ایمیل گوگل</label>
+        <input class="form-control" id="editStaffEmail" value="${s.email}" style="margin-bottom:10px;direction:ltr;text-align:left"/>
         <label class="form-label">نام</label>
         <input class="form-control" id="editStaffName" value="${(s.name||'').replace(/"/g,'&quot;')}" style="margin-bottom:10px"/>
         <label class="form-label">موبایل</label>
@@ -251,24 +258,33 @@ function closeEditStaffModal(){
   const el = document.getElementById('editStaffOverlay');
   if(el) el.remove();
 }
-async function submitEditStaff(email){
+async function submitEditStaff(originalEmail){
+  const newEmail = document.getElementById('editStaffEmail').value.trim().toLowerCase();
+  const errEl = document.getElementById('editStaffError');
+  if(!newEmail || !newEmail.includes('@')){
+    errEl.textContent = '⚠ ایمیل معتبر وارد کن';
+    errEl.style.display = 'block';
+    return;
+  }
   const patch = {
+    email: newEmail,
     name: document.getElementById('editStaffName').value.trim(),
     mobile: document.getElementById('editStaffMobile').value.trim(),
     role: document.getElementById('editStaffRole').value,
   };
   try{
-    const res = await fetch(DJANGO_STAFF_API+encodeURIComponent(email)+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+    // ⚠️ آدرس درخواست با ایمیل *قبلی* پیدا می‌شه (چون هنوز شناسه‌ی مسیره)،
+    // ولی مقدار جدید تو خودِ بدنه فرستاده می‌شه — جنگو خودش فیلد رو آپدیت می‌کنه
+    const res = await fetch(DJANGO_STAFF_API+encodeURIComponent(originalEmail)+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
     if(!res.ok){
-      const err = document.getElementById('editStaffError');
-      err.textContent = 'ذخیره ناموفق بود';
-      err.style.display = 'block';
+      const errData = await res.json().catch(()=>({}));
+      errEl.textContent = errData.email ? '⚠ این ایمیل قبلاً برای یه کارمند دیگه ثبت شده' : 'ذخیره ناموفق بود';
+      errEl.style.display = 'block';
       return;
     }
   }catch(e){
-    const err = document.getElementById('editStaffError');
-    err.textContent = '⚠️ اتصال به سرور برقرار نشد';
-    err.style.display = 'block';
+    errEl.textContent = '⚠️ اتصال به سرور برقرار نشد';
+    errEl.style.display = 'block';
     return;
   }
   closeEditStaffModal();
