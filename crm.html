@@ -1664,6 +1664,21 @@ function renderPriorityRows(rows){
 }
 
 function fn(n){ return String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]); }
+// ⚠️ (۱۴۰۵/۰۶/۱۵) باگ واقعی: این تابع تو ۴ جای جدول (نمایش نام کارشناس)
+// صدا زده می‌شد ولی هیچ‌وقت اصلاً تعریف نشده بود — باعث کرش کامل صفحه
+// می‌شد («ac is not defined»). چون فقط ۲ حرفه، فیلتر audit2.py (که حداقل
+// ۴ حرف رو شرط گذاشته بود تا با متغیرهای حلقه مثل i/e/k قاطی نشه) اشتباهی
+// ردش کرده بود.
+function ac(name){ return name || ''; }
+// ⚠️ (۱۴۰۵/۰۶/۱۵) باگ واقعی دوم — این تابع تو یادآوری‌های مرتبط با درخواست
+// صدا زده می‌شد ولی هیچ‌وقت تعریف نشده بود. چون منطق اصلی‌ش هیچ‌جا ثبت نشده
+// بود، این یه بازسازیِ محافظه‌کارانه‌ست (نه بازیابی دقیق نسخه‌ی اصلی) —
+// فقط یه خلاصه‌ی کوتاه و امن از وضعیت می‌سازه که دیگه کرش نکنه.
+function sb(status, cancelReason){
+  if(status==='canceled' || status==='canceled_customer') return '❌ کنسل شد'+(cancelReason?': '+cancelReason:'');
+  if(status==='completed') return '✅ تکمیل شده';
+  return status || '';
+}
 // ══════════════════════════════════════════════════════════════════
 // جدول کامل تماس‌ها — هر ردیف یک «تماس» است (از تاریخچه‌ی همان لید)،
 // نه یک مشتری — دقیقاً مثل دفترچه‌ی اکسلی که کاربر قبلاً استفاده می‌کرد.
@@ -4782,7 +4797,7 @@ async function submitNewProspect(){
 // ══ زیربخش ۲ — فرم جذب سریع (جستجوی مشتری + ثبت فعالیت، مثل فرم ثبت درخواست) ══
 function renderProspectQuickForm(c){
   c.innerHTML = `
-    <div class="tbl-wrap" style="position:relative">
+    <div class="dash-section" style="position:relative">
       <div class="sec-title" style="margin-bottom:12px">📞 فرم جذب سریع — ثبت تماس/فعالیت</div>
       <label class="form-label">نام مشتری (جستجو کن) *</label>
       <input class="form-control" id="pQfSearch" oninput="searchProspectForQuickForm(this.value)" placeholder="اسم رو تایپ کن..." autocomplete="off" style="max-width:400px"/>
