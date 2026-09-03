@@ -151,6 +151,15 @@ li strong{color:var(--text)}
   <a class="nav-link" href="#crm-reminder">یادآوری و تقویم</a>
   <a class="nav-link" href="#crm-referral">ارجاع کار</a>
 
+  <div class="nav-section">🎯 جذب مشتری</div>
+  <a class="nav-link" href="#prosp-create">ساخت مشتری</a>
+  <a class="nav-link" href="#prosp-quickform">فرم جذب سریع</a>
+  <a class="nav-link" href="#prosp-customers">مشتریان (یکپارچه)</a>
+  <a class="nav-link" href="#prosp-table">جدول ثبت</a>
+  <a class="nav-link" href="#prosp-mystats">داشبورد من</a>
+  <a class="nav-link" href="#prosp-mgmtstats">داشبورد مدیریت</a>
+  <a class="nav-link" href="#prosp-approvals">تاییدها</a>
+
   <div class="nav-section">ERP بازرگانی</div>
   <a class="nav-link" href="#erp-request">درخواست مشتری</a>
   <a class="nav-link" href="#erp-finance">تکمیل نیاز مالی</a>
@@ -166,7 +175,7 @@ li strong{color:var(--text)}
 
   <div class="nav-section">بات و اطلاع‌رسانی</div>
   <a class="nav-link" href="#bot-status">اتصال مشتری به بات</a>
-  <a class="nav-link" href="#sync">همگام‌سازی با گوگل‌شیت</a>
+  <a class="nav-link" href="#sync">همگام‌سازی وزن قطعات</a>
   <a class="nav-link" href="#morning-bot">خلاصه‌ی صبحگاهی (بات)</a>
 
   <div class="nav-section">ماشین‌حساب</div>
@@ -480,6 +489,190 @@ li strong{color:var(--text)}
   <div class="note">
     <div class="note-icon">🇨🇳</div>
     <div class="note-text"><strong>هشدار تعطیلات چین:</strong> تقویم روزهای قبل از تعطیلات طولانی چین (مثل عید بهار) را علامت‌گذاری می‌کند تا سفارش را زودتر بدهید.</div>
+  </div>
+</div>
+
+<!-- ══════════════ جذب مشتری ══════════════ -->
+
+<div class="section" id="prosp-create">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">🆕 ساخت مشتری</div>
+  <div class="section-desc">اولین قدم برای هر مشتری بالقوه‌ی جدید — یه فرم جدولی که همه‌ی اطلاعات پایه، مخاطبین شرکت، و آدرس‌ها رو یه‌جا و بدون اسکرول می‌گیره.</div>
+
+  <h3>فیلدهای فرم</h3>
+  <table class="action-table">
+    <tr><th>فیلد</th><th>توضیح</th></tr>
+    <tr>
+      <td class="action-cell">نام مشتری، تلفن ۱ *</td>
+      <td class="result-cell">فیلدهای اجباری (ستاره‌ی قرمز) — تلفن باید دقیقاً ۱۱ رقمی باشه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">استان، صنف *</td>
+      <td class="result-cell">صنف از یه لیست بسته‌ی ۱۷تایی انتخاب می‌شه؛ زیرصنف بعدش وابسته بهش پر می‌شه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">نحوه‌ی آشنایی، قرارداد همکاری</td>
+      <td class="result-cell">اختیاری — برای گزارش‌گیری بعدی مفیده</td>
+    </tr>
+    <tr>
+      <td class="action-cell">💰 مبلغ اعتبار</td>
+      <td class="result-cell">فقط سرپرست فروش/مدیریت می‌بینه و می‌نویسه — بقیه‌ی کارشناسان این فیلد رو اصلاً نمی‌بینن</td>
+    </tr>
+    <tr>
+      <td class="action-cell">مخاطبین شرکت *</td>
+      <td class="result-cell">حداقل یک نفر با نام و شماره همراه اجباریه — می‌تونی تا ۱۰ نفر اضافه کنی</td>
+    </tr>
+  </table>
+
+  <div class="note red">
+    <div class="note-icon">⚠️</div>
+    <div class="note-text"><strong>چک ضدتکراری زنده:</strong> هنگام تایپ اسم، سیستم خودکار می‌گرده ببینه این مشتری قبلاً (چه تو فایل کلی مشتریان، چه پیش یه کارشناس دیگه) ثبت شده یا نه. اگه پیدا شد و اولویت فروشش ۱ (خیلی مهم)، ۵ (مهم)، یا ۹ (قابل‌اعتماد) نبود، دکمه‌ی ثبت غیرفعال می‌مونه و باید یه درخواست تایید برای مدیریت بفرستی (بخش «تاییدها» رو ببین).</div>
+  </div>
+</div>
+
+<div class="section" id="prosp-quickform">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">📞 فرم جذب سریع</div>
+  <div class="section-desc">جایی که واقعاً کار روزانه‌ات اتفاق می‌افته — همینجا تماس می‌گیری، فعالیت ثبت می‌کنی، و اگه لازم شد جذب/آزادسازی می‌کنی.</div>
+
+  <h3>سرچ</h3>
+  <p>اسم یا شماره‌ی مشتری رو تایپ کن — سیستم هم مشتریان بالقوه‌ی جدید (که رو سیستم رزرو شده‌ان) هم مشتریان قدیمیِ فایل کلی رو با هم نشون می‌ده. <strong>مشتری‌ای که اولویت فروشش ۱/۵/۹ باشه (یعنی از قبل تثبیت‌شده)، تو این سرچ نمیاد</strong> — چون این فرم برای «جذب» ساخته شده، نه پیگیری مشتری‌ای که از قبل مطمئنیم.</p>
+
+  <h3>بعد از انتخاب مشتری</h3>
+  <table class="action-table">
+    <tr><th>چی می‌بینی</th><th>یعنی چی</th></tr>
+    <tr>
+      <td class="action-cell">تلفن‌ها، مخاطبین، اولویت، مهلت رزرو</td>
+      <td class="result-cell">همه‌چیز جلوی چشمت — دیگه نیاز نیست جای دیگه بری دنبال شماره بگردی</td>
+    </tr>
+    <tr>
+      <td class="action-cell">تاریخچه‌ی تلاش‌های کارشناسان قبلی</td>
+      <td class="result-cell">اگه این مشتری قبلاً دست یه کارشناس دیگه بوده، خلاصه‌ی نتیجه‌ی کارش رو می‌بینی</td>
+    </tr>
+    <tr>
+      <td class="action-cell">📝 شرح مذاکره / 📋 بازخورد مشتری / 📌 اقدام بعدی</td>
+      <td class="result-cell">هر فعالیت با این سه فیلد ثبت می‌شه — نه یه یادداشت خام، تا کارشناس بعدی دقیق بفهمه چی گذشته</td>
+    </tr>
+    <tr>
+      <td class="action-cell">📅 تعیین تاریخ یادآوری</td>
+      <td class="result-cell"><strong>← خودکار میره تو تقویم و یادآوری‌های خودت</strong>، همون بخش «یادآوری آزاد»</td>
+    </tr>
+    <tr>
+      <td class="action-cell">✅ جذب شد (بازار/خارج)</td>
+      <td class="result-cell">اگه اعتبار مشتری هنوز تعیین نشده، اول باید سرپرست فروش تعیینش کنه — بعدش جذب کامل می‌شه</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <div class="note-icon">🔓</div>
+    <div class="note-text"><strong>مشتری قدیمی بدون اولویت:</strong> اگه سرچ کنی و یه مشتری قدیمی (نه اولویت‌دار) پیدا بشه، دکمه‌ی «شروع پیگیری» می‌بینی. زدنش یه درخواست تلگرامی برای مدیریت می‌فرسته — تا جواب نده، نمی‌تونی روش کار کنی.</div>
+  </div>
+</div>
+
+<div class="section" id="prosp-customers">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">👥 مشتریان (یکپارچه)</div>
+  <div class="section-desc">یه لیست واحد — هم مشتریان قدیمیِ فایل کلی، هم مشتریان بالقوه‌ی جدید، بدون تکرار.</div>
+
+  <table class="action-table">
+    <tr><th>ستون/فیلتر</th><th>توضیح</th></tr>
+    <tr>
+      <td class="action-cell">وضعیت خرید (فعال/غیرفعال)</td>
+      <td class="result-cell">«فعال» یعنی این مشتری واقعاً از ما خرید کرده (سفارش بازار تکمیل‌شده یا محموله‌ی خارجی) — از رو داده‌ی واقعی ERP محاسبه می‌شه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">فیلتر استان / صنف / قدیمی-جدید / فعال-غیرفعال</td>
+      <td class="result-cell">می‌تونی هرکدوم رو جدا یا با هم فعال کنی</td>
+    </tr>
+  </table>
+
+  <h3>کلیک روی هر مشتری</h3>
+  <p>یه پنجره باز می‌شه با ۲ تب:</p>
+  <ul style="margin:0 0 16px 20px;font-size:13px;color:var(--text);line-height:1.9">
+    <li><strong>📋 اطلاعات اولیه</strong> — تلفن، آدرس، مخاطبین، یادداشت، و (اگه رزرو باشه) دکمه‌های جذب/آزادسازی</li>
+    <li><strong>📜 تاریخچه مکالمات</strong> — از همون ابتدا (تاریخ ساخت، کارشناس سازنده، نحوه‌ی آشنایی) تا آخرین تماس؛ کارشناسان قبلی جمع‌شده (کلیک کن باز شن) تا لیست شلوغ نشه</li>
+  </ul>
+
+  <div class="note">
+    <div class="note-icon">✏️</div>
+    <div class="note-text"><strong>ویرایش کامل:</strong> از همینجا می‌تونی هر فیلد رو (چه مشتری قدیم چه جدید) اصلاح کنی — نام، تلفن، اولویت، کارشناس مسئول، یادداشت. هر تغییری خودکار با کی/چه‌تاریخی ثبت می‌شه، پس همیشه معلومه کی چیو دستکاری کرده.</div>
+  </div>
+</div>
+
+<div class="section" id="prosp-table">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">📋 جدول ثبت</div>
+  <div class="section-desc">یه نمای جدولی و فشرده از همه‌ی مشتریان بالقوه — برای نگاه سریع و فیلترکردن.</div>
+  <p>ستون‌ها: نام مشتری، کارشناس فعلی، تاریخ ساخت، اولویت‌بندی، آخرین صحبت انجام‌شده، پیگیری بعدی، و وضعیت (آزاد/رزرو/جذب‌شده).</p>
+</div>
+
+<div class="section" id="prosp-mystats">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">📊 داشبورد من</div>
+  <div class="section-desc">مخصوص هر کارشناس — کجا خوب عمل کردی، کجا باید بیشتر تلاش کنی.</div>
+
+  <table class="action-table">
+    <tr><th>بخش</th><th>یعنی چی</th></tr>
+    <tr>
+      <td class="action-cell">⏰ مهلت‌های نزدیک</td>
+      <td class="result-cell">مشتریانی که رزروشون داره تموم می‌شه — قرمز یعنی ≤۳ روز، زرد یعنی ≤۱۰ روز</td>
+    </tr>
+    <tr>
+      <td class="action-cell">😴 مدت‌هاست دست نزدی</td>
+      <td class="result-cell">مشتریانِ در حال جذب که بیش از ۱۰ روزه فعالیتی روشون ثبت نکردی</td>
+    </tr>
+    <tr>
+      <td class="action-cell">📞 مشتریان فعالِ من که نیاز به تماس دارن</td>
+      <td class="result-cell">مشتریانِ *واقعاً فعال* (خریدکرده) که کارشناس مسئولشون تویی و بیش از ۱۴ روزه ازشون خبر نگرفتی — قانون: هر مشتری فعال حداکثر هر ۲ هفته یه‌بار</td>
+    </tr>
+    <tr>
+      <td class="action-cell">📅 پیگیری‌های امروز و فردا</td>
+      <td class="result-cell">از همون تاریخ‌های یادآوری که تو «فرم جذب سریع» تعیین کردی</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <div class="note-icon">💡</div>
+    <div class="note-text">جدول پایین صفحه، تو رو با بقیه‌ی کارشناسان مقایسه می‌کنه — ردیف خودت هایلایت شده.</div>
+  </div>
+</div>
+
+<div class="section" id="prosp-mgmtstats">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">📈 داشبورد مدیریت</div>
+  <div class="section-desc">فقط سرپرست فروش و مدیریت می‌بینن — برای رصد عملکرد تیم و محاسبه‌ی پورسانت.</div>
+
+  <table class="action-table">
+    <tr><th>بخش</th><th>یعنی چی</th></tr>
+    <tr>
+      <td class="action-cell">فیلتر بازه‌ی زمانی (ماه/فصل/سال)</td>
+      <td class="result-cell">همه‌ی اعداد زیرش بر اساس همین بازه محاسبه می‌شن</td>
+    </tr>
+    <tr>
+      <td class="action-cell">🏆 جدول رتبه‌بندی کارشناسان</td>
+      <td class="result-cell">جذب، فعالیت کل، نرخ تبدیل، میانگین روز تا جذب (سرعت کار)، تعداد ازدست‌رفته — همون معیارهایی که برای پورسانت لازمه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">🟢⚪ مشتریان فعال در برابر غیرفعال</td>
+      <td class="result-cell">خلاصه‌ی کل فایل مشتریان — چند درصد واقعاً خریدار هستن</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section" id="prosp-approvals">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">✅ تاییدها و 🔔 تایید مدیریت</div>
+  <div class="section-desc">دو مسیر تایید، برای دو تصمیم متفاوت.</div>
+
+  <h3>✅ تاییدها (سرپرست فروش)</h3>
+  <p>وقتی یه کارشناس می‌خواد مشتری‌ای رو «جذب‌شده» ثبت کنه ولی هنوز مبلغ اعتبارش تعیین نشده، اینجا یه درخواست می‌شینه. سرپرست فروش مبلغ رو وارد می‌کنه و تایید می‌کنه — بعدش کارشناس می‌تونه جذب رو کامل کنه.</p>
+
+  <h3>🔔 تایید مدیریت (فقط مدیریت)</h3>
+  <p>وقتی یه کارشناس می‌خواد رو یه مشتری قدیمیِ بدون اولویت ۱/۵/۹ کار کنه، درخواستش هم از طریق <strong>تلگرام</strong> (پیام با دکمه‌ی بله/خیر) هم همینجا تو CRM نشون داده می‌شه — هرکدوم رو جواب بدی، کافیه.</p>
+
+  <div class="note red">
+    <div class="note-icon">⚠️</div>
+    <div class="note-text">تا جواب ندی (چه از تلگرام چه از اینجا)، کارشناس نمی‌تونه رو اون مشتری رزرو بزنه یا فعالیتی ثبت کنه.</div>
   </div>
 </div>
 
@@ -927,28 +1120,20 @@ li strong{color:var(--text)}
 <!-- همگام‌سازی -->
 <div class="section" id="sync">
   <div class="section-eyebrow">تنظیمات</div>
-  <div class="section-title">🔄 همگام‌سازی با گوگل‌شیت</div>
-  <div class="section-desc">دو تا اطلاعات — مشتریان (صنف/زیرصنف/استان/اولویت/تلفن) و وزن قطعات — هنوز داخل خودِ گوگل‌شیت ویرایش می‌شن، نه داخل سیستم. برای اینکه سیستم همیشه آخرین نسخه رو داشته باشه، باید بعد از هر ویرایش دستی، دکمه‌ی همگام‌سازی زده بشه.</div>
+  <div class="section-title">🔄 همگام‌سازی وزن قطعات</div>
+  <div class="section-desc">⚠️ <strong>مهم — از ۱۴۰۵/۰۶/۱۴ تغییر کرد:</strong> مشتریان دیگه اصلاً از گوگل‌شیت نمیان — دکمه‌ی «همگام‌سازی مشتریان» کامل حذف شد چون خطرناک بود (می‌تونست تغییرات تازه رو با نسخه‌ی قدیمی گوگل‌شیت بازنویسی کنه). <strong>از این به بعد، سیستم (CRM/جنگو) تنها مرجع مشتریانه</strong> — هر تغییری (اسم، تلفن، اولویت، کارشناس مسئول) رو مستقیم تو صفحه‌ی «👥 مشتریان» انجام بده، هیچ‌وقت تو گوگل‌شیت.</div>
 
   <table class="action-table">
     <tr><th>اقدام</th><th>نتیجه</th></tr>
     <tr>
-      <td class="action-cell">ویرایش صنف/زیرصنف/استان/اولویت/تلفن مشتری در گوگل‌شیت</td>
-      <td class="result-cell">فقط تو گوگل‌شیت عوض می‌شه — سیستم هنوز نسخه‌ی قدیمی رو داره</td>
-    </tr>
-    <tr>
-      <td class="action-cell">دکمه‌ی «🔄 همگام‌سازی مشتریان» (بالای ERP / تو ابزار CRM و موبایل)</td>
-      <td class="result-cell"><strong>← کل گوگل‌شیت دوباره خونده و با سیستم هماهنگ می‌شه</strong></td>
-    </tr>
-    <tr>
       <td class="action-cell">دکمه‌ی «🔄 همگام‌سازی وزن قطعات»</td>
-      <td class="result-cell">همون کار برای شیت وزن قطعات (Verified_Weights) — چون ۳۲هزار+ ردیفه، ممکنه چند ثانیه طول بکشه</td>
+      <td class="result-cell">وزن جستجوی قطعات (Verified_Weights، ۳۲هزار+ ردیف) رو از گوگل‌شیت می‌خونه و به سیستم می‌فرسته — ممکنه چند ثانیه طول بکشه. این تنها چیزیه که هنوز واقعاً از گوگل‌شیت میاد.</td>
     </tr>
   </table>
 
   <div class="note red">
     <div class="note-icon">⚠️</div>
-    <div class="note-text"><strong>یادتون نره:</strong> اگه بعد از ویرایش گوگل‌شیت این دکمه رو نزنید، تغییراتتون تو ماشین‌حساب قیمت‌گذاری یا سرچ مشتری دیده نمی‌شه.</div>
+    <div class="note-text"><strong>یادتون نره:</strong> اگه بعد از ویرایش گوگل‌شیت (وزن قطعات) این دکمه رو نزنید، تغییراتتون تو ماشین‌حساب قیمت‌گذاری دیده نمی‌شه. ولی برای مشتریان، اصلاً گوگل‌شیت رو باز نکنید — همه‌چیز مستقیم تو سیستمه.</div>
   </div>
 </div>
 
