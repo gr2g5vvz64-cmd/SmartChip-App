@@ -153,6 +153,16 @@ textarea.form-control{min-height:80px;resize:vertical;}
    استفاده می‌شد ولی هیچ‌وقت تعریف نشده بود — یعنی هیچ کادر/پس‌زمینه‌ای دور
    بخش‌های مختلف (اطلاعات اولیه، مخاطبین، آدرس‌ها) نبود، فقط جدول خام. */
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;overflow-x:auto;}
+/* ⚠️ (۱۴۰۵/۰۶/۱۵) باگ واقعی و گسترده: هیچ‌کدوم از ۷ تا جدول تو کل CRM
+   کلاس نداشتن، پس هیچ پدینگ/فاصله/کادر مناسبی هم نداشتن — کاربر گفت
+   «خیلی گنگ و تو هم». این قانون، *همه‌ی* جدول‌های داخل .tbl-wrap یا
+   .dash-section رو یه‌جا درست می‌کنه (نه یه table{} سراسری خام که ممکنه
+   جای دیگه‌ای که ندیدیم رو خراب کنه).*/
+.tbl-wrap table, .dash-section table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tbl-wrap table th, .dash-section table th{background:var(--card);color:var(--text);font-weight:700;padding:12px 14px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;}
+.tbl-wrap table td, .dash-section table td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.7;}
+.tbl-wrap table tbody tr:hover, .dash-section table tbody tr:hover{background:var(--card);}
+.tbl-wrap table tbody tr:nth-child(even), .dash-section table tbody tr:nth-child(even){background:rgba(0,0,0,.03);}
 .tbl-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
 /* ⚠️ (۱۴۰۵/۰۶/۱۴) این ۱۱ کلاس با ابزار جدید audit2.py پیدا شدن — همه‌جای
    پلتفرم (جدول‌ها، حالت‌های خالی، فرم‌ها) استفاده می‌شدن ولی هیچ‌وقت واقعاً
@@ -1930,7 +1940,7 @@ function nowTimeStr(){
 async function createProspectInDjango(data){
   try{
     const body = {
-      name:data.name||'', phone1:data.phone1||'', phone2:data.phone2||'', province:data.province||'',
+      name:data.name||'', abbr:data.abbr||'', phone1:data.phone1||'', phone2:data.phone2||'', province:data.province||'',
       category:data.category||'', subcat:data.subcat||'', contacts:data.contacts||[], addresses:data.addresses||[], note:data.note||'',
       discovery_method:data.discoveryMethod||'', has_contract:!!data.hasContract, contract_note:data.contractNote||'',
       created_date:todayShamsiStr(), created_time:nowTimeStr(), created_by_name:(currentUser.name||currentUser.email)
@@ -4258,11 +4268,15 @@ function openOldCustomerEditModal(idx){
           </select>
           <label class="form-label" style="margin-top:10px">زیرصنف</label>
           <input class="form-control" id="ocEditSubcat" value="${cm.subcat||''}"/>
-          <label class="form-label" style="margin-top:10px">اولویت فروش</label>
+          <label class="form-label" style="margin-top:10px">اولویت فروش ${!isSalesSupOrAbove()?'<span style="font-size:9.5px;color:var(--muted);font-weight:400">(فقط سرپرست فروش/مدیریت می‌تونه تغییرش بده)</span>':''}</label>
+          ${isSalesSupOrAbove() ? `
           <select class="form-control" id="ocEditPriority">
             <option value="">— ندارد —</option>
             ${['1','2','3','4','5','6','7','8','9'].map(n=>`<option value="${n}" ${String(cm.priority)===n?'selected':''}>${priorityLabel(n)}</option>`).join('')}
           </select>
+          ` : `
+          <div class="form-control" style="background:var(--card);color:var(--muted);cursor:not-allowed">${priorityLabel(cm.priority)}</div>
+          `}
           <label class="form-label" style="margin-top:10px">کارشناس مسئول</label>
           <select class="form-control" id="ocEditAssignedStaff">
             <option value="">— بدون کارشناس مسئول —</option>
@@ -4299,15 +4313,18 @@ async function submitOldCustomerEdit(id){
     province: document.getElementById('ocEditProvince').value.trim(),
     category: document.getElementById('ocEditCategory').value,
     subcat: document.getElementById('ocEditSubcat').value.trim(),
-    priority: document.getElementById('ocEditPriority').value,
     assigned_staff_name: document.getElementById('ocEditAssignedStaff').value.trim(),
     note: document.getElementById('ocEditNote').value.trim(),
-    // ⚠️ (۱۴۰۵/۰۶/۱۴) برای ثبت خودکار تاریخچه‌ی تغییرات سمت سرور — کی،
-    // چه تاریخ/ساعتی این ویرایش رو انجام داد
+    // ⚠️ (۱۴۰۵/۰۶/۱۵) طبق تصمیم صریح کاربر: کارشناس عادی حق تغییر اولویت
+    // نداره — فقط سرپرست فروش/مدیریت. برای بقیه، اصلاً این فیلد تو فرم
+    // یه <select> نیست (فقط نمایشی)، پس نباید سعی کنیم مقدارش رو بخونیم.
+    // ⚠️ چه تاریخ/ساعتی این ویرایش رو انجام داد
     changed_by: currentUser.name||currentUser.email||'',
     changed_date: todayShamsiStr(),
     changed_time: nowTimeStr(),
   };
+  const priorityEl = document.getElementById('ocEditPriority');
+  if(priorityEl) patch.priority = priorityEl.value;  // فقط وقتی سرپرست فروش/مدیریته این select وجود داره
   if(!patch.name){ toast('⚠️ نام الزامی است'); return; }
   const res = await updateCustomerInDjango(id, patch);
   if(!res.ok){
@@ -4516,10 +4533,14 @@ function renderProspectCreateForm(c){
 
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>نام مشتری *</th><th>تلفن ۱ *</th><th>تلفن ۲</th><th>استان *</th><th>صنف *</th><th>زیرصنف</th>
+        <th>نام مشتری *</th><th>کد پیگیری</th><th>تلفن ۱ *</th><th>تلفن ۲</th><th>استان *</th><th>صنف *</th><th>زیرصنف</th>
         <th>نحوه آشنایی</th><th>قرارداد</th>${isSalesSupOrAbove()?'<th>اعتبار</th>':''}<th>یادداشت</th>
       </tr></thead><tbody><tr>
         <td><input class="form-control" id="pNewName" oninput="checkProspectNewLive()" placeholder="نام کامل" style="min-width:140px"/></td>
+        <td>
+          <input class="form-control" id="pNewAbbr" oninput="checkProspectAbbrLive()" placeholder="مثلاً PRH" maxlength="4" style="min-width:80px;text-transform:uppercase"/>
+          <div id="pNewAbbrWarning" style="font-size:9.5px;margin-top:2px"></div>
+        </td>
         <td><input class="form-control" id="pNewPhone1" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11" style="min-width:120px"/></td>
         <td><input class="form-control" id="pNewPhone2" oninput="checkProspectNewLive()" placeholder="09121234567" maxlength="11" style="min-width:120px"/></td>
         <td><input class="form-control" id="pNewProvince" list="pProvinceList" placeholder="استان..." autocomplete="off" oninput="checkProspectFormValidity()" style="min-width:110px"/>
@@ -4672,6 +4693,19 @@ function renderProspectContactsBox(){
 let _prospectNewCheckTimer=null;
 let _prospectApprovedRequestId = null;
 let _prospectPendingRequestId = null;
+// ⚠️ (۱۴۰۵/۰۶/۱۵) چک زنده‌ی کد پیگیری — طبق تصمیم کاربر، کارشناس دستی یه
+// کد ۳-۴ حرفی وارد می‌کنه؛ این کد باید تو کل فایل مشتریان یکتا باشه. چون
+// customerMaster از قبل لود شده، نیازی به درخواست جدید به سرور نیست.
+function checkProspectAbbrLive(){
+  const input = document.getElementById('pNewAbbr');
+  const warnBox = document.getElementById('pNewAbbrWarning');
+  if(!input || !warnBox) return;
+  input.value = input.value.toUpperCase();
+  const val = input.value.trim();
+  if(!val){ warnBox.innerHTML=''; return; }
+  const dup = (customerMaster||[]).some(c=>(c.abbr||'').toUpperCase()===val);
+  warnBox.innerHTML = dup ? `<span style="color:var(--red)">⚠️ تکراریه</span>` : `<span style="color:var(--green)">✓ آزاده</span>`;
+}
 function checkProspectNewLive(){
   const name = document.getElementById('pNewName').value.trim();
   const phone1 = document.getElementById('pNewPhone1').value.trim();
@@ -4745,6 +4779,7 @@ async function checkProspectApprovalStatus(){
 }
 async function submitNewProspect(){
   const name = document.getElementById('pNewName').value.trim();
+  const abbr = document.getElementById('pNewAbbr').value.trim().toUpperCase();
   const phone1 = document.getElementById('pNewPhone1').value.trim();
   const phone2 = document.getElementById('pNewPhone2').value.trim();
   const province = document.getElementById('pNewProvince').value.trim();
@@ -4762,7 +4797,7 @@ async function submitNewProspect(){
   const res = await checkProspectNameDjango(name, phone1, phone2);
   const stillBlocking = (res.matches||[]).some(m=>!m.needs_management_approval || !_prospectApprovedRequestId);
   if(res.matches && res.matches.length && stillBlocking){ toast('⚠️ اول باید هشدار تکراری‌بودن رو برطرف کنی'); return; }
-  const payload = {name, phone1, phone2, province, category, subcat, discoveryMethod, hasContract, note, contacts, addresses};
+  const payload = {name, abbr, phone1, phone2, province, category, subcat, discoveryMethod, hasContract, note, contacts, addresses};
   if(_prospectApprovedRequestId) payload.approvedRequestId = _prospectApprovedRequestId;
   if(isSalesSupOrAbove() && document.getElementById('pNewCredit')){
     payload.creditAmount = document.getElementById('pNewCredit').value.trim();
