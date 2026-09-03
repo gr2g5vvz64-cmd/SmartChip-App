@@ -149,6 +149,29 @@ textarea.form-control{min-height:80px;resize:vertical;}
 
 /* داشبورد اولویت مشتریان */
 .dash-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
+/* ⚠️ (۱۴۰۵/۰۶/۱۴) این کلاس همه‌جا (جدول ثبت، مشتریان، فرم ساخت مشتری، …)
+   استفاده می‌شد ولی هیچ‌وقت تعریف نشده بود — یعنی هیچ کادر/پس‌زمینه‌ای دور
+   بخش‌های مختلف (اطلاعات اولیه، مخاطبین، آدرس‌ها) نبود، فقط جدول خام. */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px;overflow-x:auto;}
+.tbl-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+/* ⚠️ (۱۴۰۵/۰۶/۱۴) این ۱۱ کلاس با ابزار جدید audit2.py پیدا شدن — همه‌جای
+   پلتفرم (جدول‌ها، حالت‌های خالی، فرم‌ها) استفاده می‌شدن ولی هیچ‌وقت واقعاً
+   تعریف نشده بودن؛ فقط با استایل‌های وراثتی مرورگر «قابل‌قبول» به‌نظر می‌رسیدن. */
+.sec-title{font-size:14px;font-weight:800;color:var(--text);}
+.search-box{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:12px;color:var(--muted);}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-family:'Vazirmatn',sans-serif;font-size:12px;width:100%;}
+.empty-state{text-align:center;padding:32px 16px;color:var(--muted);}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+.empty-text{font-size:12px;color:var(--muted);}
+.action-btn{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:7px 14px;font-family:'Vazirmatn',sans-serif;font-size:12px;font-weight:600;cursor:pointer;}
+.action-btn:hover{border-color:var(--accent);}
+.autocomplete-list{background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.2);}
+.autocomplete-list>div{padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);}
+.autocomplete-list>div:hover{background:var(--card);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;}
+.form-full{grid-column:1 / -1;}
+.quick-pills{display:flex;flex-wrap:wrap;gap:6px;}
 .dash-section-title{font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .dash-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--card);margin-bottom:6px;font-size:12px;}
 .dash-row.overdue{border-right:3px solid var(--red);}
@@ -4759,12 +4782,12 @@ async function submitNewProspect(){
 // ══ زیربخش ۲ — فرم جذب سریع (جستجوی مشتری + ثبت فعالیت، مثل فرم ثبت درخواست) ══
 function renderProspectQuickForm(c){
   c.innerHTML = `
-    <div class="dash-section" style="max-width:520px;position:relative">
+    <div class="tbl-wrap" style="position:relative">
       <div class="sec-title" style="margin-bottom:12px">📞 فرم جذب سریع — ثبت تماس/فعالیت</div>
       <label class="form-label">نام مشتری (جستجو کن) *</label>
-      <input class="form-control" id="pQfSearch" oninput="searchProspectForQuickForm(this.value)" placeholder="اسم رو تایپ کن..." autocomplete="off"/>
-      <div id="pQfSearchAC" style="display:none;position:absolute;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.2)"></div>
-      <div id="pQfSelectedBox" style="margin-top:10px"></div>
+      <input class="form-control" id="pQfSearch" oninput="searchProspectForQuickForm(this.value)" placeholder="اسم رو تایپ کن..." autocomplete="off" style="max-width:400px"/>
+      <div id="pQfSearchAC" style="display:none;position:absolute;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;max-width:400px;width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.2)"></div>
+      <div id="pQfSelectedBox" style="margin-top:14px"></div>
     </div>
   `;
 }
@@ -4786,8 +4809,13 @@ function searchProspectForQuickForm(val){
   }).map(p=>({source:'prospect', id:p.id, name:p.name, phone:p.phone1||p.phone2||'', status:p.status, assigneeName:p.assigneeName, priority:'', category:p.category||'', subcat:p.subcat||''}));
 
   const prospectNames = new Set(prospectMatches.map(m=>normalizeFa(m.name)));
+  // ⚠️ (۱۴۰۵/۰۶/۱۴) طبق تصمیم کاربر: مشتری قدیمی‌ای که اولویت فروش ۱/۵/۹
+  // داره (یعنی «قابل‌اعتماد»/«خیلی مهم»/«مهم» — از قبل مشتری واقعی و تثبیت‌شده‌ست)
+  // نباید تو «فرم جذب سریع» (که برای پیگیری/جذب مشتری بالقوه‌ست، نه مشتری
+  // از قبل تثبیت‌شده) نمایش داده بشه.
   const customerMatches = (customerMaster||[]).filter(c=>{
     if(prospectNames.has(normalizeFa(c.name||''))) return false; // اگه از قبل به‌عنوان Prospect پیدا شده، دوباره نشون نده
+    if(['1','5','9'].includes(String(c.priority||'').trim())) return false; // مشتری تثبیت‌شده، نیاز به جذب نداره
     if(normalizeFa(c.name||'').includes(q)) return true;
     if(qDigits.length>=4 && (c.mobile||'').includes(qDigits)) return true;
     return false;
@@ -4904,30 +4932,41 @@ function renderQuickFormActivityBox(p){
   ` : '';
 
   box.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px">
-      <div style="font-size:14px;font-weight:800;color:var(--text)">${p.name}</div>
-      ${p.category?`<div style="font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px">${p.category}${p.subcat?' / '+p.subcat:''}</div>`:''}
-      <div style="font-size:11px;margin-top:8px;color:var(--text)">${phonesHtml}</div>
-      ${contactsHtml}
-      <div style="font-size:11px;margin-top:8px">${priorityHtml}${p.status==='reserved'?' &nbsp;·&nbsp; '+prospectDeadlineChip(p):''}</div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">📅 ساخته‌شده: ${p.createdDate||'—'} توسط ${p.createdByName||'—'} — کارشناس فعلی: <strong style="color:var(--text)">${p.assigneeName||'—'}</strong></div>
+    <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:16px;align-items:start">
+
+      <div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${p.name}</div>
+          ${p.category?`<div style="font-size:10.5px;font-weight:400;color:var(--muted);margin-top:2px">${p.category}${p.subcat?' / '+p.subcat:''}</div>`:''}
+          <div style="font-size:11px;margin-top:8px;color:var(--text)">${phonesHtml}</div>
+          ${contactsHtml}
+          <div style="font-size:11px;margin-top:8px">${priorityHtml}${p.status==='reserved'?' &nbsp;·&nbsp; '+prospectDeadlineChip(p):''}</div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:4px">📅 ساخته‌شده: ${p.createdDate||'—'} توسط ${p.createdByName||'—'} — کارشناس فعلی: <strong style="color:var(--text)">${p.assigneeName||'—'}</strong></div>
+        </div>
+        <div>
+          ${historyHtml}${curLogHtml}
+        </div>
+        ${actionsHtml}
+      </div>
+
+      <div>
+        <label class="form-label">نوع فعالیت</label>
+        <select class="form-control" id="pQfType">${PROSPECT_ACTIVITY_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}</select>
+        <label class="form-label" style="margin-top:10px">📝 شرح مذاکره</label>
+        <textarea class="form-control" id="pQfSaid" rows="2" placeholder="خلاصه‌ی مذاکره‌ی انجام‌شده..."></textarea>
+        <label class="form-label" style="margin-top:10px">📋 بازخورد مشتری</label>
+        <textarea class="form-control" id="pQfHeard" rows="2" placeholder="پاسخ/واکنش مشتری..."></textarea>
+        <label class="form-label" style="margin-top:10px">📌 اقدام بعدی</label>
+        <textarea class="form-control" id="pQfNextFollowup" rows="2" placeholder="اقدام بعدی مشخص..."></textarea>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openDatePicker('pQfFollowupDate')">📅 تعیین تاریخ یادآوری</button>
+          <input class="form-control" id="pQfFollowupDate" readonly placeholder="بدون یادآوری" style="margin-bottom:0;max-width:140px;cursor:pointer" onclick="openDatePicker('pQfFollowupDate')"/>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">اگه تاریخ بذاری، خودکار میره تو تقویم و یادآوری‌های خودت</div>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="submitQuickFormActivity()">ثبت</button>
+      </div>
+
     </div>
-    ${historyHtml}${curLogHtml}
-    <label class="form-label" style="margin-top:10px">نوع فعالیت</label>
-    <select class="form-control" id="pQfType">${PROSPECT_ACTIVITY_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}</select>
-    <label class="form-label" style="margin-top:10px">📝 شرح مذاکره</label>
-    <textarea class="form-control" id="pQfSaid" rows="2" placeholder="خلاصه‌ی مذاکره‌ی انجام‌شده..."></textarea>
-    <label class="form-label" style="margin-top:10px">📋 بازخورد مشتری</label>
-    <textarea class="form-control" id="pQfHeard" rows="2" placeholder="پاسخ/واکنش مشتری..."></textarea>
-    <label class="form-label" style="margin-top:10px">📌 اقدام بعدی</label>
-    <textarea class="form-control" id="pQfNextFollowup" rows="2" placeholder="اقدام بعدی مشخص..."></textarea>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="openDatePicker('pQfFollowupDate')">📅 تعیین تاریخ یادآوری</button>
-      <input class="form-control" id="pQfFollowupDate" readonly placeholder="بدون یادآوری" style="margin-bottom:0;max-width:140px;cursor:pointer" onclick="openDatePicker('pQfFollowupDate')"/>
-    </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">اگه تاریخ بذاری، خودکار میره تو تقویم و یادآوری‌های خودت</div>
-    <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="submitQuickFormActivity()">ثبت</button>
-    ${actionsHtml}
   `;
 }
 async function submitQuickFormActivity(){
