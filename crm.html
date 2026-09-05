@@ -2042,7 +2042,7 @@ const PROSPECT_ACTIVITY_TYPES = [
 function prospectActivityLabel(key){ return (PROSPECT_ACTIVITY_TYPES.find(t=>t.key===key)||{}).label || key; }
 
 function prospectFromApi(d){
-  return { id:d.id, name:d.name||'', phone1:d.phone1||'', phone2:d.phone2||'', province:d.province||'',
+  return { id:d.id, name:d.name||'', abbr:d.abbr||'', phone1:d.phone1||'', phone2:d.phone2||'', province:d.province||'',
     category:d.category||'', subcat:d.subcat||'', contacts:d.contacts||[], addresses:d.addresses||[], note:d.note||'', status:d.status||'available',
     discoveryMethod:d.discovery_method||'', creditAmount:d.credit_amount||'', creditSetBy:d.credit_set_by||'', creditSetDate:d.credit_set_date||'',
     hasContract:!!d.has_contract, contractNote:d.contract_note||'', pendingApproval:!!d.pending_approval,
@@ -5657,7 +5657,7 @@ function renderProspectTable(c){
         <button class="btn btn-ghost btn-sm" onclick="clearProspectFilters()">پاک‌کردن فیلترها</button>
       </div>
       <table><thead><tr>
-        <th>نام مشتری</th><th>کارشناس فعلی</th><th>تاریخ ساخت</th><th>اولویت‌بندی</th><th>تعداد تماس</th><th>آخرین صحبت انجام‌شده</th><th>پیگیری بعدی</th><th>وضعیت</th>
+        <th>نام مشتری</th><th>کد پیگیری</th><th>کارشناس فعلی</th><th>تاریخ ساخت</th><th>اولویت‌بندی</th><th>تعداد تماس</th><th>آخرین صحبت انجام‌شده</th><th>پیگیری بعدی</th><th>وضعیت</th><th></th>
       </tr></thead><tbody id="pTableBody"></tbody></table>
     </div>
   `;
@@ -5670,6 +5670,25 @@ function clearProspectFilters(){
   renderProspectTableBody();
 }
 function searchProspectTable(v){ curProspectTableSearch=v; renderProspectTableBody(); }
+// ⚠️ (۱۴۰۵/۰۶/۱۸) حذف کامل مشتری بالقوه — طبق تصمیم صریح کاربر، فقط
+// سرپرست فروش/مدیریت اجازه دارن. عملیات برگشت‌ناپذیره، پس تایید دوگانه.
+async function deleteProspectInDjango(id){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+id+'/', {method:'DELETE'});
+    return res.ok || res.status===204;
+  }catch(e){ return false; }
+}
+async function deleteProspectRow(id, name){
+  if(!isSalesSupOrAbove()){ toast('⛔ فقط سرپرست فروش/مدیریت اجازه‌ی حذف دارن'); return; }
+  if(!confirm(`مطمئنی می‌خوای «${name}» رو کامل حذف کنی؟ این کار برگشت‌ناپذیره — همه‌ی تاریخچه‌ی تماس‌ها هم پاک می‌شه.`)) return;
+  if(!confirm(`تأیید نهایی: واقعاً حذف بشه؟`)) return;
+  const ok = await deleteProspectInDjango(id);
+  if(!ok){ toast('❌ حذف ناموفق بود'); return; }
+  const idx = prospects.findIndex(p=>p.id===id);
+  if(idx>=0) prospects.splice(idx,1);
+  toast('✅ حذف شد');
+  renderProspectTableBody();
+}
 function findCustomerPriority(name){
   const target = normalizeFa(name||'');
   const m = (customerMaster||[]).find(c=>normalizeFa(c.name||'')===target);
@@ -5706,6 +5725,7 @@ function renderProspectTableBody(){
     return `
     <tr style="cursor:pointer" onclick="openProspectDetail(${p.id})">
       <td><strong>${p.name}</strong>${p.hasContract?' <span style="color:var(--green);font-size:10px">📄</span>':''}</td>
+      <td style="font-size:11px;font-weight:700;font-family:monospace;color:var(--accent)">${p.abbr||'—'}</td>
       <td style="font-size:11px">${p.assigneeName?ac(p.assigneeName):'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${p.createdDate||'—'}${p.createdTime?' - '+p.createdTime:''}</td>
       <td style="font-size:11px;color:${['1','5','9'].includes(priority)?'var(--green)':'var(--muted)'}">${priority||'—'}</td>
@@ -5713,8 +5733,9 @@ function renderProspectTableBody(){
       <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lastActivity?(lastActivity.said||lastActivity.heard||'—'):'—'}</td>
       <td style="font-size:11px;color:${isFollowupDue?'var(--red)':'var(--accent)'};font-weight:${isFollowupDue?'700':'400'}">${isFollowupDue?'🔴 ':''}${lastActivity?(lastActivity.next_followup||'—'):'—'}${followupDate?' — '+followupDate:''}</td>
       <td>${prospectStatusChip(p)}</td>
+      <td>${isSalesSupOrAbove() ? `<button onclick="event.stopPropagation();deleteProspectRow(${p.id},'${p.name.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px" title="حذف کامل این مشتری بالقوه">🗑️</button>` : ''}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+  }).join('') : `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
 }
 
 // ── جزئیات یه مشتری بالقوه (از جدول یا فرم جذب سریع باز می‌شه) ──
