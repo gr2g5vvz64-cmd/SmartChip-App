@@ -404,7 +404,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
   <div class="mini-grid">
     <div class="mini-tile" onclick="openPriceCalcSheet()"><div class="mi-ic">💰</div><div class="mi-nm">قیمت‌گذاری</div></div>
     <div class="mini-tile" onclick="openCalendarSheet()"><div class="mi-ic">🗓️</div><div class="mi-nm">تقویم</div></div>
-    <div class="mini-tile" onclick="openFreeReminderSheet()"><div class="mi-ic">🔔</div><div class="mi-nm">یادآوری</div></div>
+    <div class="mini-tile" onclick="openReminderHubSheetM()"><div class="mi-ic">🔔</div><div class="mi-nm">یادآوری</div></div>
   </div>
   <div class="mini-grid">
     <div class="mini-tile" onclick="window.open('staff-admin.html','_blank')"><div class="mi-ic">🧑‍💼</div><div class="mi-nm">مدیریت کارمندان</div></div>
@@ -721,6 +721,55 @@ textarea.form-control{resize:vertical;min-height:70px;}
 </div>
 
 
+
+<!-- ══════ 🔔 هاب یادآوری‌ها — رنگ جدید (طلایی)، ۱۴۰۵/۰۶/۱۸ ══════ -->
+<div class="sheet-overlay" id="overlayReminderhub" onclick="closeSheetOut(event,'reminderhub')">
+  <div class="sheet" id="sheetReminderhub" style="max-height:80vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="color:#eab308">🔔 یادآوری‌ها<button class="close-x" onclick="closeSheet('reminderhub')">✕</button></div>
+    <div class="action-btn-big" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;background:rgba(234,179,8,.08);border-color:rgba(234,179,8,.3);margin-bottom:8px;" onclick="closeSheet('reminderhub');openTomorrowTasksSheetM()">
+      <div class="action-icon-circle" style="background:rgba(234,179,8,.18);">📝</div>
+      <div class="action-label" style="color:#eab308;">کارهای فردا</div>
+      <span id="tomorrowTasksBadgeM" style="display:none;background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-right:auto"></span>
+    </div>
+    <div class="action-btn-big" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;background:rgba(234,179,8,.08);border-color:rgba(234,179,8,.3);margin-bottom:8px;" onclick="closeSheet('reminderhub');openRecurringListSheetM()">
+      <div class="action-icon-circle" style="background:rgba(234,179,8,.18);">🔁</div>
+      <div class="action-label" style="color:#eab308;">یادآوری دوره‌ای</div>
+    </div>
+    <div class="action-btn-big" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;background:rgba(234,179,8,.08);border-color:rgba(234,179,8,.3);margin-bottom:8px;" onclick="closeSheet('reminderhub');openFreeListSheetM()">
+      <div class="action-icon-circle" style="background:rgba(234,179,8,.18);">🗒️</div>
+      <div class="action-label" style="color:#eab308;">یادآوری آزاد</div>
+    </div>
+    <button class="submit-btn" style="margin-top:10px" onclick="closeSheet('reminderhub');openFreeReminderSheet()">+ یادآوری آزاد جدید</button>
+  </div>
+</div>
+
+<!-- کارهای فردا — لیست کامل، نه فقط کارهای واگذارشده به من -->
+<div class="sheet-overlay" id="overlayTomorrowtasks" onclick="closeSheetOut(event,'tomorrowtasks')">
+  <div class="sheet" id="sheetTomorrowtasks" style="max-height:88vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📝 کارهای فردا<button class="close-x" onclick="closeSheet('tomorrowtasks')">✕</button></div>
+    <div id="tomorrowTasksBodyM" style="overflow-y:auto;max-height:74vh;"></div>
+  </div>
+</div>
+
+<!-- یادآوری دوره‌ای — لیست فعال‌ها -->
+<div class="sheet-overlay" id="overlayRecurringlist" onclick="closeSheetOut(event,'recurringlist')">
+  <div class="sheet" id="sheetRecurringlist" style="max-height:88vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🔁 یادآوری دوره‌ای<button class="close-x" onclick="closeSheet('recurringlist')">✕</button></div>
+    <div id="recurringListBodyM" style="overflow-y:auto;max-height:74vh;"></div>
+  </div>
+</div>
+
+<!-- یادآوری آزاد — لیست کامل (بدون کارهای فردا) -->
+<div class="sheet-overlay" id="overlayFreelist" onclick="closeSheetOut(event,'freelist')">
+  <div class="sheet" id="sheetFreelist" style="max-height:88vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🗒️ یادآوری آزاد<button class="close-x" onclick="closeSheet('freelist')">✕</button></div>
+    <div id="freeListBodyM" style="overflow-y:auto;max-height:74vh;"></div>
+  </div>
+</div>
 
 <!-- ══════ FREE REMINDER SHEET ══════ -->
 <div class="sheet-overlay" id="overlayFreereminder" onclick="closeSheetOut(event,'freereminder')">
@@ -3254,6 +3303,177 @@ function pickFreeRemCategory(key){
 }
 function getFreeRemCategoryMeta(key){
   return FREE_REM_CATEGORIES.find(c=>c.key===key)||FREE_REM_CATEGORIES[1];
+}
+
+// ══════════════════════════════════════════════════════════════
+// 🔔 هاب یادآوری‌ها — موبایل (۱۴۰۵/۰۶/۱۸)
+// ⚠️ عیناً از crm.html — سه زیرمجموعه‌ی مستقل که تا الان موبایل نداشت
+// (فقط فرم ساخت داشت، هیچ لیستی برای دیدن/مدیریت نداشت).
+// ══════════════════════════════════════════════════════════════
+function openReminderHubSheetM(){
+  const badge = document.getElementById('tomorrowTasksBadgeM');
+  if(badge){
+    const cnt = (cachedFreeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done).length;
+    badge.textContent = fn(cnt); badge.style.display = cnt>0 ? 'inline-block' : 'none';
+  }
+  openSheet('reminderhub');
+}
+
+// ── کارهای فردا — همه‌ی موارد category==='tomorrow'، نه فقط واگذارشده به من ──
+function openTomorrowTasksSheetM(){
+  document.getElementById('tomorrowTasksBodyM').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>';
+  openSheet('tomorrowtasks');
+  Promise.all([fetchFreeRemindersFromDjangoM()]).then(([fr])=>{
+    if(fr) cachedFreeReminders = fr;
+    renderTomorrowTasksM();
+  });
+}
+function renderTomorrowTasksM(){
+  const el = document.getElementById('tomorrowTasksBodyM');
+  let list = (cachedFreeReminders||[]).filter(r=>r.category==='tomorrow');
+  list.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
+  const open = list.filter(r=>!r.done), done = list.filter(r=>r.done);
+  if(!list.length){ el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">کار فردایی ثبت نشده</div>'; return; }
+  const rowHTML = (r)=>`
+    <div style="background:var(--card);border-radius:8px;padding:10px 12px;margin-bottom:7px;${r.done?'opacity:.55':''}">
+      <div style="font-size:12.5px;${r.done?'text-decoration:line-through':''}">${r.customer?`<strong>${r.customer}</strong> — `:''}${r.desc}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span style="font-size:10px;color:var(--muted)">${r.date}${r.assigneeName?' · 👤 '+r.assigneeName:''}</span>
+        <div style="display:flex;gap:5px">
+          <button class="pill-btn" style="padding:3px 9px;font-size:10px" onclick="toggleFreeReminderDoneM('${r.id}')">${r.done?'بازکردن':'✅ انجام شد'}</button>
+          <button class="pill-btn" style="padding:3px 9px;font-size:10px;color:var(--red)" onclick="deleteFreeReminderM('${r.id}','tomorrow')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  el.innerHTML = (open.length?open.map(rowHTML).join(''):'<div style="text-align:center;padding:10px;color:var(--muted);font-size:11px">✅ همه‌ی کارهای فردا انجام شده</div>')
+    + (done.length?`<div style="font-size:11px;color:var(--muted);margin:14px 0 6px;font-weight:800">🗄️ انجام‌شده‌ها (${fn(done.length)})</div>`+done.map(rowHTML).join(''):'');
+}
+
+// ── یادآوری دوره‌ای ──
+function openRecurringListSheetM(){
+  document.getElementById('recurringListBodyM').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>';
+  openSheet('recurringlist');
+  fetchRecurringRemindersFromDjangoM().then(rr=>{
+    if(rr) cachedRecurring = rr;
+    renderRecurringListM();
+  });
+}
+function renderRecurringListM(){
+  const el = document.getElementById('recurringListBodyM');
+  const active = (cachedRecurring||[]).filter(r=>!r.canceled);
+  if(!active.length){ el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">یادآوری دوره‌ای ندارید</div>'; return; }
+  active.sort((a,b)=>shamsiDateSortVal(a.nextDate)-shamsiDateSortVal(b.nextDate));
+  const todaySv = shamsiDateSortVal(todayShamsiStr());
+  el.innerHTML = active.map(r=>{
+    const daysLeft = shamsiDateSortVal(r.nextDate) - todaySv;
+    let statusTag;
+    if(daysLeft<0) statusTag = `<span style="color:var(--red);font-weight:700">⚠ ${fn(Math.abs(daysLeft))} روز گذشته</span>`;
+    else if(daysLeft===0) statusTag = `<span style="color:var(--accent);font-weight:700">🔔 امروز موعد است</span>`;
+    else statusTag = `<span style="color:var(--muted)">${fn(daysLeft)} روز مانده</span>`;
+    return `<div style="background:var(--card);border-radius:8px;padding:10px 12px;margin-bottom:7px">
+      <div style="font-size:12.5px;font-weight:700">${r.title}${r.customer?` <span style="font-size:10px;color:var(--accent)">— ${r.customer}</span>`:''}</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:3px">هر ${fn(r.interval)} روز — موعد بعدی: <strong style="color:var(--accent)">${r.nextDate}</strong></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        ${statusTag}
+        <div style="display:flex;gap:5px">
+          <button class="pill-btn" style="padding:3px 9px;font-size:10px;color:#4ade80" onclick="completeRecurringCycleM('${r.id}')">✅ بعدی</button>
+          <button class="pill-btn" style="padding:3px 9px;font-size:10px;color:var(--red)" onclick="cancelRecurringM('${r.id}')">✕ لغو</button>
+        </div>
+      </div>
+      ${r.note?`<div style="margin-top:6px;font-size:10.5px;color:var(--muted);background:var(--surface);border-radius:6px;padding:5px 8px">💬 ${r.note}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── یادآوری آزاد (بدون کارهای فردا) ──
+function openFreeListSheetM(){
+  document.getElementById('freeListBodyM').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>';
+  openSheet('freelist');
+  fetchFreeRemindersFromDjangoM().then(fr=>{
+    if(fr) cachedFreeReminders = fr;
+    renderFreeListM();
+  });
+}
+function renderFreeListM(){
+  const el = document.getElementById('freeListBodyM');
+  let list = (cachedFreeReminders||[]).filter(r=>r.category!=='tomorrow');
+  list.sort((a,b)=>shamsiDateSortVal(a.date)-shamsiDateSortVal(b.date));
+  if(!list.length){ el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">یادآوری آزادی ثبت نشده</div>'; return; }
+  const todaySv = shamsiDateSortVal(todayShamsiStr());
+  el.innerHTML = list.map(r=>{
+    const sv = shamsiDateSortVal(r.date);
+    let dateColor = 'var(--muted)';
+    if(!r.done && sv>=0){
+      if(sv<todaySv) dateColor='var(--red)';
+      else if(sv===todaySv) dateColor='var(--accent)';
+      else dateColor='var(--yellow)';
+    }
+    return `<div style="background:var(--card);border-radius:8px;padding:10px 12px;margin-bottom:7px;${r.done?'opacity:.55':''}">
+      <div style="font-size:12.5px;${r.done?'text-decoration:line-through':''}">${r.customer?`<strong>${r.customer}</strong> — `:''}${r.desc}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span style="font-size:10px;color:${dateColor};font-weight:${dateColor!=='var(--muted)'?'700':'400'}">${r.date}${r.endDate?' تا '+r.endDate:''}</span>
+        <div style="display:flex;gap:5px">
+          <button class="pill-btn" style="padding:3px 9px;font-size:10px" onclick="toggleFreeReminderDoneM('${r.id}')">${r.done?'بازکردن':'✅ انجام شد'}</button>
+          <button class="pill-btn" style="padding:3px 9px;font-size:10px;color:var(--red)" onclick="deleteFreeReminderM('${r.id}','free')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── توابع مشترک مدیریت (بین کارهای فردا و یادآوری آزاد) ──
+async function toggleFreeReminderDoneM(id){
+  const r = (cachedFreeReminders||[]).find(x=>String(x.id)===String(id));
+  if(!r) return;
+  try{
+    await fetch(DJANGO_FREEREM_API_M+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({done:!r.done})});
+    r.done = !r.done;
+    if(r.category==='tomorrow') renderTomorrowTasksM(); else renderFreeListM();
+    toast(r.done?'✅ انجام شد':'↩️ برگشت داده شد');
+  }catch(e){ toast('❌ اتصال به سرور برقرار نشد'); }
+}
+async function deleteFreeReminderM(id, kind){
+  if(!confirm('این یادآوری حذف بشه؟')) return;
+  try{
+    await fetch(DJANGO_FREEREM_API_M+id+'/', {method:'DELETE'});
+    const idx = cachedFreeReminders.findIndex(x=>String(x.id)===String(id));
+    if(idx>=0) cachedFreeReminders.splice(idx,1);
+    if(kind==='tomorrow') renderTomorrowTasksM(); else renderFreeListM();
+    toast('✅ حذف شد');
+  }catch(e){ toast('❌ اتصال به سرور برقرار نشد'); }
+}
+async function completeRecurringCycleM(id){
+  const r = (cachedRecurring||[]).find(x=>String(x.id)===String(id));
+  if(!r) return;
+  const nextDate = addDaysShamsiM(r.nextDate, r.interval);
+  try{
+    await fetch(DJANGO_RECURRING_API_M+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({next_date:nextDate})});
+    r.nextDate = nextDate;
+    renderRecurringListM();
+    toast('✅ ثبت شد — موعد بعدی: '+nextDate);
+  }catch(e){ toast('❌ اتصال به سرور برقرار نشد'); }
+}
+async function cancelRecurringM(id){
+  if(!confirm('این یادآوری دوره‌ای لغو بشه؟')) return;
+  try{
+    await fetch(DJANGO_RECURRING_API_M+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({canceled:true})});
+    const idx = cachedRecurring.findIndex(x=>String(x.id)===String(id));
+    if(idx>=0) cachedRecurring[idx].canceled = true;
+    renderRecurringListM();
+    toast('✅ لغو شد');
+  }catch(e){ toast('❌ اتصال به سرور برقرار نشد'); }
+}
+// ⚠️ ساده‌ترین افزودن روز شمسی — فقط برای محاسبه‌ی موعد بعدیِ دوره‌ای،
+// دقت تقویمی کامل لازم نداره (همون سطحی که برای «امروز/فردا» موبایل هست)
+function addDaysShamsiM(dateStr, days){
+  const [y,m,d] = dateStr.split('/').map(Number);
+  const monthLen = m<=6?31:(m<=11?30:29);
+  let nd=d+days, nm=m, ny=y;
+  while(nd>monthLen){ nd-=monthLen; nm++; if(nm>12){nm=1;ny++;} }
+  return `${ny}/${String(nm).padStart(2,'0')}/${String(nd).padStart(2,'0')}`;
 }
 
 function openFreeReminderSheet(){
