@@ -320,7 +320,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
       <button class="crm-nav-item active" id="tabBtnMorning" onclick="showCrmTab('morning')"><span class="crm-nav-icon">☀️</span><span>صبح امروز</span><span class="crm-nav-badge" id="morningBadge" style="display:none"></span></button>
 
       <!-- گروه داشبورد — آکاردئونی (۱۴۰۵/۰۶/۱۵: قبلاً «داشبورد من»/«داشبورد مدیریت» اشتباهی زیر جذب مشتری بودن) -->
-      <div style="margin-top:2px;">
+      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
         <button class="crm-nav-item" id="dashGroupToggle" onclick="toggleDashNavGroup()" style="justify-content:space-between;">
           <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">📊</span><span>داشبورد</span></span>
           <span id="dashGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
@@ -333,10 +333,13 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
         </div>
       </div>
 
-      <!-- گروه جذب مشتری — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش -->
-      <div style="margin-top:2px;">
+      <!-- گروه جذب مشتری — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش.
+           ⚠️ (۱۴۰۵/۰۶/۱۸) طبق دستور صریح کاربر: این گروهِ «اصلیِ» نوار
+           کناریه، پس کادرش با رنگ برجسته (accent) متمایز شده — بقیه‌ی
+           گروه‌ها هم کادر می‌گیرن ولی با رنگ خنثی (border معمولی). -->
+      <div style="margin-top:2px;border:1.5px solid var(--accent);border-radius:10px;padding:2px;background:rgba(240,165,0,.03);">
         <button class="crm-nav-item" id="prospGroupToggle" onclick="toggleProspNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🎯</span><span>جذب مشتری</span></span>
+          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🎯</span><span style="font-weight:800;">جذب مشتری</span></span>
           <span style="display:flex;align-items:center;gap:6px;">
             <span class="crm-nav-badge" id="prospectsBadge" style="display:none"></span>
             <span id="prospGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
@@ -345,18 +348,18 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
         <div id="prospNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
           <button class="crm-nav-item" id="tabBtnProspCreate" onclick="showCrmTab('prospCreate')" style="font-size:12px;"><span class="crm-nav-icon">🆕</span><span>ساخت مشتری</span></button>
           <button class="crm-nav-item" id="tabBtnProspQuick" onclick="showCrmTab('prospQuick')" style="font-size:12px;"><span class="crm-nav-icon">📞</span><span>فرم جذب سریع</span></button>
-          <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" style="font-size:12px;"><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
           <button class="crm-nav-item" id="tabBtnProspTable" onclick="showCrmTab('prospTable')" style="font-size:12px;"><span class="crm-nav-icon">📋</span><span>جدول ثبت</span></button>
           <button class="crm-nav-item" id="tabBtnProspChangelog" onclick="showCrmTab('prospChangelog')" style="font-size:12px;display:none"><span class="crm-nav-icon">📒</span><span>دفتر کل تغییرات</span></button>
           <button class="crm-nav-item" id="tabBtnProspApprovals" onclick="showCrmTab('prospApprovals')" style="font-size:12px;display:none"><span class="crm-nav-icon">✅</span><span>تاییدها</span><span class="crm-nav-badge" id="approvalsBadgeInline" style="display:none"></span></button>
           <button class="crm-nav-item" id="tabBtnProspMgmt" onclick="showCrmTab('prospMgmt')" style="font-size:12px;display:none"><span class="crm-nav-icon">🔔</span><span>تایید مدیریت</span><span class="crm-nav-badge" id="mgmtBadgeInline" style="display:none"></span></button>
+          <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" style="font-size:12px;"><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
         </div>
       </div>
 
       <!-- گروه سفارش مشتری — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) — طبق تصمیم صریح
            کاربر، خودِ این ۳ صفحه دست‌نخورده موندن، فقط محل قرارگیریشون تو
            نوار کناری عوض شد -->
-      <div style="margin-top:2px;">
+      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
         <button class="crm-nav-item" id="orderGroupToggle" onclick="toggleOrderNavGroup()" style="justify-content:space-between;">
           <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">📦</span><span>سفارش مشتری</span></span>
           <span id="orderGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
@@ -369,7 +372,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
       </div>
 
       <!-- گروه یادآوری‌ها — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش -->
-      <div style="margin-top:2px;">
+      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
         <button class="crm-nav-item" id="remGroupToggle" onclick="toggleRemNavGroup()" style="justify-content:space-between;">
           <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🔔</span><span>یادآوری‌ها</span></span>
           <span style="display:flex;align-items:center;gap:6px;">
@@ -385,23 +388,23 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
       </div>
 
       <!-- گروه مالی — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) -->
-      <div style="margin-top:2px;">
+      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
         <button class="crm-nav-item" id="financeGroupToggle" onclick="toggleFinanceNavGroup()" style="justify-content:space-between;">
           <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">💰</span><span>مالی</span></span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span class="crm-nav-badge" id="debtsBadge" style="display:none"></span>
+            <span class="crm-nav-badge" id="financeGroupBadge" style="display:none"></span>
             <span id="financeGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
           </span>
         </button>
         <div id="financeNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" id="tabBtnDebts" onclick="showCrmTab('debts')" style="font-size:12px;"><span class="crm-nav-icon">💳</span><span>وصول مطالبات</span></button>
+          <button class="crm-nav-item" id="tabBtnDebts" onclick="showCrmTab('debts')" style="font-size:12px;"><span class="crm-nav-icon">💳</span><span>وصول مطالبات</span><span class="crm-nav-badge" id="debtsSubBadge" style="display:none"></span></button>
         </div>
       </div>
 
       <button class="crm-nav-item" id="tabBtnCalendar" onclick="showCrmTab('calendar')"><span class="crm-nav-icon">🗓️</span><span>تقویم</span></button>
 
       <!-- گروه ابزار — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) -->
-      <div style="margin-top:2px;">
+      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
         <button class="crm-nav-item" id="toolsGroupToggle" onclick="toggleToolsNavGroup()" style="justify-content:space-between;">
           <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🛠️</span><span>ابزار</span></span>
           <span id="toolsGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
@@ -1497,8 +1500,6 @@ function showCrmTab(tab){
   if(tab==='waLists' && !_toolsNavOpen) toggleToolsNavGroup();
   if(['prospCreate','prospQuick','prospCustomers','prospTable','prospChangelog','prospApprovals','prospMgmt'].includes(tab) && !_prospNavOpen) toggleProspNavGroup();
   updateRemNavBadges();
-  const rb=document.getElementById('remBadge');
-  if(rb){const cnt=(freeReminders||[]).filter(r=>!r.done).length;rb.textContent=fn(cnt);rb.style.display=cnt?'inline-block':'none';}
 }
 let _prospNavOpen = false;
 function toggleProspNavGroup(){
@@ -1508,6 +1509,7 @@ function toggleProspNavGroup(){
   if(box) box.style.maxHeight = _prospNavOpen ? '340px' : '0';
   if(arrow) arrow.textContent = _prospNavOpen ? '⌃' : '⌄';
   updateProspNavVisibility();
+  updateAllGroupBadges();
 }
 // ⚠️ (۱۴۰۵/۰۶/۱۵) بازآرایی نوار کناری — طبق دستور صریح کاربر: داشبورد،
 // سفارش مشتری، مالی، ابزار هم آکاردئونی شدن. الگوی هرکدوم دقیقاً مثل
@@ -1536,6 +1538,7 @@ function toggleFinanceNavGroup(){
   const arrow = document.getElementById('financeGroupArrow');
   if(box) box.style.maxHeight = _financeNavOpen ? '80px' : '0';
   if(arrow) arrow.textContent = _financeNavOpen ? '⌃' : '⌄';
+  updateAllGroupBadges();
 }
 let _toolsNavOpen = false;
 function toggleToolsNavGroup(){
@@ -1552,6 +1555,30 @@ function toggleRemNavGroup(){
   const arrow = document.getElementById('remGroupArrow');
   if(box) box.style.maxHeight = _remNavOpen ? '160px' : '0';
   if(arrow) arrow.textContent = _remNavOpen ? '⌃' : '⌄';
+  updateAllGroupBadges();
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۸) قانون سراسری شمارنده — طبق دستور صریح کاربر: وقتی گروه
+// بسته‌ست، رو خودِ گروه باید مجموعِ همه‌ی زیرمجموعه‌های بازش دیده بشه؛ وقتی
+// بازه، خودِ گروه مخفی می‌شه و هر زیرمجموعه شمارنده‌ی خودش رو نشون می‌ده.
+function syncGroupBadge(isOpen, groupBadgeId, subBadgeIds){
+  const groupEl = document.getElementById(groupBadgeId);
+  if(!groupEl) return;
+  if(isOpen){ groupEl.style.display = 'none'; return; }
+  let total = 0;
+  subBadgeIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && el.style.display !== 'none'){
+      const n = parseInt(fa2en(el.textContent||'0'), 10);
+      if(!isNaN(n)) total += n;
+    }
+  });
+  groupEl.textContent = fn(total);
+  groupEl.style.display = total>0 ? 'inline-block' : 'none';
+}
+function updateAllGroupBadges(){
+  syncGroupBadge(_prospNavOpen, 'prospectsBadge', ['approvalsBadgeInline','mgmtBadgeInline']);
+  syncGroupBadge(_remNavOpen, 'remBadge', ['remTomorrowNavBadge','remRecurringNavBadge','remFreeNavBadge']);
+  syncGroupBadge(_financeNavOpen, 'financeGroupBadge', ['debtsSubBadge']);
 }
 function updateRemNavBadges(){
   const setB=(id,cnt)=>{const el=document.getElementById(id); if(!el) return; el.textContent=fn(cnt); el.style.display=cnt>0?'inline-block':'none';};
@@ -1561,6 +1588,7 @@ function updateRemNavBadges(){
   setB('remTomorrowNavBadge', (freeReminders||[]).filter(r=>r.category==='tomorrow' && !r.done).length);
   setB('remRecurringNavBadge', (recurringReminders||[]).filter(r=>!r.canceled && r.nextDate<=todayStr).length);
   setB('remFreeNavBadge', (freeReminders||[]).filter(r=>r.category!=='tomorrow' && !r.done).length);
+  updateAllGroupBadges();
 }
 async function loadLeads(){
   const djangoLeads = await fetchLeadsFromDjango();
@@ -4123,10 +4151,11 @@ function updateProspNavVisibility(){
   if(dashboardBtn) dashboardBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
 }
 async function updateApprovalsBadge(){
-  if(!isSalesSupOrAbove()) return;
+  if(!isSalesSupOrAbove()){ updateAllGroupBadges(); return; }
   const count = await fetchPendingApprovalsCount('sup_sales');
   const badge = document.getElementById('approvalsBadgeInline');
   if(badge){ badge.textContent = fn(count); badge.style.display = count>0 ? 'inline-block' : 'none'; }
+  updateAllGroupBadges();
 }
 async function renderProspectApprovals(c){
   c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
@@ -4191,10 +4220,11 @@ async function submitApprovalDecision(approvalId, decision){
 }
 // ── صفحه‌ی تایید مدیریت تو خودِ CRM — علاوه‌بر تلگرام (طبق تصمیم کاربر: هر دو) ──
 async function updateMgmtBadge(){
-  if(!isManagementRole()) return;
+  if(!isManagementRole()){ updateAllGroupBadges(); return; }
   const count = await fetchPendingApprovalsCount('management');
   const badge = document.getElementById('mgmtBadgeInline');
   if(badge){ badge.textContent = fn(count); badge.style.display = count>0 ? 'inline-block' : 'none'; }
+  updateAllGroupBadges();
 }
 async function renderManagementApprovals(c){
   c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
@@ -5627,7 +5657,7 @@ function renderProspectTable(c){
         <button class="btn btn-ghost btn-sm" onclick="clearProspectFilters()">پاک‌کردن فیلترها</button>
       </div>
       <table><thead><tr>
-        <th>نام مشتری</th><th>کارشناس فعلی</th><th>تاریخ ساخت</th><th>اولویت‌بندی</th><th>آخرین صحبت انجام‌شده</th><th>پیگیری بعدی</th><th>وضعیت</th>
+        <th>نام مشتری</th><th>کارشناس فعلی</th><th>تاریخ ساخت</th><th>اولویت‌بندی</th><th>تعداد تماس</th><th>آخرین صحبت انجام‌شده</th><th>پیگیری بعدی</th><th>وضعیت</th>
       </tr></thead><tbody id="pTableBody"></tbody></table>
     </div>
   `;
@@ -5645,6 +5675,13 @@ function findCustomerPriority(name){
   const m = (customerMaster||[]).find(c=>normalizeFa(c.name||'')===target);
   return m ? String(m.priority||'').trim() : '';
 }
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: تعداد کل تماس‌ها (چرخه‌ی فعلی + همه‌ی
+// چرخه‌های قبلی رزرو، نه فقط چرخه‌ی فعلی) — چون ممکنه ده‌ها بار زنگ زده باشه
+function prospectTotalCallCount(p){
+  const current = (p.activityLog||[]).length;
+  const past = (p.reservationHistory||[]).reduce((sum,h)=>sum+((h.activity_log||[]).length),0);
+  return current + past;
+}
 function renderProspectTableBody(){
   let rows = [...(prospects||[])];
   if(curProspectTableSearch){
@@ -5661,17 +5698,23 @@ function renderProspectTableBody(){
   body.innerHTML = rows.length ? rows.map(p=>{
     const lastActivity = (p.activityLog&&p.activityLog.length) ? p.activityLog[p.activityLog.length-1] : null;
     const priority = findCustomerPriority(p.name);
+    const callCount = prospectTotalCallCount(p);
+    // ⚠️ یادآوری‌ای که تاریخش امروز یا گذشته‌ست، باید تو خودِ جدول (بدون
+    // نیاز به باز کردن مودال) برجسته باشه
+    const followupDate = lastActivity?.followup_date || '';
+    const isFollowupDue = followupDate && shamsiDateSortVal(followupDate) <= shamsiDateSortVal(todayShamsiStr());
     return `
     <tr style="cursor:pointer" onclick="openProspectDetail(${p.id})">
       <td><strong>${p.name}</strong>${p.hasContract?' <span style="color:var(--green);font-size:10px">📄</span>':''}</td>
       <td style="font-size:11px">${p.assigneeName?ac(p.assigneeName):'—'}</td>
       <td style="font-size:11px;color:var(--muted)">${p.createdDate||'—'}${p.createdTime?' - '+p.createdTime:''}</td>
       <td style="font-size:11px;color:${['1','5','9'].includes(priority)?'var(--green)':'var(--muted)'}">${priority||'—'}</td>
+      <td style="font-size:11px;text-align:center;font-weight:${callCount>0?'700':'400'};color:${callCount>0?'var(--text)':'var(--muted)'}">${fn(callCount)}</td>
       <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lastActivity?(lastActivity.said||lastActivity.heard||'—'):'—'}</td>
-      <td style="font-size:11px;color:var(--accent)">${lastActivity?(lastActivity.next_followup||'—'):'—'}</td>
+      <td style="font-size:11px;color:${isFollowupDue?'var(--red)':'var(--accent)'};font-weight:${isFollowupDue?'700':'400'}">${isFollowupDue?'🔴 ':''}${lastActivity?(lastActivity.next_followup||'—'):'—'}${followupDate?' — '+followupDate:''}</td>
       <td>${prospectStatusChip(p)}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+  }).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
 }
 
 // ── جزئیات یه مشتری بالقوه (از جدول یا فرم جذب سریع باز می‌شه) ──
@@ -6067,13 +6110,14 @@ function renderDebtsView(){
     ${active.length?active.map(cardHTML).join(''):emptyBox('💳','پرونده‌ی بازی نیست')}
     ${closed.length?`<details style="margin-top:18px;"><summary style="font-size:11px;color:var(--muted);cursor:pointer;">🗄️ تسویه‌شده‌ها (${closed.length})</summary><div style="margin-top:8px;">${closed.map(cardHTML).join('')}</div></details>`:''}
   `;
-  const badge=document.getElementById('debtsBadge');
+  const badge=document.getElementById('debtsSubBadge');
   if(badge){
     const urgent=active.filter(c=>c.salesClosedTick).length; // منتظر تأیید مالی
     badge.textContent=fn(active.length);
     badge.style.display=active.length?'inline-block':'none';
     if(urgent) badge.style.background='var(--red)';
   }
+  updateAllGroupBadges();
 }
 
 // ── ساخت پرونده جدید ──
@@ -7482,6 +7526,12 @@ function renderGlobalSearchResults(q){
   (leads||[]).forEach(l=>{ if(normalizeFa(l.customer||'').includes(nq)) customerSet.add(l.customer); });
   const custResults=[...customerSet].slice(0,6);
 
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکس شکاف واقعی: سرچ سراسری فقط leads (سیستم قدیمی) رو
+  // می‌گشت، prospects (کل سیستم جذب مشتری جدید) رو اصلاً نمی‌گشت
+  const prospResults=(prospects||[]).filter(p=>
+    normalizeFa(p.name||'').includes(nq) || (p.phone1||'').includes(q) || (p.phone2||'').includes(q)
+  ).slice(0,6);
+
   // چک‌های دریافتی
   const chqRecResults=(chequesReceived||[]).filter(c=>
     normalizeFa(c.customer||'').includes(nq) || normalizeFa(c.transferor||'').includes(nq) || (c.serial||'').includes(q)
@@ -7502,7 +7552,7 @@ function renderGlobalSearchResults(q){
     normalizeFa(r.customer||'').includes(nq) || normalizeFa(r.displayNumber||'').includes(nq)
   ).slice(0,5);
 
-  const total=custResults.length+chqRecResults.length+chqPaidResults.length+remResults.length+reqResults.length;
+  const total=custResults.length+prospResults.length+chqRecResults.length+chqPaidResults.length+remResults.length+reqResults.length;
   if(!total){
     box.innerHTML='<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted)">چیزی پیدا نشد</div>';
     box.style.display='block';
@@ -7517,6 +7567,12 @@ function renderGlobalSearchResults(q){
     html+=`<div style="${groupStyle}">👤 مشتریان (${custResults.length})</div>`;
     custResults.forEach(c=>{
       html+=`<div style="${rowStyle}" onclick="openCustomerTimeline('${c.replace(/'/g,"\\'")}');closeGlobalSearch();"><strong>${c}</strong></div>`;
+    });
+  }
+  if(prospResults.length){
+    html+=`<div style="${groupStyle}">🎯 مشتریان بالقوه (${prospResults.length})</div>`;
+    prospResults.forEach(p=>{
+      html+=`<div style="${rowStyle}" onclick="openProspectDetail(${p.id});closeGlobalSearch();"><strong>${p.name}</strong> <span style="color:var(--muted);font-size:10px">— ${prospectStatusChip(p)}</span></div>`;
     });
   }
   if(chqRecResults.length){
