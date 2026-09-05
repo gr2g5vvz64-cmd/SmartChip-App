@@ -196,17 +196,22 @@ function renderForm(){
       <thead><tr><th>شماره پرسنلی</th><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th><th></th></tr></thead>
       <tbody id="staffTableBody"></tbody>
     </table>
+    <div style="margin-top:24px">
+      <div style="font-size:14px;font-weight:800;margin-bottom:10px">🤖 وضعیت اتصال بات کارمندان</div>
+      <div id="staffBotStatusBox"></div>
+    </div>
   `;
 }
 const DJANGO_STAFF_API = 'https://smartchip-backend.onrender.com/api/staff/staff/';
 async function loadStaff(){
   try{
     const res = await fetch(DJANGO_STAFF_API);
-    if(res.ok){ staffList = await res.json(); renderTable(); return; }
+    if(res.ok){ staffList = await res.json(); renderTable(); renderStaffBotStatus(); return; }
   }catch(e){}
   const res=await sheetCall('getStaffList');
   staffList=(res&&res.staff)||[];
   renderTable();
+  renderStaffBotStatus();
 }
 function renderTable(){
   const el=document.getElementById('staffTableBody');
@@ -315,6 +320,81 @@ async function removeStaffMember(email){
   try{ await fetch(DJANGO_STAFF_API+encodeURIComponent(email)+'/', {method:'DELETE'}); }
   catch(e){ alert('⚠️ اتصال به سرور برقرار نشد'); }
   await loadStaff();
+}
+
+// ══════════════════════════════════════════════════════════════
+// 🤖 وضعیت اتصال بات کارمندان — کپی از erp.html/ابزار (۱۴۰۵/۰۶/۱۸)
+// ⚠️ طبق درخواست کاربر: همینجا، تو خودِ مدیریت کارمندان، باشه — نه فقط
+// تو ERP — تا وقتی کارمندی اضافه/ویرایش می‌شه، همینجا هم دیده بشه.
+// ══════════════════════════════════════════════════════════════
+let staffBotListM = [];
+async function renderStaffBotStatus(){
+  const box = document.getElementById('staffBotStatusBox');
+  if(!box) return;
+  box.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>';
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
+    staffBotListM = res.ok ? await res.json() : [];
+  }catch(e){ staffBotListM = []; }
+  const connected = staffBotListM.filter(s=>s.telegramConnected||s.baleConnected);
+  const notConnected = staffBotListM.filter(s=>!s.telegramConnected&&!s.baleConnected);
+  box.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--green)">${connected.length}</div>
+        <div style="font-size:10px;color:var(--muted)">🟢 وصل شده</div>
+      </div>
+      <div style="background:rgba(156,163,175,.08);border:1px solid rgba(156,163,175,.3);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--muted)">${notConnected.length}</div>
+        <div style="font-size:10px;color:var(--muted)">⚪ وصل‌نشده</div>
+      </div>
+    </div>
+    ${notConnected.length?`<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">⚪ وصل‌نشده‌ها:</div>
+    ${notConnected.map(s=>`
+      <div id="staffBotRow_${s.id}" style="padding:8px 10px;background:var(--card);border-radius:8px;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;">
+          <span style="font-weight:700">${s.name}</span><span style="color:var(--muted);font-size:10px">${ROLE_LABELS[s.role]||s.role}</span>
+          <button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="sendStaffBotInviteWhatsAppAdmin(${s.id})">📱 دعوت با واتساپ</button>
+        </div>
+        <div id="staffBotLinks_${s.id}"></div>
+      </div>`).join('')}`:''}
+    ${connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px;">🟢 وصل‌شده‌ها:</div>
+    ${connected.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
+      <span style="font-weight:700">${s.name}</span><span style="color:var(--muted);font-size:10px">${ROLE_LABELS[s.role]||s.role}</span>
+      ${s.telegramConnected?'<span style="color:#0088cc;font-size:10px">✈️ تلگرام</span>':''}
+      ${s.baleConnected?'<span style="color:#0070e0;font-size:10px">💙 بله</span>':''}
+    </div>`).join('')}`:''}
+    ${!staffBotListM.length?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">دریافت وضعیت بات ناموفق بود</div>':''}
+  `;
+}
+async function sendStaffBotInviteWhatsAppAdmin(staffId){
+  try{
+    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-staff-invite/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({staffId})
+    });
+    const res = await httpRes.json();
+    if(!res || !res.ok){
+      alert('⚠️ ساخت دعوت‌نامه ناموفق بود: '+(res?.error||'نامشخص'));
+      return;
+    }
+    // ⚠️ لینک‌های تلگرام/بله رو مستقیم از خودِ متنی که سرور برگردونده استخراج
+    // می‌کنیم (نه فرض‌کردن ساختار) — تا همیشه دقیقاً همونی باشه که واقعاً
+    // ساخته شده، حتی اگه بعداً بک‌اند عوض بشه.
+    const msg = res.message || '';
+    const tgMatch = msg.match(/https:\/\/t\.me\/\S+/);
+    const bleMatch = msg.match(/https:\/\/ble\.ir\/\S+/);
+    const linksBox = document.getElementById('staffBotLinks_'+staffId);
+    if(linksBox){
+      linksBox.innerHTML = `
+        <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10.5px;display:flex;flex-direction:column;gap:4px">
+          ${tgMatch ? `<a href="${tgMatch[0]}" target="_blank" style="color:#0088cc;direction:ltr;text-align:left;word-break:break-all">✈️ ${tgMatch[0]}</a>` : ''}
+          ${bleMatch ? `<a href="${bleMatch[0]}" target="_blank" style="color:#0070e0;direction:ltr;text-align:left;word-break:break-all">💙 ${bleMatch[0]}</a>` : ''}
+        </div>`;
+    }
+    await navigator.clipboard.writeText(msg).catch(()=>{});
+    window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank');
+  }catch(e){ alert('⚠️ خطای شبکه — دوباره امتحان کن'); }
 }
 init();
 </script>
