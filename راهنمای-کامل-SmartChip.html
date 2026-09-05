@@ -144,21 +144,27 @@ li strong{color:var(--text)}
 
   <div class="nav-section">CRM فروش</div>
   <a class="nav-link" href="#crm-morning">صبح امروز</a>
-  <a class="nav-link" href="#crm-dashboard">داشبورد</a>
+  <a class="nav-link" href="#crm-dashboard">📋 داشبورد سفارش‌ها</a>
   <a class="nav-link" href="#crm-category">وضعیت مشتریان بر اساس صنف</a>
-  <a class="nav-link" href="#crm-leads">لیدها و کانبان</a>
+  <a class="nav-link" href="#crm-leads">لیدها و کانبان (داشبورد سفارش‌ها)</a>
   <a class="nav-link" href="#crm-finance">تیک نیاز مالی</a>
   <a class="nav-link" href="#crm-reminder">یادآوری و تقویم</a>
   <a class="nav-link" href="#crm-referral">ارجاع کار</a>
+
+  <div class="nav-section">📊 داشبورد</div>
+  <a class="nav-link" href="#dash-mystats">داشبورد من</a>
+  <a class="nav-link" href="#dash-mgmtstats">داشبورد مدیریت</a>
+  <a class="nav-link" href="#dash-forecast">🔮 پیش‌بینی فروش</a>
 
   <div class="nav-section">🎯 جذب مشتری</div>
   <a class="nav-link" href="#prosp-create">ساخت مشتری</a>
   <a class="nav-link" href="#prosp-quickform">فرم جذب سریع</a>
   <a class="nav-link" href="#prosp-customers">مشتریان (یکپارچه)</a>
   <a class="nav-link" href="#prosp-table">جدول ثبت</a>
-  <a class="nav-link" href="#prosp-mystats">داشبورد من</a>
-  <a class="nav-link" href="#prosp-mgmtstats">داشبورد مدیریت</a>
+  <a class="nav-link" href="#prosp-changelog">📒 دفتر کل تغییرات</a>
   <a class="nav-link" href="#prosp-approvals">تاییدها</a>
+  <a class="nav-link" href="#prosp-mgmt">🔔 تایید مدیریت</a>
+  <a class="nav-link" href="#prosp-verification">🔍 سیکل بررسی صلاحیت</a>
 
   <div class="nav-section">ERP بازرگانی</div>
   <a class="nav-link" href="#erp-request">درخواست مشتری</a>
@@ -171,10 +177,12 @@ li strong{color:var(--text)}
   <a class="nav-link" href="#erp-warehouse">انبار</a>
   <a class="nav-link" href="#erp-shipping">ارسال به مشتری</a>
   <a class="nav-link" href="#erp-samples">🧪 نمونه‌ها</a>
+  <a class="nav-link" href="#erp-feedback">💬 بازخوردهای مشتریان</a>
   <a class="nav-link" href="#erp-cheque">چک‌های دریافتی</a>
 
   <div class="nav-section">بات و اطلاع‌رسانی</div>
   <a class="nav-link" href="#bot-status">اتصال مشتری به بات</a>
+  <a class="nav-link" href="#wa-lists">📢 لیست‌های واتساپ</a>
   <a class="nav-link" href="#sync">همگام‌سازی وزن قطعات</a>
   <a class="nav-link" href="#morning-bot">خلاصه‌ی صبحگاهی (بات)</a>
 
@@ -339,8 +347,8 @@ li strong{color:var(--text)}
 <!-- CRM داشبورد -->
 <div class="section" id="crm-dashboard">
   <div class="section-eyebrow">CRM — فروش</div>
-  <div class="section-title">📊 داشبورد فروش</div>
-  <div class="section-desc">آمار کلی، مشتریان اولویت‌بالا، و گزارش عملکرد کارشناسان.</div>
+  <div class="section-title">📋 داشبورد سفارش‌ها <span class="badge" style="background:var(--red)">فقط سرپرست فروش/مدیریت</span></div>
+  <div class="section-desc">⚠️ از ۱۴۰۵/۰۶/۱۶ تغییر نام داد (قبلاً «داشبورد») و محدود شد — کارشناسان عادی دیگه این صفحه رو نمی‌بینن. آمار کلی، مشتریان اولویت‌بالا، و گزارش عملکرد کارشناسان.</div>
 
   <h3>مشتریان اولویت‌بالا</h3>
   <p>مشتریانی که ستون Z شیت مشتریان آن‌ها «۱» (اولویت بالا)، «۵» (اولویت دوم) یا «۹» (اولویت سوم) است — هر سه دسته با تعداد پیگیری‌نشده در داشبورد نمایش داده می‌شوند.</p>
@@ -606,8 +614,10 @@ li strong{color:var(--text)}
   <p>ستون‌ها: نام مشتری، کارشناس فعلی، تاریخ ساخت، اولویت‌بندی، آخرین صحبت انجام‌شده، پیگیری بعدی، و وضعیت (آزاد/رزرو/جذب‌شده).</p>
 </div>
 
-<div class="section" id="prosp-mystats">
-  <div class="section-eyebrow">🎯 جذب مشتری</div>
+<!-- ══════════════ داشبورد ══════════════ -->
+
+<div class="section" id="dash-mystats">
+  <div class="section-eyebrow">📊 داشبورد</div>
   <div class="section-title">📊 داشبورد من</div>
   <div class="section-desc">مخصوص هر کارشناس — کجا خوب عمل کردی، کجا باید بیشتر تلاش کنی.</div>
 
@@ -637,8 +647,8 @@ li strong{color:var(--text)}
   </div>
 </div>
 
-<div class="section" id="prosp-mgmtstats">
-  <div class="section-eyebrow">🎯 جذب مشتری</div>
+<div class="section" id="dash-mgmtstats">
+  <div class="section-eyebrow">📊 داشبورد</div>
   <div class="section-title">📈 داشبورد مدیریت</div>
   <div class="section-desc">فقط سرپرست فروش و مدیریت می‌بینن — برای رصد عملکرد تیم و محاسبه‌ی پورسانت.</div>
 
@@ -656,23 +666,80 @@ li strong{color:var(--text)}
       <td class="action-cell">🟢⚪ مشتریان فعال در برابر غیرفعال</td>
       <td class="result-cell">خلاصه‌ی کل فایل مشتریان — چند درصد واقعاً خریدار هستن</td>
     </tr>
+    <tr>
+      <td class="action-cell">⏳ درخواست‌های تایید — وضعیت معطلی</td>
+      <td class="result-cell">چند درخواست اعتبار/اولویت در انتظاره، چندتاش بیش از ۳ روز معطل مونده (قرمز)، میانگین روز تا تصمیم</td>
+    </tr>
+    <tr>
+      <td class="action-cell">🔢 شمارش سفارش هر مشتری</td>
+      <td class="result-cell">تعداد سفارش بازار/خارج هر مشتری بر اساس کد پیگیری، به‌همراه شماره‌ی سفارش بعدی (مثل <code>PRH-004</code>)</td>
+    </tr>
   </table>
+</div>
+
+<div class="section" id="dash-forecast">
+  <div class="section-eyebrow">📊 داشبورد</div>
+  <div class="section-title">🔮 پیش‌بینی فروش</div>
+  <div class="section-desc">فقط سرپرست فروش و مدیریت — تخمین تعداد جذب مورد انتظار، نه مبلغ ریالی.</div>
+  <p>چون مبلغ واقعی سفارش تو سیستم ثبت نمی‌شه، پیش‌بینی «تعداد» جذب مورد انتظاره، بر پایه‌ی: <strong>تعداد رزرو فعلی هر کارشناس × نرخ تبدیل تاریخی‌اش</strong>، با یه وزن‌دهی اضافه — مشتری‌ای که مهلت رزروش نزدیک‌تره و هنوز جذب نشده، وزن کمتری تو محاسبه می‌گیره (چون احتمال جذبش تو این بازه کمتره).</p>
+  <div class="note">
+    <div class="note-icon">💡</div>
+    <div class="note-text">این عدد یه تخمینه برای برنامه‌ریزی، نه یه قول قطعی — هرچی نرخ تبدیل تاریخی یه کارشناس دقیق‌تر (داده‌ی بیشتر) باشه، تخمینش هم دقیق‌تره.</div>
+  </div>
+</div>
+
+<!-- ══════════════ ادامه‌ی جذب مشتری ══════════════ -->
+
+<div class="section" id="prosp-changelog">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">📒 دفتر کل تغییرات</div>
+  <div class="section-desc">فقط سرپرست فروش و مدیریت — تاریخچه‌ی تغییرات *همه‌ی* مشتریان یکجا، نه تک‌تک.</div>
+  <p>هر تغییری رو هر فیلد مشتری (نام، تلفن، اولویت، کارشناس مسئول و...) خودکار ثبت می‌شه: کی، چه فیلدی، از چی به چی، چه تاریخ/ساعتی. با فیلتر کارشناس یا نوع فیلد می‌شه سریع فهمید «این هفته کی چه دستکاری‌هایی کرده» — بدون باز کردن تک‌تک پرونده‌ها.</p>
 </div>
 
 <div class="section" id="prosp-approvals">
   <div class="section-eyebrow">🎯 جذب مشتری</div>
-  <div class="section-title">✅ تاییدها و 🔔 تایید مدیریت</div>
-  <div class="section-desc">دو مسیر تایید، برای دو تصمیم متفاوت.</div>
+  <div class="section-title">✅ تاییدها (سرپرست فروش)</div>
+  <div class="section-desc">وقتی یه کارشناس می‌خواد مشتری‌ای رو «جذب‌شده» ثبت کنه ولی هنوز مبلغ اعتبارش تعیین نشده، اینجا یه درخواست می‌شینه.</div>
+  <p>سرپرست فروش مبلغ رو <strong>به ریال، با جداکننده‌ی سه‌رقمی</strong> وارد می‌کنه و تایید می‌کنه — بعدش کارشناس می‌تونه جذب رو کامل کنه. اعتبار کاملاً وظیفه‌ی سرپرست فروشه؛ مدیریت/تلگرام هیچ نقشی تو این تصمیم نداره.</p>
+</div>
 
-  <h3>✅ تاییدها (سرپرست فروش)</h3>
-  <p>وقتی یه کارشناس می‌خواد مشتری‌ای رو «جذب‌شده» ثبت کنه ولی هنوز مبلغ اعتبارش تعیین نشده، اینجا یه درخواست می‌شینه. سرپرست فروش مبلغ رو وارد می‌کنه و تایید می‌کنه — بعدش کارشناس می‌تونه جذب رو کامل کنه.</p>
-
-  <h3>🔔 تایید مدیریت (فقط مدیریت)</h3>
-  <p>وقتی یه کارشناس می‌خواد رو یه مشتری قدیمیِ بدون اولویت ۱/۵/۹ کار کنه، درخواستش هم از طریق <strong>تلگرام</strong> (پیام با دکمه‌ی بله/خیر) هم همینجا تو CRM نشون داده می‌شه — هرکدوم رو جواب بدی، کافیه.</p>
-
+<div class="section" id="prosp-mgmt">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">🔔 تایید مدیریت (فقط مدیریت)</div>
+  <div class="section-desc">وقتی یه کارشناس می‌خواد رو یه مشتری قدیمیِ بدون اولویت ۱/۵/۹ کار کنه، اینجاست.</div>
+  <p>درخواست هم از طریق <strong>تلگرام</strong> (پیام با دکمه‌ی بله/خیر) هم همینجا تو CRM نشون داده می‌شه — هرکدوم رو جواب بدی، کافیه.</p>
   <div class="note red">
     <div class="note-icon">⚠️</div>
-    <div class="note-text">تا جواب ندی (چه از تلگرام چه از اینجا)، کارشناس نمی‌تونه رو اون مشتری رزرو بزنه یا فعالیتی ثبت کنه.</div>
+    <div class="note-text">تا جواب ندی (چه از تلگرام چه از اینجا)، کارشناس نمی‌تونه رو اون مشتری رزرو بزنه یا فعالیتی ثبت کنه. مدیریت/تلگرام فقط و فقط همین یه نوع درخواست رو مدیریت می‌کنه — نه اعتبار، نه اولویت.</div>
+  </div>
+</div>
+
+<div class="section" id="prosp-verification">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">🔍 سیکل بررسی صلاحیت</div>
+  <div class="section-desc">اولویت فروش (۱/۵/۹) دیگه یه انتخاب لحظه‌ای موقع زدن «جذب» نیست — نتیجه‌ی یه بررسی واقعیه.</div>
+
+  <p>بعد از «جذب شد»، مشتری وارد یه سیکل ۳مرحله‌ای می‌شه (تو تب «📋 اطلاعات اولیه»ی پرونده‌اش دیده می‌شه):</p>
+  <table class="action-table">
+    <tr><th>مرحله</th><th>چیکار باید بشه</th></tr>
+    <tr>
+      <td class="action-cell">۱. بررسی اولیه</td>
+      <td class="result-cell">کارشناس دو تا چک‌باکس رو می‌زنه: سایت شرکت بررسی شد، شماره ثبت/شناسه ملی چک شد — به‌همراه یه یادداشت کوتاه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">۲. مراجعه‌ی حضوری</td>
+      <td class="result-cell">کارشناس + سرپرست فروش به دفتر/شرکت مشتری سر می‌زنن؛ یادداشت مراجعه (ظاهر دفتر، تعداد پرسنل، انبار و...) ثبت می‌شه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">۳. آماده‌ی اولویت</td>
+      <td class="result-cell">حالا سرپرست فروش/مدیریت، با در نظر گرفتن همه‌ی این‌ها (و آمار جهت تماس مشتری)، اولویت نهایی رو از صفحه‌ی «مشتریان» می‌ده</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <div class="note-icon">📊</div>
+    <div class="note-text"><strong>سیگنال کمکی:</strong> تو همین مرحله‌ی سوم، تعداد تماس‌هایی که *ما* گرفتیم در برابر تعداد تماس‌هایی که *مشتری* خودش گرفته هم نشون داده می‌شه — مشتری‌ای که خودش زیاد زنگ می‌زنه، معمولاً علاقه‌ی واقعی‌تری داره. این فقط یه کمکه، نه جایگزین قضاوت انسانی.</div>
   </div>
 </div>
 
@@ -1055,6 +1122,33 @@ li strong{color:var(--text)}
   </div>
 </div>
 
+<!-- بازخورد پس از تحویل -->
+<div class="section" id="erp-feedback">
+  <div class="section-eyebrow">ERP — فروش</div>
+  <div class="section-title">💬 بازخوردهای مشتریان</div>
+  <div class="section-desc">شکایت/تشکر پس از تحویل سفارش واقعی — مستقل و جدا از «نمونه‌ها» (که مال قبل از خرید است).</div>
+
+  <h3>ثبت (از CRM)</h3>
+  <p>کارشناس فروش از رو یه سفارشِ ثبت‌شده‌ی مشتری، یه بازخورد می‌سازه: نوع (شکایت/تشکر)، توضیح، و انتخاب یک یا چند واحد مرتبط (انبار، بازرگانی، تدارکات، مالی).</p>
+
+  <h3>رسیدگی (هر واحد، تو ERP)</h3>
+  <p>هر واحدی که بازخورد بهش ارجاع شده، تو صفحه‌ی خودش می‌بینتش و «رسیدگی شد» می‌زنه — مستقل از بقیه‌ی واحدها.</p>
+
+  <h3>برگشت به فروش</h3>
+  <table class="action-table">
+    <tr><th>وضعیت</th><th>یعنی چی</th></tr>
+    <tr>
+      <td class="action-cell">⏳ در انتظار واحد(ها)</td>
+      <td class="result-cell">حداقل یکی از واحدهای ارجاع‌شده هنوز جواب نداده</td>
+    </tr>
+    <tr>
+      <td class="action-cell">✅ همه رسیدگی کردن</td>
+      <td class="result-cell"><strong>← نشان «💬 بازخوردهای مشتریان» تو نوار کناری روشن می‌شه</strong> — یعنی وقتشه با مشتری تماس بگیری</td>
+    </tr>
+  </table>
+  <p>کارشناس فروش با مشتری صحبت می‌کنه، بعد دکمه‌ی «📞 با مشتری حرف زدم — ببند» رو می‌زنه تا پرونده بایگانی بشه.</p>
+</div>
+
 <!-- ERP چک -->
 <div class="section" id="erp-cheque">
   <div class="section-eyebrow">ERP — مالی</div>
@@ -1114,6 +1208,37 @@ li strong{color:var(--text)}
   <div class="note">
     <div class="note-icon">💡</div>
     <div class="note-text"><strong>اولویت هوشمند:</strong> اگر مشتری در تلگرام وصل شده، پیام‌های بعدی از تلگرام می‌رود. اگر در بله وصل شده، از بله. سیستم خودش تشخیص می‌دهد — نیازی به انتخاب دستی نیست.</div>
+  </div>
+
+  <div class="note">
+    <div class="note-icon">🔀</div>
+    <div class="note-text"><strong>نسخه‌ی CRM هم هست:</strong> همین صفحه، با همین منطق، تو گروه «🛠️ ابزار» ی نوار کناری CRM هم در دسترسه — با یه فرق مهم: مشتری بالقوه‌ی جدید که هنوز جذب نشده، اصلاً تو این لیست نمیاد (چون هنوز نیازی به بات نداره). فقط وقتی به مرحله‌ی سفارش واقعی برسه، وارد لیست می‌شه.</div>
+  </div>
+</div>
+
+<!-- لیست‌های واتساپ -->
+<div class="section" id="wa-lists">
+  <div class="section-eyebrow">بات و اطلاع‌رسانی</div>
+  <div class="section-title">📢 لیست‌های واتساپ</div>
+  <div class="section-desc">کمک به ساخت/به‌روزرسانی Broadcast List واتساپ — نه ارسال خودکار.</div>
+
+  <p>واتساپ API عمومی برای ساخت خودکار Broadcast List نداره (باید دستی تو گوشی ساخته بشه، تا ۲۵۶ نفر هر لیست). این صفحه فقط شماره‌ها رو بر اساس سگمنت (صنف، قدیمی/جدید) فیلتر و آماده‌ی کپی می‌کنه.</p>
+
+  <table class="action-table">
+    <tr><th>اقدام</th><th>نتیجه</th></tr>
+    <tr>
+      <td class="action-cell">فیلتر صنف + قدیمی/جدید</td>
+      <td class="result-cell">لیست شماره‌ها (نرمال‌شده به فرمت بین‌المللی ۹۸...) آپدیت می‌شه</td>
+    </tr>
+    <tr>
+      <td class="action-cell">دکمه‌ی «📋 کپی همه»</td>
+      <td class="result-cell"><strong>← شماره‌ها کپی می‌شن</strong> — برو تو واتساپ، Broadcast List بساز و پیستشون کن</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <div class="note-icon">⚠️</div>
+    <div class="note-text">اگه بیش از ۲۵۶ نفر باشه، خودکار به چند بلوک تقسیم می‌شه (هرکدوم یه Broadcast List جدا). مشتری بالقوه‌ی هنوز جذب‌نشده، اینجا هم مثل «وضعیت Bot» حذف می‌شه.</div>
   </div>
 </div>
 
@@ -1193,16 +1318,23 @@ li strong{color:var(--text)}
 <div class="section" id="mobile">
   <div class="section-eyebrow">اپ موبایل</div>
   <div class="section-title">📲 نسخه موبایل</div>
-  <div class="section-desc">همه کارهای ضروری در یک صفحه بدون اسکرول — ۱۲ کاشی در grid 3×4.</div>
+  <div class="section-desc">⚠️ از ۱۴۰۵/۰۶/۱۷ کامل به‌روز شد — کل سیستم «🎯 جذب مشتری» حالا رو موبایل هم هست. ساختار اصلیش دو مگاتایل بزرگه: «👥 CRM» و «📦 ERP» — هرکدوم یه هاب با دکمه‌های دسته‌بندی‌شده باز می‌کنه.</div>
 
-  <div class="cards">
-    <div class="card"><div class="card-icon">☀️</div><div class="card-title">صبح امروز</div><div class="card-desc">خلاصه وضعیت روز — موارد فوری و منتظر اقدام</div></div>
-    <div class="card"><div class="card-icon">📋</div><div class="card-title">درخواست</div><div class="card-desc">ثبت درخواست مشتری مستقیم از موبایل</div></div>
-    <div class="card"><div class="card-icon">📝</div><div class="card-title">سفارش خارج</div><div class="card-desc">ثبت سفارش‌گذاری برای کالای خارجی</div></div>
-    <div class="card"><div class="card-icon">👥</div><div class="card-title">CRM</div><div class="card-desc">لیدهای فروش فعال — خلاصه وضعیت</div></div>
-    <div class="card"><div class="card-icon">🚢</div><div class="card-title">محموله‌ها</div><div class="card-desc">ردیابی با سرچ — badge تأخیر</div></div>
-    <div class="card"><div class="card-icon">💰</div><div class="card-title">قیمت‌دهی</div><div class="card-desc">ماشین‌حساب با سرچ پارت‌نامبر</div></div>
-  </div>
+  <h3>🎯 جذب مشتری (کامل، همون سیستمی که تو دسکتاپ دارید)</h3>
+  <table class="action-table">
+    <tr><th>دکمه</th><th>چیکار می‌کنه</th></tr>
+    <tr><td class="action-cell">🆕 ساخت مشتری</td><td class="result-cell">فرم عمودی با کد پیگیری (چک زنده‌ی تکراری‌بودن)، مخاطبین قابل‌افزودن</td></tr>
+    <tr><td class="action-cell">📞 فرم جذب سریع</td><td class="result-cell">سرچ (با همون فیلترها: اولویت‌دار و جذب‌شده حذف می‌شن)، ثبت فعالیت با جهت تماس، رزرو/جذب</td></tr>
+    <tr><td class="action-cell">👥 مشتریان (یکپارچه)</td><td class="result-cell">لیست قدیم+جدید، فیلتر فعال/غیرفعال، جزئیات با سیکل بررسی صلاحیت</td></tr>
+    <tr><td class="action-cell">📊 داشبورد من</td><td class="result-cell">مهلت‌های نزدیک، مشتریان فعال نیازمند تماس، پیگیری امروز/فردا</td></tr>
+    <tr><td class="action-cell">📈 داشبورد مدیریت / 🔮 پیش‌بینی فروش</td><td class="result-cell">فقط سرپرست فروش/مدیریت — دکمه‌ها پیش‌فرض مخفی‌ان</td></tr>
+    <tr><td class="action-cell">✅ تاییدها / 🔔 تایید مدیریت</td><td class="result-cell">دو مسیر جدا — اولی سرپرست فروش، دومی فقط owner/admin</td></tr>
+    <tr><td class="action-cell">📒 دفتر کل تغییرات</td><td class="result-cell">فقط سرپرست فروش/مدیریت</td></tr>
+    <tr><td class="action-cell">🤖 وضعیت Bot / 📢 لیست‌های واتساپ / 💬 بازخورد پس از تحویل</td><td class="result-cell">همون قابلیت‌های دسکتاپ، سایز موبایل</td></tr>
+  </table>
+
+  <h3>📦 سفارش مشتری (سیستم قدیمی، دست‌نخورده)</h3>
+  <p>«لیست سفارش‌ها/تماس‌ها» — ردیابی تماس/SLA برای سفارش‌های در حال انجام؛ کاملاً جدا از «جذب مشتری» بالا. «ثبت تماس ساده» هم مخصوص مشتریان اولویت‌دار (۱/۵/۹) — همونایی که «فرم جذب سریع» عمداً تو سرچش نمی‌ذاره چون تثبیت‌شده‌ان.</p>
 
   <div class="note">
     <div class="note-icon">🖥️</div>
@@ -1218,6 +1350,7 @@ li strong{color:var(--text)}
   <div class="note red">
     <div class="note-icon">🔴</div>
     <div class="note-text"><strong>هشدار فورس:</strong> اگه درخواست یا کاری ستاره فورس (⭐) داشته باشد، بالای همه لیست‌ها با رنگ قرمز ظاهر می‌شود. فوری رسیدگی کنید.</div>
+
   </div>
 
   <div class="note red">
