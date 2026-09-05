@@ -1001,6 +1001,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="nav-group-items" id="ngi-sales" style="max-height:none">
         <button class="nav-item" onclick="showPage('requests')"><span class="nav-icon">📋</span><span>درخواست‌ها</span><span class="nbadge red" id="urgentBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('samples')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadge" style="display:none">0</span></button>
+        <button class="nav-item" onclick="showPage('feedback-sales')"><span class="nav-icon">💬</span><span>بازخوردهای مشتریان</span><span class="nbadge orange" id="feedbackSalesBadge" style="display:none">0</span></button>
       </div>
     </div>
     <div class="nav-group" id="ng-proc">
@@ -1204,6 +1205,31 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <!-- ══ نمونه‌ها — بازرگانی / انبار (مشترک، پارامتری بر اساس دپارتمان) ══ -->
     <div class="page" id="page-samples-bazargani"><div id="samplesDeptContent-bazargani"></div></div>
     <div class="page" id="page-samples-anbar"><div id="samplesDeptContent-anbar"></div></div>
+
+    <!-- ══ بازخورد پس از تحویل — سمت فروش (۱۴۰۵/۰۶/۱۷) ══ -->
+    <!-- ⚠️ فیکس شکاف: قبلاً هیچ‌جا به فروش نمی‌گفت «همه‌ی واحدها جواب دادن،
+         حالا با مشتری حرف بزن و پرونده رو ببند» — این صفحه همون حلقه‌ست. -->
+    <div class="page" id="page-feedback-sales">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 16px;margin-bottom:16px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:15px">💬</span>
+        <span>وقتی همه‌ی واحدهایی که یه بازخورد بهشون ارجاع شده «رسیدگی شد» رو زدن، اینجا سبز می‌شه — با مشتری صحبت کن و «بستن پرونده» رو بزن. ⏰ مهلت رسمی هر واحد برای پاسخ، ۱ روز کاری (بدون جمعه) از لحظه‌ی ثبته — گذشته‌ازش، ردیف قرمز می‌شه.</span>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><div class="sec-title">💬 بازخوردهای مشتریان</div><div class="search-box"><span>🔍</span><input type="text" id="fbSalesSearchQ" placeholder="جستجو: مشتری..." oninput="searchFeedbackSales(this.value)"/></div></div>
+        <table><thead><tr>
+          <th>مشتری</th><th>کد پیگیری</th><th>نوع</th><th>توضیح</th><th>واحد(ها)</th><th>وضعیت</th><th>اقدام</th>
+        </tr></thead><tbody id="feedbackSalesBody"></tbody></table>
+      </div>
+      <div class="sec-hdr" style="margin-top:30px;cursor:pointer" onclick="toggleArchive('feedbackSales')">
+        <div class="sec-title" style="color:var(--muted)">🗄️ بایگانی (پرونده‌های بسته‌شده) <span id="feedbackSalesArchiveCount" style="font-size:11px"></span></div>
+        <span id="feedbackSalesArchiveChevron" style="color:var(--muted)">›</span>
+      </div>
+      <div id="feedbackSalesArchiveBox" style="display:none;">
+        <div class="tbl-wrap" style="opacity:.85">
+          <table><thead><tr><th>مشتری</th><th>کد پیگیری</th><th>نوع</th><th>توضیح</th><th>واحد(ها)</th></tr></thead><tbody id="feedbackSalesArchiveBody"></tbody></table>
+        </div>
+      </div>
+    </div>
 
     <!-- ══ KANBAN ══ -->
     <div class="page" id="page-pipeline">
@@ -2803,6 +2829,7 @@ async function loadFromSheet() {
     if(document.getElementById('page-samples').classList.contains('active'))    renderSamplesSales();
     if(document.getElementById('page-samples-bazargani').classList.contains('active')) renderSamplesDept('bazargani');
     if(document.getElementById('page-samples-anbar').classList.contains('active'))     renderSamplesDept('anbar');
+    if(document.getElementById('page-feedback-sales').classList.contains('active'))    renderFeedbackSales();
     if(document.getElementById('page-shipments').classList.contains('active'))  renderShipments();
     if(document.getElementById('page-tasks').classList.contains('active'))      renderTasks();
     if(document.getElementById('page-customers').classList.contains('active'))  renderCusts();
@@ -3608,7 +3635,9 @@ function feedbackFromApi(d){
   return {id:d.id, trackingCode:d.tracking_code||'', requestId:d.request_id||'', customer:d.customer||'',
     departments:d.departments||[], type:d.feedback_type||'', description:d.description||'',
     recordedBy:d.recorded_by||'', resolvedStatus:d.resolved_status||{}, needsReaction:!!d.needs_reaction,
-    reactionDept:d.reaction_dept||'', newRequestId:d.new_request_id||''};
+    reactionDept:d.reaction_dept||'', newRequestId:d.new_request_id||'',
+    archived:!!d.archived, crmConfirmed:!!d.crm_confirmed, date:d.created_at||'',
+    responseDeadline:d.response_deadline||''};
 }
 async function fetchDeliveryFeedbackFromDjango(){
   const data = await fetchJsonWithRetry(DJANGO_FEEDBACK_API);
@@ -4229,6 +4258,7 @@ function showPage(p){
   if(p==='samples')       renderSamplesSales();
   if(p==='samples-bazargani') renderSamplesDept('bazargani');
   if(p==='samples-anbar') renderSamplesDept('anbar');
+  if(p==='feedback-sales') renderFeedbackSales();
   if(p==='pipeline')      renderPipeline();
   if(p==='customers')     renderCusts();
   if(p==='procurement')   renderCustNeed();
@@ -6433,7 +6463,7 @@ function renderClearance(){
         </div>
         ${items.map(s=>`
           <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:5px;background:var(--card);${!s.sentToClearance?'opacity:.55;':''}">
-            <input type="checkbox" ${s.clearedToWarehouse?'checked':''} ${!s.sentToClearance?'disabled title="این آیتم هنوز به ترخیص فرستاده نشده"':''} style="width:16px;height:16px;accent-color:var(--accent);" onchange="toggleClearanceItem('${(s.id||'').replace(/'/g,"\\\\'")}',this.checked)"/>
+            <input type="checkbox" ${s.clearedToWarehouse?'checked':''} ${!s.sentToClearance?'disabled title="این آیتم هنوز به ترخیص فرستاده نشده"':''} style="width:16px;height:16px;accent-color:var(--accent);" onchange="toggleClearanceItem('${(String(s.id||'')).replace(/'/g,"\\\\'")}',this.checked)"/>
             <span style="font-size:11px;font-weight:700;color:var(--accent);min-width:90px">${s.id}</span>
             <span style="font-size:11px;font-weight:600">${s.customer||'—'}</span>
             <span style="font-size:10px;color:var(--muted);flex:1">${(s.desc||'').substring(0,40)}</span>
@@ -6447,11 +6477,11 @@ function renderClearance(){
     if(!singles.length){ el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">آیتم تکی برای ترخیص نیست</div></div>'; return; }
     el.innerHTML = singles.map(s=>`
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">
-        <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);" onchange="toggleClearanceItem('${(s.id||'').replace(/'/g,"\\\\'")}',this.checked)"/>
+        <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);" onchange="toggleClearanceItem('${(String(s.id||'')).replace(/'/g,"\\\\'")}',this.checked)"/>
         <span style="font-size:11px;font-weight:700;color:var(--accent);min-width:90px">${s.id}</span>
         <span style="font-size:12px;font-weight:600">${s.customer||'—'}</span>
         <span style="font-size:11px;color:var(--muted);flex:1">${(s.desc||'').substring(0,50)}</span>
-        <button class="btn btn-primary btn-sm" onclick="moveSingleToWarehouse('${(s.id||'').replace(/'/g,"\\\\'")}')">📥 انبار</button>
+        <button class="btn btn-primary btn-sm" onclick="moveSingleToWarehouse('${(String(s.id||'')).replace(/'/g,"\\\\'")}')">📥 انبار</button>
       </div>`).join('');
   }
 }
@@ -7431,7 +7461,7 @@ function renderShipments(){
   const rows = list.map(s => {
     const st = SHIP_STATUS[s.status]||{label:s.status,icon:'?',step:0};
     const d1 = shipDaysLeft(s.eta); const d2 = shipDaysLeft(s.eta2);
-    const sid = (s.id||'').replace(/'/g,"\'");
+    const sid = (String(s.id||'')).replace(/'/g,"\'");
     // progress bar کوچک
     const pct = s.progress||0;
     const progressBar = `<div style="width:100%;height:5px;background:var(--border);border-radius:3px;margin-top:4px;"><div style="width:${pct}%;height:100%;background:${d1<0?'var(--red)':'var(--accent)'};border-radius:3px;"></div></div>`;
@@ -8976,7 +9006,7 @@ function renderAddressPage(){
       </div>
       ${list.map(a=>{
         const isActive = a.active !== false;
-        const aid = (a.id||'').replace(/'/g,"\'");
+        const aid = (String(a.id||'')).replace(/'/g,"\'");
         return `<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;${isActive?'':'opacity:.45;'}">
           <div style="flex:1;">
             <div style="font-size:12px;font-weight:700;color:${isActive?'var(--text)':'var(--muted)'}">${a.title||'بدون عنوان'}</div>
@@ -9486,7 +9516,7 @@ function printAddressSheet(id,forceType){
     o+='<div class="divider"></div>';
     o+='<div class="contact-row"><div class="phone">'+(rco?rco+(rm?' — '+rm:''):(rm||'—'))+'</div><div class="meta-codes">';
     if(rp) o+='<span>کدپستی '+rp+'</span>';
-    o+='<span>#'+String(a.id||'').replace(/^ADR-?/i,'')+'</span>';
+    o+='<span>#'+String(String(a.id||'')).replace(/^ADR-?/i,'')+'</span>';
     o+='</div></div>';
     if(rn) o+='<div class="note">'+rn+'</div>';
     o+='</div>';
@@ -9720,6 +9750,9 @@ function updateNavBadges(){
     !s.departments || !s.departments.length || s.departments.every(d=>samplesDeptDone(s,d))
   );
   setBadge('samplesBadge', samplesNeedsSalesAttn.length);
+  // ⚠️ (۱۴۰۵/۰۶/۱۷) فیکس شکاف — همون الگوی samplesBadge، برای بازخورد پس از تحویل
+  const fbNeedsSalesAttn = (deliveryFeedback||[]).filter(f=>!f.archived && fbAllDeptsResolved(f));
+  setBadge('feedbackSalesBadge', fbNeedsSalesAttn.length);
   setBadge('samplesBadgeBazargani', samplesActive.filter(s=>(s.departments||[]).includes('bazargani') && !samplesDeptDone(s,'bazargani')).length);
   setBadge('samplesBadgeAnbar', samplesActive.filter(s=>(s.departments||[]).includes('anbar') && !samplesDeptDone(s,'anbar')).length);
 
@@ -12606,6 +12639,77 @@ function renderSamplesArchive(){
   </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🗄️</div><div class="empty-text">بایگانی خالی است</div></div></td></tr>`;
 }
 
+// ══ بازخورد پس از تحویل — سمت فروش (۱۴۰۵/۰۶/۱۷) ══
+// ⚠️ فیکس شکاف: عیناً همون الگوی renderSamplesSales/renderSamplesArchive،
+// چون DeliveryFeedback تا الان هیچ صفحه‌ی سمت فروشی نداشت.
+let curFbSalesSearch='';
+function fbAllDeptsResolved(f){
+  return (f.departments||[]).length>0 && (f.departments||[]).every(d=>f.resolvedStatus && f.resolvedStatus[d] && f.resolvedStatus[d].resolved);
+}
+function fbTypeLabel(t){ return t==='thanks' ? '🌟 تشکر' : '⚠️ شکایت'; }
+function fbDeptLabel(d){ return {anbar:'🏭 انبار', bazargani:'🌍 بازرگانی', tadarokat:'🏬 تدارکات', mali:'💰 مالی'}[d] || d; }
+// ⚠️ (۱۴۰۵/۰۶/۱۷) طبق تصمیم کاربر: مهلت رسمی پاسخ = ۱ روز کاری شمسی از
+// ثبت، خودِ بک‌اند محاسبه‌ش می‌کنه؛ اینجا فقط مقایسه با امروز برای نمایش
+function fbIsOverdue(f){
+  if(!f.responseDeadline || fbAllDeptsResolved(f)) return false;
+  return shamsiDateSortVal(f.responseDeadline) < shamsiDateSortVal(todayShamsiStr());
+}
+function renderFeedbackSales(){
+  let active=(deliveryFeedback||[]).filter(f=>!f.archived);
+  if(curFbSalesSearch){
+    const q=normalizeFa(curFbSalesSearch);
+    active=active.filter(f=>normalizeFa(f.customer||'').includes(q));
+  }
+  // ⚠️ معطل‌ها (مهلت گذشته) اول نشون داده بشن
+  active.sort((a,b)=>(fbIsOverdue(b)-fbIsOverdue(a)) || (new Date(b.date)-new Date(a.date)));
+  const el=document.getElementById('feedbackSalesBody');
+  if(el) el.innerHTML = active.length ? active.map(fbSalesRowHTML).join('') :
+    `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">فعلاً بازخوردی در انتظار نیست</div></div></td></tr>`;
+  renderFeedbackSalesArchive();
+}
+function fbSalesRowHTML(f){
+  const allDone = fbAllDeptsResolved(f);
+  const overdue = fbIsOverdue(f);
+  let statusHtml;
+  if(allDone) statusHtml = '<span style="color:#4ade80;font-weight:700">✅ همه رسیدگی کردن</span>';
+  else if(overdue) statusHtml = `<span style="color:var(--red);font-weight:700">🔴 مهلت گذشته (${f.responseDeadline})</span>`;
+  else statusHtml = `<span style="color:var(--muted)">⏳ در انتظار — مهلت: ${f.responseDeadline||'—'}</span>`;
+  return `<tr style="${allDone?'background:rgba(74,222,128,.06)':overdue?'background:rgba(239,68,68,.06)':''}">
+    <td>${f.customer}</td>
+    <td style="font-size:11px">${f.trackingCode||'—'}</td>
+    <td>${fbTypeLabel(f.type)}</td>
+    <td style="font-size:11.5px;max-width:220px">${f.description||'—'}</td>
+    <td style="font-size:11px">${(f.departments||[]).map(fbDeptLabel).join('، ')||'—'}</td>
+    <td>${statusHtml}</td>
+    <td>${allDone ? `<button class="btn btn-primary btn-sm" onclick="closeFeedbackFile('${f.id}')">📞 با مشتری حرف زدم — ببند</button>` : ''}</td>
+  </tr>`;
+}
+function searchFeedbackSales(v){ curFbSalesSearch=v; renderFeedbackSales(); }
+function renderFeedbackSalesArchive(){
+  const done=(deliveryFeedback||[]).filter(f=>f.archived);
+  const cntEl=document.getElementById('feedbackSalesArchiveCount');
+  if(cntEl) cntEl.textContent=`(${fn(done.length)} مورد)`;
+  const el=document.getElementById('feedbackSalesArchiveBody');
+  if(!el) return;
+  el.innerHTML = done.length ? done.map(f=>`<tr style="opacity:.85">
+    <td>${f.customer}</td><td style="font-size:11px">${f.trackingCode||'—'}</td>
+    <td>${fbTypeLabel(f.type)}</td><td style="font-size:11px">${f.description||'—'}</td>
+    <td style="font-size:11px">${(f.departments||[]).map(fbDeptLabel).join('، ')||'—'}</td>
+  </tr>`).join('') : `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🗄️</div><div class="empty-text">بایگانی خالی است</div></div></td></tr>`;
+}
+async function closeFeedbackFile(id){
+  if(!confirm('مطمئنی با مشتری صحبت کردی و این پرونده بسته بشه؟')) return;
+  const f=(deliveryFeedback||[]).find(x=>String(x.id)===String(id));
+  if(!f) return;
+  f.archived=true; f.crmConfirmed=true;
+  renderFeedbackSales();
+  updateNavBadges();
+  const r = await djangoFetch(DJANGO_FEEDBACK_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({archived:true, crm_confirmed:true})}, 'بستن پرونده بازخورد '+id);
+  if(r.queued) toast('🟡 بستن پرونده در صف ماند');
+  else toast('✅ پرونده بسته شد');
+}
+
 // ── سمت دپارتمان‌ها (بازرگانی/انبار) — فقط ردیف‌های ارجاع‌شده به همون واحد ──
 async function saveDeptNoteAndRefer(id, dept, noteVal, referBack){
   const s=(sampleFeedbacks||[]).find(x=>String(x.id)===String(id));
@@ -12679,13 +12783,15 @@ function renderDeptFeedback(deptKey){
     const resolved=isResolved(f);
     const typeColor = f.type==='thanks' ? '#4ade80' : '#f87171';
     const typeLabel = f.type==='thanks' ? '🌟 تشکر' : '⚠️ شکایت';
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;${resolved?'opacity:.6;':''}">
+    const overdue = !resolved && fbIsOverdue(f);
+    return `<div style="background:var(--card);border:1px solid ${overdue?'var(--red)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;${resolved?'opacity:.6;':''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <div><strong>${f.customer}</strong> <span style="font-size:10px;color:var(--muted);">— ${f.trackingCode||'—'}</span></div>
         <span style="font-size:10px;padding:2px 9px;border-radius:20px;background:${typeColor}22;color:${typeColor};font-weight:700;">${typeLabel}</span>
       </div>
       <div style="font-size:12.5px;color:var(--text);margin-bottom:8px;">${f.description}</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">ثبت‌کننده: ${f.recordedBy||'—'} | ${f.date?new Date(f.date).toLocaleDateString('fa-IR'):''}</div>
+      ${!resolved ? `<div style="font-size:10.5px;margin-bottom:8px;color:${overdue?'var(--red)':'var(--muted)'};font-weight:${overdue?'700':'400'}">${overdue?'🔴 مهلت گذشته — ':'⏰ مهلت: '}${f.responseDeadline||'—'}</div>` : ''}
       ${f.needsReaction && f.reactionDept===deptKey ? `<div style="font-size:10.5px;color:var(--accent);margin-bottom:8px;">🔄 اصلاحیه ساخته شد${f.newRequestId?' — کد جدید ثبت شد':''}</div>` : ''}
       ${resolved
         ? `<div style="font-size:11px;color:#4ade80;font-weight:700;">✅ رسیدگی شد${f.resolvedStatus[deptKey].note?' — '+f.resolvedStatus[deptKey].note:''}</div>`
