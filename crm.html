@@ -1996,7 +1996,8 @@ function customerFromApi(d){
     vip: d.vip||'',
     assignedStaffId: d.assigned_staff_id||'',
     assignedStaffName: d.assigned_staff_name||'',
-    changeHistory: d.change_history||[]
+    changeHistory: d.change_history||[],
+    isHidden: !!d.is_hidden
   };
 }
 async function fetchCustomersFromDjango(){
@@ -2052,7 +2053,8 @@ function prospectFromApi(d){
     acquiredDate:d.acquired_date||'', acquiredVia:d.acquired_via||'', createdDate:d.created_date||'',
     createdTime:d.created_time||'', createdByName:d.created_by_name||'',
     verificationStage:d.verification_stage||'', websiteChecked:!!d.website_checked, registrationChecked:!!d.registration_checked,
-    initialCheckNote:d.initial_check_note||'', visitDone:!!d.visit_done, visitDate:d.visit_date||'', visitBy:d.visit_by||'', visitNote:d.visit_note||'' };
+    initialCheckNote:d.initial_check_note||'', visitDone:!!d.visit_done, visitDate:d.visit_date||'', visitBy:d.visit_by||'', visitNote:d.visit_note||'',
+    isHidden:!!d.is_hidden };
 }
 async function updateVerificationCheckInDjango(id, patch){
   try{
@@ -4250,24 +4252,34 @@ async function submitMgmtApprovalDecision(approvalId, decision){
   updateMgmtBadge();
 }
 // ══ زیربخش جدید — 👥 مشتریان (یکپارچه: قدیم + جدید) ══
-function getAllCustomersUnified(){
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: مشتریانی که «مخفی» شدن (مثلاً یه صنف
+// کاملاً سوخته)، پیش‌فرض از همه‌جا (نه فقط صفحه‌ی مشتریان — لیست واتساپ،
+// وضعیت Bot، و غیره) حذف بشن. برای مدیریت خودِ لیست مخفی‌ها،
+// includeHidden=true می‌ذاره ببینیمشون.
+function getAllCustomersUnified(includeHidden){
   const prospectNames = new Set((prospects||[]).map(p=>normalizeFa(p.name)));
   const out = [];
   (prospects||[]).forEach(p=>{
+    if(!includeHidden && p.isHidden) return;
     out.push({ source:'prospect', name:p.name, phone:p.phone1||p.phone2||'', province:p.province||'',
       category:p.category||'', priority:'', status:p.status, assigneeName:p.assigneeName||'', prospectRef:p,
-      isActive: activeCustomerNames.has(normalizeFa(p.name)) });
+      isActive: activeCustomerNames.has(normalizeFa(p.name)), isHidden:!!p.isHidden });
   });
   (customerMaster||[]).forEach(cm=>{
     if(prospectNames.has(normalizeFa(cm.name||''))) return; // از قبل به‌عنوان Prospect اومده، دوباره نشون نده
+    if(!includeHidden && cm.isHidden) return;
     out.push({ source:'customer', name:cm.name, phone:cm.mobile||'', province:cm.province||'',
       category:cm.category||'', priority:String(cm.priority||'').trim(), status:'old_customer', assigneeName:'', prospectRef:null, customerId:cm.id,
-      isActive: activeCustomerNames.has(normalizeFa(cm.name||'')) });
+      isActive: activeCustomerNames.has(normalizeFa(cm.name||'')), isHidden:!!cm.isHidden });
   });
   return out;
 }
 let curCustomersSearch='';
 let curCustomersFilters = {province:'', category:'', source:'', active:''};
+let curCustomersShowHidden = false;
+let _customersBulkMode = false;
+let _customersSelectedKeys = new Set();
+function rowKey(r){ return r.source+':'+(r.customerId||r.prospectRef.id); }
 function renderCustomersPage(c){
   c.innerHTML = `
     <div class="tbl-wrap">
@@ -4292,13 +4304,51 @@ function renderCustomersPage(c){
           <option value="no">⭕ فقط غیرفعال</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="clearCustomersFilters()">پاک‌کردن فیلترها</button>
+        ${isSalesSupOrAbove() ? `
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-right:auto">
+          <input type="checkbox" id="showHiddenChk" ${curCustomersShowHidden?'checked':''} onchange="toggleShowHidden(this.checked)"/> نمایش مخفی‌شده‌ها هم
+        </label>
+        <button class="btn btn-ghost btn-sm" onclick="toggleBulkMode()">${_customersBulkMode?'✕ خروج از حالت انتخاب':'☑️ انتخاب دسته‌ای'}</button>
+        ` : ''}
       </div>
+      ${_customersBulkMode ? `
+      <div id="bulkActionsBar" style="display:none;background:var(--card);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;margin-bottom:10px;align-items:center;gap:10px">
+        <span id="bulkSelectedCount" style="font-size:11px;font-weight:700"></span>
+        <button class="btn btn-ghost btn-sm" onclick="bulkHideSelected()">🙈 مخفی‌کردن انتخاب‌شده‌ها</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="bulkDeleteSelected()">🗑️ حذف کامل انتخاب‌شده‌ها</button>
+      </div>` : ''}
       <table><thead><tr>
+        ${_customersBulkMode?'<th style="width:30px"><input type="checkbox" onchange="toggleSelectAllCustomers(this.checked)"/></th>':''}
         <th>نام</th><th>تلفن</th><th>استان</th><th>صنف</th><th>وضعیت خرید</th><th>اولویت/وضعیت رزرو</th><th>کارشناس فعلی</th><th></th>
       </tr></thead><tbody id="pCustomersBody"></tbody></table>
     </div>
   `;
   renderCustomersPageBody();
+}
+function toggleShowHidden(val){ curCustomersShowHidden=val; renderCustomersPageBody(); }
+function toggleBulkMode(){
+  _customersBulkMode = !_customersBulkMode;
+  _customersSelectedKeys.clear();
+  renderCustomersPage(document.getElementById('prospCustomersView'));
+}
+function toggleSelectAllCustomers(checked){
+  const rows = window._customersPageRows||[];
+  if(checked) rows.forEach(r=>_customersSelectedKeys.add(rowKey(r)));
+  else _customersSelectedKeys.clear();
+  renderCustomersPageBody();
+}
+function toggleSelectCustomerRow(key){
+  if(_customersSelectedKeys.has(key)) _customersSelectedKeys.delete(key);
+  else _customersSelectedKeys.add(key);
+  updateBulkBar();
+}
+function updateBulkBar(){
+  const bar = document.getElementById('bulkActionsBar');
+  const cnt = document.getElementById('bulkSelectedCount');
+  if(!bar) return;
+  const n = _customersSelectedKeys.size;
+  bar.style.display = n>0 ? 'flex' : 'none';
+  if(cnt) cnt.textContent = `${fn(n)} مورد انتخاب شده`;
 }
 function setCustomersFilter(key, val){ curCustomersFilters[key]=val; renderCustomersPageBody(); }
 function clearCustomersFilters(){
@@ -4308,7 +4358,7 @@ function clearCustomersFilters(){
 }
 function searchCustomersPage(v){ curCustomersSearch=v; renderCustomersPageBody(); }
 function renderCustomersPageBody(){
-  let rows = getAllCustomersUnified();
+  let rows = getAllCustomersUnified(curCustomersShowHidden);
   const totalAll = rows.length;
   if(curCustomersSearch){
     const q = normalizeFa(curCustomersSearch);
@@ -4327,17 +4377,70 @@ function renderCustomersPageBody(){
   if(countEl) countEl.textContent = `— ${fn(rows.length)} از ${fn(totalAll)} مشتری`;
   const body = document.getElementById('pCustomersBody');
   if(!body) return;
-  body.innerHTML = rows.length ? rows.map((r,idx)=>`
-    <tr style="cursor:pointer" onclick="openCustomerDetailModal(${idx})">
-      <td><strong>${r.name}</strong> ${r.source==='customer'?`<span style="font-size:9px;background:var(--muted);color:var(--surface);padding:1px 6px;border-radius:8px;margin-right:4px">قدیمی</span>`:`<span style="font-size:9px;background:var(--accent);color:var(--accent-text);padding:1px 6px;border-radius:8px;margin-right:4px">جدید</span>`}</td>
+  const bulkColCount = _customersBulkMode ? 9 : 8;
+  body.innerHTML = rows.length ? rows.map((r,idx)=>{
+    const key = rowKey(r);
+    const rowClick = _customersBulkMode ? `toggleSelectCustomerRow('${key}')` : `openCustomerDetailModal(${idx})`;
+    return `
+    <tr style="cursor:pointer;${r.isHidden?'opacity:.5':''}" onclick="${rowClick}">
+      ${_customersBulkMode?`<td onclick="event.stopPropagation()"><input type="checkbox" ${_customersSelectedKeys.has(key)?'checked':''} onchange="toggleSelectCustomerRow('${key}')"/></td>`:''}
+      <td><strong>${r.name}</strong> ${r.source==='customer'?`<span style="font-size:9px;background:var(--muted);color:var(--surface);padding:1px 6px;border-radius:8px;margin-right:4px">قدیمی</span>`:`<span style="font-size:9px;background:var(--accent);color:var(--accent-text);padding:1px 6px;border-radius:8px;margin-right:4px">جدید</span>`} ${r.isHidden?'<span style="font-size:9px;color:var(--muted)">🙈 مخفی</span>':''}</td>
       <td style="font-size:11px">${r.phone||'—'}</td>
       <td style="font-size:11px">${r.province||'—'}</td>
       <td style="font-size:11px">${r.category||'—'}</td>
       <td>${r.isActive?'<span style="color:var(--green);font-size:11px;font-weight:700">✅ فعال</span>':'<span style="color:var(--muted);font-size:11px">⭕ غیرفعال</span>'}</td>
       <td>${r.source==='customer'?`<span style="font-size:11px;color:${['1','5','9'].includes(r.priority)?'var(--green)':'var(--muted)'}">${priorityLabel(r.priority)}</span>`:prospectStatusChip(r.prospectRef)}</td>
       <td style="font-size:11px">${r.assigneeName?ac(r.assigneeName):'—'}</td>
-      <td>${r.source==='customer' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startTrackingFromCustomersPage(${idx})">🔓 شروع پیگیری</button>` : ''}</td>
-    </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+      <td>${!_customersBulkMode && r.source==='customer' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startTrackingFromCustomersPage(${idx})">🔓 شروع پیگیری</button>` : ''}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="${bulkColCount}"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">چیزی پیدا نشد</div></div></td></tr>`;
+  updateBulkBar();
+}
+async function bulkHideSelected(){
+  if(!_customersSelectedKeys.size){ toast('⚠️ چیزی انتخاب نشده'); return; }
+  if(!confirm(`${fn(_customersSelectedKeys.size)} مورد مخفی بشن؟ (داده حفظ می‌مونه، فقط از لیست پیش‌فرض حذف می‌شن)`)) return;
+  const rows = (window._customersPageRows||[]).filter(r=>_customersSelectedKeys.has(rowKey(r)));
+  let okCount=0;
+  for(const r of rows){
+    if(r.source==='customer'){
+      const res = await updateCustomerInDjango(r.customerId, {is_hidden:true});
+      if(res.ok){ const idx=customerMaster.findIndex(c=>c.id===r.customerId); if(idx>=0) customerMaster[idx]=res.data; okCount++; }
+    } else {
+      const res = await updateProspectHiddenInDjango(r.prospectRef.id, true);
+      if(res){ const idx=prospects.findIndex(p=>p.id===r.prospectRef.id); if(idx>=0) prospects[idx]=res; okCount++; }
+    }
+  }
+  toast(`✅ ${fn(okCount)} مورد مخفی شد`);
+  _customersSelectedKeys.clear();
+  renderCustomersPageBody();
+}
+async function bulkDeleteSelected(){
+  if(!_customersSelectedKeys.size){ toast('⚠️ چیزی انتخاب نشده'); return; }
+  if(!confirm(`⚠️ ${fn(_customersSelectedKeys.size)} مورد کامل و برگشت‌ناپذیر حذف بشن؟ همه‌ی تاریخچه‌شون هم پاک می‌شه.`)) return;
+  if(!confirm('تأیید نهایی: واقعاً حذف بشن؟')) return;
+  const rows = (window._customersPageRows||[]).filter(r=>_customersSelectedKeys.has(rowKey(r)));
+  let okCount=0;
+  for(const r of rows){
+    if(r.source==='customer'){
+      try{
+        const res = await fetch(DJANGO_CUSTOMERS_API+r.customerId+'/', {method:'DELETE'});
+        if(res.ok || res.status===204){ const idx=customerMaster.findIndex(c=>c.id===r.customerId); if(idx>=0) customerMaster.splice(idx,1); okCount++; }
+      }catch(e){}
+    } else {
+      const ok = await deleteProspectInDjango(r.prospectRef.id);
+      if(ok){ const idx=prospects.findIndex(p=>p.id===r.prospectRef.id); if(idx>=0) prospects.splice(idx,1); okCount++; }
+    }
+  }
+  toast(`✅ ${fn(okCount)} مورد حذف شد`);
+  _customersSelectedKeys.clear();
+  renderCustomersPageBody();
+}
+async function updateProspectHiddenInDjango(id, hidden){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_hidden:hidden})});
+    if(!res.ok) return null;
+    return prospectFromApi(await res.json());
+  }catch(e){ return null; }
 }
 async function startTrackingFromCustomersPage(idx){
   const r = (window._customersPageRows||[])[idx];
@@ -4347,6 +4450,21 @@ async function startTrackingFromCustomersPage(idx){
   prospects.push(res.data);
   toast('✅ پیگیری شروع شد — از «فرم جذب سریع» ادامه بده');
   renderCustomersPageBody();
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۸) فیکس شکاف واقعی: تا الان اولویت مشتری قدیمی فقط *نمایش*
+// داده می‌شد، هیچ فرم ویرایشی نداشت.
+async function submitOldCustomerPriority(idx){
+  if(!isSalesSupOrAbove()){ toast('⛔ فقط سرپرست فروش/مدیریت اجازه دارن'); return; }
+  const r = (window._customersPageRows||[])[idx];
+  if(!r || r.source!=='customer') return;
+  const val = document.getElementById('oldCustPriorityEdit_'+idx).value;
+  const res = await updateCustomerInDjango(r.customerId, {priority:val, changed_by:currentUser.name||currentUser.email, changed_date:todayShamsiStr(), changed_time:nowTimeStr()});
+  if(!res.ok){ toast('❌ '+res.error); return; }
+  const cIdx = customerMaster.findIndex(c=>c.id===r.customerId);
+  if(cIdx>=0) customerMaster[cIdx]=res.data;
+  toast('✅ اولویت ثبت شد');
+  renderCustomersPageBody();
+  renderCustomerDetailTabContent(idx);
 }
 let curCustomerDetailTab='basic';
 function openCustomerDetailModal(idx){
@@ -4464,10 +4582,22 @@ function renderCustomerDetailTabContent(idx){
       `;
     } else {
       const allowed = ['1','5','9'].includes(r.priority);
+      const priorityEditHtml = isSalesSupOrAbove() ? `
+        <div style="background:var(--card);border-radius:8px;padding:10px;margin-top:10px">
+          <label class="form-label">اولویت فروش (فقط سرپرست فروش/مدیریت)</label>
+          <select class="form-control" id="oldCustPriorityEdit_${idx}">
+            <option value="">— ندارد —</option>
+            <option value="1" ${r.priority==='1'?'selected':''}>۱ — خیلی مهم</option>
+            <option value="5" ${r.priority==='5'?'selected':''}>۵ — مهم</option>
+            <option value="9" ${r.priority==='9'?'selected':''}>۹ — قابل‌اعتماد</option>
+          </select>
+          <button class="btn btn-primary btn-sm" style="width:100%;margin-top:6px" onclick="submitOldCustomerPriority(${idx})">💾 ثبت اولویت</button>
+        </div>` : '';
       body.innerHTML = `
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${r.phone||'—'} ${r.province?' · 📍 '+r.province:''} ${r.category?' · 🏷️ '+r.category:''}</div>
         <div style="background:var(--card);border-radius:8px;padding:10px;font-size:11px">این یه مشتری قدیمی از فایل کلی مشتریانه — اطلاعات تکمیلی (مخاطبین/آدرس/قرارداد) فقط بعد از شروع پیگیری (از «فرم جذب سریع») ثبت می‌شه.</div>
         <div style="margin-top:10px;font-size:11px;color:${allowed?'var(--green)':'var(--red)'}">اولویت فروش: ${priorityLabel(r.priority)} ${allowed?'(مجاز برای تماس/فروش)':'(نیاز به تایید مدیریت برای پیگیری)'}</div>
+        ${priorityEditHtml}
         <button class="btn btn-primary btn-sm" style="width:100%;margin-top:14px" onclick="closeCustomerDetailModal();showCrmTab('prospQuick');document.getElementById('pQfSearch').value='${r.name.replace(/'/g,"\\'")}';searchProspectForQuickForm('${r.name.replace(/'/g,"\\'")}');">🔓 شروع پیگیری (فرم جذب سریع)</button>
       `;
     }
