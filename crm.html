@@ -318,7 +318,20 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
     </div>
     <div class="crm-nav">
       <button class="crm-nav-item active" id="tabBtnMorning" onclick="showCrmTab('morning')"><span class="crm-nav-icon">☀️</span><span>صبح امروز</span><span class="crm-nav-badge" id="morningBadge" style="display:none"></span></button>
-      <button class="crm-nav-item" id="tabBtnDashboard" onclick="showCrmTab('dashboard')"><span class="crm-nav-icon">📊</span><span>داشبورد</span></button>
+
+      <!-- گروه داشبورد — آکاردئونی (۱۴۰۵/۰۶/۱۵: قبلاً «داشبورد من»/«داشبورد مدیریت» اشتباهی زیر جذب مشتری بودن) -->
+      <div style="margin-top:2px;">
+        <button class="crm-nav-item" id="dashGroupToggle" onclick="toggleDashNavGroup()" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">📊</span><span>داشبورد</span></span>
+          <span id="dashGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
+        </button>
+        <div id="dashNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
+          <button class="crm-nav-item" id="tabBtnProspStats" onclick="showCrmTab('prospStats')" style="font-size:12px;"><span class="crm-nav-icon">📊</span><span>داشبورد من</span></button>
+          <button class="crm-nav-item" id="tabBtnProspMgmtStats" onclick="showCrmTab('prospMgmtStats')" style="font-size:12px;display:none"><span class="crm-nav-icon">📈</span><span>داشبورد مدیریت</span></button>
+          <button class="crm-nav-item" id="tabBtnSalesForecast" onclick="showCrmTab('salesForecast')" style="font-size:12px;display:none"><span class="crm-nav-icon">🔮</span><span>پیش‌بینی فروش</span></button>
+          <button class="crm-nav-item" id="tabBtnDashboard" onclick="showCrmTab('dashboard')" style="font-size:12px;display:none"><span class="crm-nav-icon">📋</span><span>داشبورد سفارش‌ها</span></button>
+        </div>
+      </div>
 
       <!-- گروه جذب مشتری — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش -->
       <div style="margin-top:2px;">
@@ -334,21 +347,26 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
           <button class="crm-nav-item" id="tabBtnProspQuick" onclick="showCrmTab('prospQuick')" style="font-size:12px;"><span class="crm-nav-icon">📞</span><span>فرم جذب سریع</span></button>
           <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" style="font-size:12px;"><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
           <button class="crm-nav-item" id="tabBtnProspTable" onclick="showCrmTab('prospTable')" style="font-size:12px;"><span class="crm-nav-icon">📋</span><span>جدول ثبت</span></button>
-          <button class="crm-nav-item" id="tabBtnProspStats" onclick="showCrmTab('prospStats')" style="font-size:12px;"><span class="crm-nav-icon">📊</span><span>داشبورد من</span></button>
-          <button class="crm-nav-item" id="tabBtnProspMgmtStats" onclick="showCrmTab('prospMgmtStats')" style="font-size:12px;display:none"><span class="crm-nav-icon">📈</span><span>داشبورد مدیریت</span></button>
+          <button class="crm-nav-item" id="tabBtnProspChangelog" onclick="showCrmTab('prospChangelog')" style="font-size:12px;display:none"><span class="crm-nav-icon">📒</span><span>دفتر کل تغییرات</span></button>
           <button class="crm-nav-item" id="tabBtnProspApprovals" onclick="showCrmTab('prospApprovals')" style="font-size:12px;display:none"><span class="crm-nav-icon">✅</span><span>تاییدها</span><span class="crm-nav-badge" id="approvalsBadgeInline" style="display:none"></span></button>
           <button class="crm-nav-item" id="tabBtnProspMgmt" onclick="showCrmTab('prospMgmt')" style="font-size:12px;display:none"><span class="crm-nav-icon">🔔</span><span>تایید مدیریت</span><span class="crm-nav-badge" id="mgmtBadgeInline" style="display:none"></span></button>
         </div>
       </div>
-      <button onclick="toggleQuickForm(true)"
-        style="background:var(--accent);color:var(--accent-text);border:none;border-radius:20px;
-        padding:6px 14px;font-family:Vazirmatn,sans-serif;font-weight:800;font-size:11px;
-        cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
-        📞 + تماس جدید
-      </button>
-      <button class="crm-nav-item" id="tabBtnTable" onclick="showCrmTab('table')"><span class="crm-nav-icon">📑</span><span>جدول کامل</span></button>
-      
-      <button class="crm-nav-item" id="tabBtnArchive" onclick="showCrmTab('archive')"><span class="crm-nav-icon">🗄️</span><span>بایگانی</span></button>
+
+      <!-- گروه سفارش مشتری — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) — طبق تصمیم صریح
+           کاربر، خودِ این ۳ صفحه دست‌نخورده موندن، فقط محل قرارگیریشون تو
+           نوار کناری عوض شد -->
+      <div style="margin-top:2px;">
+        <button class="crm-nav-item" id="orderGroupToggle" onclick="toggleOrderNavGroup()" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">📦</span><span>سفارش مشتری</span></span>
+          <span id="orderGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
+        </button>
+        <div id="orderNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
+          <button class="crm-nav-item" onclick="toggleQuickForm(true)" style="font-size:12px;"><span class="crm-nav-icon">📞</span><span>تماس امروز</span></button>
+          <button class="crm-nav-item" id="tabBtnTable" onclick="showCrmTab('table')" style="font-size:12px;"><span class="crm-nav-icon">📑</span><span>جدول کامل</span></button>
+          <button class="crm-nav-item" id="tabBtnArchive" onclick="showCrmTab('archive')" style="font-size:12px;"><span class="crm-nav-icon">🗄️</span><span>بایگانی</span></button>
+        </div>
+      </div>
 
       <!-- گروه یادآوری‌ها — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش -->
       <div style="margin-top:2px;">
@@ -366,8 +384,33 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
         </div>
       </div>
 
-      <button class="crm-nav-item" id="tabBtnDebts" onclick="showCrmTab('debts')"><span class="crm-nav-icon">💳</span><span>وصول مطالبات</span><span class="crm-nav-badge" id="debtsBadge" style="display:none"></span></button>
+      <!-- گروه مالی — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) -->
+      <div style="margin-top:2px;">
+        <button class="crm-nav-item" id="financeGroupToggle" onclick="toggleFinanceNavGroup()" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">💰</span><span>مالی</span></span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span class="crm-nav-badge" id="debtsBadge" style="display:none"></span>
+            <span id="financeGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
+          </span>
+        </button>
+        <div id="financeNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
+          <button class="crm-nav-item" id="tabBtnDebts" onclick="showCrmTab('debts')" style="font-size:12px;"><span class="crm-nav-icon">💳</span><span>وصول مطالبات</span></button>
+        </div>
+      </div>
+
       <button class="crm-nav-item" id="tabBtnCalendar" onclick="showCrmTab('calendar')"><span class="crm-nav-icon">🗓️</span><span>تقویم</span></button>
+
+      <!-- گروه ابزار — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) -->
+      <div style="margin-top:2px;">
+        <button class="crm-nav-item" id="toolsGroupToggle" onclick="toggleToolsNavGroup()" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🛠️</span><span>ابزار</span></span>
+          <span id="toolsGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
+        </button>
+        <div id="toolsNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
+          <button class="crm-nav-item" id="tabBtnBotStatus" onclick="showCrmTab('botStatus')" style="font-size:12px;"><span class="crm-nav-icon">🤖</span><span>وضعیت Bot</span></button>
+          <button class="crm-nav-item" id="tabBtnWaLists" onclick="showCrmTab('waLists')" style="font-size:12px;"><span class="crm-nav-icon">📢</span><span>لیست‌های واتساپ</span></button>
+        </div>
+      </div>
     </div>
   </aside>
   <div class="crm-main">
@@ -1210,6 +1253,10 @@ function renderToolbar(){
     <div id="prospTableView" style="display:none;padding:16px;"></div>
     <div id="prospStatsView" style="display:none;padding:16px;"></div>
     <div id="prospMgmtStatsView" style="display:none;padding:16px;"></div>
+    <div id="prospChangelogView" style="display:none;padding:16px;"></div>
+    <div id="botStatusView" style="display:none;padding:16px;"></div>
+    <div id="salesForecastView" style="display:none;padding:16px;"></div>
+    <div id="waListsView" style="display:none;padding:16px;"></div>
     <div id="prospApprovalsView" style="display:none;padding:16px;"></div>
     <div id="prospMgmtView" style="display:none;padding:16px;"></div>
 
@@ -1384,8 +1431,8 @@ function renderToolbar(){
   `;
 }
 function showCrmTab(tab){
-  ['morning','table','archive','dashboard','remTomorrow','remRecurring','remFree','calendar','debts',
-   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospApprovals','prospMgmt'].forEach(t=>{
+  ['morning','table','archive','dashboard','remTomorrow','remRecurring','remFree','calendar','debts','botStatus','salesForecast','waLists',
+   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospChangelog','prospApprovals','prospMgmt'].forEach(t=>{
     const btn=document.getElementById('tabBtn'+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn) btn.classList.toggle('active', t===tab);
   });
@@ -1406,6 +1453,10 @@ function showCrmTab(tab){
   _s('prospTableView',     tab==='prospTable'    ?'block':'none');
   _s('prospStatsView',     tab==='prospStats'    ?'block':'none');
   _s('prospMgmtStatsView', tab==='prospMgmtStats'?'block':'none');
+  _s('prospChangelogView', tab==='prospChangelog'?'block':'none');
+  _s('botStatusView', tab==='botStatus'?'block':'none');
+  _s('salesForecastView', tab==='salesForecast'?'block':'none');
+  _s('waListsView', tab==='waLists'?'block':'none');
   _s('prospApprovalsView', tab==='prospApprovals'?'block':'none');
   _s('prospMgmtView',      tab==='prospMgmt'     ?'block':'none');
   // فرم سریع فقط در تب جدول کامل
@@ -1426,6 +1477,10 @@ function showCrmTab(tab){
   if(tab==='prospTable')     renderProspectTable(document.getElementById('prospTableView'));
   if(tab==='prospStats')     renderProspectStats(document.getElementById('prospStatsView'));
   if(tab==='prospMgmtStats') renderManagementDashboard(document.getElementById('prospMgmtStatsView'));
+  if(tab==='prospChangelog') renderCustomerChangelog(document.getElementById('prospChangelogView'));
+  if(tab==='botStatus') renderBotStatusPanelCrm();
+  if(tab==='salesForecast') renderSalesForecast();
+  if(tab==='waLists') renderWaListsPage();
   if(tab==='prospApprovals') renderProspectApprovals(document.getElementById('prospApprovalsView'));
   if(tab==='prospMgmt')      renderManagementApprovals(document.getElementById('prospMgmtView'));
   // ⚠️ (۱۴۰۵/۰۶/۱۳) فیکس: این فراخوانی قبلاً فقط یه‌بار موقع init صدا زده
@@ -1435,7 +1490,12 @@ function showCrmTab(tab){
   updateProspNavVisibility();
   // اگه یکی از سه زیرمنوی یادآوریه، گروهش تو نوار کناری خودکار باز بمونه
   if(['remTomorrow','remRecurring','remFree'].includes(tab) && !_remNavOpen) toggleRemNavGroup();
-  if(['prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospApprovals','prospMgmt'].includes(tab) && !_prospNavOpen) toggleProspNavGroup();
+  if(['prospStats','prospMgmtStats','dashboard','salesForecast'].includes(tab) && !_dashNavOpen) toggleDashNavGroup();
+  if(['table','archive'].includes(tab) && !_orderNavOpen) toggleOrderNavGroup();
+  if(tab==='debts' && !_financeNavOpen) toggleFinanceNavGroup();
+  if(tab==='botStatus' && !_toolsNavOpen) toggleToolsNavGroup();
+  if(tab==='waLists' && !_toolsNavOpen) toggleToolsNavGroup();
+  if(['prospCreate','prospQuick','prospCustomers','prospTable','prospChangelog','prospApprovals','prospMgmt'].includes(tab) && !_prospNavOpen) toggleProspNavGroup();
   updateRemNavBadges();
   const rb=document.getElementById('remBadge');
   if(rb){const cnt=(freeReminders||[]).filter(r=>!r.done).length;rb.textContent=fn(cnt);rb.style.display=cnt?'inline-block':'none';}
@@ -1445,9 +1505,45 @@ function toggleProspNavGroup(){
   _prospNavOpen = !_prospNavOpen;
   const box = document.getElementById('prospNavSubItems');
   const arrow = document.getElementById('prospGroupArrow');
-  if(box) box.style.maxHeight = _prospNavOpen ? '380px' : '0';
+  if(box) box.style.maxHeight = _prospNavOpen ? '340px' : '0';
   if(arrow) arrow.textContent = _prospNavOpen ? '⌃' : '⌄';
   updateProspNavVisibility();
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۵) بازآرایی نوار کناری — طبق دستور صریح کاربر: داشبورد،
+// سفارش مشتری، مالی، ابزار هم آکاردئونی شدن. الگوی هرکدوم دقیقاً مثل
+// toggleProspNavGroup/toggleRemNavGroup بالاست.
+let _dashNavOpen = false;
+function toggleDashNavGroup(){
+  _dashNavOpen = !_dashNavOpen;
+  const box = document.getElementById('dashNavSubItems');
+  const arrow = document.getElementById('dashGroupArrow');
+  if(box) box.style.maxHeight = _dashNavOpen ? '210px' : '0';
+  if(arrow) arrow.textContent = _dashNavOpen ? '⌃' : '⌄';
+  updateProspNavVisibility();
+}
+let _orderNavOpen = false;
+function toggleOrderNavGroup(){
+  _orderNavOpen = !_orderNavOpen;
+  const box = document.getElementById('orderNavSubItems');
+  const arrow = document.getElementById('orderGroupArrow');
+  if(box) box.style.maxHeight = _orderNavOpen ? '160px' : '0';
+  if(arrow) arrow.textContent = _orderNavOpen ? '⌃' : '⌄';
+}
+let _financeNavOpen = false;
+function toggleFinanceNavGroup(){
+  _financeNavOpen = !_financeNavOpen;
+  const box = document.getElementById('financeNavSubItems');
+  const arrow = document.getElementById('financeGroupArrow');
+  if(box) box.style.maxHeight = _financeNavOpen ? '80px' : '0';
+  if(arrow) arrow.textContent = _financeNavOpen ? '⌃' : '⌄';
+}
+let _toolsNavOpen = false;
+function toggleToolsNavGroup(){
+  _toolsNavOpen = !_toolsNavOpen;
+  const box = document.getElementById('toolsNavSubItems');
+  const arrow = document.getElementById('toolsGroupArrow');
+  if(box) box.style.maxHeight = _toolsNavOpen ? '130px' : '0';
+  if(arrow) arrow.textContent = _toolsNavOpen ? '⌃' : '⌄';
 }
 let _remNavOpen = false;
 function toggleRemNavGroup(){
@@ -1674,6 +1770,16 @@ function renderPriorityRows(rows){
 }
 
 function fn(n){ return String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]); }
+// ⚠️ (۱۴۰۵/۰۶/۱۵) اصلاح مهم طبق تصمیم کاربر: مبلغ اعتبار از این به بعد
+// همیشه به «ریال» است (نه تومان)، و همیشه با جداکننده‌ی سه‌رقمی نمایش داده
+// می‌شه. ⚠️ این فقط نمایش/ورودی‌های جدید رو تغییر می‌ده — اگه از قبل عددی
+// ثبت شده بود (به تومان)، خودکار ضربدر ۱۰ نمی‌شه چون نمی‌شه مطمئن شد کدوم
+// رکورد قدیمیه؛ اگه چنین رکوردی هست، باید دستی بازبینی بشه.
+function formatRial(amount){
+  const digits = String(amount||'').replace(/\D/g,'');
+  if(!digits) return '';
+  return fn(digits.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+}
 // ⚠️ (۱۴۰۵/۰۶/۱۵) باگ واقعی: این تابع تو ۴ جای جدول (نمایش نام کارشناس)
 // صدا زده می‌شد ولی هیچ‌وقت اصلاً تعریف نشده بود — باعث کرش کامل صفحه
 // می‌شد («ac is not defined»). چون فقط ۲ حرفه، فیلتر audit2.py (که حداقل
@@ -1916,7 +2022,23 @@ function prospectFromApi(d){
     reservationStart:d.reservation_start||'', reservationDeadline:d.reservation_deadline||'',
     hasSampleSent:!!d.has_sample_sent, activityLog:d.activity_log||[], reservationHistory:d.reservation_history||[],
     acquiredDate:d.acquired_date||'', acquiredVia:d.acquired_via||'', createdDate:d.created_date||'',
-    createdTime:d.created_time||'', createdByName:d.created_by_name||'' };
+    createdTime:d.created_time||'', createdByName:d.created_by_name||'',
+    verificationStage:d.verification_stage||'', websiteChecked:!!d.website_checked, registrationChecked:!!d.registration_checked,
+    initialCheckNote:d.initial_check_note||'', visitDone:!!d.visit_done, visitDate:d.visit_date||'', visitBy:d.visit_by||'', visitNote:d.visit_note||'' };
+}
+async function updateVerificationCheckInDjango(id, patch){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+id+'/update-verification-check/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+    const j = await res.json();
+    return j.ok ? {ok:true, data:prospectFromApi(j.data)} : {ok:false, error:j.error};
+  }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
+}
+async function updateVerificationVisitInDjango(id, patch){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+id+'/update-verification-visit/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+    const j = await res.json();
+    return j.ok ? {ok:true, data:prospectFromApi(j.data)} : {ok:false, error:j.error};
+  }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
 async function fetchProspectsFromDjango(){
   const data = await fetchJsonWithRetry(DJANGO_PROSPECTS_API);
@@ -1978,11 +2100,11 @@ async function reserveProspectInDjango(id){
     return j.ok ? {ok:true, data:prospectFromApi(j.data)} : {ok:false, error:j.error||'رزرو ناموفق بود'};
   }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
-async function logProspectActivityInDjango(id, type, said, heard, nextFollowup, followupDate){
+async function logProspectActivityInDjango(id, type, said, heard, nextFollowup, followupDate, direction){
   try{
     const res = await fetch(DJANGO_PROSPECTS_API+id+'/log-activity/', {method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({staff_id:currentUser.email||'', staff_name:currentUser.name||currentUser.email, type, time:nowTimeStr(),
-        said:said||'', heard:heard||'', next_followup:nextFollowup||'', followup_date:followupDate||''})});
+        said:said||'', heard:heard||'', next_followup:nextFollowup||'', followup_date:followupDate||'', direction:direction||''})});
     const j = await res.json();
     return j.ok ? prospectFromApi(j.data) : null;
   }catch(e){ return null; }
@@ -2000,7 +2122,7 @@ async function acquireProspectInDjango(id, via){
       body:JSON.stringify({via})});
     const j = await res.json();
     if(j.ok) return {ok:true, data:prospectFromApi(j.data)};
-    return {ok:false, error:j.error||'ثبت جذب ناموفق بود', needsCredit:!!j.needs_credit};
+    return {ok:false, error:j.error||'ثبت جذب ناموفق بود', needsCredit:!!j.needs_credit, needsPriority:!!j.needs_priority};
   }catch(e){ return {ok:false, error:'اتصال به سرور برقرار نشد'}; }
 }
 async function fetchProspectStatsFromDjango(){
@@ -2015,6 +2137,50 @@ async function fetchCustomerFollowupFromDjango(){
   try{
     const staffName = encodeURIComponent(currentUser.name||currentUser.email||'');
     const res = await fetch(DJANGO_PROSPECTS_API+'customer-followup/?staff_name='+staffName);
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۵) دفتر کل تغییرات — همه‌ی مشتریان با هم
+async function fetchApprovalsReportFromDjango(){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+'approvals-report/');
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+async function fetchSalesForecastFromDjango(){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+'sales-forecast/');
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+async function fetchOrderCountsFromDjango(){
+  try{
+    const res = await fetch(DJANGO_PROSPECTS_API+'order-counts/');
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۵) صفحه وضعیت Bot — نسخه‌ی CRM، برای اینکه کارشناس فروش
+// بتونه از طریق واتساپ (نه پیامک) درخواست اتصال بات رو برای مشتری بفرسته
+let botInvitesCrm = [];
+async function fetchBotInvitesFromDjango(){
+  try{
+    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/invites/');
+    if(!res.ok) return [];
+    const data = await res.json();
+    return data.map(d=>({customer:d.customer, mobile:d.mobile, inviteDate:d.invite_date,
+      telegramConnected:!!d.telegram_connected, baleConnected:!!d.bale_connected}));
+  }catch(e){ return []; }
+}
+async function fetchCustomerChangelogFromDjango(staff, field){
+  try{
+    const params = new URLSearchParams();
+    if(staff) params.set('staff', staff);
+    if(field) params.set('field', field);
+    const res = await fetch('https://smartchip-backend.onrender.com/api/customers/changelog/?'+params.toString());
     if(!res.ok) return null;
     return await res.json();
   }catch(e){ return null; }
@@ -3947,6 +4113,14 @@ function updateProspNavVisibility(){
   if(mgmtBtn) mgmtBtn.style.display = isManagementRole() ? 'flex' : 'none';
   const mgmtStatsBtn = document.getElementById('tabBtnProspMgmtStats');
   if(mgmtStatsBtn) mgmtStatsBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  const forecastBtn = document.getElementById('tabBtnSalesForecast');
+  if(forecastBtn) forecastBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  const changelogBtn = document.getElementById('tabBtnProspChangelog');
+  if(changelogBtn) changelogBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  // ⚠️ (۱۴۰۵/۰۶/۱۵) طبق تصمیم کاربر: داشبورد سفارش‌ها (قبلاً «لیدها/کانبان»)
+  // فقط سرپرست فروش/مدیریت — نه کارشناسان عادی
+  const dashboardBtn = document.getElementById('tabBtnDashboard');
+  if(dashboardBtn) dashboardBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
 }
 async function updateApprovalsBadge(){
   if(!isSalesSupOrAbove()) return;
@@ -3963,9 +4137,18 @@ async function renderProspectApprovals(c){
       <div style="font-size:13px;font-weight:700">${a.customer_name}</div>
       <div style="font-size:11px;color:var(--muted);margin:4px 0 10px">${a.customer_phone||'—'} · درخواست «${a.requested_by_name}» · ${a.requested_date}</div>
       ${a.type==='credit_amount_needed' ? `
-        <label class="form-label">مبلغ اعتبار (تومان)</label>
-        <input class="form-control" id="approvalCredit_${a.id}" placeholder="مبلغ..."/>
+        <label class="form-label">مبلغ اعتبار (ریال)</label>
+        <input class="form-control" id="approvalCredit_${a.id}" placeholder="مبلغ به ریال..."/>
         <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" onclick="submitApprovalCredit(${a.id}, ${a.prospect})">💾 ثبت اعتبار و تایید</button>
+      ` : a.type==='priority_needed' ? `
+        <label class="form-label">اولویت فروش</label>
+        <select class="form-control" id="approvalPriority_${a.id}">
+          <option value="">— انتخاب کن —</option>
+          <option value="1">۱ — خیلی مهم</option>
+          <option value="5">۵ — مهم</option>
+          <option value="9">۹ — قابل‌اعتماد</option>
+        </select>
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" onclick="submitApprovalPriority(${a.id}, '${a.customer_name.replace(/'/g,"\\'")}')">💾 ثبت اولویت و تایید</button>
       ` : `
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitApprovalDecision(${a.id},'approved')">✅ تایید</button>
@@ -3973,6 +4156,18 @@ async function renderProspectApprovals(c){
         </div>
       `}
     </div>`).join('');
+}
+async function submitApprovalPriority(approvalId, customerName){
+  const pr = document.getElementById('approvalPriority_'+approvalId).value;
+  if(!pr){ toast('⚠️ اولویت رو انتخاب کن'); return; }
+  const custRow = (customerMaster||[]).find(c=>normalizeFa(c.name)===normalizeFa(customerName));
+  if(custRow){
+    const cr = await updateCustomerInDjango(custRow.id, {priority:pr, changed_by:currentUser.name||currentUser.email, changed_date:todayShamsiStr(), changed_time:nowTimeStr()});
+    if(!cr.ok){ toast('❌ '+cr.error); return; }
+    const idxc = customerMaster.findIndex(c=>c.id===custRow.id);
+    if(idxc>=0) customerMaster[idxc]=cr.data;
+  }
+  await submitApprovalDecision(approvalId, 'approved');
 }
 async function submitApprovalCredit(approvalId, prospectId){
   const amount = document.getElementById('approvalCredit_'+approvalId).value.trim();
@@ -4179,18 +4374,63 @@ function renderCustomerDetailTabContent(idx){
       } else if(p.status==='available'){
         actionsBoxHtml = `<button class="btn btn-primary btn-sm" style="width:100%;margin-top:14px" onclick="doReserveProspectFromDetail(${p.id})">🔒 رزرو کن</button>`;
       }
+      // ⚠️ (۱۴۰۵/۰۶/۱۵) سیکل «بررسی صلاحیت» — بعد از جذب، قبل از اولویت
+      // نهایی. طبق تصمیم صریح کاربر، این قضاوت انسانیه (چک سایت + مراجعه‌ی
+      // حضوری کارشناس/سرپرست فروش)، نه یه انتخاب خودکار لحظه‌ای.
+      let verificationBoxHtml = '';
+      if(p.status==='acquired' && p.verificationStage && p.verificationStage!=='ready_for_priority'){
+        if(p.verificationStage==='pending_check'){
+          verificationBoxHtml = `
+            <div style="background:rgba(96,165,250,.08);border:1px solid var(--blue);border-radius:8px;padding:10px;margin-top:14px">
+              <div style="font-size:11px;font-weight:700;margin-bottom:8px">🔍 مرحله‌ی ۱ — بررسی اولیه‌ی صلاحیت</div>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:6px;cursor:pointer">
+                <input type="checkbox" id="vfyWebsite_${p.id}" ${p.websiteChecked?'checked':''} onchange="submitVerificationCheck(${p.id})"/> سایت شرکت بررسی شد
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px;cursor:pointer">
+                <input type="checkbox" id="vfyReg_${p.id}" ${p.registrationChecked?'checked':''} onchange="submitVerificationCheck(${p.id})"/> شماره ثبت/شناسه ملی چک شد
+              </label>
+              <textarea class="form-control" id="vfyNote_${p.id}" placeholder="یادداشت بررسی اولیه..." rows="2" onblur="submitVerificationCheck(${p.id})">${p.initialCheckNote||''}</textarea>
+            </div>`;
+        } else if(p.verificationStage==='pending_visit'){
+          verificationBoxHtml = `
+            <div style="background:rgba(240,165,0,.08);border:1px solid var(--yellow);border-radius:8px;padding:10px;margin-top:14px">
+              <div style="font-size:11px;font-weight:700;margin-bottom:8px">🏢 مرحله‌ی ۲ — مراجعه‌ی حضوری کارشناس/سرپرست فروش</div>
+              <label class="form-label">حاضرشونده(ها)</label>
+              <input class="form-control" id="vfyVisitBy_${p.id}" placeholder="مثلاً: رضایی و سرپرست فروش"/>
+              <label class="form-label" style="margin-top:6px">یادداشت مراجعه (ظاهر دفتر، تعداد پرسنل، انبار...)</label>
+              <textarea class="form-control" id="vfyVisitNote_${p.id}" rows="3" placeholder="مشاهدات..."></textarea>
+              <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" onclick="submitVerificationVisit(${p.id})">✅ ثبت مراجعه — آماده‌ی تعیین اولویت</button>
+            </div>`;
+        }
+      } else if(p.status==='acquired' && p.verificationStage==='ready_for_priority'){
+        // ⚠️ (۱۴۰۵/۰۶/۱۶) طبق درخواست کاربر: سرپرست فروش موقع تعیین اولویت
+        // نهایی باید ببینه چندبار *ما* تماس گرفتیم در برابر چندبار *مشتری*
+        // خودش زنگ زده — سیگنال کمکی برای قضاوتش (نه جایگزین قضاوتش).
+        const allActivities = [...(p.activityLog||[]), ...((p.reservationHistory||[]).flatMap(h=>h.activity_log||[]))];
+        const outboundCount = allActivities.filter(a=>a.direction==='outbound').length;
+        const inboundCount = allActivities.filter(a=>a.direction==='inbound').length;
+        verificationBoxHtml = `
+          <div style="background:rgba(34,197,94,.08);border:1px solid var(--green);border-radius:8px;padding:10px;margin-top:14px;font-size:11px">
+            ✅ سیکل بررسی صلاحیت تکمیل شد (مراجعه: ${p.visitDate||'—'} — ${p.visitBy||'—'})<br>
+            <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)">
+              📊 <strong>سیگنال علاقه‌ی مشتری:</strong> ما ${fn(outboundCount)} بار زنگ زدیم، مشتری خودش ${fn(inboundCount)} بار زنگ زده
+            </div>
+            <span style="color:var(--muted)">حالا سرپرست فروش/مدیریت می‌تونه از صفحه‌ی «مشتریان» اولویت نهایی رو تعیین کنه.</span>
+          </div>`;
+      }
       body.innerHTML = `
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${[p.phone1,p.phone2].filter(Boolean).join(' · ')||'—'} ${p.province?' · 📍 '+p.province:''} ${p.category?' · 🏷️ '+p.category+(p.subcat?' / '+p.subcat:''):''}</div>
         <div style="background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:10.5px;color:var(--muted)">
           👤 ساخته‌شده توسط ${p.createdByName||'—'} — ${p.createdDate||'—'} ${p.createdTime?'ساعت '+p.createdTime:''}<br>
           🔎 نحوه‌ی آشنایی: ${prospectDiscoveryLabel(p.discoveryMethod)||'—'}<br>
           📄 ${p.hasContract?'دارای قرارداد همکاری':'بدون قرارداد همکاری'}
-          ${isSalesSupOrAbove() ? `<br>💰 اعتبار: ${p.creditAmount?fn(p.creditAmount)+' تومان':'تعیین نشده'}` : ''}
+          ${isSalesSupOrAbove() ? `<br>💰 اعتبار: ${p.creditAmount?formatRial(p.creditAmount)+' ریال':'تعیین نشده'}` : ''}
         </div>
         ${p.note ? `<div style="font-size:11px;margin-bottom:10px"><strong style="color:var(--text)">📝 یادداشت:</strong> <span style="color:var(--muted)">${p.note}</span></div>` : ''}
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">مخاطبین</div>${contactsHtml}
         <div style="font-size:12px;font-weight:700;margin:10px 0 6px">آدرس‌ها</div>${addressesHtml}
         ${actionsBoxHtml}
+        ${verificationBoxHtml}
       `;
     } else {
       const allowed = ['1','5','9'].includes(r.priority);
@@ -4237,6 +4477,28 @@ function renderCustomerDetailTabContent(idx){
       body.innerHTML = `<div style="font-size:11px;color:var(--muted)">هنوز هیچ کارشناسی رو این مشتری فعالیتی ثبت نکرده. از «فرم جذب سریع» می‌تونی شروع کنی.</div>`;
     }
   }
+}
+async function submitVerificationCheck(id){
+  const website = document.getElementById('vfyWebsite_'+id)?.checked;
+  const reg = document.getElementById('vfyReg_'+id)?.checked;
+  const note = document.getElementById('vfyNote_'+id)?.value || '';
+  const res = await updateVerificationCheckInDjango(id, {website_checked:website, registration_checked:reg, initial_check_note:note});
+  if(!res.ok){ toast('❌ '+res.error); return; }
+  const idx = prospects.findIndex(x=>x.id===id);
+  if(idx>=0) prospects[idx] = res.data;
+  if(res.data.verificationStage==='pending_visit') toast('✅ چک‌لیست تکمیل شد — حالا نوبت مراجعه‌ی حضوریه');
+  openCustomerDetailModal(window._custDetailIdx);
+}
+async function submitVerificationVisit(id){
+  const visitBy = document.getElementById('vfyVisitBy_'+id)?.value || '';
+  const visitNote = document.getElementById('vfyVisitNote_'+id)?.value || '';
+  if(!visitBy.trim()){ toast('⚠️ حاضرشونده‌ها رو بنویس'); return; }
+  const res = await updateVerificationVisitInDjango(id, {visit_by:visitBy, visit_note:visitNote, visit_date:todayShamsiStr()});
+  if(!res.ok){ toast('❌ '+res.error); return; }
+  const idx = prospects.findIndex(x=>x.id===id);
+  if(idx>=0) prospects[idx] = res.data;
+  toast('✅ مراجعه ثبت شد — حالا سرپرست فروش می‌تونه اولویت نهایی رو بده');
+  openCustomerDetailModal(window._custDetailIdx);
 }
 function closeCustomerDetailModal(){
   const el = document.getElementById('customerDetailOverlay');
@@ -4409,6 +4671,227 @@ async function renderProspectStats(c){
 
 // ══ داشبورد مدیریت — رتبه‌بندی کارشناسان برای پورسانت ══
 let curMgmtStatsPeriod = 'month';
+// ══ دفتر کل تغییرات — همه‌ی مشتریان یکجا (۱۴۰۵/۰۶/۱۵) ══
+// ⚠️ طبق درخواست کاربر: تاریخچه تا الان فقط داخل پرونده‌ی هر مشتری جداگانه
+// دیده می‌شد — یعنی برای فهمیدن «این هفته کی چه تغییراتی داده» باید صدها
+// پرونده تک‌تک باز می‌شد. اینجا همه‌شون یکجا و مرتب دیده می‌شن.
+let curChangelogStaff = '';
+let curChangelogField = '';
+const CHANGELOG_FIELD_LABELS = {
+  name:'نام', category:'صنف', province:'استان', subcat:'زیرصنف', mobile:'تلفن',
+  priority:'اولویت فروش', note:'یادداشت', vip:'سطح مشتری', assigned_staff_name:'کارشناس مسئول',
+};
+// ══ وضعیت Bot (نسخه‌ی CRM) — ارسال دعوت از طریق واتساپ ══
+async function renderBotStatusPanelCrm(){
+  const c = document.getElementById('botStatusView');
+  c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
+  botInvitesCrm = await fetchBotInvitesFromDjango();
+  const invites = botInvitesCrm;
+  // ⚠️ (۱۴۰۵/۰۶/۱۵) طبق تصمیم صریح کاربر: مشتری بالقوه‌ی جدید که هنوز به
+  // مرحله‌ی سفارش (جذب) نرسیده، اصلاً نباید تو این لیست باشه — چون هنوز
+  // نیازی به بات نداره. فقط وقتی status==='acquired' بشه (یعنی سفارش واقعی
+  // ثبت شده)، وارد این لیست می‌شه. مشتریان قدیمی (که هیچ‌وقت Prospect
+  // نداشتن) طبق قبل خودکار تو لیست هستن.
+  const prospectByName = {};
+  (prospects||[]).forEach(p=>{ prospectByName[normalizeFa(p.name)] = p; });
+  const eligible = (customerMaster||[]).filter(cm=>{
+    const p = prospectByName[normalizeFa(cm.name)];
+    if(!p) return true; // مشتری قدیمی واقعی — همیشه واجد شرایط
+    return p.status === 'acquired'; // مشتری بالقوه فقط بعد از جذب
+  });
+  const rows = eligible.map(cm=>{
+    const inv = invites.find(i=>normalizeFa(i.customer)===normalizeFa(cm.name));
+    const connected = !!(cm.telegram || cm.bale || (inv&&(inv.telegramConnected||inv.baleConnected)));
+    const invited = !!inv && !connected;
+    return {name:cm.name, mobile:cm.mobile||'', connected, invited};
+  });
+  const needsInvite = rows.filter(r=>!r.connected).sort((a,b)=>a.invited-b.invited); // اول دعوت‌نشده‌ها
+  const connectedCount = rows.filter(r=>r.connected).length;
+
+  c.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-hdr"><div class="sec-title">🤖 وضعیت اتصال Bot مشتریان</div></div>
+      <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11.5px;line-height:1.8;color:var(--muted)">
+        <strong style="color:var(--blue)">📌 راهنما:</strong> برای مشتریانی که هنوز به بات وصل نشدن، می‌تونی از همینجا یه پیام آماده با لینک بات از طریق <strong>واتساپ</strong> براشون بفرستی.<br>
+        🟢 وصل = مشتری قبلاً START زده | ⚪ دعوت نشده / منتظر<br>
+        ℹ️ مشتری بالقوه‌ی جدید تا وقتی جذب (سفارش واقعی) نشده، اینجا نمیاد — نیازی به بات نداره.
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">✅ ${fn(connectedCount)} مشتری وصل | ⏳ ${fn(needsInvite.length)} مشتری نیاز به دعوت دارن</div>
+      <table><thead><tr><th>مشتری</th><th>تلفن</th><th>وضعیت</th><th></th></tr></thead><tbody>${
+        rows.length ? rows.sort((a,b)=>a.connected-b.connected).map(r=>`
+          <tr>
+            <td>${r.name}</td>
+            <td style="font-size:11px;color:var(--muted)">${r.mobile||'—'}</td>
+            <td>${r.connected?'<span style="color:var(--green)">🟢 وصل</span>':r.invited?'<span style="color:var(--yellow)">🟡 منتظر</span>':'<span style="color:var(--muted)">⚪ دعوت‌نشده</span>'}</td>
+            <td>${!r.connected && r.mobile ? `<button class="btn btn-primary btn-sm" onclick="sendBotInviteWhatsApp('${r.name.replace(/'/g,"\\'")}')">📱 ارسال از واتساپ</button>` : ''}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🤖</div><div class="empty-text">مشتری‌ای پیدا نشد</div></div></td></tr>'
+      }</tbody></table>
+    </div>`;
+}
+// ⚠️ (۱۴۰۵/۰۶/۱۵) این تابع عیناً از erp.html منتقل شد — نسخه‌ی اول خودم
+// (بدون inviteId) اشتباه بود: بدون شناسه‌ی سرور، وب‌هوک تلگرام/بله وقتی
+// مشتری Start بزنه هیچ‌وقت نمی‌فهمه این اتصال مال کدوم مشتریه.
+function buildBotInviteMessage(customerName, inviteId){
+  return 'شرکت '+customerName+' گرامی،\n'
+    +'برای رصد سفارش و دریافت اطلاع‌رسانی، لطفاً یکی از دو بات زیر را باز کنید و روی دکمه‌ی «Start» که پایین صفحه ظاهر می‌شود بزنید:\n\n'
+    +'📱 تلگرام: https://t.me/SmartChip_ir_bot?start='+inviteId+'\n'
+    +'📱 بله: https://ble.ir/SmartChip_ir_bot?start='+inviteId+'\n\n'
+    +'⚠️ توجه: فقط باز کردن لینک کافی نیست — حتماً باید دکمه‌ی Start را لمس کنید تا ثبت شوید.\n\n'
+    +'با تشکر — اسمارت‌چیپ';
+}
+async function sendBotInviteWhatsApp(customerName){
+  const cm = (customerMaster||[]).find(c=>c.name===customerName)||{};
+  if(!cm.mobile){ toast('⚠️ موبایل این مشتری تو فایل مشتریان ثبت نشده'); return; }
+  const existing = (botInvitesCrm||[]).find(b=>b.customer===customerName);
+  let inviteId = existing && existing.id;
+  if(!inviteId){
+    let res;
+    try{
+      const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-invite/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({customer:customerName, mobile:cm.mobile, orderId:''})
+      });
+      res = await httpRes.json();
+    }catch(e){ toast('⚠️ ساخت دعوت‌نامه ناموفق بود — اتصال به سرور رو چک کن'); return; }
+    if(!res || !res.id){ toast('⚠️ ساخت دعوت‌نامه ناموفق بود'); return; }
+    inviteId = res.id;
+    botInvitesCrm = (botInvitesCrm||[]).filter(b=>b.customer!==customerName);
+    botInvitesCrm.push({id:inviteId, customer:customerName, mobile:cm.mobile||'', inviteDate:todayShamsiStr(), telegramConnected:false, baleConnected:false});
+  }
+  const phone = cm.mobile.replace(/\D/g,'').replace(/^0/,'98');
+  const msg = buildBotInviteMessage(customerName, inviteId);
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank');
+  toast('📱 واتساپ باز شد — پیام آماده است، فقط دکمه‌ی ارسال رو بزن');
+}
+// ══ پیش‌بینی فروش — تعداد جذب مورد انتظار (۱۴۰۵/۰۶/۱۵) ══
+// ══ لیست‌های واتساپ — کمک به ساخت/به‌روزرسانی Broadcast List (۱۴۰۵/۰۶/۱۶) ══
+// ⚠️ خودِ ارسال و مدیریت لیست تو واتساپ (دستی، تو گوشی) انجام می‌شه — اینجا
+// فقط شماره‌ها رو بر اساس سگمنت آماده و قابل‌کپی می‌کنیم، چون واتساپ API
+// عمومی برای ساخت خودکار Broadcast List نداره.
+let curWaSegmentCategory = '';
+let curWaSegmentSource = '';
+function renderWaListsPage(){
+  const c = document.getElementById('waListsView');
+  c.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-hdr"><div class="sec-title">📢 لیست‌های واتساپ — آماده‌سازی شماره برای Broadcast List</div></div>
+      <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:10px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.8">
+        📌 این صفحه فقط شماره‌ها رو آماده می‌کنه — ساخت/آپدیت خودِ Broadcast List و ارسال پیام رو باید تو واتساپ گوشی انجام بدید (حداکثر ۲۵۶ نفر هر لیست).
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <select class="form-control" style="width:auto;margin-bottom:0" onchange="curWaSegmentCategory=this.value;renderWaListsPage()">
+          <option value="">همه‌ی صنف‌ها (لیست کلی)</option>
+          ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}" ${curWaSegmentCategory===cat?'selected':''}>${cat}</option>`).join('')}
+        </select>
+        <select class="form-control" style="width:auto;margin-bottom:0" onchange="curWaSegmentSource=this.value;renderWaListsPage()">
+          <option value="">قدیمی + جدید</option>
+          <option value="customer" ${curWaSegmentSource==='customer'?'selected':''}>فقط مشتریان قدیمی</option>
+          <option value="prospect" ${curWaSegmentSource==='prospect'?'selected':''}>فقط مشتریان جدید (جذب‌شده)</option>
+        </select>
+      </div>
+      <div id="waListsResult"></div>
+    </div>`;
+
+  let rows = getAllCustomersUnified().filter(r=>r.phone && r.phone.replace(/\D/g,'').length>=10);
+  if(curWaSegmentCategory) rows = rows.filter(r=>r.category===curWaSegmentCategory);
+  if(curWaSegmentSource) rows = rows.filter(r=>r.source===curWaSegmentSource);
+  // جذب‌نشده‌ها (پروسپکت در حال پیگیری) تو کمپین بازاریابی معنا نداره — طبق
+  // همون منطق «هنوز نیازی به بات نداره» که تو وضعیت Bot هم اعمال کردیم
+  rows = rows.filter(r=>r.source!=='prospect' || r.prospectRef.status==='acquired');
+
+  const phones = [...new Set(rows.map(r=>r.phone.replace(/\D/g,'').replace(/^0/,'98')))];
+  const groups = [];
+  for(let i=0;i<phones.length;i+=256) groups.push(phones.slice(i,i+256));
+
+  const resultBox = document.getElementById('waListsResult');
+  resultBox.innerHTML = `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${fn(rows.length)} مشتری با شماره‌ی معتبر ${groups.length>1?`— چون بیش از ۲۵۶ تاست، به ${fn(groups.length)} لیست تقسیم شد`:''}</div>
+    ${groups.length ? groups.map((g,i)=>`
+      <div style="background:var(--card);border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:700">لیست ${groups.length>1?fn(i+1)+' از '+fn(groups.length)+' — ':''}${fn(g.length)} شماره</span>
+          <button class="btn btn-ghost btn-sm" onclick="copyWaListNumbers(${i})">📋 کپی همه</button>
+        </div>
+        <textarea id="waListBox_${i}" class="form-control" rows="3" readonly style="font-size:10px;font-family:monospace;direction:ltr;text-align:left">${g.join(', ')}</textarea>
+      </div>`).join('')
+    : '<div class="empty-state"><div class="empty-icon">📢</div><div class="empty-text">با این فیلتر، مشتری با شماره‌ی معتبر پیدا نشد</div></div>'}`;
+}
+function copyWaListNumbers(i){
+  const box = document.getElementById('waListBox_'+i);
+  box.select();
+  document.execCommand('copy');
+  toast('📋 شماره‌ها کپی شد — تو واتساپ، Broadcast List جدید بساز و همینا رو اضافه کن');
+}
+async function renderSalesForecast(){
+  const c = document.getElementById('salesForecastView');
+  c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
+  const data = await fetchSalesForecastFromDjango();
+  if(!data){ c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">دریافت پیش‌بینی ناموفق بود</div></div>`; return; }
+
+  c.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-hdr"><div class="sec-title">🔮 پیش‌بینی فروش — تعداد جذب مورد انتظار</div></div>
+      <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.8">
+        📌 چون مبلغ واقعی سفارش تو سیستم ثبت نمی‌شه، این عدد «تعداد» جذب مورد انتظاره، نه مبلغ ریالی — بر پایه‌ی نرخ تبدیل تاریخی هر کارشناس × تعداد رزروهای فعلیش، با وزن‌دهی بر اساس نزدیکی به مهلت (مهلت نزدیک‌تر و هنوز جذب‌نشده = احتمال کمتر).
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        <div><span style="font-size:22px;font-weight:800;color:var(--accent)">${fn(data.total_expected)}</span> <span style="font-size:10.5px;color:var(--muted)">جذب مورد انتظار کل تیم</span></div>
+        <div><span style="font-size:22px;font-weight:800">${fn(data.total_reserved)}</span> <span style="font-size:10.5px;color:var(--muted)">در حال پیگیری</span></div>
+        <div><span style="font-size:22px;font-weight:800">${data.team_avg_conversion_rate!=null?fn(data.team_avg_conversion_rate)+'٪':'—'}</span> <span style="font-size:10.5px;color:var(--muted)">میانگین نرخ تبدیل تیم</span></div>
+      </div>
+      <table><thead><tr><th>کارشناس</th><th>در حال پیگیری</th><th>نرخ تبدیل</th><th>جذب مورد انتظار</th></tr></thead><tbody>${
+        data.rows.length ? data.rows.map(r=>`
+          <tr>
+            <td style="font-weight:700">${ac(r.staff_name)}</td>
+            <td>${fn(r.reserved_count)}</td>
+            <td>${r.conversion_rate!=null?fn(r.conversion_rate)+'٪':'—'}${r.conversion_rate_note?`<div style="font-size:9px;color:var(--muted)">${r.conversion_rate_note}</div>`:''}</td>
+            <td style="font-weight:700;color:var(--green)">${r.expected_acquisitions!=null?fn(r.expected_acquisitions):'—'}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🔮</div><div class="empty-text">داده‌ای برای پیش‌بینی نیست</div></div></td></tr>'
+      }</tbody></table>
+    </div>`;
+}
+async function renderCustomerChangelog(c){
+  c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
+  const data = await fetchCustomerChangelogFromDjango(curChangelogStaff, curChangelogField);
+  if(!data){ c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">دریافت تاریخچه ناموفق بود</div></div>`; return; }
+  const fieldLabel = f => CHANGELOG_FIELD_LABELS[f] || f;
+  // اولویت رو با برچسب معنادار نشون بده، نه عدد خام
+  const valLabel = (field, v) => field==='priority' ? priorityLabel(v) : (v || '—');
+
+  c.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <div class="sec-title">📒 دفتر کل تغییرات — همه‌ی مشتریان <span style="font-size:11px;color:var(--muted);font-weight:400">— ${fn(data.rows.length)} از ${fn(data.total)} تغییر</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="form-control" style="width:auto;margin-bottom:0" onchange="curChangelogStaff=this.value;renderCustomerChangelog(document.getElementById('prospChangelogView'))">
+            <option value="">همه‌ی کارشناسان</option>
+            ${(data.all_staff||[]).map(s=>`<option value="${s}" ${curChangelogStaff===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+          <select class="form-control" style="width:auto;margin-bottom:0" onchange="curChangelogField=this.value;renderCustomerChangelog(document.getElementById('prospChangelogView'))">
+            <option value="">همه‌ی فیلدها</option>
+            ${(data.all_fields||[]).map(f=>`<option value="${f}" ${curChangelogField===f?'selected':''}>${fieldLabel(f)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <table><thead><tr>
+        <th>تاریخ و ساعت</th><th>چه کسی</th><th>کدام مشتری</th><th>چه فیلدی</th><th>از</th><th>به</th>
+      </tr></thead><tbody>${
+        data.rows.length ? data.rows.map(r=>`
+          <tr>
+            <td style="font-size:11px;color:var(--muted);white-space:nowrap">${r.date||'—'}${r.time?' — '+r.time:''}</td>
+            <td style="font-weight:700">${ac(r.by)||'نامشخص'}</td>
+            <td>${r.customer_name}</td>
+            <td>${fieldLabel(r.field)}</td>
+            <td style="color:var(--muted)">${valLabel(r.field, r.old)}</td>
+            <td style="color:var(--green);font-weight:700">${valLabel(r.field, r.new)}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📒</div><div class="empty-text">هنوز تغییری ثبت نشده</div></div></td></tr>'
+      }</tbody></table>
+    </div>`;
+}
+
 async function renderManagementDashboard(c){
   c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>`;
   const stats = await fetchTeamStatsFromDjango(curMgmtStatsPeriod);
@@ -4469,7 +4952,69 @@ async function renderManagementDashboard(c){
     <div class="dash-section">
       <div style="font-size:11px;font-weight:700;margin-bottom:8px">🟢⚪ مشتریان فعال در برابر غیرفعال (کل فایل مشتریان)</div>
       ${renderActiveInactiveSummary()}
-    </div>`;
+    </div>
+
+    <div id="mgmtApprovalsReport"></div>
+    <div id="mgmtOrderCounts"></div>`;
+
+  // ⚠️ (۱۴۰۵/۰۶/۱۵) این دو گزارش جدا فچ می‌شن (نه بخشی از team-stats) تا اگه
+  // یکیشون کند بود یا خطا داد، بقیه‌ی داشبورد بلاک نشه. موازی می‌گیریمشون.
+  const [apprRep, orderCounts] = await Promise.all([
+    fetchApprovalsReportFromDjango(),
+    fetchOrderCountsFromDjango(),
+  ]);
+
+  const apprBox = document.getElementById('mgmtApprovalsReport');
+  if(apprBox && apprRep){
+    const staleColor = apprRep.stale_count>0 ? 'var(--red)' : 'var(--green)';
+    apprBox.innerHTML = `
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><div class="sec-title">⏳ درخواست‌های تایید — وضعیت معطلی</div></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:11px">
+          <div><span style="font-size:18px;font-weight:800">${fn(apprRep.pending_count)}</span> <span style="color:var(--muted)">در انتظار</span></div>
+          <div><span style="font-size:18px;font-weight:800;color:${staleColor}">${fn(apprRep.stale_count)}</span> <span style="color:var(--muted)">معطل بیش از ۳ روز</span></div>
+          <div><span style="font-size:18px;font-weight:800">${apprRep.avg_resolve_days!=null?fn(apprRep.avg_resolve_days):'—'}</span> <span style="color:var(--muted)">میانگین روز تا تصمیم</span></div>
+        </div>
+        ${apprRep.pending_rows.length ? `
+        <table><thead><tr><th>مشتری</th><th>نوع درخواست</th><th>درخواست‌کننده</th><th>تاریخ</th><th>مدت انتظار</th></tr></thead><tbody>${
+          apprRep.pending_rows.map(r=>`
+            <tr>
+              <td>${r.customer_name}</td>
+              <td style="font-size:11px">${r.type_label}</td>
+              <td style="font-size:11px">${ac(r.requested_by_name)}</td>
+              <td style="font-size:11px;color:var(--muted)">${r.requested_date||'—'}</td>
+              <td style="color:${r.is_stale?'var(--red)':'var(--muted)'};font-weight:${r.is_stale?'700':'400'}">${r.is_stale?'🔴 ':''}${fn(r.days_waiting)} روز</td>
+            </tr>`).join('')
+        }</tbody></table>` : `<div style="font-size:11px;color:var(--muted)">هیچ درخواستی در انتظار نیست 👍</div>`}
+      </div>`;
+  }
+
+  const ordBox = document.getElementById('mgmtOrderCounts');
+  if(ordBox && orderCounts){
+    const withOrders = (orderCounts.rows||[]).filter(r=>r.total_count>0).slice(0,15);
+    ordBox.innerHTML = `
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><div class="sec-title">🔢 شمارش سفارش هر مشتری (بر اساس کد پیگیری)</div></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+          ${fn(orderCounts.customers_with_orders)} مشتری سفارش داشتن
+          ${orderCounts.customers_without_abbr>0?` · <span style="color:var(--red)">⚠️ ${fn(orderCounts.customers_without_abbr)} مشتری هنوز کد پیگیری ندارن</span>`:''}
+        </div>
+        ${withOrders.length ? `
+        <table><thead><tr><th>کد</th><th>مشتری</th><th>بازار</th><th>خارج</th><th>مجموع</th><th>سفارش بعدی</th></tr></thead><tbody>${
+          withOrders.map(r=>`
+            <tr>
+              <td style="font-weight:700;font-family:monospace">${r.abbr||'—'}</td>
+              <td>${r.customer_name}</td>
+              <td>${fn(r.market_count)}</td>
+              <td>${fn(r.foreign_count)}</td>
+              <td style="font-weight:700">${fn(r.total_count)}</td>
+              <td style="font-family:monospace;color:var(--accent)">${r.next_order_code||'—'}</td>
+            </tr>`).join('')
+        }</tbody></table>
+        ${(orderCounts.rows||[]).filter(r=>r.total_count>0).length>15?`<div style="font-size:10px;color:var(--muted);margin-top:8px">۱۵ مشتری برتر نشون داده شده</div>`:''}
+        ` : `<div style="font-size:11px;color:var(--muted)">هنوز سفارشی ثبت نشده</div>`}
+      </div>`;
+  }
 }
 // ⚠️ (۱۴۰۵/۰۶/۱۴) مشتری «فعال» = حداقل یه سفارش بازار تکمیل‌شده یا یه
 // محموله‌ی خارجی داره — این محاسبه از رو داده‌ی یکپارچه‌ی خودِ فرانت‌اند
@@ -4533,8 +5078,8 @@ function renderProspectCreateForm(c){
 
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th>نام مشتری *</th><th>کد پیگیری</th><th>تلفن ۱ *</th><th>تلفن ۲</th><th>استان *</th><th>صنف *</th><th>زیرصنف</th>
-        <th>نحوه آشنایی</th><th>قرارداد</th>${isSalesSupOrAbove()?'<th>اعتبار</th>':''}<th>یادداشت</th>
+        <th>نام مشتری *</th><th>کد پیگیری *</th><th>تلفن ۱ *</th><th>تلفن ۲</th><th>استان *</th><th>صنف *</th><th>زیرصنف</th>
+        <th>نحوه آشنایی</th><th>قرارداد</th><th>یادداشت</th>
       </tr></thead><tbody><tr>
         <td><input class="form-control" id="pNewName" oninput="checkProspectNewLive()" placeholder="نام کامل" style="min-width:140px"/></td>
         <td>
@@ -4555,7 +5100,6 @@ function renderProspectCreateForm(c){
           ${PROSPECT_DISCOVERY_METHODS.map(d=>`<option value="${d.key}">${d.label}</option>`).join('')}
         </select></td>
         <td style="text-align:center"><input type="checkbox" id="pNewHasContract" style="width:18px;height:18px"/></td>
-        ${isSalesSupOrAbove() ? `<td><input class="form-control" id="pNewCredit" placeholder="تومان" style="min-width:100px"/></td>` : ''}
         <td><input class="form-control" id="pNewNote" placeholder="یادداشت..." style="min-width:140px"/></td>
       </tr></tbody></table>
     </div>
@@ -4607,12 +5151,14 @@ function checkProspectFormValidity(){
   const missingBox = document.getElementById('pNewMissingFields');
   if(!btn) return;
   const name = (document.getElementById('pNewName')||{}).value?.trim()||'';
+  const abbr = (document.getElementById('pNewAbbr')||{}).value?.trim()||'';
   const phone1 = (document.getElementById('pNewPhone1')||{}).value?.trim()||'';
   const province = (document.getElementById('pNewProvince')||{}).value?.trim()||'';
   const category = (document.getElementById('pNewCategory')||{}).value?.trim()||'';
   const hasValidContact = _prospectNewContacts.some(ct=>ct.name.trim() && ct.mobile.trim());
   const missing = [];
   if(!name) missing.push('نام مشتری');
+  if(!abbr) missing.push('کد پیگیری (۳-۴ حرف انگلیسی)');
   if(!phone1 || !isValid11DigitPhone(phone1)) missing.push('تلفن شرکت ۱ (باید ۱۱ رقمی باشه)');
   if(!province) missing.push('استان');
   if(!category) missing.push('صنف');
@@ -4702,9 +5248,10 @@ function checkProspectAbbrLive(){
   if(!input || !warnBox) return;
   input.value = input.value.toUpperCase();
   const val = input.value.trim();
-  if(!val){ warnBox.innerHTML=''; return; }
+  if(!val){ warnBox.innerHTML=''; checkProspectFormValidity(); return; }
   const dup = (customerMaster||[]).some(c=>(c.abbr||'').toUpperCase()===val);
   warnBox.innerHTML = dup ? `<span style="color:var(--red)">⚠️ تکراریه</span>` : `<span style="color:var(--green)">✓ آزاده</span>`;
+  checkProspectFormValidity();
 }
 function checkProspectNewLive(){
   const name = document.getElementById('pNewName').value.trim();
@@ -4790,7 +5337,7 @@ async function submitNewProspect(){
   const note = document.getElementById('pNewNote').value.trim();
   const contacts = _prospectNewContacts.filter(ct=>ct.name.trim() && ct.mobile.trim());
   const addresses = _prospectNewAddresses.filter(a=>a.address.trim());
-  if(!name || !phone1 || !isValid11DigitPhone(phone1) || !province || !category || !contacts.length){
+  if(!name || !abbr || !phone1 || !isValid11DigitPhone(phone1) || !province || !category || !contacts.length){
     toast('⚠️ فیلدهای الزامی رو کامل کن'); checkProspectFormValidity(); return;
   }
   if(phone2 && !isValid11DigitPhone(phone2)){ toast('⚠️ تلفن شرکت ۲ باید ۱۱ رقمی باشه'); return; }
@@ -4799,16 +5346,13 @@ async function submitNewProspect(){
   if(res.matches && res.matches.length && stillBlocking){ toast('⚠️ اول باید هشدار تکراری‌بودن رو برطرف کنی'); return; }
   const payload = {name, abbr, phone1, phone2, province, category, subcat, discoveryMethod, hasContract, note, contacts, addresses};
   if(_prospectApprovedRequestId) payload.approvedRequestId = _prospectApprovedRequestId;
-  if(isSalesSupOrAbove() && document.getElementById('pNewCredit')){
-    payload.creditAmount = document.getElementById('pNewCredit').value.trim();
-  }
   const result = await createProspectInDjango(payload);
   if(!result.ok){ toast('❌ '+result.error); return; }
   prospects.push(result.data);
-  // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم اصلاح‌شده‌ی کاربر: درخواست تعیین اعتبار دیگه
-  // موقع *ساخت* مشتری فرستاده نمی‌شه — بلکه دقیقاً موقع «جذب شد» زدن چک
-  // می‌شه (تو submitProspectAcquire) چون اونجاست که واقعاً لازمه قبل از
-  // سفارش‌گذاری اعتبار مشخص شده باشه.
+  // ⚠️ (۱۴۰۵/۰۶/۱۳) طبق تصمیم کاربر: اعتبار موقع *ساخت* مشتری اصلاً پرسیده
+  // نمی‌شه — دقیقاً موقع «جذب شد» زدن چک می‌شه (تو submitProspectAcquire).
+  // ⚠️ (۱۴۰۵/۰۶/۱۵) به همین دلیل، فیلد اعتبار از خودِ فرم ساخت هم حذف شد
+  // (قبلاً وجود داشت ولی هیچ‌وقت واقعاً استفاده نمی‌شد — گمراه‌کننده بود).
   toast('✅ مشتری بالقوه ثبت شد — به فایل کلی مشتریان هم اضافه شد');
   document.getElementById('pNewName').value='';
   document.getElementById('pNewPhone1').value='';
@@ -4818,7 +5362,6 @@ async function submitNewProspect(){
   onProspectCategoryChange();
   document.getElementById('pNewDiscovery').value='';
   document.getElementById('pNewHasContract').checked=false;
-  if(document.getElementById('pNewCredit')) document.getElementById('pNewCredit').value='';
   document.getElementById('pNewNote').value='';
   document.getElementById('pNewWarning').innerHTML='';
   _prospectApprovedRequestId=null;
@@ -5002,6 +5545,11 @@ function renderQuickFormActivityBox(p){
       <div>
         <label class="form-label">نوع فعالیت</label>
         <select class="form-control" id="pQfType">${PROSPECT_ACTIVITY_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}</select>
+        <label class="form-label" style="margin-top:10px">جهت تماس</label>
+        <div style="display:flex;gap:14px;font-size:11.5px;margin-bottom:4px">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pQfDirection" value="outbound" checked/> 📞 من تماس گرفتم</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pQfDirection" value="inbound"/> 📲 مشتری زنگ زد</label>
+        </div>
         <label class="form-label" style="margin-top:10px">📝 شرح مذاکره</label>
         <textarea class="form-control" id="pQfSaid" rows="2" placeholder="خلاصه‌ی مذاکره‌ی انجام‌شده..."></textarea>
         <label class="form-label" style="margin-top:10px">📋 بازخورد مشتری</label>
@@ -5031,11 +5579,12 @@ async function submitQuickFormActivity(){
     p = res.data;
   }
   const type = document.getElementById('pQfType').value;
+  const direction = (document.querySelector('input[name="pQfDirection"]:checked')||{}).value || '';
   const said = document.getElementById('pQfSaid').value.trim();
   const heard = document.getElementById('pQfHeard').value.trim();
   const nextFollowup = document.getElementById('pQfNextFollowup').value.trim();
   const followupDate = document.getElementById('pQfFollowupDate').value.trim();
-  const updated = await logProspectActivityInDjango(p.id, type, said, heard, nextFollowup, followupDate);
+  const updated = await logProspectActivityInDjango(p.id, type, said, heard, nextFollowup, followupDate, direction);
   if(!updated){ toast('❌ ثبت فعالیت ناموفق بود'); return; }
   const idx = prospects.findIndex(x=>x.id===p.id);
   if(idx>=0) prospects[idx]=updated;
@@ -5161,7 +5710,7 @@ function openProspectDetail(id){
       ${p.status==='acquired'?`<br>🎉 جذب‌شده توسط <strong style="color:var(--green)">${p.assigneeName||'—'}</strong> — ${p.acquiredDate||'—'}`:''}
       ${p.discoveryMethod?`<br>🔎 نحوه‌ی آشنایی: ${prospectDiscoveryLabel(p.discoveryMethod)}`:''}
       <br>📄 ${p.hasContract?'دارای قرارداد همکاری':'بدون قرارداد همکاری (هر فروش نیاز به تایید سرپرست فروش دارد)'}
-      ${isSalesSupOrAbove() ? `<br>💰 اعتبار: ${p.creditAmount?fn(p.creditAmount)+' تومان ('+(p.creditSetBy||'')+')':'هنوز تعیین نشده'}` : ''}
+      ${isSalesSupOrAbove() ? `<br>💰 اعتبار: ${p.creditAmount?formatRial(p.creditAmount)+' ریال ('+(p.creditSetBy||'')+')':'هنوز تعیین نشده'}` : ''}
     </div>`;
   const html = `
     <div class="modal-overlay open" id="prospectDetailOverlay" onclick="if(event.target===this) closeProspectDetail()">
@@ -5262,7 +5811,7 @@ function openProspectEditModal(id){
 
           ${isSalesSupOrAbove() ? `
           <label class="form-label" style="margin-top:10px">💰 مبلغ اعتبار</label>
-          <input class="form-control" id="pEditCredit" placeholder="مبلغ به تومان..." value="${p.creditAmount||''}"/>
+          <input class="form-control" id="pEditCredit" placeholder="مبلغ به ریال..." value="${p.creditAmount||''}"/>
           ` : ''}
 
           <label class="form-label" style="margin-top:14px">یادداشت</label>
@@ -5400,6 +5949,7 @@ function refreshCurrentProspectView(){
     prospTableView: () => renderProspectTable(document.getElementById('prospTableView')),
     prospStatsView: () => renderProspectStats(document.getElementById('prospStatsView')),
     prospMgmtStatsView: () => renderManagementDashboard(document.getElementById('prospMgmtStatsView')),
+    prospChangelogView: () => renderCustomerChangelog(document.getElementById('prospChangelogView')),
   };
   for(const [id, fn] of Object.entries(map)){
     const el = document.getElementById(id);
@@ -5443,7 +5993,7 @@ async function submitProspectAcquire(id, via){
   // متوقف می‌مونه تا اون تعیینش کنه.
   if(!p.creditAmount){
     if(isSalesSupOrAbove()){
-      const amount = prompt('قبل از ثبت جذب، مبلغ اعتبار این مشتری رو وارد کن (تومان):');
+      const amount = prompt('قبل از ثبت جذب، مبلغ اعتبار این مشتری رو وارد کن (به ریال، مثلاً برای ۵۰ میلیون تومان بنویس 500000000):');
       if(!amount || !amount.trim()){ toast('⚠️ بدون تعیین اعتبار نمی‌شه جذب رو ثبت کرد'); return; }
       const cr = await updateProspectCreditInDjango(id, amount.trim());
       if(!cr.ok){ toast('❌ '+cr.error); return; }
@@ -5464,6 +6014,12 @@ async function submitProspectAcquire(id, via){
       return;
     }
   }
+  // ⚠️ (۱۴۰۵/۰۶/۱۷) فیکس رگرسیون مهم: بلوک چک اولویت اینجا حذف شد. طبق
+  // تصمیم (۱۴۰۵/۰۶/۱۵)، اولویت دیگه سدِ جذب نیست — پس از موقع پورت به
+  // موبایل (مرحله‌ی ۲) معلوم شد این بخش از فرانت‌اند CRM هنوز منطق قدیمی
+  // رو داشت، درصورتی‌که بک‌اند `acquire()` دیگه اصلاً priority رو چک
+  // نمی‌کنه (فقط اعتبار). یعنی تا الان کارشناس ممکن بود بی‌خودی ازش
+  // خواسته بشه اولویت بده، یا یه درخواست priority_needed بی‌فایده ساخته بشه.
   if(!confirm(`تأیید می‌کنی این مشتری جذب شد (سفارش ${via==='foreign'?'خارج':'بازار'} ثبت شد)؟`)) return;
   const res = await acquireProspectInDjango(id, via);
   if(!res.ok){
@@ -5472,7 +6028,7 @@ async function submitProspectAcquire(id, via){
   }
   const idx = prospects.findIndex(x=>x.id===id);
   if(idx>=0) prospects[idx]=res.data;
-  toast('🎉 جذب ثبت شد! حالا برو تو فرم ثبت سفارش، لید رو بساز و ادامه بده.');
+  toast('🎉 جذب ثبت شد! وارد سیکل بررسی صلاحیت شد — چک‌لیست اولیه رو از «مشتریان» تکمیل کن.');
   closeProspectDetail();
   closeCustomerDetailModal();
   updateProspectsBadge();
