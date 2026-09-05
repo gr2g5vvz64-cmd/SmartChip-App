@@ -4274,6 +4274,17 @@ function getAllCustomersUnified(includeHidden){
   });
   return out;
 }
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: فیلتر صنف تو صفحه‌ی «مشتریان» باید
+// صنف‌های *واقعاً موجود تو داده* رو نشون بده (حتی اگه یه متن آزاد باشه،
+// مثل «سوخته» که تو فیلد صنفِ بعضی مشتریان قدیمی نوشته شده، نه فقط از
+// لیست رسمیِ ۱۷تاییِ PROSPECT_CATEGORIES). includeHidden=true چون اگه
+// یه صنف کامل مخفی بشه، باید بازم تو فیلتر باشه تا بشه با «نمایش
+// مخفی‌شده‌ها هم» دوباره پیداش کرد.
+function getDistinctCustomerCategories(){
+  const set = new Set();
+  getAllCustomersUnified(true).forEach(r=>{ if(r.category && r.category.trim()) set.add(r.category.trim()); });
+  return [...set].sort((a,b)=>a.localeCompare(b,'fa'));
+}
 let curCustomersSearch='';
 let curCustomersFilters = {province:'', category:'', source:'', active:''};
 let curCustomersShowHidden = false;
@@ -4291,7 +4302,7 @@ function renderCustomersPage(c){
         </select>
         <select class="form-control" style="width:auto" onchange="setCustomersFilter('category',this.value)">
           <option value="">همه‌ی صنف‌ها</option>
-          ${PROSPECT_CATEGORIES.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+          ${getDistinctCustomerCategories().map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
         </select>
         <select class="form-control" style="width:auto" onchange="setCustomersFilter('source',this.value)">
           <option value="">قدیمی + جدید</option>
