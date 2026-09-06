@@ -193,29 +193,57 @@ function renderForm(){
       <button class="btn btn-primary" onclick="addStaffMember()">+ افزودن</button>
     </div>
     <table>
-      <thead><tr><th>شماره پرسنلی</th><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>فعال</th><th></th><th></th></tr></thead>
+      <thead><tr><th>شماره پرسنلی</th><th>ایمیل</th><th>نام</th><th>موبایل</th><th>سمت</th><th>وضعیت بات</th><th>فعال</th><th></th><th></th></tr></thead>
       <tbody id="staffTableBody"></tbody>
     </table>
-    <div style="margin-top:24px">
-      <div style="font-size:14px;font-weight:800;margin-bottom:10px">🤖 وضعیت اتصال بات کارمندان</div>
-      <div id="staffBotStatusBox"></div>
-    </div>
   `;
 }
 const DJANGO_STAFF_API = 'https://smartchip-backend.onrender.com/api/staff/staff/';
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق دستور صریح کاربر: جدول یکپارچه — یه ردیف واحد برای
+// هر کارمند، نه دو جدول جدا با دو اسم. staffBotListM از api/bot/staff-list/
+// میاد و بر اساس id با staffList (که از api/staff/staff/ میاد) وصل می‌شه.
+let staffBotListM = [];
 async function loadStaff(){
   try{
     const res = await fetch(DJANGO_STAFF_API);
-    if(res.ok){ staffList = await res.json(); renderTable(); renderStaffBotStatus(); return; }
+    if(res.ok){ staffList = await res.json(); }
   }catch(e){}
-  const res=await sheetCall('getStaffList');
-  staffList=(res&&res.staff)||[];
+  try{
+    const botRes = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
+    if(botRes.ok) staffBotListM = await botRes.json();
+  }catch(e){ staffBotListM = []; }
+  if(!staffList.length){
+    const res=await sheetCall('getStaffList');
+    staffList=(res&&res.staff)||[];
+  }
   renderTable();
-  renderStaffBotStatus();
+}
+// آیکون‌های واقعی (نه ایموجی ژنریک) — تلگرام آبی با هواپیمای کاغذی، بله سبز با تیک
+const TG_ICON_SVG = `<svg width="18" height="18" style="vertical-align:middle" title="تلگرام"><circle cx="9" cy="9" r="9" fill="#0088cc"/><path d="M13.5 5.5L4.5 9l3 1 1 3.5 1.5-2.5 2.5 2L13.5 5.5z" fill="#fff"/></svg>`;
+const BALE_ICON_SVG = `<svg width="18" height="18" style="vertical-align:middle;margin-right:4px" title="بله"><circle cx="9" cy="9" r="9" fill="#22C35E"/><path d="M5.5 9.2l2 2 5-5.4" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const WA_ICON_SVG = `<svg width="12" height="12"><path d="M6 0C2.7 0 0 2.7 0 6c0 1.1.3 2.1.8 3L0 12l3.1-.8c.9.5 1.9.8 2.9.8 3.3 0 6-2.7 6-6S9.3 0 6 0z" fill="#25D366"/></svg>`;
+// ⚠️ (۱۴۰۵/۰۶/۱۸) _staffInvitedThisSessionM حذف شد — دیگه لازم نیست چون
+// inviteSent مستقیم از دیتابیس (BotInvite واقعی) میاد، نه یه حالت موقت.
+function botStatusCellHTML(staffId){
+  const b = staffBotListM.find(x=>String(x.id)===String(staffId));
+  if(!b){
+    // ⚠️ لیست بات هنوز نیومده یا این کارمند توش نیست — فرض امن: هنوز دعوت نرفته
+    return `<button class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:5px;color:#25D366" onclick="sendStaffBotInviteWhatsAppAdmin(${staffId})">${WA_ICON_SVG} ارسال دعوت</button>`;
+  }
+  if(b.telegramConnected || b.baleConnected){
+    return (b.telegramConnected?TG_ICON_SVG:'') + (b.baleConnected?BALE_ICON_SVG:'');
+  }
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) حالت سوم «منتظر استارت» — حالا دائمیه، چون بک‌اند
+  // (list_staff_for_assignment) فیلد inviteSent رو مستقیم از BotInvite
+  // واقعیِ دیتابیس محاسبه می‌کنه، نه یه حالت موقتِ سمت مرورگر.
+  if(b.inviteSent){
+    return `<span style="color:var(--yellow);font-size:11px">⏳ منتظر استارت</span>`;
+  }
+  return `<button class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;gap:5px;color:#25D366" onclick="sendStaffBotInviteWhatsAppAdmin(${staffId})">${WA_ICON_SVG} ارسال دعوت</button>`;
 }
 function renderTable(){
   const el=document.getElementById('staffTableBody');
-  if(!staffList.length){el.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted)">هنوز کارمندی ثبت نشده</td></tr>';return;}
+  if(!staffList.length){el.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted)">هنوز کارمندی ثبت نشده</td></tr>';return;}
   // ⚠️ (۱۴۰۵/۰۶/۱۴) طبق درخواست کاربر: شماره پرسنلی صعودی و همیشگی —
   // همون id پیش‌فرض جنگو که هیچ‌وقت با حذف رکورد دوباره استفاده نمی‌شه،
   // پس همیشه می‌شه فهمید تا الان چند نفر کارمند اومدن (بدون توجه به اینکه
@@ -223,10 +251,11 @@ function renderTable(){
   el.innerHTML=staffList.slice().sort((a,b)=>a.id-b.id).map(s=>`
     <tr>
       <td style="color:var(--muted);font-size:11px">#${s.id}</td>
-      <td>${s.email}</td>
+      <td style="font-size:11px">${s.email}</td>
       <td>${s.name||'—'}</td>
-      <td>${s.mobile||'—'}</td>
+      <td style="font-size:11px">${s.mobile||'—'}</td>
       <td>${ROLE_LABELS[s.role]||s.role}</td>
+      <td>${botStatusCellHTML(s.id)}</td>
       <td><button class="btn btn-ghost btn-sm" style="color:${s.active?'var(--green)':'var(--red)'}" onclick="toggleStaffActive('${s.email}',${!s.active})">${s.active?'✅ فعال':'❌ غیرفعال'}</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="openEditStaffModal('${s.email}')">✏️ ویرایش</button></td>
       <td><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeStaffMember('${s.email}')">حذف</button></td>
@@ -327,46 +356,8 @@ async function removeStaffMember(email){
 // ⚠️ طبق درخواست کاربر: همینجا، تو خودِ مدیریت کارمندان، باشه — نه فقط
 // تو ERP — تا وقتی کارمندی اضافه/ویرایش می‌شه، همینجا هم دیده بشه.
 // ══════════════════════════════════════════════════════════════
-let staffBotListM = [];
-async function renderStaffBotStatus(){
-  const box = document.getElementById('staffBotStatusBox');
-  if(!box) return;
-  box.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">در حال بارگذاری...</div>';
-  try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
-    staffBotListM = res.ok ? await res.json() : [];
-  }catch(e){ staffBotListM = []; }
-  const connected = staffBotListM.filter(s=>s.telegramConnected||s.baleConnected);
-  const notConnected = staffBotListM.filter(s=>!s.telegramConnected&&!s.baleConnected);
-  box.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--green)">${connected.length}</div>
-        <div style="font-size:10px;color:var(--muted)">🟢 وصل شده</div>
-      </div>
-      <div style="background:rgba(156,163,175,.08);border:1px solid rgba(156,163,175,.3);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:22px;font-weight:800;color:var(--muted)">${notConnected.length}</div>
-        <div style="font-size:10px;color:var(--muted)">⚪ وصل‌نشده</div>
-      </div>
-    </div>
-    ${notConnected.length?`<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">⚪ وصل‌نشده‌ها:</div>
-    ${notConnected.map(s=>`
-      <div id="staffBotRow_${s.id}" style="padding:8px 10px;background:var(--card);border-radius:8px;margin-bottom:6px;">
-        <div style="display:flex;align-items:center;gap:8px;font-size:11px;">
-          <span style="font-weight:700">${s.name}</span><span style="color:var(--muted);font-size:10px">${ROLE_LABELS[s.role]||s.role}</span>
-          <button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="sendStaffBotInviteWhatsAppAdmin(${s.id})">📱 دعوت با واتساپ</button>
-        </div>
-        <div id="staffBotLinks_${s.id}"></div>
-      </div>`).join('')}`:''}
-    ${connected.length?`<div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:6px;margin-top:10px;">🟢 وصل‌شده‌ها:</div>
-    ${connected.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(34,197,94,.05);border-radius:8px;margin-bottom:3px;font-size:11px;">
-      <span style="font-weight:700">${s.name}</span><span style="color:var(--muted);font-size:10px">${ROLE_LABELS[s.role]||s.role}</span>
-      ${s.telegramConnected?'<span style="color:#0088cc;font-size:10px">✈️ تلگرام</span>':''}
-      ${s.baleConnected?'<span style="color:#0070e0;font-size:10px">💙 بله</span>':''}
-    </div>`).join('')}`:''}
-    ${!staffBotListM.length?'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">دریافت وضعیت بات ناموفق بود</div>':''}
-  `;
-}
+// ⚠️ (۱۴۰۵/۰۶/۱۸) renderStaffBotStatus حذف شد — منطقش ادغام شد تو
+// botStatusCellHTML/renderTable (جدول یکپارچه، طبق دستور کاربر).
 async function sendStaffBotInviteWhatsAppAdmin(staffId){
   try{
     const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-staff-invite/', {
@@ -382,18 +373,12 @@ async function sendStaffBotInviteWhatsAppAdmin(staffId){
     // می‌کنیم (نه فرض‌کردن ساختار) — تا همیشه دقیقاً همونی باشه که واقعاً
     // ساخته شده، حتی اگه بعداً بک‌اند عوض بشه.
     const msg = res.message || '';
-    const tgMatch = msg.match(/https:\/\/t\.me\/\S+/);
-    const bleMatch = msg.match(/https:\/\/ble\.ir\/\S+/);
-    const linksBox = document.getElementById('staffBotLinks_'+staffId);
-    if(linksBox){
-      linksBox.innerHTML = `
-        <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10.5px;display:flex;flex-direction:column;gap:4px">
-          ${tgMatch ? `<a href="${tgMatch[0]}" target="_blank" style="color:#0088cc;direction:ltr;text-align:left;word-break:break-all">✈️ ${tgMatch[0]}</a>` : ''}
-          ${bleMatch ? `<a href="${bleMatch[0]}" target="_blank" style="color:#0070e0;direction:ltr;text-align:left;word-break:break-all">💙 ${bleMatch[0]}</a>` : ''}
-        </div>`;
-    }
     await navigator.clipboard.writeText(msg).catch(()=>{});
     window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank');
+    // ⚠️ (۱۴۰۵/۰۶/۱۸) دوباره از سرور رفرش می‌کنیم (نه فقط renderTable با
+    // داده‌ی قدیمی) — چون تازه یه BotInvite جدید تو دیتابیس ساخته شده که
+    // باید تو staffBotListM هم بیاد تا inviteSent=true نشون بده.
+    await loadStaff();
   }catch(e){ alert('⚠️ خطای شبکه — دوباره امتحان کن'); }
 }
 init();
