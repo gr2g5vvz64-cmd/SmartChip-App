@@ -35,10 +35,14 @@
   --accent:#f0a500; --accent2:#e8630a; --text:#f7f8fb; --muted:#a3aac4;
   --green:#22c55e; --red:#ef4444;
 }
+/* ⚠️ (۱۴۰۵/۰۶/۱۸) فیکس ناهماهنگی — این پالت قدیمی (کِرم/سفید) هیچ‌وقت
+   با تغییر پالت روشنِ CRM/ERP (۱۴۰۵/۰۶/۱۰، آبی) هماهنگ نشده بود؛ یعنی
+   این صفحه از قبل از اون تغییر، فراموش‌شده مونده بود. حالا عیناً همون
+   پالت CRM/ERP کپی شد. */
 html[data-theme="light"] {
-  --bg:#faf8f5; --surface:#ffffff; --card:#f2ede6; --border:#c8bfb0;
-  --accent:#c47f00; --accent2:#d4540a; --text:#1a0800; --muted:#5a4a3a;
-  --green:#16a34a; --red:#dc2626;
+  --bg:#a9c8ec; --surface:#c3dbf3; --card:#c3dbf3; --border:#7ea3cc;
+  --accent:#0e7d6b; --accent2:#0a5c50; --text:#0f1f36; --muted:#3f5875;
+  --green:#15803d; --red:#dc2626;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;display:flex;flex-direction:column;align-items:center;padding:50px 20px 20px;-webkit-font-smoothing:antialiased;}
