@@ -384,6 +384,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
           <button class="crm-nav-item" id="tabBtnRemTomorrow" onclick="showCrmTab('remTomorrow')" style="font-size:12px;"><span class="crm-nav-icon">📝</span><span>کارهای فردا</span><span class="crm-nav-badge" id="remTomorrowNavBadge" style="display:none"></span></button>
           <button class="crm-nav-item" id="tabBtnRemRecurring" onclick="showCrmTab('remRecurring')" style="font-size:12px;"><span class="crm-nav-icon">🔁</span><span>یادآوری دوره‌ای</span><span class="crm-nav-badge" id="remRecurringNavBadge" style="display:none"></span></button>
           <button class="crm-nav-item" id="tabBtnRemFree" onclick="showCrmTab('remFree')" style="font-size:12px;"><span class="crm-nav-icon">🗒️</span><span>یادآوری آزاد</span><span class="crm-nav-badge" id="remFreeNavBadge" style="display:none"></span></button>
+          <button class="crm-nav-item" id="tabBtnRemCalendar" onclick="showCrmTab('remCalendar')" style="font-size:12px;"><span class="crm-nav-icon">🗓️</span><span>اتصال به تقویم</span></button>
         </div>
       </div>
 
@@ -1249,6 +1250,8 @@ function renderToolbar(){
       </div>
     </div>
 
+    <div id="remCalendarView" style="display:none;padding:16px;"></div>
+
     <div id="debtsView" style="display:none;padding:16px;"></div>
     <div id="prospCreateView" style="display:none;padding:16px;"></div>
     <div id="prospQuickView" style="display:none;padding:16px;"></div>
@@ -1448,6 +1451,7 @@ function showCrmTab(tab){
   _s('remTomorrowView',  tab==='remTomorrow' ?'block':'none');
   _s('remRecurringView', tab==='remRecurring'?'block':'none');
   _s('remFreeView',      tab==='remFree'     ?'block':'none');
+  _s('remCalendarView',  tab==='remCalendar' ?'block':'none');
   _s('calendarView',  tab==='calendar'  ?'block':'none');
   _s('debtsView',     tab==='debts'     ?'block':'none');
   _s('prospCreateView',    tab==='prospCreate'   ?'block':'none');
@@ -1472,6 +1476,7 @@ function showCrmTab(tab){
   if(tab==='remTomorrow')  renderTomorrowPlan();
   if(tab==='remRecurring') renderRecurring();
   if(tab==='remFree')      { renderFreeReminders(); renderRequestLinkedReminders(); }
+  if(tab==='remCalendar')  renderRemCalendarTab();
   if(tab==='calendar')  { initCal(); renderCal(); }
   if(tab==='debts')     renderDebtsView();
   if(tab==='prospCreate')    renderProspectCreateForm(document.getElementById('prospCreateView'));
@@ -3613,6 +3618,51 @@ function diffShamsiDays(strA, strB){
   const ay=Math.floor(a/10000), am=Math.floor((a%10000)/100), ad=a%100;
   const by=Math.floor(b/10000), bm=Math.floor((b%10000)/100), bd=b%100;
   return Math.round(sToJD(ay,am,ad)-sToJD(by,bm,bd));
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۱۸) اتصال به تقویم — راه «رفت» (SmartChip → تقویم آیفون/گوگل)
+// طبق درخواست صریح کاربر. لینک webcal:// از همون endpoint بک‌اند میاد که
+// امنیتش با غیرقابل‌حدس‌بودن خودِ URL (شامل ایمیل کارمند) تأمین می‌شه —
+// چون آیفون/گوگل کلندر موقع سابسکرایب، امکان لاگین با رمز عبور ندارن.
+function renderRemCalendarTab(){
+  const c = document.getElementById('remCalendarView');
+  if(!c) return;
+  const email = (currentUser||{}).email || '';
+  const httpsUrl = `https://smartchip-backend.onrender.com/api/worklog/reminders-feed/${encodeURIComponent(email)}.ics`;
+  const webcalUrl = httpsUrl.replace('https://', 'webcal://');
+  c.innerHTML = `
+    <div class="tbl-wrap">
+      <div class="sec-title">🗓️ اتصال یادآوری‌ها به تقویم آیفون/گوگل</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:10px 0">
+        یه‌بار این لینک رو تو تقویم گوشیتون اضافه کنید — از اون به بعد، همه‌ی یادآوری‌های آزاد و دوره‌ای که مالِ شما هستن، خودکار (با کمی تأخیر، نه آنی) رو تقویم دیده می‌شن، با هشدار/صدا.
+      </p>
+      <div style="background:var(--card);border-radius:8px;padding:12px;margin-bottom:16px;direction:ltr;text-align:left;font-family:monospace;font-size:11px;word-break:break-all;color:var(--accent)">
+        ${httpsUrl}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${httpsUrl}');toast('✅ لینک کپی شد')">📋 کپی لینک</button>
+
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-weight:800;font-size:13px;margin-bottom:8px">📱 روی آیفون (تقویم Apple)</div>
+        <ol style="font-size:12px;color:var(--muted);line-height:2;padding-right:18px">
+          <li>لینک بالا رو کپی کنید</li>
+          <li>برید به تنظیمات ← Calendar ← Accounts ← Add Account ← Other ← Add Subscribed Calendar</li>
+          <li>لینک رو پیست کنید (اگه با <code>https://</code> پیست نشد، خودتون اول اون رو به <code>webcal://</code> عوض کنید)</li>
+          <li>«Save» رو بزنید — تموم شد</li>
+        </ol>
+      </div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-weight:800;font-size:13px;margin-bottom:8px">🗓️ روی گوگل کلندر (وب یا اپ)</div>
+        <ol style="font-size:12px;color:var(--muted);line-height:2;padding-right:18px">
+          <li>لینک بالا رو کپی کنید</li>
+          <li>تو مرورگر برید به Google Calendar (calendar.google.com)</li>
+          <li>پایین سمت چپ، کنار «Other calendars»، روی + بزنید ← «From URL»</li>
+          <li>لینک رو پیست کنید و «Add calendar» رو بزنید</li>
+        </ol>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">⚠️ گوگل معمولاً هر چند ساعت یه‌بار این نوع تقویم‌ها رو رفرش می‌کنه — آنی نیست.</div>
+      </div>
+    </div>
+  `;
 }
 
 function renderRecurring(){
