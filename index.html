@@ -75,6 +75,9 @@ body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);m
 <body>
 
 <button id="themeToggleBtn" onclick="toggleTheme()" style="position:fixed;top:18px;left:18px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--text);font-family:'Vazirmatn',sans-serif;cursor:pointer;z-index:50;" title="تغییر حالت شب/روز">🌙 حالت روز</button>
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) دکمه‌ی نقشه‌ی راه — طبق درخواست صریح کاربر: کوچیک،
+     نه به‌اندازه‌ی کاشی‌های اصلی، همیشه گوشه‌ی صفحه در دسترس. -->
+<button id="roadmapBtn" onclick="openRoadmapModal()" style="position:fixed;bottom:18px;left:18px;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15);" title="کارهای در صف و آینده">🗺️</button>
 
 <div class="logo">SmartChip</div>
 <div class="sub">پلتفرم یکپارچه شرکت اسمارت‌چیپ الکترونیک</div>
@@ -254,7 +257,90 @@ async function init(){
   }).join('') + (isMob ? `<div style="grid-column:1/-1;text-align:center;padding:14px 0 4px;"><a href="https://gr2g5vvz64-cmd.github.io/smartchip-app/" style="font-size:10px;color:var(--muted);text-decoration:underline;">🖥️ رفتن به نسخه کامل دسکتاپ</a></div>` : '')
   || `<div style="color:var(--muted);font-size:12px;">برای نقش شما هیچ بخشی فعال نشده — با مدیر تماس بگیر</div>`;
 }
+// ══════════════════════════════════════════════════════════════
+// 🗺️ نقشه‌ی راه — کارهای در صف/آینده + تاریخچه (۱۴۰۵/۰۶/۱۸)
+// ⚠️ طبق درخواست صریح کاربر: این داده مستقیم اینجا (تو خودِ index.html)
+// نگه داشته می‌شه — نه فایل جدا، نه حافظه‌ی Claude — تا هیچ‌وقت گم نشه.
+// هر بار یه کار جدید اضافه/تموم بشه، همین آرایه دستی آپدیت و فایل جدید
+// تحویل داده می‌شه. وقتی یه کار «انجام‌شده»، از current به history منتقل
+// می‌شه (status='done' + completedDate پر می‌شه) — نه حذف.
+// ══════════════════════════════════════════════════════════════
+const ROADMAP_ITEMS = [
+  // ── در صف (queue) — کارهای کوچیک‌تر و باز ──
+  { title: 'تعطیلات قمری ۱۴۰۵', category: 'queue', addedDate: '1405/06/07', status: 'pending' },
+  { title: 'زیرصنف‌های ۱۶ صنف دیگر (فقط لوازم خانگی فعلاً کامله)', category: 'queue', addedDate: '1405/06/07', status: 'pending' },
+  // ── آینده (future) — پروژه‌های بزرگ‌تر و مستقل ──
+  { title: 'همگام‌سازی برعکس گوگل کلندر (Google Calendar → SmartChip)', category: 'future', addedDate: '1405/06/18', status: 'pending' },
+  { title: 'تبدیل پلتفرم به PWA (نصب رو صفحه‌ی اصلی گوشی، بدون نوار آدرس)', category: 'future', addedDate: '1405/06/18', status: 'pending' },
+  { title: 'صفحه‌ی اختصاصی هر واحد (انبار، بازرگانی، تدارکات، اداری، مالی) + محدودیت دسترسی به کل ERP', category: 'future', addedDate: '1405/06/18', status: 'pending' },
+  // ── تاریخچه (نمونه‌ی چندتای اخیر — قابل‌گسترش) ──
+  { title: 'سیستم کامل جذب مشتری (Prospect) — دسکتاپ', category: 'future', addedDate: '1405/06/10', status: 'done', completedDate: '1405/06/15' },
+  { title: 'پورت کامل سیستم جذب مشتری به موبایل (۶ مرحله)', category: 'future', addedDate: '1405/06/17', status: 'done', completedDate: '1405/06/17' },
+  { title: 'مدیریت کارمندان اختصاصی (staff-admin.html) + وضعیت بات یکپارچه', category: 'future', addedDate: '1405/06/18', status: 'done', completedDate: '1405/06/18' },
+  { title: 'اتصال یادآوری‌ها به تقویم آیفون/گوگل (فید ICS)', category: 'future', addedDate: '1405/06/18', status: 'done', completedDate: '1405/06/18' },
+];
+
+function openRoadmapModal(){
+  document.getElementById('roadmapOverlay').style.display = 'flex';
+  switchRoadmapTab('current');
+}
+function closeRoadmapModal(){
+  document.getElementById('roadmapOverlay').style.display = 'none';
+}
+function switchRoadmapTab(tab){
+  const curBtn = document.getElementById('rmTabCurrent');
+  const hisBtn = document.getElementById('rmTabHistory');
+  const curBox = document.getElementById('rmCurrentBox');
+  const hisBox = document.getElementById('rmHistoryBox');
+  const active = 'background:var(--accent);color:#fff;border-color:var(--accent);';
+  const inactive = 'background:var(--surface);color:var(--text);border-color:var(--border);';
+  curBtn.style.cssText = curBtn.style.cssText.split(';')[0] + ';' + (tab==='current'?active:inactive) + 'flex:1;padding:7px;border-radius:8px;font-size:12px;cursor:pointer;border-width:1px;border-style:solid;';
+  hisBtn.style.cssText = (tab==='history'?active:inactive) + 'flex:1;padding:7px;border-radius:8px;font-size:12px;cursor:pointer;border-width:1px;border-style:solid;';
+  curBox.style.display = tab==='current' ? 'block' : 'none';
+  hisBox.style.display = tab==='history' ? 'block' : 'none';
+  if(tab==='current') renderRoadmapCurrent(); else renderRoadmapHistory();
+}
+function renderRoadmapCurrent(){
+  const queue = ROADMAP_ITEMS.filter(i=>i.category==='queue' && i.status==='pending');
+  const future = ROADMAP_ITEMS.filter(i=>i.category==='future' && i.status==='pending');
+  const row = (i) => `<div style="background:var(--card);border-radius:8px;padding:9px 11px;margin-bottom:7px;">
+    <div style="font-size:12px;color:var(--text);">${i.title}</div>
+    <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">📅 ثبت شده: ${i.addedDate}</div>
+  </div>`;
+  document.getElementById('rmCurrentBox').innerHTML = `
+    <div style="font-size:11.5px;font-weight:800;color:#b45309;margin-bottom:6px;">🔜 در صف (${fnRm(queue.length)})</div>
+    ${queue.length ? queue.map(row).join('') : '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">چیزی در صف نیست</div>'}
+    <div style="font-size:11.5px;font-weight:800;color:#15803d;margin:14px 0 6px;">🗓️ آینده (${fnRm(future.length)})</div>
+    ${future.length ? future.map(row).join('') : '<div style="font-size:11px;color:var(--muted);">چیزی برنامه‌ریزی‌نشده</div>'}
+  `;
+}
+function renderRoadmapHistory(){
+  const done = ROADMAP_ITEMS.filter(i=>i.status==='done').sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
+  document.getElementById('rmHistoryBox').innerHTML = done.length ? done.map(i=>`
+    <div style="background:var(--card);border-radius:8px;padding:9px 11px;margin-bottom:7px;opacity:.85;">
+      <div style="font-size:12px;color:var(--text);text-decoration:line-through;text-decoration-color:var(--green);">${i.title}</div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">📅 ثبت: ${i.addedDate} — ✅ اجرا شد: ${i.completedDate}</div>
+    </div>`).join('') : '<div style="font-size:11px;color:var(--muted);">هنوز چیزی تو تاریخچه نیست</div>';
+}
+function fnRm(n){ return String(n).replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]); }
+
 init();
 </script>
+<!-- ══════ مودال نقشه‌ی راه — کارهای در صف/آینده + تاریخچه (۱۴۰۵/۰۶/۱۸) ══════ -->
+<div id="roadmapOverlay" onclick="if(event.target===this)closeRoadmapModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:14px;padding:20px;max-width:480px;width:92%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:800;font-size:15px;color:var(--text);">🗺️ کارهای در صف و آینده</div>
+      <button onclick="closeRoadmapModal()" style="background:none;border:none;font-size:16px;color:var(--muted);cursor:pointer;">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="rmTabCurrent" onclick="switchRoadmapTab('current')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;cursor:pointer;">📋 فعلی</button>
+      <button id="rmTabHistory" onclick="switchRoadmapTab('history')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;">📜 تاریخچه</button>
+    </div>
+    <div id="rmCurrentBox"></div>
+    <div id="rmHistoryBox" style="display:none;"></div>
+  </div>
+</div>
+
 </body>
 </html>
