@@ -165,6 +165,7 @@ li strong{color:var(--text)}
   <a class="nav-link" href="#prosp-approvals">تاییدها</a>
   <a class="nav-link" href="#prosp-mgmt">🔔 تایید مدیریت</a>
   <a class="nav-link" href="#prosp-verification">🔍 سیکل بررسی صلاحیت</a>
+  <a class="nav-link" href="#prosp-customers-v2">🙈 مخفی/حذف دسته‌ای مشتریان</a>
 
   <div class="nav-section">ERP بازرگانی</div>
   <a class="nav-link" href="#erp-request">درخواست مشتری</a>
@@ -185,6 +186,10 @@ li strong{color:var(--text)}
   <a class="nav-link" href="#wa-lists">📢 لیست‌های واتساپ</a>
   <a class="nav-link" href="#sync">همگام‌سازی وزن قطعات</a>
   <a class="nav-link" href="#morning-bot">خلاصه‌ی صبحگاهی (بات)</a>
+  <a class="nav-link" href="#rem-calendar">🗓️ اتصال به تقویم آیفون/گوگل</a>
+
+  <div class="nav-section">مدیریت کارمندان</div>
+  <a class="nav-link" href="#staff-admin">👤 صفحه‌ی اختصاصیِ کارمندان</a>
 
   <div class="nav-section">ماشین‌حساب</div>
   <a class="nav-link" href="#price">قیمت‌دهی واردات</a>
@@ -740,6 +745,68 @@ li strong{color:var(--text)}
   <div class="note">
     <div class="note-icon">📊</div>
     <div class="note-text"><strong>سیگنال کمکی:</strong> تو همین مرحله‌ی سوم، تعداد تماس‌هایی که *ما* گرفتیم در برابر تعداد تماس‌هایی که *مشتری* خودش گرفته هم نشون داده می‌شه — مشتری‌ای که خودش زیاد زنگ می‌زنه، معمولاً علاقه‌ی واقعی‌تری داره. این فقط یه کمکه، نه جایگزین قضاوت انسانی.</div>
+  </div>
+</div>
+
+<div class="section" id="prosp-customers-v2">
+  <div class="section-eyebrow">🎯 جذب مشتری</div>
+  <div class="section-title">👥 مشتریان — اولویت‌دهی + مخفی/حذف دسته‌ای</div>
+  <div class="section-desc">⚠️ (۱۴۰۵/۰۶/۱۸) دو قابلیت جدید به صفحه‌ی «مشتریان» اضافه شد.</div>
+
+  <h3>اولویت‌دهی به مشتری قدیمی</h3>
+  <p>تو مودالِ جزئیاتِ هر مشتریِ <strong>قدیمی</strong>، فقط سرپرست فروش/مدیریت یه `انتخاب‌گر` می‌بینن که می‌تونن اولویت (۱/۵/۹) رو مستقیم همونجا ثبت کنن — قبلاً فقط نمایش داده می‌شد، امکان تغییرش نبود.</p>
+
+  <h3>مخفی‌کردن یا حذف دسته‌ای</h3>
+  <p>می‌خواید یه صنف کامل (مثلاً مشتریانی که یادداشتشون «سوخته» هست) رو یکجا از لیست پیش‌فرض بردارید؟</p>
+  <table class="action-table">
+    <tr><th>قدم</th><th>توضیح</th></tr>
+    <tr><td class="action-cell">۱. فیلتر صنف</td><td class="result-cell">دراپ‌داون «صنف» الان از خودِ داده‌ی واقعی پر می‌شه — حتی متن‌های آزادِ غیررسمی (مثل «سوخته») هم قابل‌انتخابن</td></tr>
+    <tr><td class="action-cell">۲. ☑️ انتخاب دسته‌ای</td><td class="result-cell">دکمه‌ی بالای جدول (فقط سرپرست فروش+) — چک‌باکس کنار هر ردیف ظاهر می‌شه</td></tr>
+    <tr><td class="action-cell">۳. انتخاب همه</td><td class="result-cell">چک‌باکسِ بالای ستون رو بزنید</td></tr>
+    <tr><td class="action-cell">۴. عملیات</td><td class="result-cell">🙈 «مخفی‌کردن» (داده حفظ می‌مونه، فقط از نمایش پیش‌فرض حذف می‌شه) یا 🗑️ «حذف کامل» (برگشت‌ناپذیر، تایید دوگانه می‌خواد)</td></tr>
+  </table>
+  <div class="note">
+    <div class="note-icon">👁️</div>
+    <div class="note-text">تیک «نمایش مخفی‌شده‌ها هم» رو بزنید تا هر وقت خواستید، مشتریان مخفی‌شده رو دوباره ببینید — مخفی‌کردن پاک‌کردن نیست.</div>
+  </div>
+</div>
+
+<div class="section" id="rem-calendar">
+  <div class="section-eyebrow">🔔 یادآوری‌ها</div>
+  <div class="section-title">🗓️ اتصال به تقویم آیفون/گوگل</div>
+  <div class="section-desc">⚠️ (۱۴۰۵/۰۶/۱۸) قابلیت جدید — یادآوری‌های SmartChip رو مستقیم رو تقویم گوشیتون ببینید، با هشدار/صدا واقعی.</div>
+  <p>تو گروه «🔔 یادآوری‌ها»، آخرین زیرمجموعه «🗓️ اتصال به تقویم» یه لینک شخصی (بر اساس ایمیل خودتون) می‌سازه که یه‌بار به تقویم آیفون یا گوگل کلندر اضافه می‌کنید — از اون به بعد خودکار (با کمی تأخیر، نه آنی) سینک می‌شه.</p>
+  <table class="action-table">
+    <tr><th>چی نشون داده می‌شه</th><th>توضیح</th></tr>
+    <tr><td class="action-cell">یادآوری آزاد و کارهای فردا</td><td class="result-cell">با تاریخ + ساعت (اگه ثبت شده باشه)</td></tr>
+    <tr><td class="action-cell">یادآوری دوره‌ای</td><td class="result-cell">موعد بعدیِ هر چرخه</td></tr>
+    <tr><td class="action-cell">پیگیری‌های «فرم جذب سریع»</td><td class="result-cell">اگه براش «اقدام بعدی» با تاریخ ثبت کرده باشید، همون هم رو تقویم میاد</td></tr>
+  </table>
+  <div class="note red">
+    <div class="note-icon">⚠️</div>
+    <div class="note-text"><strong>فقط یک‌طرفه (رفت):</strong> چیزی که تو خودِ تقویم آیفون/گوگل مستقیم بسازید، به SmartChip برنمی‌گرده. راه برگشت (گوگل کلندر → SmartChip) یه پروژه‌ی جداست که هنوز ساخته نشده.</div>
+  </div>
+</div>
+
+<div class="section" id="staff-admin">
+  <div class="section-eyebrow">مدیریت کارمندان</div>
+  <div class="section-title">👤 صفحه‌ی اختصاصیِ کارمندان</div>
+  <div class="section-desc">یه فایل مستقل (`staff-admin.html`) — اولین نمونه از الگوی «هر واحد صفحه‌ی خودشو داره».</div>
+
+  <p>افزودن/ویرایش/فعال‌سازی کارمندان + یه جدول یکپارچه (نه دو جدول جدا) که وضعیت اتصال بات رو هم نشون می‌ده:</p>
+  <table class="action-table">
+    <tr><th>ستون وضعیت بات</th><th>یعنی چی</th></tr>
+    <tr><td class="action-cell">📱 دکمه‌ی «ارسال دعوت»</td><td class="result-cell">این کارمند هنوز هیچ‌وقت دعوت نگرفته</td></tr>
+    <tr><td class="action-cell">⏳ منتظر استارت</td><td class="result-cell">دعوت رفته، ولی هنوز رو تلگرام/بله دکمه‌ی Start رو نزده</td></tr>
+    <tr><td class="action-cell">✈️ / ✅ لوگوی تلگرام/بله</td><td class="result-cell">وصل شده — هر دو هم‌زمان قابل‌نمایشن اگه به هر دو وصل باشه</td></tr>
+  </table>
+  <div class="note">
+    <div class="note-icon">🔗</div>
+    <div class="note-text"><strong>آینه‌ی ERP:</strong> همین وضعیت، تو ابزار ← «👔 کارمندان و مدیریت» ERP هم دیده می‌شه — چون هر دو از همون داده‌ی مشترک می‌خونن، نیازی به sync دستی نیست.</div>
+  </div>
+  <div class="note">
+    <div class="note-icon">🛡️</div>
+    <div class="note-text">ستون «فعال» (حساب کارمند کار می‌کنه یا نه) کاملاً مستقل از «وضعیت بات»ه — یه کارمند می‌تونه فعال باشه و هنوز به بات وصل نشده باشه، این طبیعیه.</div>
   </div>
 </div>
 

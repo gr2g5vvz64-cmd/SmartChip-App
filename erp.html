@@ -9050,6 +9050,7 @@ function toggleNavGroup(id){
   const states = JSON.parse(localStorage.getItem('navGroupStates')||'{}');
   states[id] = willCollapse;
   localStorage.setItem('navGroupStates', JSON.stringify(states));
+  updateNavGroupSummaries();
 }
 
 function restoreNavGroupStates(){
@@ -9109,11 +9110,17 @@ function updateNavGroupSummaries(){
 
   // شمارنده‌ی عددی جمعی هر گروه — خودکار از رو مجموع شمارنده‌های تک‌تک آیتم‌های داخل همون گروه
   // (همون nbadge هایی که هرجای دیگه‌ی کد با setBadge پر می‌شن) — نیازی به منطق دستی جدا نداره
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکس باگ واقعی: طبق قانون سراسری شمارنده که تو CRM هم
+  // پیاده شد — وقتی گروه *باز*ه، باید شمارنده‌ی خودِ گروه مخفی بشه (چون
+  // هر زیرمجموعه دیگه خودش دیده می‌شه)؛ قبلاً حتی وقتی گروه باز بود هم
+  // جمع رو نشون می‌داد، که یعنی هم رو اسم گروه هم رو هر زیرمجموعه، عدد
+  // تکراری دیده می‌شد.
   document.querySelectorAll('.nav-group[id]').forEach(grp=>{
     const key = grp.id.replace('ng-','');
     const itemsContainer = document.getElementById('ngi-'+key);
     const badgeEl = document.getElementById('ngb-'+key);
     if(!itemsContainer || !badgeEl) return;
+    if(!grp.classList.contains('collapsed')){ badgeEl.style.display='none'; return; }
     let sum = 0;
     itemsContainer.querySelectorAll('.nbadge').forEach(b=>{
       if(b.style.display === 'none') return;
