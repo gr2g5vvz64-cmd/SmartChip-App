@@ -1562,7 +1562,11 @@ function toggleRemNavGroup(){
   _remNavOpen = !_remNavOpen;
   const box = document.getElementById('remNavSubItems');
   const arrow = document.getElementById('remGroupArrow');
-  if(box) box.style.maxHeight = _remNavOpen ? '160px' : '0';
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکس باگ واقعی: این عدد قبلاً برای ۳ تا زیرمجموعه
+  // تنظیم شده بود؛ وقتی زیرمجموعه‌ی چهارم («اتصال به تقویم») اضافه شد،
+  // این عدد بزرگ‌تر نشد — یعنی دکمه‌ی چهارم تو کد بود، رندر می‌شد، ولی
+  // چون کانتینر overflow:hidden داشت، از دیدِ کاربر بریده/پنهان می‌موند.
+  if(box) box.style.maxHeight = _remNavOpen ? '220px' : '0';
   if(arrow) arrow.textContent = _remNavOpen ? '⌃' : '⌄';
   updateAllGroupBadges();
 }
