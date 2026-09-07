@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دفتر ارزی اسمارت‌چیپ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#171A21;
+    --ink-soft:#5B6270;
+    --ink-faint:#9CA2AF;
+    --paper:#EDF0F4;
+    --surface:#FFFFFF;
+    --border:#E1E4EA;
+    --rial:#2F6B63;
+    --rial-soft:#E3EFEC;
+    --yuan:#B8842B;
+    --yuan-soft:#F6EEDD;
+    --danger:#B5432F;
+    --danger-soft:#F7E9E4;
+    --radius:12px;
+    --sidebar-w:236px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Vazirmatn', Tahoma, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    direction:rtl;
+    min-height:100vh;
+  }
+  .num{ font-feature-settings:"tnum" 1, "lnum" 1; direction:ltr; unicode-bidi:isolate; }
+  .app{ display:flex; min-height:100vh; }
+  /* Sidebar */
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0; background:var(--ink); color:#fff;
+    display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+  }
+  .brand{ padding:24px 20px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .brand-title{ font-weight:800; font-size:16px; letter-spacing:.2px; }
+  .brand-sub{ font-size:12px; color:#9AA3B2; margin-top:4px; }
+  .nav{ padding:14px 10px; display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:9px;
+    color:#C7CCD6; font-size:14px; cursor:pointer; border:none; background:none; text-align:right; font-family:inherit;
+    transition:background .12s ease, color .12s ease;
+  }
+  .nav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
+  .nav-item.active{ background:#fff; color:var(--ink); font-weight:600; }
+  .nav-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.55; flex-shrink:0; }
+  .sidebar-foot{ padding:14px 20px; font-size:11px; color:#7C8494; border-top:1px solid rgba(255,255,255,.08); }
+
+  /* Main */
+  .main{ flex:1; min-width:0; padding:28px 32px 60px; }
+  .page-head{ margin-bottom:22px; }
+  .page-title{ font-size:21px; font-weight:800; margin:0 0 4px; }
+  .page-desc{ font-size:13px; color:var(--ink-soft); margin:0; }
+
+  .grid{ display:grid; gap:14px; }
+  .grid-4{ grid-template-columns:repeat(4,1fr); }
+  .grid-3{ grid-template-columns:repeat(3,1fr); }
+  .grid-2{ grid-template-columns:repeat(2,1fr); }
+  @media(max-width:1000px){ .grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:640px){ .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;} }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+  .stat-card{ display:flex; flex-direction:column; gap:6px; }
+  .stat-label{ font-size:12.5px; color:var(--ink-soft); }
+  .stat-value{ font-size:22px; font-weight:800; }
+  .stat-value.rial{ color:var(--rial); }
+  .stat-value.yuan{ color:var(--yuan); }
+  .stat-hint{ font-size:11.5px; color:var(--ink-faint); }
+  .tag{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:99px; }
+  .tag.rial{ background:var(--rial-soft); color:var(--rial); }
+  .tag.yuan{ background:var(--yuan-soft); color:var(--yuan); }
+  .tag.danger{ background:var(--danger-soft); color:var(--danger); }
+  .tag.neutral{ background:var(--paper); color:var(--ink-soft); }
+
+  .section-title{ font-size:14.5px; font-weight:700; margin:28px 0 10px; display:flex; align-items:center; justify-content:space-between; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ text-align:right; font-size:11.5px; color:var(--ink-soft); font-weight:600; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:#FAFBFC; }
+  .table-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow-x:auto; }
+  .empty-row td{ text-align:center; color:var(--ink-faint); padding:26px; font-size:13px; }
+
+  .btn{ font-family:inherit; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .btn-primary{ background:var(--ink); color:#fff; }
+  .btn-primary:hover{ background:#2A2F3A; }
+  .btn-ghost{ background:var(--paper); color:var(--ink); }
+  .btn-ghost:hover{ background:#E4E8EE; }
+  .btn-danger-text{ background:none; color:var(--danger); padding:4px 8px; font-size:12px; }
+  .btn-danger-text:hover{ text-decoration:underline; }
+  .btn-sm{ padding:6px 10px; font-size:12px; }
+  .icon-btn{ background:none; border:none; cursor:pointer; color:var(--ink-faint); font-size:15px; padding:4px 6px; border-radius:6px; }
+  .icon-btn:hover{ background:var(--paper); color:var(--danger); }
+
+  .toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .seg{ display:inline-flex; background:var(--paper); border-radius:9px; padding:3px; gap:2px; }
+  .seg button{ font-family:inherit; border:none; background:none; padding:7px 13px; font-size:12.5px; border-radius:7px; cursor:pointer; color:var(--ink-soft); font-weight:600; }
+  .seg button.active{ background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+
+  .form-panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:18px; }
+  .form-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-size:12px; color:var(--ink-soft); font-weight:600; }
+  .field input, .field select, .field textarea{
+    font-family:inherit; border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-size:13.5px; background:#fff; color:var(--ink); width:100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid #C7CCD6; outline-offset:0; border-color:#B7BEC9; }
+  .field input.num, .field textarea{ direction:rtl; }
+  .field small.calc{ font-size:11.5px; color:var(--ink-faint); }
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(20,22,28,.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal{ background:#fff; border-radius:14px; padding:22px; width:100%; max-width:420px; }
+  .modal h3{ margin:0 0 14px; font-size:15.5px; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-start; margin-top:16px; }
+
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--ink-soft); }
+  .empty-state .big{ font-size:32px; margin-bottom:8px; }
+
+  .mobile-tabs{ display:none; }
+  @media(max-width:860px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:100%; height:auto; position:relative; flex-direction:row; align-items:center; }
+    .brand{ border-bottom:none; padding:14px 16px; }
+    .nav{ flex-direction:row; overflow-x:auto; padding:8px 10px; flex:1; }
+    .nav-item{ white-space:nowrap; }
+    .sidebar-foot{ display:none; }
+    .main{ padding:18px; }
+    .form-grid{ grid-template-columns:1fr 1fr; }
+  }
+  .customer-balance-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .link-pill{ font-size:11px; padding:2px 8px; border-radius:99px; background:var(--paper); color:var(--ink-soft); }
+  .warn-note{ font-size:12px; color:var(--ink-soft); background:var(--paper); border-radius:8px; padding:10px 12px; margin-top:10px; }
+  .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:9px; font-size:13px; z-index:100; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+  .load-screen{ display:flex; align-items:center; justify-content:center; height:100vh; color:var(--ink-soft); font-size:14px; }
+  /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: خطوط جدول همه‌جا واضح‌تر */
+  table, th, td { border: 1px solid var(--border) !important; }
+  table { border-collapse: collapse !important; }
+  /* جدول راهنمای فیلدها — بالای هر فرم، توضیح می‌ده کجا چی بنویسیم */
+  .field-guide{ background:#F5F7FA; border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:11.5px; color:var(--ink-soft); }
+  .field-guide table{ width:100%; font-size:11px; }
+  .field-guide th{ text-align:right; padding:4px 6px; color:var(--ink); }
+  .field-guide td{ padding:4px 6px; }
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .contrib-row{ display:grid; grid-template-columns:2fr 1fr auto; gap:8px; align-items:center; margin-bottom:6px; }
+  .status-chip{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; }
+  .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
+  .status-chip.open{ background:var(--yuan-soft); color:var(--yuan); }
+</style>
+</head>
+<body>
+<div id="root"><div class="load-screen">در حال بارگذاری…</div></div>
+<div class="toast" id="toast"></div>
+<script>
+// ══════════════════════════════════════════════════════════════
+// دفتر ارزی SmartChip — نسخه‌ی متصل به بک‌اند واقعی (۱۴۰۵/۰۶/۱۸)
+// ⚠️ ذخیره‌سازی واقعی (Django)، نه لوکال‌استوریج مرورگر — طبق تصمیم کاربر.
+// ══════════════════════════════════════════════════════════════
+const FX_API = 'https://smartchip-backend.onrender.com/api/fxledger/';
+const CRM_CUSTOMERS_API = 'https://smartchip-backend.onrender.com/api/customers/customers/';
+
+// ── شمسی: تبدیل و فرمت (بدون کتابخانه‌ی خارجی، همون الگوریتم استانداردِ رایج) ──
+function gregorianToJalali(gy, gm, gd){
+  const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+  let jy = (gy <= 1600) ? 0 : 979;
+  gy -= (gy <= 1600) ? 621 : 1600;
+  const gy2 = (gm > 2) ? (gy + 1) : gy;
+  let days = (365*gy) + (Math.floor((gy2+3)/4)) - (Math.floor((gy2+99)/100)) + (Math.floor((gy2+399)/400)) - 80 + gd + g_d_m[gm-1];
+  jy += 33*Math.floor(days/12053); days %= 12053;
+  jy += 4*Math.floor(days/1461); days %= 1461;
+  jy += Math.floor((days-1)/365); if(days > 365) days = (days-1)%365;
+  const jm = (days < 186) ? 1+Math.floor(days/31) : 7+Math.floor((days-186)/30);
+  const jd = 1 + ((days < 186) ? (days%31) : ((days-186)%30));
+  return [jy, jm, jd];
+}
+function jalaliToGregorian(jy, jm, jd){
+  let gy = (jy <= 979) ? 621 : 1600;
+  jy -= (jy <= 979) ? 0 : 979;
+  let days = (365*jy) + (Math.floor(jy/33)*8) + Math.floor(((jy%33)+3)/4) + 78 + jd + ((jm<7) ? (jm-1)*31 : ((jm-7)*30)+186);
+  gy += 400*Math.floor(days/146097); days %= 146097;
+  let leap = true;
+  if(days > 36524){ days--; gy += 100*Math.floor(days/36524); days %= 36524; if(days >= 365) days++; else leap=false; }
+  gy += 4*Math.floor(days/1461); days %= 1461;
+  if(days > 365){ leap=false; gy += Math.floor((days-1)/365); days = (days-1)%365; }
+  const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+  let gd = days+1;
+  let gm;
+  for(gm=1; gm<13; gm++){ const next = (gm===12)?366:g_d_m[gm]+((gm===2&&leap)?1:0); if(days < next) break; }
+  // fallback ساده — کافیه برای این پروژه (تبدیل تک‌روزه، نه محاسبات تقویمیِ پیچیده)
+  const d = new Date(gy, 0, 1); d.setDate(d.getDate() + days);
+  return [d.getFullYear(), d.getMonth()+1, d.getDate()];
+}
+function todayShamsi(){
+  const now = new Date();
+  const [jy,jm,jd] = gregorianToJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
+  return `${jy}/${String(jm).padStart(2,'0')}/${String(jd).padStart(2,'0')}`;
+}
+function shamsiSortVal(s){
+  if(!s) return 0;
+  const [y,m,d] = s.split('/').map(Number);
+  return y*400 + m*31 + d;
+}
+
+// ── فرمت اعداد — سه‌رقم‌سه‌رقم، طبق درخواست صریح کاربر در همه‌جا ──
+function fmt(n, digits){
+  if(n === null || n === undefined || isNaN(n)) return '—';
+  const d = digits === undefined ? 0 : digits;
+  return Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+}
+function fmtRial(n){ return fmt(n,0) + ' ریال'; }
+function fmtYuan(n){ return fmt(n,2) + ' ¥'; }
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ── API ──
+let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], settings:{rateBasis:'hawale', currentRate:null} };
+
+async function apiList(endpoint){ const r = await fetch(FX_API+endpoint+'/'); return r.ok ? r.json() : []; }
+async function apiCreate(endpoint, body){
+  const res = await fetch(FX_API+endpoint+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if(!res.ok){ showToast('❌ ثبت ناموفق بود'); return null; }
+  return res.json();
+}
+async function apiUpdate(endpoint, id, body){
+  const res = await fetch(FX_API+endpoint+'/'+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if(!res.ok){ showToast('❌ ویرایش ناموفق بود'); return null; }
+  return res.json();
+}
+async function apiDelete(endpoint, id){
+  const res = await fetch(FX_API+endpoint+'/'+id+'/', {method:'DELETE'});
+  if(!res.ok) showToast('❌ حذف ناموفق بود');
+  return res.ok;
+}
+async function apiPatchSettings(body){
+  const res = await fetch(FX_API+'settings/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  return res.ok ? res.json() : null;
+}
+async function apiGetSettings(){ const r = await fetch(FX_API+'settings/'); return r.ok ? r.json() : {}; }
+async function apiGetSummary(basis){ const r = await fetch(FX_API+'summary/?basis='+basis); return r.ok ? r.json() : null; }
+async function apiGetCustomerLedger(customer, basis){ const r = await fetch(FX_API+'customer-ledger/?customer='+encodeURIComponent(customer)+'&basis='+basis); return r.ok ? r.json() : null; }
+
+// ⚠️ (۱۴۰۵/۰۶/۱۸) سرچ مشتری — طبق تصمیم صریح کاربر: از همون فایل مشتریانِ
+// CRM میاد، فقط اولویت ۱/۵/۹ (مشتریان تثبیت‌شده) — نه یه لیست جدای مخصوصِ
+// این دفتر.
+let _crmCustomersCache = null;
+async function searchCrmPriorityCustomers(q){
+  if(!_crmCustomersCache){
+    try{
+      const r = await fetch(CRM_CUSTOMERS_API);
+      _crmCustomersCache = r.ok ? await r.json() : [];
+    }catch(e){ _crmCustomersCache = []; }
+  }
+  const nq = (q||'').trim();
+  return _crmCustomersCache
+    .filter(c => ['1','5','9'].includes(String(c.priority||'').trim()))
+    .filter(c => !nq || (c.name||'').includes(nq))
+    .slice(0, 10);
+}
+
+async function loadAll(){
+  const [accounts, orders, hawales, payments, expenses, settings] = await Promise.all([
+    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiGetSettings(),
+  ]);
+  state = {
+    accounts, orders, hawales, payments, expenses,
+    settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
+  };
+}
+// ── Rendering ──
+const TABS = [
+  {id:'dashboard', label:'داشبورد'},
+  {id:'customers', label:'مشتریان (دفتر)'},
+  {id:'payments', label:'پرداخت‌های مشتریان'},
+  {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
+  {id:'supplier', label:'دفتر تأمین‌کننده'},
+  {id:'accounts', label:'حساب‌های بانکی'},
+  {id:'settings', label:'تنظیمات'},
+];
+let currentTab = 'dashboard';
+let currentCustomer = null;
+let summaryCache = null;
+
+function render(){
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <div class="app">
+      <div class="sidebar">
+        <div class="brand">
+          <div class="brand-title">دفتر ارزی اسمارت‌چیپ</div>
+          <div class="brand-sub">تسویه ریال ⇄ یوان با مشتریان و تأمین‌کننده</div>
+        </div>
+        <div class="nav">
+          ${TABS.map(t=>`<button class="nav-item ${currentTab===t.id?'active':''}" data-tab="${t.id}"><span class="nav-dot"></span> ${t.label}</button>`).join('')}
+        </div>
+        <div class="sidebar-foot">✅ داده روی سرور واقعی ذخیره می‌شود</div>
+      </div>
+      <div class="main" id="main"></div>
+    </div>`;
+  root.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ currentTab = btn.dataset.tab; currentCustomer=null; render(); });
+  });
+  renderMain();
+}
+
+async function renderMain(){
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="load-screen" style="height:200px">در حال بارگذاری…</div>';
+  if(currentTab === 'dashboard') return renderDashboard(main);
+  if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
+  if(currentTab === 'payments') return renderPayments(main);
+  if(currentTab === 'hawales') return renderHawales(main);
+  if(currentTab === 'supplier') return renderSupplier(main);
+  if(currentTab === 'accounts') return renderAccounts(main);
+  if(currentTab === 'settings') return renderSettings(main);
+}
+
+function rateBasisToggle(){
+  const basis = state.settings.rateBasis;
+  return `<div class="seg" id="rateBasisSeg">
+    <button data-basis="hawale" class="${basis==='hawale'?'active':''}">مبنا: نرخ حواله (اصلی)</button>
+    <button data-basis="payment" class="${basis==='payment'?'active':''}">مبنا: نرخ واریز مشتری</button>
+  </div>`;
+}
+function wireRateBasisToggle(container, cb){
+  container.querySelectorAll('#rateBasisSeg button').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      state.settings.rateBasis = b.dataset.basis;
+      await apiPatchSettings({rate_basis: b.dataset.basis});
+      cb();
+    });
+  });
+}
+
+// ---------- DASHBOARD ----------
+async function renderDashboard(main){
+  const basis = state.settings.rateBasis;
+  const g = await apiGetSummary(basis);
+  if(!g){ main.innerHTML = '<div class="page-head"><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>'; return; }
+  summaryCache = g;
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">داشبورد</h1>
+      <p class="page-desc">وضعیت لحظه‌ای ریال، یوان و مانده مشتریان — بر اساس مبنای انتخابی نرخ</p>
+    </div>
+    <div class="toolbar"><div></div>${rateBasisToggle()}</div>
+
+    <div class="section-title">موجودی حساب‌های بانکی</div>
+    <div class="grid grid-4">
+      ${g.accounts.map(a=>`<div class="card stat-card">
+        <div class="stat-label">${a.name}</div>
+        <div class="stat-value rial num">${fmtRial(a.balance)}</div>
+        <div class="stat-hint num">دریافتی: ${fmtRial(a.received)} · حواله‌شده: ${fmtRial(a.sent)}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="section-title">ریال — کل شرکت</div>
+    <div class="grid grid-3">
+      <div class="card stat-card"><div class="stat-label">جمع ریال دریافتی از مشتریان</div><div class="stat-value rial num">${fmtRial(g.totalReceivedRial)}</div></div>
+      <div class="card stat-card"><div class="stat-label">جمع ریال حواله‌شده به تأمین‌کننده</div><div class="stat-value rial num">${fmtRial(g.totalHawaleRial)}</div></div>
+      <div class="card stat-card"><div class="stat-label">ریال راکد (تبدیل‌نشده)</div><div class="stat-value rial num">${fmtRial(g.idleRial)}</div><div class="stat-hint">هنوز حواله نزده‌اید</div></div>
+    </div>
+
+    <div class="section-title">یوان — تأمین‌کننده (مانده‌ی خرید)</div>
+    <div class="grid grid-3">
+      <div class="card stat-card"><div class="stat-label">جمع یوان خریداری‌شده (حواله‌ها)</div><div class="stat-value yuan num">${fmtYuan(g.totalYuanBought)}</div></div>
+      <div class="card stat-card"><div class="stat-label">جمع هزینه‌های ثبت‌شده (خرید+جابجایی+کارمزد)</div><div class="stat-value yuan num">${fmtYuan(g.totalExpenseYuan)}</div></div>
+      <div class="card stat-card"><div class="stat-label">موجودی فعلی یوان دست تأمین‌کننده</div><div class="stat-value yuan num">${fmtYuan(g.supplierYuanBalance)}</div></div>
+    </div>
+
+    <div class="section-title">هزینه‌ی حمل — ریالی، کاملاً جدا از حساب یوانی</div>
+    <div class="grid grid-2">
+      <div class="card stat-card"><div class="stat-label">جمع کل هزینه‌ی حمل ثبت‌شده</div><div class="stat-value rial num">${fmtRial(g.totalFreightRial)}</div></div>
+      <div class="card stat-card"><div class="stat-label">مانده‌ی حمل پرداخت‌نشده</div><div class="stat-value rial num">${fmtRial(g.unpaidFreightRial)}</div><div class="stat-hint">⚠️ ممکنه بعداً (مثلاً یک ماه دیگر) پرداخت شود</div></div>
+    </div>
+
+    <div class="section-title">مانده کل مشتریان</div>
+    <div class="grid grid-2">
+      <div class="card stat-card"><div class="stat-label">جمع مانده مشتریان (یوان)</div><div class="stat-value yuan num">${fmtYuan(g.totalCustomerBalanceYuan)}</div></div>
+      <div class="card stat-card"><div class="stat-label">معادل ریالی (به نرخ روز تنظیم‌شده)</div><div class="stat-value rial num">${g.currentRate ? fmtRial(g.totalCustomerBalanceYuan * g.currentRate) : 'نرخ روز را در تنظیمات وارد کنید'}</div></div>
+    </div>
+  `;
+  wireRateBasisToggle(main, ()=>renderDashboard(main));
+}
+
+// ---------- CUSTOMERS LIST ----------
+async function renderCustomersList(main){
+  const basis = state.settings.rateBasis;
+  const g = await apiGetSummary(basis);
+  if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">مشتریان</h1>
+      <p class="page-desc">هر مشتری را باز کنید تا دفتر کامل تسویه (به‌سبک صورت‌حساب) را ببینید</p>
+    </div>
+    <div class="toolbar"><div></div>${rateBasisToggle()}</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>فاکتور باز</th><th></th></tr></thead>
+        <tbody>
+          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="5">هنوز مشتری‌ای در دفتر ثبت نشده — از تب «پرداخت‌های مشتریان» شروع کنید</td></tr>` :
+          g.customers.map(c=>`<tr style="cursor:pointer" data-open-customer="${c.name}">
+            <td><strong>${c.name}</strong></td>
+            <td class="num">${fmtYuan(c.balanceYuan)}</td>
+            <td class="num">${c.balanceRial!==null ? fmtRial(c.balanceRial) : '—'}</td>
+            <td>${c.openOrderId ? '<span class="status-chip open">باز</span>' : '<span class="status-chip closed">تسویه</span>'}</td>
+            <td><button class="btn btn-ghost btn-sm">مشاهده دفتر ›</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  wireRateBasisToggle(main, ()=>renderCustomersList(main));
+  main.querySelectorAll('[data-open-customer]').forEach(tr=>tr.addEventListener('click', ()=>{
+    currentCustomer = tr.dataset.openCustomer;
+    renderMain();
+  }));
+}
+
+// ---------- CUSTOMER LEDGER (دقیقاً به‌سبک عکس اکسل کاربر) ----------
+async function renderCustomerLedger(main){
+  const basis = state.settings.rateBasis;
+  const data = await apiGetCustomerLedger(currentCustomer, basis);
+  if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
+  main.innerHTML = `
+    <div class="page-head">
+      <button class="btn btn-ghost btn-sm" id="backBtn" style="margin-bottom:10px">‹ بازگشت به لیست مشتریان</button>
+      <h1 class="page-title">${data.customer}</h1>
+      <p class="page-desc">دفترِ کامل تسویه — هر ردیف یک فاکتور یا واریزی، با مانده‌ی تجمعیِ ریالی و یوانی</p>
+    </div>
+    <div class="toolbar"><div></div>${rateBasisToggle()}</div>
+
+    <div class="section-title">وضعیت فاکتورها</div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr><th>تاریخ</th><th>مبلغ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیت</th><th>نرخ میانگین وزنی (برای هلو)</th><th>معادل ریالی حسابداری</th></tr></thead>
+        <tbody>
+          ${data.orderStatus.length===0 ? `<tr class="empty-row"><td colspan="6">هنوز فاکتوری ثبت نشده</td></tr>` :
+          data.orderStatus.map(o=>`<tr>
+            <td class="num">${o.date}</td>
+            <td class="num">${fmtYuan(o.yuanAmount)}</td>
+            <td class="num">${fmtYuan(o.remainingYuan)}</td>
+            <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
+            <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
+            <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    ${data.excessYuan > 0.01 ? `<div class="tag yuan" style="margin-bottom:16px">⚠️ مازاد ${fmtYuan(data.excessYuan)} — پرداختی که به هیچ فاکتوری تعلق نگرفته (منتظر فاکتور بعدی)</div>` : ''}
+
+    <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>تاریخ</th><th>شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>مانده ریالی</th></tr></thead>
+        <tbody>
+          ${data.events.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
+            <td class="num">${e.date}</td>
+            <td>${e.type==='order'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
+            <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
+            <td class="num">${e.rate ? fmt(e.rate,0) : (e.pending?'⏳ معلق':'—')}</td>
+            <td class="num">${fmtYuan(e.runningYuan)}</td>
+            <td class="num">${fmtRial(e.runningRial)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
+  wireRateBasisToggle(main, ()=>renderCustomerLedger(main));
+}
+
+// ---------- PAYMENTS ----------
+async function renderPayments(main){
+  await loadAll();
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">پرداخت‌های مشتریان</h1>
+      <p class="page-desc">هر بار مشتری وجهی به یکی از حساب‌ها واریز می‌کند، اینجا ثبت کنید</p>
+    </div>
+    <div class="toolbar"><button class="btn btn-primary" id="addPaymentBtn">+ ثبت پرداخت</button><div></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>نرخ روز واریز</th><th>تخصیصِ دستی به فاکتور</th><th></th></tr></thead>
+        <tbody>
+          ${state.payments.length===0 ? `<tr class="empty-row"><td colspan="7">پرداختی ثبت نشده است</td></tr>` :
+          [...state.payments].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date)).map(p=>{
+            const acc = state.accounts.find(a=>a.id===p.account);
+            return `<tr>
+              <td class="num">${p.date}</td>
+              <td>${p.customer_name}</td>
+              <td>${acc ? acc.displayName : '—'}</td>
+              <td class="num">${fmtRial(p.rial_amount)}</td>
+              <td class="num">${fmt(p.rate_at_payment,0)}</td>
+              <td>${p.manual_order ? '<span class="tag danger">فاکتور #'+p.manual_order+' (دستی)</span>' : '<span class="tag neutral">خودکار (FIFO)</span>'}</td>
+              <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  main.querySelector('#addPaymentBtn').addEventListener('click', ()=>openPaymentModal());
+  main.querySelectorAll('[data-edit-payment]').forEach(b=>b.addEventListener('click',()=>{
+    const p = state.payments.find(x=>x.id==b.dataset.editPayment);
+    openPaymentModal(p);
+  }));
+  main.querySelectorAll('[data-del-payment]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(confirm('این پرداخت حذف شود؟')){
+      const ok = await apiDelete('payments', b.dataset.delPayment);
+      if(!ok) return;
+      renderPayments(main);
+    }
+  }));
+}
+
+function openPaymentModal(existing){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش پرداخت' : 'ثبت پرداخت مشتری'}</h3>
+      <div class="field-guide">
+        <table>
+          <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>مشتری</td><td>حداقل ۲ حرف از اسم را تایپ کنید تا از لیست مشتریانِ اولویت‌دار CRM پیشنهاد بیاید</td></tr>
+          <tr><td>نرخ روز واریز</td><td>نرخِ یوان به ریال، دقیقاً همان روزی که مشتری پول را واریز کرده</td></tr>
+          <tr><td>تخصیص دستی</td><td>خالی بگذارید تا خودکار (FIFO) به قدیمی‌ترین فاکتورِ باز تخصیص یابد؛ فقط اگر می‌خواهید این پرداخت را به یک فاکتور خاص بدهید، انتخاب کنید</td></tr>
+        </table>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>مشتری</label>
+        <input id="pCustomer" type="text" value="${existing ? existing.customer_name : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
+        <div id="pCustomerResults" style="position:relative"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>حساب دریافت‌کننده</label>
+        <select id="pAccount">${state.accounts.map(a=>`<option value="${a.id}" ${existing&&existing.account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاریخ واریز (شمسی)</label><input id="pDate" type="text" value="${existing ? existing.date : today}" placeholder="1405/06/18"></div>
+        <div class="field"><label>مبلغ واریزی (ریال)</label><input id="pAmount" type="text" class="num" value="${existing ? fmt(existing.rial_amount,0) : ''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>نرخ یوان در روز واریز (ریال)</label><input id="pRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_payment,0) : ''}"></div>
+        <div class="field"><label>تخصیصِ دستی به فاکتور (اختیاری)</label>
+          <select id="pManualOrder">
+            <option value="">— خودکار (FIFO) —</option>
+            ${state.orders.filter(o=>o.customer_name===(existing?existing.customer_name:'')).map(o=>`<option value="${o.id}" ${existing&&existing.manual_order===o.id?'selected':''}>${o.date} — ${fmtYuan(o.yuan_amount)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>توضیح (اختیاری)</label><input id="pNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="savePaymentBtn">${isEdit?'ذخیره تغییرات':'ثبت پرداخت'}</button>
+        <button class="btn btn-ghost" id="cancelPaymentBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelPaymentBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+
+  // سرچ زنده‌ی مشتری از CRM
+  let selectedCustomerName = existing ? existing.customer_name : '';
+  const custInput = backdrop.querySelector('#pCustomer');
+  const custResults = backdrop.querySelector('#pCustomerResults');
+  custInput.addEventListener('input', async ()=>{
+    const q = custInput.value.trim();
+    if(q.length < 2){ custResults.innerHTML=''; return; }
+    const matches = await searchCrmPriorityCustomers(q);
+    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+      ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${m.name}">${m.name}</div>`).join('')}
+    </div>` : '';
+    custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
+      selectedCustomerName = el.dataset.pickCust;
+      custInput.value = selectedCustomerName;
+      custResults.innerHTML = '';
+    }));
+  });
+
+  backdrop.querySelector('#savePaymentBtn').addEventListener('click', async ()=>{
+    selectedCustomerName = selectedCustomerName || custInput.value.trim();
+    const accountId = backdrop.querySelector('#pAccount').value;
+    const date = backdrop.querySelector('#pDate').value.trim();
+    const rialAmount = parseFloat(backdrop.querySelector('#pAmount').value.replace(/,/g,''));
+    const rateAtPayment = parseFloat(backdrop.querySelector('#pRate').value.replace(/,/g,''));
+    const manualOrder = backdrop.querySelector('#pManualOrder').value || null;
+    const note = backdrop.querySelector('#pNote').value.trim();
+    if(!selectedCustomerName || !date || !rialAmount || !rateAtPayment){ showToast('همه‌ی فیلدهای الزامی را پر کنید'); return; }
+    const body = {customer_name:selectedCustomerName, account:accountId, date, rial_amount:rialAmount, rate_at_payment:rateAtPayment, manual_order:manualOrder, note};
+    const d = isEdit ? await apiUpdate('payments', existing.id, body) : await apiCreate('payments', body);
+    if(!d) return;
+    backdrop.remove();
+    renderPayments(document.getElementById('main'));
+  });
+}
+
+// ---------- HAWALES (ترکیبی — چند حساب در یک حواله) ----------
+async function renderHawales(main){
+  await loadAll();
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">حواله‌ها به تأمین‌کننده</h1>
+      <p class="page-desc">هر بار ریالِ موجود را به نرخ روز، حواله یوانی خریداری می‌کنید — می‌تواند از چند حساب (حتی چند نفر) هم‌زمان تأمین شود</p>
+    </div>
+    <div class="toolbar"><button class="btn btn-primary" id="addHawaleBtn">+ ثبت حواله</button><div></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>تاریخ</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخ حواله</th><th>یوان خریداری‌شده</th><th></th></tr></thead>
+        <tbody>
+          ${state.hawales.length===0 ? `<tr class="empty-row"><td colspan="6">حواله‌ای ثبت نشده است</td></tr>` :
+          [...state.hawales].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date)).map(h=>`<tr>
+            <td class="num">${h.date}</td>
+            <td>${h.contributions.map(c=>{
+              const acc = state.accounts.find(a=>a.id===c.account);
+              return `<div style="font-size:11px">${acc?acc.displayName:'—'}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
+            }).join('')}</td>
+            <td class="num">${fmtRial(h.totalRial)}</td>
+            <td class="num">${fmt(h.rate_at_hawale,0)}</td>
+            <td class="num">${fmtYuan(h.yuanAmount)}</td>
+            <td><button class="icon-btn" data-edit-hawale="${h.id}">ویرایش</button> <button class="icon-btn" data-del-hawale="${h.id}">حذف</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="warn-note">برای تخصیصِ دستیِ یک پرداخت به این حواله (یا فاکتور خاص)، به تب «پرداخت‌های مشتریان» بروید.</div>
+  `;
+  main.querySelector('#addHawaleBtn').addEventListener('click', ()=>openHawaleModal());
+  main.querySelectorAll('[data-edit-hawale]').forEach(b=>b.addEventListener('click',()=>{
+    const h = state.hawales.find(x=>x.id==b.dataset.editHawale);
+    openHawaleModal(h);
+  }));
+  main.querySelectorAll('[data-del-hawale]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(confirm('این حواله حذف شود؟ پرداخت‌های مرتبط به حالت «معلق» برمی‌گردند.')){
+      const ok = await apiDelete('hawales', b.dataset.delHawale);
+      if(!ok) return;
+      renderHawales(main);
+    }
+  }));
+}
+
+function openHawaleModal(existing){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  let contribRows = existing ? existing.contributions.map(c=>({account:c.account, rial_amount:c.rial_amount})) : [{account:state.accounts[0]?.id||'', rial_amount:''}];
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+
+  function renderContribRows(){
+    return contribRows.map((r,i)=>`
+      <div class="contrib-row" data-contrib-row="${i}">
+        <select data-contrib-account="${i}">${state.accounts.map(a=>`<option value="${a.id}" ${r.account==a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+        <input data-contrib-amount="${i}" type="text" class="num" placeholder="مبلغ ریالی" value="${r.rial_amount?fmt(r.rial_amount,0):''}">
+        <button class="icon-btn" data-remove-contrib="${i}" ${contribRows.length<=1?'disabled':''}>✕</button>
+      </div>`).join('');
+  }
+
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش حواله' : 'ثبت حواله جدید'}</h3>
+      <div class="field-guide">
+        <table>
+          <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>حساب‌های مشارکت‌کننده</td><td>اگر این حواله از چند حساب (مثلاً هم حساب خودتان هم حساب عباس) تأمین شده، با دکمه‌ی «+ افزودن حساب» ردیف اضافه کنید</td></tr>
+          <tr><td>نرخ خرید حواله</td><td>این همان نرخی است که ملاک اصلیِ محاسبه‌ی مانده‌ی مشتری قرار می‌گیرد</td></tr>
+        </table>
+      </div>
+      <div class="field" style="margin-bottom:6px"><label>حساب‌های مشارکت‌کننده و مبلغ هرکدام</label></div>
+      <div id="contribRowsBox">${renderContribRows()}</div>
+      <button class="btn btn-ghost btn-sm" id="addContribBtn" style="margin-bottom:14px">+ افزودن حساب</button>
+      <div class="form-row">
+        <div class="field"><label>تاریخ حواله (شمسی)</label><input id="hDate" type="text" value="${existing ? existing.date : today}" placeholder="1405/06/18"></div>
+        <div class="field"><label>نرخ خرید حواله (ریال به ازای هر یوان)</label><input id="hRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_hawale,0) : ''}"></div>
+      </div>
+      <div class="field"><label>توضیح (اختیاری)</label><input id="hNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveHawaleBtn">${isEdit?'ذخیره تغییرات':'ثبت حواله'}</button>
+        <button class="btn btn-ghost" id="cancelHawaleBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelHawaleBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+
+  function wireContribRows(){
+    backdrop.querySelectorAll('[data-contrib-account]').forEach(sel=>sel.addEventListener('change',()=>{
+      contribRows[+sel.dataset.contribAccount].account = sel.value;
+    }));
+    backdrop.querySelectorAll('[data-contrib-amount]').forEach(inp=>inp.addEventListener('input',()=>{
+      contribRows[+inp.dataset.contribAmount].rial_amount = inp.value.replace(/,/g,'');
+    }));
+    backdrop.querySelectorAll('[data-remove-contrib]').forEach(b=>b.addEventListener('click',()=>{
+      if(contribRows.length<=1) return;
+      contribRows.splice(+b.dataset.removeContrib, 1);
+      backdrop.querySelector('#contribRowsBox').innerHTML = renderContribRows();
+      wireContribRows();
+    }));
+  }
+  wireContribRows();
+  backdrop.querySelector('#addContribBtn').addEventListener('click', ()=>{
+    contribRows.push({account:state.accounts[0]?.id||'', rial_amount:''});
+    backdrop.querySelector('#contribRowsBox').innerHTML = renderContribRows();
+    wireContribRows();
+  });
+
+  backdrop.querySelector('#saveHawaleBtn').addEventListener('click', async ()=>{
+    const date = backdrop.querySelector('#hDate').value.trim();
+    const rate = parseFloat(backdrop.querySelector('#hRate').value.replace(/,/g,''));
+    const note = backdrop.querySelector('#hNote').value.trim();
+    const validContribs = contribRows.filter(r=>r.account && parseFloat(r.rial_amount)>0).map(r=>({account:r.account, rial_amount:parseFloat(r.rial_amount)}));
+    if(!date || !rate || validContribs.length===0){ showToast('تاریخ، نرخ، و حداقل یک حساب با مبلغ معتبر را وارد کنید'); return; }
+    const body = {date, rate_at_hawale:rate, note, contributions:validContribs};
+    const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
+    if(!d) return;
+    backdrop.remove();
+    renderHawales(document.getElementById('main'));
+  });
+}
+
+// ---------- SUPPLIER (هزینه‌ی ترکیبی — خرید+جابجایی+کارمزد یوانی، + حمل ریالی جدا) ----------
+async function renderSupplier(main){
+  await loadAll();
+  const totalYuanBought = state.hawales.reduce((s,h)=>s+Number(h.yuanAmount||0),0);
+  const totalExpense = state.expenses.reduce((s,e)=>s+Number(e.totalYuan||0),0);
+  const balance = totalYuanBought - totalExpense;
+  const totalFreight = state.expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
+  const unpaidFreight = state.expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
+  const expenses = [...state.expenses].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">دفتر تأمین‌کننده</h1>
+      <p class="page-desc">تمام‌شده‌ی هر خرید = خرید کالا + جابجایی جنس + کارمزد حواله (یوانی) — به‌علاوه‌ی هزینه‌ی حمل (ریالی، اختیاری و جداگانه)</p>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="stat-label">موجودی یوان دستِ تأمین‌کننده</div><div class="stat-value yuan num">${fmtYuan(balance)}</div></div>
+      <div class="card stat-card"><div class="stat-label">مانده‌ی حمل پرداخت‌نشده (ریالی)</div><div class="stat-value rial num">${fmtRial(unpaidFreight)}</div><div class="stat-hint">از کل ${fmtRial(totalFreight)} هزینه‌ی حمل ثبت‌شده</div></div>
+    </div>
+    <div class="toolbar"><button class="btn btn-primary" id="addExpenseBtn">+ ثبت هزینه</button><div></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>تاریخ</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th><th></th></tr></thead>
+        <tbody>
+          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="8">هزینه‌ای ثبت نشده است</td></tr>` :
+          expenses.map(e=>`<tr>
+            <td class="num">${e.date}</td>
+            <td class="num">${fmtYuan(e.goods_yuan)}</td>
+            <td class="num">${fmtYuan(e.shipping_yuan)}</td>
+            <td class="num">${fmtYuan(e.transfer_fee_yuan)}</td>
+            <td class="num" style="font-weight:700">${fmtYuan(e.totalYuan)}</td>
+            <td class="num">${e.freight_rial ? fmtRial(e.freight_rial) : '— (بدون حمل)'}</td>
+            <td>${e.freight_rial ? (e.freight_paid ? '<span class="status-chip closed">پرداخت‌شده</span>' : '<span class="status-chip open">در انتظار</span>') : '—'}</td>
+            <td><button class="icon-btn" data-edit-exp="${e.id}">ویرایش</button> <button class="icon-btn" data-del-exp="${e.id}">حذف</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal());
+  main.querySelectorAll('[data-edit-exp]').forEach(b=>b.addEventListener('click',()=>{
+    const e = state.expenses.find(x=>x.id==b.dataset.editExp);
+    openExpenseModal(e);
+  }));
+  main.querySelectorAll('[data-del-exp]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(confirm('این هزینه حذف شود؟')){
+      const ok = await apiDelete('expenses', b.dataset.delExp);
+      if(!ok) return;
+      renderSupplier(main);
+    }
+  }));
+}
+
+function openExpenseModal(existing){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش هزینه' : 'ثبت هزینه‌ی تأمین‌کننده'}</h3>
+      <div class="field-guide">
+        <table>
+          <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>خرید کالا / جابجایی جنس / کارمزد حواله</td><td>همه یوانی‌اند — اگر یکی از این‌ها را ندارید، صفر بگذارید</td></tr>
+          <tr><td>هزینه‌ی حمل</td><td>ریالی است، و اختیاری — فقط اگر این خرید هزینه‌ی حمل دارد پر کنید</td></tr>
+          <tr><td>وضعیت پرداخت حمل</td><td>اگر هزینه‌ی حمل را هنوز پرداخت نکرده‌اید (مثلاً یک ماه بعد پرداخت می‌شود)، تیک نزنید</td></tr>
+        </table>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${existing ? existing.date : today}" placeholder="1405/06/18"></div>
+      <div class="form-row">
+        <div class="field"><label>خرید کالا (یوان)</label><input id="eGoods" type="text" class="num" value="${existing ? fmt(existing.goods_yuan,2) : '0'}"></div>
+        <div class="field"><label>جابجایی جنس (یوان)</label><input id="eShipping" type="text" class="num" value="${existing ? fmt(existing.shipping_yuan,2) : '0'}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>کارمزد جابجایی حواله (یوان)</label><input id="eTransferFee" type="text" class="num" value="${existing ? fmt(existing.transfer_fee_yuan,2) : '0'}"></div>
+      <div class="form-row">
+        <div class="field"><label>هزینه‌ی حمل (ریال، اختیاری)</label><input id="eFreight" type="text" class="num" value="${existing && existing.freight_rial ? fmt(existing.freight_rial,0) : ''}" placeholder="خالی = این خرید حمل ندارد"></div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+          <input type="checkbox" id="eFreightPaid" ${existing && existing.freight_paid ? 'checked' : ''}> <label for="eFreightPaid" style="margin:0">هزینه‌ی حمل پرداخت شده</label>
+        </div>
+      </div>
+      <div class="field"><label>توضیح (اختیاری)</label><input id="eNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveExpenseBtn">${isEdit?'ذخیره تغییرات':'ثبت هزینه'}</button>
+        <button class="btn btn-ghost" id="cancelExpenseBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  backdrop.querySelector('#saveExpenseBtn').addEventListener('click', async ()=>{
+    const date = backdrop.querySelector('#eDate').value.trim();
+    const goods = parseFloat(backdrop.querySelector('#eGoods').value.replace(/,/g,'')) || 0;
+    const shipping = parseFloat(backdrop.querySelector('#eShipping').value.replace(/,/g,'')) || 0;
+    const transferFee = parseFloat(backdrop.querySelector('#eTransferFee').value.replace(/,/g,'')) || 0;
+    const freightStr = backdrop.querySelector('#eFreight').value.replace(/,/g,'').trim();
+    const freight = freightStr ? parseFloat(freightStr) : null;
+    const freightPaid = backdrop.querySelector('#eFreightPaid').checked;
+    const note = backdrop.querySelector('#eNote').value.trim();
+    if(!date || (goods===0 && shipping===0 && transferFee===0)){ showToast('تاریخ و حداقل یکی از هزینه‌های یوانی را وارد کنید'); return; }
+    const body = {date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
+    const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
+    if(!d) return;
+    backdrop.remove();
+    renderSupplier(document.getElementById('main'));
+  });
+}
+
+// ---------- ACCOUNTS (چندگانه — هر شخص می‌تواند چند حساب داشته باشد) ----------
+async function renderAccounts(main){
+  await loadAll();
+  const OWNER_LABELS = {hamidreza:'حمیدرضا', abbas:'عباس', zahra:'زهرا حسین‌پور', ghaffarian:'غفاریان'};
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">حساب‌های بانکی</h1>
+      <p class="page-desc">هر شخص می‌تواند چند حساب داشته باشد — مثلاً هم ملی هم ملت</p>
+    </div>
+    <div class="toolbar"><button class="btn btn-primary" id="addAccBtn">+ افزودن حساب</button><div></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>مالک</th><th>نام بانک</th><th>شماره حساب</th><th>فعال</th><th></th></tr></thead>
+        <tbody>
+          ${state.accounts.length===0 ? `<tr class="empty-row"><td colspan="5">حسابی ثبت نشده است</td></tr>` :
+          state.accounts.map(a=>`<tr>
+            <td>${OWNER_LABELS[a.owner]||a.owner}</td>
+            <td>${a.bank_name}</td>
+            <td class="num">${a.account_number||'—'}</td>
+            <td>${a.active ? '<span class="status-chip closed">فعال</span>' : '<span class="status-chip open">غیرفعال</span>'}</td>
+            <td><button class="icon-btn" data-edit-acc="${a.id}">ویرایش</button> <button class="icon-btn" data-del-acc="${a.id}">حذف</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  main.querySelector('#addAccBtn').addEventListener('click', ()=>openAccountModal());
+  main.querySelectorAll('[data-edit-acc]').forEach(b=>b.addEventListener('click',()=>{
+    const a = state.accounts.find(x=>x.id==b.dataset.editAcc);
+    openAccountModal(a);
+  }));
+  main.querySelectorAll('[data-del-acc]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(confirm('این حساب حذف شود؟ (اگر تراکنشی دارد، حذف انجام نمی‌شود)')){
+      const ok = await apiDelete('accounts', b.dataset.delAcc);
+      if(!ok) return;
+      renderAccounts(main);
+    }
+  }));
+}
+
+function openAccountModal(existing){
+  const isEdit = !!existing;
+  const OWNER_OPTIONS = [['hamidreza','حمیدرضا'],['abbas','عباس'],['zahra','زهرا حسین‌پور'],['ghaffarian','غفاریان']];
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش حساب' : 'افزودن حساب بانکی'}</h3>
+      <div class="field" style="margin-bottom:10px"><label>مالک</label>
+        <select id="accOwner">${OWNER_OPTIONS.map(([v,l])=>`<option value="${v}" ${existing&&existing.owner===v?'selected':''}>${l}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>نام بانک</label><input id="accBank" type="text" value="${existing?existing.bank_name:''}" placeholder="مثلاً: بانک ملی"></div>
+      <div class="field" style="margin-bottom:10px"><label>شماره حساب (اختیاری)</label><input id="accNumber" type="text" value="${existing?existing.account_number||'':''}"></div>
+      <div class="field" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="accActive" ${!existing || existing.active ? 'checked' : ''}> <label for="accActive" style="margin:0">فعال</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveAccBtn">${isEdit?'ذخیره تغییرات':'افزودن'}</button>
+        <button class="btn btn-ghost" id="cancelAccBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelAccBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  backdrop.querySelector('#saveAccBtn').addEventListener('click', async ()=>{
+    const owner = backdrop.querySelector('#accOwner').value;
+    const bankName = backdrop.querySelector('#accBank').value.trim();
+    const accountNumber = backdrop.querySelector('#accNumber').value.trim();
+    const active = backdrop.querySelector('#accActive').checked;
+    if(!bankName){ showToast('نام بانک را وارد کنید'); return; }
+    const body = {owner, bank_name:bankName, account_number:accountNumber, active};
+    const d = isEdit ? await apiUpdate('accounts', existing.id, body) : await apiCreate('accounts', body);
+    if(!d) return;
+    backdrop.remove();
+    renderAccounts(document.getElementById('main'));
+  });
+}
+
+// ---------- SETTINGS ----------
+async function renderSettings(main){
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">تنظیمات</h1>
+      <p class="page-desc">نرخ روزِ مرجع — برای نمایش معادل ریالیِ مانده‌ی مشتریان در داشبورد</p>
+    </div>
+    <div class="card" style="max-width:420px">
+      <div class="field" style="margin-bottom:10px"><label>نرخ فعلی یوان (ریال)</label>
+        <input id="currentRateInput" type="text" class="num" value="${state.settings.currentRate ? fmt(state.settings.currentRate,0) : ''}">
+      </div>
+      <button class="btn btn-primary" id="saveRateBtn">ذخیره نرخ</button>
+    </div>
+  `;
+  main.querySelector('#saveRateBtn').addEventListener('click', async ()=>{
+    const v = parseFloat(main.querySelector('#currentRateInput').value.replace(/,/g,''));
+    const ok = await apiPatchSettings({current_rate: isNaN(v) ? null : v});
+    if(!ok){ showToast('❌ ذخیره ناموفق بود'); return; }
+    state.settings.currentRate = isNaN(v) ? null : v;
+    showToast('نرخ ذخیره شد');
+  });
+}
+
+// ---- Boot ----
+(async function(){
+  await loadAll();
+  render();
+})();
+</script>

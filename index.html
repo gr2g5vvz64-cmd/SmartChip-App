@@ -132,6 +132,7 @@ const APP_URLS = {
   crm: 'crm.html',                 // پیجویی فروش (جدید/در تماس/مثبت/منفی)
   priceList: 'pricelist.html',     // ماشین‌حساب قیمت‌دهی — Apps Script کاملاً جدا
   staffAdmin: 'staff-admin.html',  // فقط برای مدیر — افزودن/حذف کارمند
+  fxLedger: 'fx-ledger.html',      // ⚠️ (۱۴۰۵/۰۶/۱۸) دفتر ارزی — فقط مدیر، تسویه ریال⇄یوان با مشتریان/تأمین‌کننده
   guide: 'راهنمای-کامل-SmartChip.html', // راهنمای کامل پلتفرم
 };
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -149,7 +150,7 @@ if(isMobileDevice()){
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
 const ROLE_TILES = {
-  admin:   ['erp','crm','priceList','staffAdmin','guide'],
+  admin:   ['erp','crm','priceList','staffAdmin','fxLedger','guide'],
   sales:   ['crm','priceList','guide'],
   ops:     ['erp','guide'],
   finance: ['erp','guide'],
@@ -159,6 +160,7 @@ const TILE_META = {
   crm:      {icon:'📞', title:'CRM فروش', desc:'پیجویی و ثبت تماس با مشتری'},
   priceList:{icon:'💰', title:'Price List', desc:'ماشین‌حساب قیمت‌دهی قطعات'},
   staffAdmin:{icon:'👥', title:'مدیریت کارمندان', desc:'افزودن/حذف دسترسی نیروها'},
+  fxLedger: {icon:'💱', title:'دفتر ارزی', desc:'تسویه ریال⇄یوان با مشتریان و تأمین‌کننده'},
   guide:    {icon:'📖', title:'راهنمای پلتفرم', desc:'آموزش کامل CRM، ERP، ماشین‌حساب و موبایل'},
 };
 if(isMobileDevice()){
