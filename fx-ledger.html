@@ -421,6 +421,27 @@ async function fxSearchItems(q){
     return (j && j.items) || [];
   }catch(e){ return []; }
 }
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: فرمتِ زنده (سه‌رقم‌سه‌رقم) موقعِ
+// خودِ تایپ، نه فقط تو نمایش. موقعیتِ کرسر رو با شمردنِ تعدادِ رقم‌های
+// قبل از کرسر حفظ می‌کنیم، تا تایپ‌کردن دست‌وپاگیر نشه.
+function wireLiveNumberFormat(inputEl){
+  inputEl.addEventListener('input', ()=>{
+    const raw = inputEl.value.replace(/[^\d.]/g,'');
+    const cursorPos = inputEl.selectionStart;
+    const digitsBeforeCursor = inputEl.value.slice(0, cursorPos).replace(/[^\d]/g,'').length;
+    if(!raw){ inputEl.value=''; return; }
+    const parts = raw.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    inputEl.value = parts.join('.');
+    let seen = 0, newPos = inputEl.value.length;
+    for(let i=0;i<inputEl.value.length;i++){
+      if(/\d/.test(inputEl.value[i])) seen++;
+      if(seen===digitsBeforeCursor){ newPos=i+1; break; }
+    }
+    inputEl.setSelectionRange(newPos, newPos);
+  });
+}
+
 function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
   let seq = 0;
   inputEl.addEventListener('input', async ()=>{
@@ -777,6 +798,7 @@ function openOrderModal(existing, presetCustomer){
   backdrop.querySelector('#cancelOrderBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#oDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#oAmount'));
 
   if(!presetCustomer){
     const custInput = backdrop.querySelector('#oCustomer');
@@ -1009,6 +1031,8 @@ function openPaymentModal(existing){
   backdrop.querySelector('#cancelPaymentBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#pDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#pAmount'));
+  wireLiveNumberFormat(backdrop.querySelector('#pRate'));
 
   // سرچ زنده‌ی مشتری از CRM
   let selectedCustomerName = existing ? existing.customer_name : '';
@@ -1187,14 +1211,18 @@ function openHawaleModal(existing){
   backdrop.querySelector('#cancelHawaleBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#hDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#hRate'));
 
   function wireContribRows(){
     backdrop.querySelectorAll('[data-contrib-account]').forEach(sel=>sel.addEventListener('change',()=>{
       contribRows[+sel.dataset.contribAccount].account = sel.value;
     }));
-    backdrop.querySelectorAll('[data-contrib-amount]').forEach(inp=>inp.addEventListener('input',()=>{
-      contribRows[+inp.dataset.contribAmount].rial_amount = inp.value.replace(/,/g,'');
-    }));
+    backdrop.querySelectorAll('[data-contrib-amount]').forEach(inp=>{
+      wireLiveNumberFormat(inp);
+      inp.addEventListener('input',()=>{
+        contribRows[+inp.dataset.contribAmount].rial_amount = inp.value.replace(/,/g,'');
+      });
+    });
     backdrop.querySelectorAll('[data-remove-contrib]').forEach(b=>b.addEventListener('click',()=>{
       if(contribRows.length<=1) return;
       contribRows.splice(+b.dataset.removeContrib, 1);
@@ -1507,25 +1535,33 @@ function openExpenseModal(existing, presetSupplier){
 // ---------- ACCOUNTS (چندگانه — هر شخص می‌تواند چند حساب داشته باشد) ----------
 async function renderAccounts(main){
   await loadAll();
-  const OWNER_LABELS = {hamidreza:'حمیدرضا', abbas:'عباس', zahra:'زهرا حسین‌پور', ghaffarian:'غفاریان'};
+  const basis = state.settings.rateBasis;
+  const g = await apiGetSummary(basis);
+  const balanceMap = {};
+  if(g) g.accounts.forEach(a=>{ balanceMap[a.name] = a; }); // نگاشت با نام چون g.accounts فقط id نداره؛ فالبک با محاسبه دستی زیر
   main.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">حساب‌های بانکی</h1>
-      <p class="page-desc">هر شخص می‌تواند چند حساب داشته باشد — مثلاً هم ملی هم ملت</p>
+      <p class="page-desc">هر شخص می‌تواند چند حساب داشته باشد — مثلاً هم ملی هم ملت. مانده شامل مانده‌ی اولیه + دریافتی‌ها − حواله‌ها + تعدیلات است</p>
     </div>
     <div class="toolbar"><button class="btn btn-primary" id="addAccBtn">+ افزودن حساب</button><div></div></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>مالک</th><th>نام بانک</th><th>شماره حساب</th><th>فعال</th><th></th></tr></thead>
+        <thead><tr><th>مالک</th><th>نام بانک</th><th>شماره حساب</th><th>مانده‌ی اولیه</th><th>مانده‌ی فعلی</th><th>فعال</th><th></th></tr></thead>
         <tbody>
-          ${state.accounts.length===0 ? `<tr class="empty-row"><td colspan="5">حسابی ثبت نشده است</td></tr>` :
-          state.accounts.map(a=>`<tr>
-            <td>${OWNER_LABELS[a.owner]||a.owner}</td>
-            <td>${a.bank_name}</td>
-            <td class="num">${a.account_number||'—'}</td>
-            <td>${a.active ? '<span class="status-chip closed">فعال</span>' : '<span class="status-chip open">غیرفعال</span>'}</td>
-            <td><button class="icon-btn" data-edit-acc="${a.id}">ویرایش</button> <button class="icon-btn" data-del-acc="${a.id}">حذف</button></td>
-          </tr>`).join('')}
+          ${state.accounts.length===0 ? `<tr class="empty-row"><td colspan="7">حسابی ثبت نشده است</td></tr>` :
+          state.accounts.map(a=>{
+            const stat = balanceMap[a.displayName];
+            return `<tr>
+              <td>${a.owner}</td>
+              <td>${a.bank_name}</td>
+              <td class="num">${a.account_number||'—'}</td>
+              <td class="num">${fmtRial(a.opening_balance)}</td>
+              <td class="num" style="font-weight:700">${stat ? fmtRial(stat.balance) : '—'}</td>
+              <td>${a.active ? '<span class="status-chip closed">فعال</span>' : '<span class="status-chip open">غیرفعال</span>'}</td>
+              <td><button class="icon-btn" data-edit-acc="${a.id}">ویرایش</button> <button class="icon-btn" data-del-acc="${a.id}">حذف</button> <button class="icon-btn" data-adj-acc="${a.id}">💰 هزینه/درآمدِ متفرقه</button></td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -1542,6 +1578,55 @@ async function renderAccounts(main){
       renderAccounts(main);
     }
   }));
+  main.querySelectorAll('[data-adj-acc]').forEach(b=>b.addEventListener('click', ()=>{
+    openAdjustmentModal(b.dataset.adjAcc);
+  }));
+}
+
+function openAdjustmentModal(accountId){
+  const today = todayShamsi();
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>ثبتِ هزینه/درآمدِ متفرقه</h3>
+      <div class="field-guide">
+        <table>
+          <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>نوع</td><td>هزینه = از حساب کم می‌شود؛ درآمد = به حساب اضافه می‌شود</td></tr>
+          <tr><td>توضیح</td><td>اختیاری و خیلی کوتاه — این مورد ربطی به مشتری/تأمین‌کننده ندارد و ریزش نگه‌داری نمی‌شود، فقط مانده به‌روز می‌شود</td></tr>
+        </table>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>نوع</label>
+          <select id="adjType"><option value="expense">هزینه (کسر از حساب)</option><option value="income">درآمد (افزوده به حساب)</option></select>
+        </div>
+        <div class="field"><label>تاریخ (شمسی)</label><input id="adjDate" type="text" value="${today}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>مبلغ (ریال)</label><input id="adjAmount" type="text" class="num"></div>
+      <div class="field"><label>توضیح کوتاه (اختیاری)</label><input id="adjNote" type="text"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveAdjBtn">ثبت</button>
+        <button class="btn btn-ghost" id="cancelAdjBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelAdjBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireShamsiDatePicker(backdrop.querySelector('#adjDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#adjAmount'));
+  backdrop.querySelector('#saveAdjBtn').addEventListener('click', async ()=>{
+    const adjustmentType = backdrop.querySelector('#adjType').value;
+    const date = backdrop.querySelector('#adjDate').value.trim();
+    const amount = parseFloat(backdrop.querySelector('#adjAmount').value.replace(/,/g,''));
+    const note = backdrop.querySelector('#adjNote').value.trim();
+    if(!date || !amount){ showToast('تاریخ و مبلغ را وارد کنید'); return; }
+    const d = await apiCreate('account-adjustments', {account:accountId, date, adjustment_type:adjustmentType, amount, note});
+    if(!d) return;
+    showToast('✅ ثبت شد و مانده به‌روز شد');
+    backdrop.remove();
+    renderAccounts(document.getElementById('main'));
+  });
 }
 
 function openAccountModal(existing){
@@ -1561,6 +1646,7 @@ function openAccountModal(existing){
       </div>
       <div class="field" style="margin-bottom:10px"><label>نام بانک</label><input id="accBank" type="text" value="${existing?existing.bank_name:''}" placeholder="مثلاً: بانک ملی"></div>
       <div class="field" style="margin-bottom:10px"><label>شماره حساب (اختیاری)</label><input id="accNumber" type="text" value="${existing?existing.account_number||'':''}"></div>
+      <div class="field" style="margin-bottom:10px"><label>مانده‌ی اولیه (ریال) — اگر از قبل موجودی داشته</label><input id="accOpeningBalance" type="text" class="num" value="${existing&&existing.opening_balance ? fmt(existing.opening_balance,0) : '0'}"></div>
       <div class="field" style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" id="accActive" ${!existing || existing.active ? 'checked' : ''}> <label for="accActive" style="margin:0">فعال</label>
       </div>
@@ -1572,6 +1658,7 @@ function openAccountModal(existing){
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelAccBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireLiveNumberFormat(backdrop.querySelector('#accOpeningBalance'));
   backdrop.querySelector('#saveAccBtn').addEventListener('click', async ()=>{
     let owner = backdrop.querySelector('#accOwner').value.trim();
     const bankName = backdrop.querySelector('#accBank').value.trim();
@@ -1585,7 +1672,8 @@ function openAccountModal(existing){
       if(useExisting) owner = similar;
     }
     if(!bankName){ showToast('نام بانک را وارد کنید'); return; }
-    const body = {owner, bank_name:bankName, account_number:accountNumber, active};
+    const openingBalance = parseFloat(backdrop.querySelector('#accOpeningBalance').value.replace(/,/g,'')) || 0;
+    const body = {owner, bank_name:bankName, account_number:accountNumber, opening_balance:openingBalance, active};
     const d = isEdit ? await apiUpdate('accounts', existing.id, body) : await apiCreate('accounts', body);
     if(!d) return;
     backdrop.remove();
