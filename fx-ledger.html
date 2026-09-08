@@ -155,6 +155,7 @@
   .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
   .status-chip.open{ background:var(--yuan-soft); color:var(--yuan); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="root"><div class="load-screen">در حال بارگذاری…</div></div>
@@ -201,22 +202,126 @@ function jalaliToGregorian(jy, jm, jd){
 function todayShamsi(){
   const now = new Date();
   const [jy,jm,jd] = gregorianToJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
-  return `${jy}/${String(jm).padStart(2,'0')}/${String(jd).padStart(2,'0')}`;
+  return `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
 }
 function shamsiSortVal(s){
   if(!s) return 0;
-  const [y,m,d] = s.split('/').map(Number);
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) فرمت از / به - تغییر کرد؛ اینجا هر دو رو می‌پذیریم تا
+  // داده‌ی قدیمی (اگه با / ثبت شده بود) هم درست مرتب بشه
+  const [y,m,d] = s.split(/[-/]/).map(Number);
   return y*400 + m*31 + d;
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۱۸) عیناً کپی از crm.html — طبق دستور صریح کاربر: نرمال‌سازیِ
+// نامِ مشتری/تأمین‌کننده باید دقیقاً همون منطقِ CRM باشه، تا یه نامِ مشابه
+// (ی فارسی/ي عربی، ک/ك) به‌عنوان دو موجودیتِ جدا حساب نشه.
+function fa2en(s){ return (s||'').toString().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
+function normalizeFa(s){
+  return fa2en((s||'').toString().replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[إأآا]/g,'ا').replace(/ة/g,'ه').replace(/\s+/g,' ').trim().toLowerCase());
+}
+// اگه یه نامِ مشابه (نرمال‌شده یکسان، ولی رشته‌ی خام فرق داره) از قبل تو
+// لیستِ knownNames باشه، همونو برمی‌گردونه — تا بشه به کاربر پیشنهاد داد
+function findSimilarExistingName(typedName, knownNames){
+  const nq = normalizeFa(typedName);
+  if(!nq) return null;
+  const match = knownNames.find(n => normalizeFa(n) === nq && n !== typedName);
+  return match || null;
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۱۸) تقویمِ شمسیِ کلیکی — طبق درخواست صریح کاربر: فرمتِ
+// یک‌نواخت YYYY-MM-DD، انتخاب با کلیک (نه تایپِ دستی).
+function jalaliLeapSimple(jy){
+  // روشِ ساده و قابل‌اتکا: تبدیل به میلادی و برگشت، چک کن روزِ ۳۰ اسفند معتبره یا نه
+  const g1 = jalaliToGregorian(jy, 12, 30);
+  const back = gregorianToJalali(g1[0], g1[1], g1[2]);
+  return back[1] === 12 && back[2] === 30;
+}
+function daysInJalaliMonth(jy, jm){
+  if(jm <= 6) return 31;
+  if(jm <= 11) return 30;
+  return jalaliLeapSimple(jy) ? 30 : 29;
+}
+const JALALI_MONTH_NAMES = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const JALALI_WEEKDAY_NAMES = ['ش','ی','د','س','چ','پ','ج']; // شنبه تا جمعه
+
+function openShamsiCalendarPicker(inputEl){
+  document.querySelectorAll('.shamsi-cal-popup').forEach(p=>p.remove());
+  let [vy,vm] = (inputEl.value || todayShamsi()).split(/[-/]/).map(Number);
+  if(!vy){ const t = todayShamsi().split('-').map(Number); vy=t[0]; vm=t[1]; }
+
+  const popup = document.createElement('div');
+  popup.className = 'shamsi-cal-popup';
+  popup.style.cssText = 'position:absolute;z-index:100;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:10px;width:260px;';
+  const rect = inputEl.getBoundingClientRect();
+  popup.style.top = (window.scrollY + rect.bottom + 4) + 'px';
+  popup.style.left = (window.scrollX + rect.left) + 'px';
+
+  function renderCalendar(){
+    const firstOfMonthG = jalaliToGregorian(vy, vm, 1);
+    const jsDate = new Date(firstOfMonthG[0], firstOfMonthG[1]-1, firstOfMonthG[2]);
+    const jsWeekday = jsDate.getDay(); // 0=یکشنبه تو جاوااسکریپت
+    const startOffset = (jsWeekday + 1) % 7; // تبدیل به اندیسِ هفته‌ی ایرانی: شنبه=0
+    const totalDays = daysInJalaliMonth(vy, vm);
+    let cells = '';
+    for(let i=0;i<startOffset;i++) cells += '<div></div>';
+    for(let d=1; d<=totalDays; d++){
+      const dateStr = `${vy}-${String(vm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isSelected = inputEl.value === dateStr;
+      cells += `<div data-pick-day="${dateStr}" style="text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;font-size:11px;${isSelected?'background:var(--accent);color:#fff;':''}">${d}</div>`;
+    }
+    popup.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <button type="button" id="calPrevBtn" style="border:none;background:none;cursor:pointer;font-size:14px">‹</button>
+        <div style="font-size:12px;font-weight:700">${JALALI_MONTH_NAMES[vm-1]} ${vy}</div>
+        <button type="button" id="calNextBtn" style="border:none;background:none;cursor:pointer;font-size:14px">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+        ${JALALI_WEEKDAY_NAMES.map(w=>`<div style="text-align:center;font-size:9px;color:var(--ink-soft)">${w}</div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${cells}</div>
+      <button type="button" id="calTodayBtn" style="width:100%;margin-top:8px;padding:5px;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:11px;cursor:pointer">امروز</button>
+    `;
+    popup.querySelector('#calPrevBtn').addEventListener('click', ()=>{ vm--; if(vm<1){vm=12;vy--;} renderCalendar(); });
+    popup.querySelector('#calNextBtn').addEventListener('click', ()=>{ vm++; if(vm>12){vm=1;vy++;} renderCalendar(); });
+    popup.querySelector('#calTodayBtn').addEventListener('click', ()=>{
+      inputEl.value = todayShamsi();
+      inputEl.dispatchEvent(new Event('input'));
+      popup.remove();
+    });
+    popup.querySelectorAll('[data-pick-day]').forEach(el=>el.addEventListener('click', ()=>{
+      inputEl.value = el.dataset.pickDay;
+      inputEl.dispatchEvent(new Event('input'));
+      popup.remove();
+    }));
+  }
+  renderCalendar();
+  document.body.appendChild(popup);
+  setTimeout(()=>{
+    document.addEventListener('click', function closeHandler(e){
+      if(!popup.contains(e.target) && e.target!==inputEl){ popup.remove(); document.removeEventListener('click', closeHandler); }
+    });
+  }, 0);
+}
+function wireShamsiDatePicker(inputEl){
+  inputEl.readOnly = true;
+  inputEl.style.cursor = 'pointer';
+  inputEl.addEventListener('click', ()=>openShamsiCalendarPicker(inputEl));
 }
 
 // ── فرمت اعداد — سه‌رقم‌سه‌رقم، طبق درخواست صریح کاربر در همه‌جا ──
 function fmt(n, digits){
   if(n === null || n === undefined || isNaN(n)) return '—';
   const d = digits === undefined ? 0 : digits;
-  return Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  let s = Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست صریح کاربر: صفرهای اضافیِ بعدِ اعشار حذف
+  // بشن — ۲۳۹۸.۰۰۰۰ بشه ۲۳۹۸، ۱۲۳۵.۰۹۸۰ بشه ۱۲۳۵.۰۹۸
+  if(s.includes('.')){
+    s = s.replace(/0+$/, '').replace(/\.$/, '');
+  }
+  return s;
 }
 function fmtRial(n){ return fmt(n,0) + ' ریال'; }
-function fmtYuan(n){ return fmt(n,2) + ' ¥'; }
+function fmtYuan(n){ return fmt(n,4) + ' ¥'; }
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -311,7 +416,7 @@ function render(){
       <div class="main" id="main"></div>
     </div>`;
   root.querySelectorAll('.nav-item').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ currentTab = btn.dataset.tab; currentCustomer=null; render(); });
+    btn.addEventListener('click', ()=>{ currentTab = btn.dataset.tab; currentCustomer=null; currentSupplier=null; render(); });
   });
   renderMain();
 }
@@ -356,6 +461,15 @@ async function renderDashboard(main){
       <h1 class="page-title">داشبورد</h1>
       <p class="page-desc">وضعیت لحظه‌ای ریال، یوان و مانده مشتریان — بر اساس مبنای انتخابی نرخ</p>
     </div>
+    ${g.unlockedClosedOrders && g.unlockedClosedOrders.length ? `
+    <div style="background:#FEF3C7;border:2px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-weight:800;color:#92400e;margin-bottom:8px">🔔 ${fmt(g.unlockedClosedOrders.length,0)} فاکتور کامل تسویه شده ولی هنوز قفل نشده — یادتون نره!</div>
+      ${g.unlockedClosedOrders.map(o=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px">
+          <div><strong>${o.customerName}</strong> — فاکتورِ ${o.date} — ${fmtYuan(o.yuanAmount)} — نرخِ میانگین: ${fmt(o.weightedAvgRate,0)}</div>
+          <button class="btn btn-primary btn-sm" data-goto-lock="${o.customerName}">برو قفل کن ›</button>
+        </div>`).join('')}
+    </div>` : ''}
     <div class="toolbar"><div></div>${rateBasisToggle()}</div>
 
     <div class="section-title">موجودی حساب‌های بانکی</div>
@@ -374,11 +488,25 @@ async function renderDashboard(main){
       <div class="card stat-card"><div class="stat-label">ریال راکد (تبدیل‌نشده)</div><div class="stat-value rial num">${fmtRial(g.idleRial)}</div><div class="stat-hint">هنوز حواله نزده‌اید</div></div>
     </div>
 
-    <div class="section-title">یوان — تأمین‌کننده (مانده‌ی خرید)</div>
+    <div class="section-title">یوان — کل تأمین‌کنندگان (تجمعی)</div>
     <div class="grid grid-3">
       <div class="card stat-card"><div class="stat-label">جمع یوان خریداری‌شده (حواله‌ها)</div><div class="stat-value yuan num">${fmtYuan(g.totalYuanBought)}</div></div>
       <div class="card stat-card"><div class="stat-label">جمع هزینه‌های ثبت‌شده (خرید+جابجایی+کارمزد)</div><div class="stat-value yuan num">${fmtYuan(g.totalExpenseYuan)}</div></div>
-      <div class="card stat-card"><div class="stat-label">موجودی فعلی یوان دست تأمین‌کننده</div><div class="stat-value yuan num">${fmtYuan(g.supplierYuanBalance)}</div></div>
+      <div class="card stat-card"><div class="stat-label">موجودی کل یوان دست تأمین‌کنندگان</div><div class="stat-value yuan num">${fmtYuan(g.totalYuanBought - g.totalExpenseYuan)}</div></div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr><th>تأمین‌کننده</th><th>خریداری‌شده</th><th>خرج‌شده</th><th>مانده (یوان)</th></tr></thead>
+        <tbody>
+          ${g.suppliers.length===0 ? `<tr class="empty-row"><td colspan="4">تأمین‌کننده‌ای ثبت نشده</td></tr>` :
+          g.suppliers.map(s=>`<tr>
+            <td><strong>${s.name}</strong></td>
+            <td class="num">${fmtYuan(s.yuanBought)}</td>
+            <td class="num">${fmtYuan(s.expenseYuan)}</td>
+            <td class="num" style="font-weight:700">${fmtYuan(s.yuanBalance)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
     </div>
 
     <div class="section-title">هزینه‌ی حمل — ریالی، کاملاً جدا از حساب یوانی</div>
@@ -394,6 +522,11 @@ async function renderDashboard(main){
     </div>
   `;
   wireRateBasisToggle(main, ()=>renderDashboard(main));
+  main.querySelectorAll('[data-goto-lock]').forEach(b=>b.addEventListener('click', ()=>{
+    currentTab = 'customers';
+    currentCustomer = b.dataset.gotoLock;
+    render();
+  }));
 }
 
 // ---------- CUSTOMERS LIST ----------
@@ -406,12 +539,12 @@ async function renderCustomersList(main){
       <h1 class="page-title">مشتریان</h1>
       <p class="page-desc">هر مشتری را باز کنید تا دفتر کامل تسویه (به‌سبک صورت‌حساب) را ببینید</p>
     </div>
-    <div class="toolbar"><div></div>${rateBasisToggle()}</div>
+    <div class="toolbar"><button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button>${rateBasisToggle()}</div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>فاکتور باز</th><th></th></tr></thead>
         <tbody>
-          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="5">هنوز مشتری‌ای در دفتر ثبت نشده — از تب «پرداخت‌های مشتریان» شروع کنید</td></tr>` :
+          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="5">هنوز مشتری‌ای در دفتر ثبت نشده — با «ثبت فاکتور/پیش‌فاکتور» شروع کنید</td></tr>` :
           g.customers.map(c=>`<tr style="cursor:pointer" data-open-customer="${c.name}">
             <td><strong>${c.name}</strong></td>
             <td class="num">${fmtYuan(c.balanceYuan)}</td>
@@ -423,6 +556,7 @@ async function renderCustomersList(main){
       </table>
     </div>
   `;
+  main.querySelector('#addOrderGlobalBtn').addEventListener('click', ()=>openOrderModal());
   wireRateBasisToggle(main, ()=>renderCustomersList(main));
   main.querySelectorAll('[data-open-customer]').forEach(tr=>tr.addEventListener('click', ()=>{
     currentCustomer = tr.dataset.openCustomer;
@@ -441,31 +575,42 @@ async function renderCustomerLedger(main){
       <h1 class="page-title">${data.customer}</h1>
       <p class="page-desc">دفترِ کامل تسویه — هر ردیف یک فاکتور یا واریزی، با مانده‌ی تجمعیِ ریالی و یوانی</p>
     </div>
-    <div class="toolbar"><div></div>${rateBasisToggle()}</div>
+    <div class="toolbar"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button>
+      <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
+    </div>
 
     <div class="section-title">وضعیت فاکتورها</div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>تاریخ</th><th>مبلغ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیت</th><th>نرخ میانگین وزنی (برای هلو)</th><th>معادل ریالی حسابداری</th></tr></thead>
+        <thead><tr><th>نوع</th><th>شماره</th><th>تاریخ</th><th>مبلغ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیت تسویه</th><th>نرخ میانگین وزنی (برای هلو)</th><th>معادل ریالی حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
-          ${data.orderStatus.length===0 ? `<tr class="empty-row"><td colspan="6">هنوز فاکتوری ثبت نشده</td></tr>` :
+          ${data.orderStatus.length===0 ? `<tr class="empty-row"><td colspan="10">هنوز فاکتوری ثبت نشده</td></tr>` :
           data.orderStatus.map(o=>`<tr>
+            <td>${o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور'}</td>
+            <td class="num">${o.invoiceNo||'—'}</td>
             <td class="num">${o.date}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
             <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
             <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
             <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
+            <td>${o.isLocked
+              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-order="'+o.id+'" style="font-size:10px">بازکردن</button>'
+              : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-order="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
+            <td><button class="icon-btn" data-edit-order="${o.id}">ویرایش</button> <button class="icon-btn" data-del-order="${o.id}">حذف</button> <button class="icon-btn" data-hist-order="${o.id}">📜</button></td>
           </tr>`).join('')}
         </tbody>
       </table>
+    </div>
+    <div class="note" style="background:var(--paper);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:11.5px;color:var(--ink-soft)">
+      🔒 <strong>قفل‌کردن</strong> یعنی: بعد از ثبتِ نرخِ میانگینِ این فاکتور تو هلو، این عدد دیگه با ویرایش/حذفِ پرداخت‌های قدیمی خودکار تغییر نمی‌کنه — همون عددی که تو هلو ثبت کردید، برای همیشه ثابت می‌مونه.
     </div>
     ${data.excessYuan > 0.01 ? `<div class="tag yuan" style="margin-bottom:16px">⚠️ مازاد ${fmtYuan(data.excessYuan)} — پرداختی که به هیچ فاکتوری تعلق نگرفته (منتظر فاکتور بعدی)</div>` : ''}
 
     <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>مانده ریالی</th></tr></thead>
+        <thead><tr><th>تاریخ</th><th>شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>معادل ریالی (به نرخِ روزِ فعلی)</th></tr></thead>
         <tbody>
           ${data.events.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="num">${e.date}</td>
@@ -474,7 +619,7 @@ async function renderCustomerLedger(main){
             <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : (e.pending?'⏳ معلق':'—')}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
-            <td class="num">${fmtRial(e.runningRial)}</td>
+            <td class="num">${e.runningRialAtCurrentRate!==null ? fmtRial(e.runningRialAtCurrentRate) : '— (نرخِ روز را در تنظیمات وارد کنید)'}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -482,49 +627,255 @@ async function renderCustomerLedger(main){
   `;
   main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
   wireRateBasisToggle(main, ()=>renderCustomerLedger(main));
+  main.querySelectorAll('[data-lock-order]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('این نرخ رو الان تو هلو ثبت کردید؟ بعد از قفل‌کردن، این عدد دیگه با تغییرِ پرداخت‌های قدیمی خودکار عوض نمی‌شه.')) return;
+    const res = await fetch(FX_API+'orders/'+b.dataset.lockOrder+'/lock/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({basis, today:todayShamsi()})});
+    const d = await res.json();
+    if(!res.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
+    showToast('✅ فاکتور قفل شد');
+    renderCustomerLedger(main);
+  }));
+  main.querySelectorAll('[data-unlock-order]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ مطمئنید می‌خواید قفل رو باز کنید؟ این کارو فقط وقتی بکنید که واقعاً اشتباه قفل کرده باشید.')) return;
+    const res = await fetch(FX_API+'orders/'+b.dataset.unlockOrder+'/unlock/', {method:'POST'});
+    if(!res.ok){ showToast('❌ بازکردنِ قفل ناموفق بود'); return; }
+    showToast('✅ قفل باز شد');
+    renderCustomerLedger(main);
+  }));
+  main.querySelector('#addOrderBtn').addEventListener('click', ()=>openOrderModal(null, currentCustomer));
+  main.querySelectorAll('[data-edit-order]').forEach(b=>b.addEventListener('click', ()=>{
+    const o = data.orderStatus.find(x=>x.id==b.dataset.editOrder);
+    if(o.isLocked && !confirm('⚠️ این فاکتور قفل شده (تو هلو ثبت شده). ویرایشِ مبلغ ممکنه با نرخِ حسابداریِ ثبت‌شده ناهماهنگ بشه. مطمئنید؟')) return;
+    openOrderModal({id:o.id, customer_name:currentCustomer, order_type:o.orderType, date:o.date, invoice_no:o.invoiceNo, yuan_amount:o.yuanAmount, note:o.note}, currentCustomer);
+  }));
+  main.querySelectorAll('[data-del-order]').forEach(b=>b.addEventListener('click', async ()=>{
+    const o = data.orderStatus.find(x=>x.id==b.dataset.delOrder);
+    const warnMsg = o.isLocked
+      ? '⚠️ این فاکتور قفل شده (تو هلو ثبت شده). حذفش ممکنه با حسابداریِ رسمی ناهماهنگ بشه. مطمئنید حذف بشه؟'
+      : 'این فاکتور حذف شود؟';
+    if(confirm(warnMsg)){
+      const ok = await apiDelete('orders', b.dataset.delOrder);
+      if(!ok) return;
+      renderCustomerLedger(main);
+    }
+  }));
+  main.querySelectorAll('[data-hist-order]').forEach(b=>b.addEventListener('click', ()=>{
+    showHistoryModal(data.orderStatus.find(x=>x.id==b.dataset.histOrder));
+  }));
+  main.querySelector('#exportOrdersBtn').addEventListener('click', ()=>{
+    const rows = [['نوع','شماره','تاریخ','مبلغ فاکتور (یوان)','مانده (یوان)','وضعیت','نرخ میانگین وزنی','معادل ریالی حسابداری']];
+    data.orderStatus.forEach(o=>rows.push([o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور', o.invoiceNo||'', o.date, o.yuanAmount, o.remainingYuan, o.closed?'تسویه‌شده':'باز', o.weightedAvgRate||'', o.rialEquivalentForAccounting||'']));
+    xlsxDownload(`فاکتورهای-${currentCustomer}.xlsx`, 'فاکتورها', rows);
+  });
+}
+
+function openOrderModal(existing, presetCustomer){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  let selectedCustomerName = existing ? existing.customer_name : (presetCustomer||'');
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش فاکتور/پیش‌فاکتور' : 'ثبت فاکتور/پیش‌فاکتورِ یوانی'}</h3>
+      <div class="field-guide">
+        <table>
+          <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>مشتری</td><td>مشتری‌ای که با این فاکتور بدهکار می‌شود — از همون لیستِ اولویت‌دارِ CRM</td></tr>
+          <tr><td>نوع</td><td>فاکتور (قطعی) یا پیش‌فاکتور — هر دو یه مبلغِ یوانی می‌سازن که مشتری بدهکارش می‌شود</td></tr>
+          <tr><td>مبلغ (یوان)</td><td>مبلغِ کلِ فاکتور/پیش‌فاکتور، به یوان</td></tr>
+        </table>
+      </div>
+      ${presetCustomer ? `<div class="field" style="margin-bottom:10px"><label>مشتری</label><input type="text" value="${presetCustomer}" disabled></div>` : `
+      <div class="field" style="margin-bottom:10px"><label>مشتری</label>
+        <input id="oCustomer" type="text" value="${selectedCustomerName}" placeholder="حداقل ۲ حرف تایپ کنید...">
+        <div id="oCustomerResults" style="position:relative"></div>
+      </div>`}
+      <div class="form-row">
+        <div class="field"><label>نوع</label>
+          <select id="oType">
+            <option value="proforma" ${existing&&existing.order_type==='proforma'?'selected':''}>پیش‌فاکتور</option>
+            <option value="invoice" ${existing&&existing.order_type==='invoice'?'selected':''}>فاکتور</option>
+          </select>
+        </div>
+        <div class="field"><label>شماره (اختیاری)</label><input id="oNo" type="text" value="${existing?existing.invoice_no||'':''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاریخ (شمسی)</label><input id="oDate" type="text" value="${existing?existing.date:today}" placeholder="1405-06-18"></div>
+        <div class="field"><label>مبلغ (یوان)</label><input id="oAmount" type="text" class="num" value="${existing?fmt(existing.yuan_amount,4):''}"></div>
+      </div>
+      <div class="field"><label>توضیح (اختیاری)</label><input id="oNote" type="text" value="${existing?existing.note||'':''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveOrderBtn">${isEdit?'ذخیره تغییرات':'ثبت'}</button>
+        <button class="btn btn-ghost" id="cancelOrderBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelOrderBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireShamsiDatePicker(backdrop.querySelector('#oDate'));
+
+  if(!presetCustomer){
+    const custInput = backdrop.querySelector('#oCustomer');
+    const custResults = backdrop.querySelector('#oCustomerResults');
+    custInput.addEventListener('input', async ()=>{
+      const q = custInput.value.trim();
+      if(q.length < 2){ custResults.innerHTML=''; return; }
+      const matches = await searchCrmPriorityCustomers(q);
+      custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+        ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${m.name}">${m.name}</div>`).join('')}
+      </div>` : '';
+      custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
+        selectedCustomerName = el.dataset.pickCust;
+        custInput.value = selectedCustomerName;
+        custResults.innerHTML = '';
+      }));
+    });
+  }
+
+  backdrop.querySelector('#saveOrderBtn').addEventListener('click', async ()=>{
+    if(!presetCustomer) selectedCustomerName = selectedCustomerName || backdrop.querySelector('#oCustomer').value.trim();
+    const orderType = backdrop.querySelector('#oType').value;
+    const invoiceNo = backdrop.querySelector('#oNo').value.trim();
+    const date = backdrop.querySelector('#oDate').value.trim();
+    const yuanAmount = parseFloat(backdrop.querySelector('#oAmount').value.replace(/,/g,''));
+    const note = backdrop.querySelector('#oNote').value.trim();
+    if(!selectedCustomerName || !date || !yuanAmount){ showToast('مشتری، تاریخ، و مبلغ را وارد کنید'); return; }
+
+    const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
+    if(similar){
+      const useExisting = confirm(`⚠️ یه مشتری با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همونه؟\n\n«تأیید» = بله.\n«انصراف» = نه، این مشتریِ جدیدیه.`);
+      if(useExisting) selectedCustomerName = similar;
+    }
+
+    const body = {customer_name:selectedCustomerName, order_type:orderType, invoice_no:invoiceNo, date, yuan_amount:yuanAmount, note};
+    const d = isEdit ? await apiUpdate('orders', existing.id, body) : await apiCreate('orders', body);
+    if(!d) return;
+    backdrop.remove();
+    currentCustomer = selectedCustomerName;
+    renderMain();
+  });
 }
 
 // ---------- PAYMENTS ----------
+let paymentsSearchQuery = '';
+let supplierExpenseSearchQuery = '';
+function xlsxDownload(filename, sheetName, rows){
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: خروجیِ اکسلِ *واقعی* (نه CSV) —
+  // با SheetJS. اعداد به‌صورتِ عددیِ واقعی ذخیره می‌شن (نه متن)، تا تو
+  // اکسل قابلِ SUM کردن باشن.
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename);
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۱۸) نمایشِ تاریخچه‌ی تغییرات — شکافِ واقعیِ پیداشده: تا الان
+// change_history تو بک‌اند جمع می‌شد ولی هیچ‌جا نمایش داده نمی‌شد.
+const FIELD_LABELS_FA = {
+  customer_name:'مشتری', supplier_name:'تأمین‌کننده', account:'حساب', date:'تاریخ',
+  rial_amount:'مبلغ ریالی', rate_at_payment:'نرخ روز واریز', rate_at_hawale:'نرخ حواله',
+  hawale:'حواله‌ی تخصیص‌یافته', manual_order:'تخصیص دستی', note:'توضیح', order_type:'نوع',
+  invoice_no:'شماره', yuan_amount:'مبلغ یوانی', goods_yuan:'خرید کالا', shipping_yuan:'جابجایی جنس',
+  transfer_fee_yuan:'کارمزد حواله', freight_rial:'هزینه‌ی حمل', freight_paid:'وضعیتِ پرداختِ حمل',
+};
+function showHistoryModal(record){
+  const history = record.change_history || [];
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>📜 تاریخچه‌ی تغییرات</h3>
+      ${history.length===0 ? '<p style="font-size:12px;color:var(--ink-soft)">هنوز هیچ ویرایشی رو این رکورد ثبت نشده.</p>' :
+      `<div class="table-wrap"><table>
+        <thead><tr><th>زمان</th><th>فیلد</th><th>قبل</th><th>بعد</th></tr></thead>
+        <tbody>
+          ${[...history].reverse().map(h=>`<tr>
+            <td class="num">${h.timestamp||''}</td>
+            <td>${FIELD_LABELS_FA[h.field]||h.field}</td>
+            <td class="num">${h.old}</td>
+            <td class="num">${h.new}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>`}
+      <div class="modal-actions"><button class="btn btn-ghost" id="closeHistoryBtn">بستن</button></div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#closeHistoryBtn').addEventListener('click',()=>backdrop.remove());
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+}
+
 async function renderPayments(main){
   await loadAll();
+  let filtered = [...state.payments].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  if(paymentsSearchQuery.trim()){
+    const q = paymentsSearchQuery.trim();
+    filtered = filtered.filter(p=>p.customer_name.includes(q) || p.date.includes(q));
+  }
   main.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">پرداخت‌های مشتریان</h1>
       <p class="page-desc">هر بار مشتری وجهی به یکی از حساب‌ها واریز می‌کند، اینجا ثبت کنید</p>
     </div>
-    <div class="toolbar"><button class="btn btn-primary" id="addPaymentBtn">+ ثبت پرداخت</button><div></div></div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addPaymentBtn">+ ثبت پرداخت</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="paymentsSearchInput" type="text" placeholder="🔍 جستجو با نام مشتری یا تاریخ..." value="${paymentsSearchQuery}" style="min-width:220px">
+        <button class="btn btn-ghost btn-sm" id="exportPaymentsBtn">📥 خروجی اکسل</button>
+      </div>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>نرخ روز واریز</th><th>تخصیصِ دستی به فاکتور</th><th></th></tr></thead>
         <tbody>
-          ${state.payments.length===0 ? `<tr class="empty-row"><td colspan="7">پرداختی ثبت نشده است</td></tr>` :
-          [...state.payments].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date)).map(p=>{
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="7">${paymentsSearchQuery ? 'چیزی پیدا نشد' : 'پرداختی ثبت نشده است'}</td></tr>` :
+          filtered.map(p=>{
             const acc = state.accounts.find(a=>a.id===p.account);
             return `<tr>
               <td class="num">${p.date}</td>
-              <td>${p.customer_name}</td>
+              <td>${p.customer_name}${p.affectsLockedOrder?' <span class="tag danger" title="این مشتری فاکتورِ قفل‌شده دارد — با احتیاط ویرایش کنید">🔒</span>':''}</td>
               <td>${acc ? acc.displayName : '—'}</td>
               <td class="num">${fmtRial(p.rial_amount)}</td>
               <td class="num">${fmt(p.rate_at_payment,0)}</td>
               <td>${p.manual_order ? '<span class="tag danger">فاکتور #'+p.manual_order+' (دستی)</span>' : '<span class="tag neutral">خودکار (FIFO)</span>'}</td>
-              <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button></td>
+              <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button> <button class="icon-btn" data-hist-payment="${p.id}">📜</button></td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>
   `;
+  main.querySelector('#paymentsSearchInput').addEventListener('input', (e)=>{
+    paymentsSearchQuery = e.target.value;
+    renderPayments(main);
+  });
+  main.querySelector('#exportPaymentsBtn').addEventListener('click', ()=>{
+    const rows = [['تاریخ','مشتری','حساب','مبلغ ریالی','نرخ روز واریز','تخصیص دستی','توضیح']];
+    filtered.forEach(p=>{
+      const acc = state.accounts.find(a=>a.id===p.account);
+      rows.push([p.date, p.customer_name, acc?acc.displayName:'', p.rial_amount, p.rate_at_payment, p.manual_order||'خودکار', p.note||'']);
+    });
+    xlsxDownload('پرداخت‌های-مشتریان.xlsx', 'پرداخت‌ها', rows);
+  });
   main.querySelector('#addPaymentBtn').addEventListener('click', ()=>openPaymentModal());
   main.querySelectorAll('[data-edit-payment]').forEach(b=>b.addEventListener('click',()=>{
     const p = state.payments.find(x=>x.id==b.dataset.editPayment);
+    if(p.affectsLockedOrder && !confirm('⚠️ این مشتری فاکتورِ قفل‌شده (ثبت‌شده در هلو) دارد. ویرایشِ این پرداخت ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید؟')) return;
     openPaymentModal(p);
   }));
   main.querySelectorAll('[data-del-payment]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(confirm('این پرداخت حذف شود؟')){
+    const p = state.payments.find(x=>x.id==b.dataset.delPayment);
+    const warnMsg = p.affectsLockedOrder
+      ? '⚠️ این مشتری فاکتورِ قفل‌شده (ثبت‌شده در هلو) دارد. حذفِ این پرداخت ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید حذف شود؟'
+      : 'این پرداخت حذف شود؟';
+    if(confirm(warnMsg)){
       const ok = await apiDelete('payments', b.dataset.delPayment);
       if(!ok) return;
       renderPayments(main);
     }
+  }));
+  main.querySelectorAll('[data-hist-payment]').forEach(b=>b.addEventListener('click', ()=>{
+    showHistoryModal(state.payments.find(x=>x.id==b.dataset.histPayment));
   }));
 }
 
@@ -552,7 +903,7 @@ function openPaymentModal(existing){
         <select id="pAccount">${state.accounts.map(a=>`<option value="${a.id}" ${existing&&existing.account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
       </div>
       <div class="form-row">
-        <div class="field"><label>تاریخ واریز (شمسی)</label><input id="pDate" type="text" value="${existing ? existing.date : today}" placeholder="1405/06/18"></div>
+        <div class="field"><label>تاریخ واریز (شمسی)</label><input id="pDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
         <div class="field"><label>مبلغ واریزی (ریال)</label><input id="pAmount" type="text" class="num" value="${existing ? fmt(existing.rial_amount,0) : ''}"></div>
       </div>
       <div class="form-row">
@@ -573,6 +924,7 @@ function openPaymentModal(existing){
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelPaymentBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireShamsiDatePicker(backdrop.querySelector('#pDate'));
 
   // سرچ زنده‌ی مشتری از CRM
   let selectedCustomerName = existing ? existing.customer_name : '';
@@ -601,6 +953,20 @@ function openPaymentModal(existing){
     const manualOrder = backdrop.querySelector('#pManualOrder').value || null;
     const note = backdrop.querySelector('#pNote').value.trim();
     if(!selectedCustomerName || !date || !rialAmount || !rateAtPayment){ showToast('همه‌ی فیلدهای الزامی را پر کنید'); return; }
+
+    // ⚠️ (۱۴۰۵/۰۶/۱۸) چک نامِ مشابه — طبق دستور صریح کاربر: عیناً منطقِ CRM
+    const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
+    if(similar){
+      const useExisting = confirm(`⚠️ یه مشتری با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همون مشتریه؟\n\n«تأیید» = بله، همون «${similar}» است.\n«انصراف» = نه، این واقعاً مشتریِ جدیدیه («${selectedCustomerName}»).`);
+      if(useExisting) selectedCustomerName = similar;
+    }
+
+    // ⚠️ چک ثبتِ تکراری — همون مشتری، همون تاریخ، همون مبلغ
+    if(!isEdit){
+      const dup = state.payments.find(p=>normalizeFa(p.customer_name)===normalizeFa(selectedCustomerName) && p.date===date && Number(p.rial_amount)===rialAmount);
+      if(dup && !confirm(`⚠️ یه پرداختِ کاملاً مشابه (همون مشتری، همون تاریخ، همون مبلغ) قبلاً ثبت شده. مطمئنید می‌خواید دوباره ثبت کنید؟`)) return;
+    }
+
     const body = {customer_name:selectedCustomerName, account:accountId, date, rial_amount:rialAmount, rate_at_payment:rateAtPayment, manual_order:manualOrder, note};
     const d = isEdit ? await apiUpdate('payments', existing.id, body) : await apiCreate('payments', body);
     if(!d) return;
@@ -610,21 +976,34 @@ function openPaymentModal(existing){
 }
 
 // ---------- HAWALES (ترکیبی — چند حساب در یک حواله) ----------
+let hawalesSearchQuery = '';
 async function renderHawales(main){
   await loadAll();
+  let filtered = [...state.hawales].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  if(hawalesSearchQuery.trim()){
+    const q = hawalesSearchQuery.trim();
+    filtered = filtered.filter(h=>h.supplier_name.includes(q) || h.date.includes(q));
+  }
   main.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">حواله‌ها به تأمین‌کننده</h1>
       <p class="page-desc">هر بار ریالِ موجود را به نرخ روز، حواله یوانی خریداری می‌کنید — می‌تواند از چند حساب (حتی چند نفر) هم‌زمان تأمین شود</p>
     </div>
-    <div class="toolbar"><button class="btn btn-primary" id="addHawaleBtn">+ ثبت حواله</button><div></div></div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addHawaleBtn">+ ثبت حواله</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="hawalesSearchInput" type="text" placeholder="🔍 جستجو با تأمین‌کننده یا تاریخ..." value="${hawalesSearchQuery}" style="min-width:220px">
+        <button class="btn btn-ghost btn-sm" id="exportHawalesBtn">📥 خروجی اکسل</button>
+      </div>
+    </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخ حواله</th><th>یوان خریداری‌شده</th><th></th></tr></thead>
+        <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخ حواله</th><th>یوان خریداری‌شده</th><th></th></tr></thead>
         <tbody>
-          ${state.hawales.length===0 ? `<tr class="empty-row"><td colspan="6">حواله‌ای ثبت نشده است</td></tr>` :
-          [...state.hawales].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date)).map(h=>`<tr>
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="7">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
+          filtered.map(h=>`<tr>
             <td class="num">${h.date}</td>
+            <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
               const acc = state.accounts.find(a=>a.id===c.account);
               return `<div style="font-size:11px">${acc?acc.displayName:'—'}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
@@ -632,24 +1011,41 @@ async function renderHawales(main){
             <td class="num">${fmtRial(h.totalRial)}</td>
             <td class="num">${fmt(h.rate_at_hawale,0)}</td>
             <td class="num">${fmtYuan(h.yuanAmount)}</td>
-            <td><button class="icon-btn" data-edit-hawale="${h.id}">ویرایش</button> <button class="icon-btn" data-del-hawale="${h.id}">حذف</button></td>
+            <td><button class="icon-btn" data-edit-hawale="${h.id}">ویرایش</button> <button class="icon-btn" data-del-hawale="${h.id}">حذف</button> <button class="icon-btn" data-hist-hawale="${h.id}">📜</button></td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
     <div class="warn-note">برای تخصیصِ دستیِ یک پرداخت به این حواله (یا فاکتور خاص)، به تب «پرداخت‌های مشتریان» بروید.</div>
   `;
+  main.querySelector('#hawalesSearchInput').addEventListener('input', (e)=>{
+    hawalesSearchQuery = e.target.value;
+    renderHawales(main);
+  });
+  main.querySelector('#exportHawalesBtn').addEventListener('click', ()=>{
+    const rows = [['تاریخ','تأمین‌کننده','مبلغ کل ریالی','نرخ حواله','یوان خریداری‌شده','توضیح']];
+    filtered.forEach(h=>rows.push([h.date, h.supplier_name, h.totalRial, h.rate_at_hawale, h.yuanAmount, h.note||'']));
+    xlsxDownload('حواله‌ها.xlsx', 'حواله‌ها', rows);
+  });
   main.querySelector('#addHawaleBtn').addEventListener('click', ()=>openHawaleModal());
   main.querySelectorAll('[data-edit-hawale]').forEach(b=>b.addEventListener('click',()=>{
     const h = state.hawales.find(x=>x.id==b.dataset.editHawale);
+    if(h.affectsLockedOrder && !confirm('⚠️ این حواله به مشتری‌ای با فاکتورِ قفل‌شده (ثبت‌شده در هلو) مرتبط است. ویرایش ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید؟')) return;
     openHawaleModal(h);
   }));
   main.querySelectorAll('[data-del-hawale]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(confirm('این حواله حذف شود؟ پرداخت‌های مرتبط به حالت «معلق» برمی‌گردند.')){
+    const h = state.hawales.find(x=>x.id==b.dataset.delHawale);
+    const warnMsg = h.affectsLockedOrder
+      ? '⚠️ این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است. حذف ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید حذف شود؟'
+      : 'این حواله حذف شود؟ پرداخت‌های مرتبط به حالت «معلق» برمی‌گردند.';
+    if(confirm(warnMsg)){
       const ok = await apiDelete('hawales', b.dataset.delHawale);
       if(!ok) return;
       renderHawales(main);
     }
+  }));
+  main.querySelectorAll('[data-hist-hawale]').forEach(b=>b.addEventListener('click', ()=>{
+    showHistoryModal(state.hawales.find(x=>x.id==b.dataset.histHawale));
   }));
 }
 
@@ -675,16 +1071,27 @@ function openHawaleModal(existing){
       <div class="field-guide">
         <table>
           <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>تأمین‌کننده</td><td>این حواله را برای کدام تأمین‌کننده خرید می‌کنید — ممکن است چند تأمین‌کننده داشته باشید</td></tr>
           <tr><td>حساب‌های مشارکت‌کننده</td><td>اگر این حواله از چند حساب (مثلاً هم حساب خودتان هم حساب عباس) تأمین شده، با دکمه‌ی «+ افزودن حساب» ردیف اضافه کنید</td></tr>
           <tr><td>نرخ خرید حواله</td><td>این همان نرخی است که ملاک اصلیِ محاسبه‌ی مانده‌ی مشتری قرار می‌گیرد</td></tr>
         </table>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
+        <input id="hSupplier" type="text" list="knownSuppliersListH" value="${existing ? existing.supplier_name : (currentSupplier||'')}" placeholder="مثلاً: کلافی">
+        <datalist id="knownSuppliersListH">${getKnownSupplierNames().map(s=>`<option value="${s}">`).join('')}</datalist>
       </div>
       <div class="field" style="margin-bottom:6px"><label>حساب‌های مشارکت‌کننده و مبلغ هرکدام</label></div>
       <div id="contribRowsBox">${renderContribRows()}</div>
       <button class="btn btn-ghost btn-sm" id="addContribBtn" style="margin-bottom:14px">+ افزودن حساب</button>
       <div class="form-row">
-        <div class="field"><label>تاریخ حواله (شمسی)</label><input id="hDate" type="text" value="${existing ? existing.date : today}" placeholder="1405/06/18"></div>
+        <div class="field"><label>تاریخ حواله (شمسی)</label><input id="hDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
         <div class="field"><label>نرخ خرید حواله (ریال به ازای هر یوان)</label><input id="hRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_hawale,0) : ''}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>تخصیصِ دستی به فاکتورِ خرید (اختیاری)</label>
+        <select id="hManualExpense">
+          <option value="">— خودکار (FIFO) —</option>
+          ${state.expenses.filter(e=>e.supplier_name===(existing?existing.supplier_name:currentSupplier)).map(e=>`<option value="${e.id}" ${existing&&existing.manual_expense===e.id?'selected':''}>${e.date} — ${fmtYuan(e.totalYuan)}</option>`).join('')}
+        </select>
       </div>
       <div class="field"><label>توضیح (اختیاری)</label><input id="hNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
@@ -695,6 +1102,7 @@ function openHawaleModal(existing){
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelHawaleBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireShamsiDatePicker(backdrop.querySelector('#hDate'));
 
   function wireContribRows(){
     backdrop.querySelectorAll('[data-contrib-account]').forEach(sel=>sel.addEventListener('change',()=>{
@@ -718,12 +1126,26 @@ function openHawaleModal(existing){
   });
 
   backdrop.querySelector('#saveHawaleBtn').addEventListener('click', async ()=>{
+    let supplierName = backdrop.querySelector('#hSupplier').value.trim();
     const date = backdrop.querySelector('#hDate').value.trim();
     const rate = parseFloat(backdrop.querySelector('#hRate').value.replace(/,/g,''));
     const note = backdrop.querySelector('#hNote').value.trim();
     const validContribs = contribRows.filter(r=>r.account && parseFloat(r.rial_amount)>0).map(r=>({account:r.account, rial_amount:parseFloat(r.rial_amount)}));
-    if(!date || !rate || validContribs.length===0){ showToast('تاریخ، نرخ، و حداقل یک حساب با مبلغ معتبر را وارد کنید'); return; }
-    const body = {date, rate_at_hawale:rate, note, contributions:validContribs};
+    if(!supplierName || !date || !rate || validContribs.length===0){ showToast('نام تأمین‌کننده، تاریخ، نرخ، و حداقل یک حساب با مبلغ معتبر را وارد کنید'); return; }
+
+    const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
+    if(similar){
+      const useExisting = confirm(`⚠️ یه تأمین‌کننده با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همونه؟\n\n«تأیید» = بله، همون «${similar}».\n«انصراف» = نه، این واقعاً تأمین‌کننده‌ی جدیدیه.`);
+      if(useExisting) supplierName = similar;
+    }
+    if(!isEdit){
+      const totalRial = validContribs.reduce((s,c)=>s+c.rial_amount,0);
+      const dup = state.hawales.find(h=>normalizeFa(h.supplier_name)===normalizeFa(supplierName) && h.date===date && Math.abs(Number(h.totalRial)-totalRial)<1);
+      if(dup && !confirm('⚠️ یه حواله‌ی کاملاً مشابه (همون تأمین‌کننده، همون تاریخ، همون مبلغ) قبلاً ثبت شده. مطمئنید دوباره ثبت کنید؟')) return;
+    }
+
+    const manualExpense = backdrop.querySelector('#hManualExpense').value || null;
+    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, manual_expense:manualExpense, note, contributions:validContribs};
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
     backdrop.remove();
@@ -732,29 +1154,101 @@ function openHawaleModal(existing){
 }
 
 // ---------- SUPPLIER (هزینه‌ی ترکیبی — خرید+جابجایی+کارمزد یوانی، + حمل ریالی جدا) ----------
+// ---------- SUPPLIERS LIST (طبق تصمیم کاربر: تأمین‌کننده فقط کلافی نیست) ----------
+let currentSupplier = null;
+
 async function renderSupplier(main){
-  await loadAll();
-  const totalYuanBought = state.hawales.reduce((s,h)=>s+Number(h.yuanAmount||0),0);
-  const totalExpense = state.expenses.reduce((s,e)=>s+Number(e.totalYuan||0),0);
-  const balance = totalYuanBought - totalExpense;
-  const totalFreight = state.expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
-  const unpaidFreight = state.expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
-  const expenses = [...state.expenses].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  currentSupplier ? renderSupplierLedger(main) : renderSuppliersList(main);
+}
+
+async function renderSuppliersList(main){
+  const basis = state.settings.rateBasis;
+  const g = await apiGetSummary(basis);
+  if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
   main.innerHTML = `
     <div class="page-head">
-      <h1 class="page-title">دفتر تأمین‌کننده</h1>
-      <p class="page-desc">تمام‌شده‌ی هر خرید = خرید کالا + جابجایی جنس + کارمزد حواله (یوانی) — به‌علاوه‌ی هزینه‌ی حمل (ریالی، اختیاری و جداگانه)</p>
+      <h1 class="page-title">تأمین‌کنندگان</h1>
+      <p class="page-desc">هر تأمین‌کننده مانده‌ی یوانیِ کاملاً جدای خودش را دارد — روی هرکدام بزنید تا دفترش را ببینید</p>
     </div>
-    <div class="grid grid-2" style="margin-bottom:16px">
-      <div class="card stat-card"><div class="stat-label">موجودی یوان دستِ تأمین‌کننده</div><div class="stat-value yuan num">${fmtYuan(balance)}</div></div>
-      <div class="card stat-card"><div class="stat-label">مانده‌ی حمل پرداخت‌نشده (ریالی)</div><div class="stat-value rial num">${fmtRial(unpaidFreight)}</div><div class="stat-hint">از کل ${fmtRial(totalFreight)} هزینه‌ی حمل ثبت‌شده</div></div>
-    </div>
-    <div class="toolbar"><button class="btn btn-primary" id="addExpenseBtn">+ ثبت هزینه</button><div></div></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th><th></th></tr></thead>
+        <thead><tr><th>تأمین‌کننده</th><th>یوان خریداری‌شده</th><th>یوان خرج‌شده</th><th>مانده (یوان)</th><th>مانده‌ی حمل پرداخت‌نشده</th><th></th></tr></thead>
         <tbody>
-          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="8">هزینه‌ای ثبت نشده است</td></tr>` :
+          ${g.suppliers.length===0 ? `<tr class="empty-row"><td colspan="6">هنوز تأمین‌کننده‌ای ثبت نشده — از تب «حواله‌ها» یا «ثبت هزینه» شروع کنید</td></tr>` :
+          g.suppliers.map(s=>`<tr style="cursor:pointer" data-open-supplier="${s.name}">
+            <td><strong>${s.name}</strong></td>
+            <td class="num">${fmtYuan(s.yuanBought)}</td>
+            <td class="num">${fmtYuan(s.expenseYuan)}</td>
+            <td class="num" style="font-weight:700">${fmtYuan(s.yuanBalance)}</td>
+            <td class="num">${fmtRial(s.unpaidFreightRial)}</td>
+            <td><button class="btn btn-ghost btn-sm">مشاهده دفتر ›</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  main.querySelectorAll('[data-open-supplier]').forEach(tr=>tr.addEventListener('click', ()=>{
+    currentSupplier = tr.dataset.openSupplier;
+    renderMain();
+  }));
+}
+
+async function apiGetSupplierLedger(supplier){ const r = await fetch(FX_API+'supplier-ledger/?supplier='+encodeURIComponent(supplier)); return r.ok ? r.json() : null; }
+
+async function renderSupplierLedger(main){
+  await loadAll();
+  const sName = currentSupplier;
+  const data = await apiGetSupplierLedger(sName);
+  if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
+  let expenses = state.expenses.filter(e=>e.supplier_name===sName).sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  const totalFreight = expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
+  const unpaidFreight = expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
+  if(supplierExpenseSearchQuery.trim()) expenses = expenses.filter(e=>e.date.includes(supplierExpenseSearchQuery.trim()));
+  main.innerHTML = `
+    <div class="page-head">
+      <button class="btn btn-ghost btn-sm" id="backSupplierBtn" style="margin-bottom:10px">‹ بازگشت به لیست تأمین‌کنندگان</button>
+      <h1 class="page-title">${sName}</h1>
+      <p class="page-desc">فاکتورِ خرید (یوانی) = بدهیِ ما به این تأمین‌کننده؛ حواله (ریالی) تسویه‌اش می‌کنه — با همون منطقِ FIFO و نرخِ میانگینِ وزنیِ مشتریان</p>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="stat-label">مانده‌ی حمل پرداخت‌نشده (ریالی)</div><div class="stat-value rial num">${fmtRial(unpaidFreight)}</div><div class="stat-hint">از کل ${fmtRial(totalFreight)} هزینه‌ی حمل ثبت‌شده</div></div>
+      <div class="card stat-card"><div class="stat-label">مازادِ یوانی (اگه هست)</div><div class="stat-value yuan num">${data.excessYuan>0.01 ? fmtYuan(data.excessYuan) : '—'}</div></div>
+    </div>
+
+    <div class="section-title">وضعیتِ فاکتورهای خرید</div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr><th>تاریخ</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
+        <tbody>
+          ${data.invoiceStatus.length===0 ? `<tr class="empty-row"><td colspan="8">هنوز هزینه/فاکتورِ خریدی ثبت نشده</td></tr>` :
+          data.invoiceStatus.map(o=>`<tr>
+            <td class="num">${o.date}</td>
+            <td class="num">${fmtYuan(o.yuanAmount)}</td>
+            <td class="num">${fmtYuan(o.remainingYuan)}</td>
+            <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
+            <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
+            <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
+            <td>${o.isLocked
+              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button>'
+              : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
+            <td><button class="icon-btn" data-edit-exp="${o.id}">ویرایش</button> <button class="icon-btn" data-del-exp="${o.id}">حذف</button> <button class="icon-btn" data-hist-exp="${o.id}">📜</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addExpenseBtn">+ ثبت فاکتورِ خرید / هزینه</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="supplierExpSearchInput" type="text" placeholder="🔍 جستجو با تاریخ..." value="${supplierExpenseSearchQuery}" style="min-width:180px">
+        <button class="btn btn-ghost btn-sm" id="exportExpensesBtn">📥 خروجی اکسل</button>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr><th>تاریخ</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
+        <tbody>
+          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="7">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
           expenses.map(e=>`<tr>
             <td class="num">${e.date}</td>
             <td class="num">${fmtYuan(e.goods_yuan)}</td>
@@ -763,29 +1257,92 @@ async function renderSupplier(main){
             <td class="num" style="font-weight:700">${fmtYuan(e.totalYuan)}</td>
             <td class="num">${e.freight_rial ? fmtRial(e.freight_rial) : '— (بدون حمل)'}</td>
             <td>${e.freight_rial ? (e.freight_paid ? '<span class="status-chip closed">پرداخت‌شده</span>' : '<span class="status-chip open">در انتظار</span>') : '—'}</td>
-            <td><button class="icon-btn" data-edit-exp="${e.id}">ویرایش</button> <button class="icon-btn" data-del-exp="${e.id}">حذف</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">دفترِ کامل (تاریخچه‌ی رویدادها)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>تاریخ</th><th>سند</th><th>شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخِ ردیف</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>تشخیص</th></tr></thead>
+        <tbody>
+          ${data.events.map(e=>`<tr>
+            <td class="num">${e.date}</td>
+            <td class="num">${e.docNumber}</td>
+            <td>${e.type==='invoice'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="num">${e.type==='invoice' ? fmtYuan(e.yuan_debit) : '—'}</td>
+            <td class="num">${e.type==='hawale' ? fmtYuan(e.yuan_credit) : '—'}</td>
+            <td class="num">${e.rate ? fmt(e.rate,0) : '—'}</td>
+            <td class="num">${fmtYuan(e.runningYuan)}</td>
+            <td class="num">${fmtRial(e.runningRial)}</td>
+            <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
   `;
-  main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal());
+  main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; renderMain(); });
+  main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
+  main.querySelector('#supplierExpSearchInput').addEventListener('input', (e)=>{
+    supplierExpenseSearchQuery = e.target.value;
+    renderSupplierLedger(main);
+  });
+  main.querySelector('#exportExpensesBtn').addEventListener('click', ()=>{
+    const rows = [['تاریخ','خرید کالا','جابجایی جنس','کارمزد حواله','جمع یوانی','هزینه حمل ریالی','وضعیت حمل','توضیح']];
+    expenses.forEach(e=>rows.push([e.date, e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan, e.freight_rial||'', e.freight_paid?'پرداخت‌شده':'در انتظار', e.note||'']));
+    xlsxDownload(`هزینه‌های-${sName}.xlsx`, 'هزینه‌ها', rows);
+  });
   main.querySelectorAll('[data-edit-exp]').forEach(b=>b.addEventListener('click',()=>{
     const e = state.expenses.find(x=>x.id==b.dataset.editExp);
+    const st = data.invoiceStatus.find(x=>x.id==b.dataset.editExp);
+    if(st && st.isLocked && !confirm('⚠️ این فاکتورِ خرید قفل شده (تو هلو ثبت شده). ویرایش ممکنه با نرخِ حسابداریِ ثبت‌شده ناهماهنگ بشه. مطمئنید؟')) return;
     openExpenseModal(e);
   }));
   main.querySelectorAll('[data-del-exp]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(confirm('این هزینه حذف شود؟')){
+    const st = data.invoiceStatus.find(x=>x.id==b.dataset.delExp);
+    const warnMsg = (st && st.isLocked)
+      ? '⚠️ این فاکتورِ خرید قفل شده (تو هلو ثبت شده). حذفش ممکنه با حسابداریِ رسمی ناهماهنگ بشه. مطمئنید حذف بشه؟'
+      : 'این هزینه/فاکتورِ خرید حذف شود؟';
+    if(confirm(warnMsg)){
       const ok = await apiDelete('expenses', b.dataset.delExp);
       if(!ok) return;
-      renderSupplier(main);
+      renderSupplierLedger(main);
     }
+  }));
+  main.querySelectorAll('[data-hist-exp]').forEach(b=>b.addEventListener('click', ()=>{
+    showHistoryModal(data.invoiceStatus.find(x=>x.id==b.dataset.histExp) || state.expenses.find(x=>x.id==b.dataset.histExp));
+  }));
+  main.querySelectorAll('[data-lock-exp]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('این نرخ رو الان تو هلو ثبت کردید؟ بعد از قفل‌کردن، این عدد دیگه با تغییرِ حواله‌های قدیمی خودکار عوض نمی‌شه.')) return;
+    const res = await fetch(FX_API+'expenses/'+b.dataset.lockExp+'/lock/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({today:todayShamsi()})});
+    const d = await res.json();
+    if(!res.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
+    showToast('✅ فاکتورِ خرید قفل شد');
+    renderSupplierLedger(main);
+  }));
+  main.querySelectorAll('[data-unlock-exp]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ مطمئنید می‌خواید قفل رو باز کنید؟')) return;
+    const res = await fetch(FX_API+'expenses/'+b.dataset.unlockExp+'/unlock/', {method:'POST'});
+    if(!res.ok){ showToast('❌ بازکردنِ قفل ناموفق بود'); return; }
+    showToast('✅ قفل باز شد');
+    renderSupplierLedger(main);
   }));
 }
 
-function openExpenseModal(existing){
+// ⚠️ سرچ ساده‌ی تأمین‌کننده — از اسامیِ قبلاً استفاده‌شده (نه CRM، چون
+// تأمین‌کننده جزو مشتریان نیست)
+function getKnownSupplierNames(){
+  return [...new Set([...state.hawales.map(h=>h.supplier_name), ...state.expenses.map(e=>e.supplier_name)])].filter(Boolean);
+}
+function getKnownCustomerNames(){
+  return [...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name)])].filter(Boolean);
+}
+
+function openExpenseModal(existing, presetSupplier){
   const today = todayShamsi();
   const isEdit = !!existing;
+  const knownSuppliers = getKnownSupplierNames();
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
   backdrop.innerHTML = `
@@ -794,17 +1351,22 @@ function openExpenseModal(existing){
       <div class="field-guide">
         <table>
           <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>تأمین‌کننده</td><td>نام تأمین‌کننده — ممکن است چند تأمین‌کننده‌ی مختلف داشته باشید، هرکدام مانده‌ی یوانیِ جدای خودشان را دارند</td></tr>
           <tr><td>خرید کالا / جابجایی جنس / کارمزد حواله</td><td>همه یوانی‌اند — اگر یکی از این‌ها را ندارید، صفر بگذارید</td></tr>
           <tr><td>هزینه‌ی حمل</td><td>ریالی است، و اختیاری — فقط اگر این خرید هزینه‌ی حمل دارد پر کنید</td></tr>
           <tr><td>وضعیت پرداخت حمل</td><td>اگر هزینه‌ی حمل را هنوز پرداخت نکرده‌اید (مثلاً یک ماه بعد پرداخت می‌شود)، تیک نزنید</td></tr>
         </table>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${existing ? existing.date : today}" placeholder="1405/06/18"></div>
-      <div class="form-row">
-        <div class="field"><label>خرید کالا (یوان)</label><input id="eGoods" type="text" class="num" value="${existing ? fmt(existing.goods_yuan,2) : '0'}"></div>
-        <div class="field"><label>جابجایی جنس (یوان)</label><input id="eShipping" type="text" class="num" value="${existing ? fmt(existing.shipping_yuan,2) : '0'}"></div>
+      <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
+        <input id="eSupplier" type="text" list="knownSuppliersList" value="${existing ? existing.supplier_name : (presetSupplier||'')}" placeholder="مثلاً: کلافی">
+        <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>کارمزد جابجایی حواله (یوان)</label><input id="eTransferFee" type="text" class="num" value="${existing ? fmt(existing.transfer_fee_yuan,2) : '0'}"></div>
+      <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
+      <div class="form-row">
+        <div class="field"><label>خرید کالا (یوان)</label><input id="eGoods" type="text" class="num" value="${existing ? fmt(existing.goods_yuan,4) : '0'}"></div>
+        <div class="field"><label>جابجایی جنس (یوان)</label><input id="eShipping" type="text" class="num" value="${existing ? fmt(existing.shipping_yuan,4) : '0'}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>کارمزد جابجایی حواله (یوان)</label><input id="eTransferFee" type="text" class="num" value="${existing ? fmt(existing.transfer_fee_yuan,4) : '0'}"></div>
       <div class="form-row">
         <div class="field"><label>هزینه‌ی حمل (ریال، اختیاری)</label><input id="eFreight" type="text" class="num" value="${existing && existing.freight_rial ? fmt(existing.freight_rial,0) : ''}" placeholder="خالی = این خرید حمل ندارد"></div>
         <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:22px">
@@ -820,7 +1382,9 @@ function openExpenseModal(existing){
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   backdrop.querySelector('#saveExpenseBtn').addEventListener('click', async ()=>{
+    let supplierName = backdrop.querySelector('#eSupplier').value.trim();
     const date = backdrop.querySelector('#eDate').value.trim();
     const goods = parseFloat(backdrop.querySelector('#eGoods').value.replace(/,/g,'')) || 0;
     const shipping = parseFloat(backdrop.querySelector('#eShipping').value.replace(/,/g,'')) || 0;
@@ -829,12 +1393,20 @@ function openExpenseModal(existing){
     const freight = freightStr ? parseFloat(freightStr) : null;
     const freightPaid = backdrop.querySelector('#eFreightPaid').checked;
     const note = backdrop.querySelector('#eNote').value.trim();
-    if(!date || (goods===0 && shipping===0 && transferFee===0)){ showToast('تاریخ و حداقل یکی از هزینه‌های یوانی را وارد کنید'); return; }
-    const body = {date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
+    if(!supplierName || !date || (goods===0 && shipping===0 && transferFee===0)){ showToast('نام تأمین‌کننده، تاریخ، و حداقل یکی از هزینه‌های یوانی را وارد کنید'); return; }
+
+    const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
+    if(similar){
+      const useExisting = confirm(`⚠️ یه تأمین‌کننده با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همونه؟\n\n«تأیید» = بله، همون «${similar}».\n«انصراف» = نه، این واقعاً تأمین‌کننده‌ی جدیدیه.`);
+      if(useExisting) supplierName = similar;
+    }
+
+    const body = {supplier_name:supplierName, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
     backdrop.remove();
-    renderSupplier(document.getElementById('main'));
+    currentSupplier = supplierName;
+    renderMain();
   });
 }
 
@@ -880,14 +1452,18 @@ async function renderAccounts(main){
 
 function openAccountModal(existing){
   const isEdit = !!existing;
-  const OWNER_OPTIONS = [['hamidreza','حمیدرضا'],['abbas','عباس'],['zahra','زهرا حسین‌پور'],['ghaffarian','غفاریان']];
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: دیگه محدود به ۴ نفرِ ثابت نیست —
+  // پیشنهادها از نام‌هایی که تا‌الان استفاده شده، به‌علاوه‌ی همون ۴ نفرِ
+  // اولیه (برای راحتیِ اداهِ کار)
+  const knownOwners = [...new Set(['حمیدرضا','عباس','زهرا حسین‌پور','غفاریان', ...state.accounts.map(a=>a.owner)])];
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
   backdrop.innerHTML = `
     <div class="modal">
       <h3>${isEdit ? 'ویرایش حساب' : 'افزودن حساب بانکی'}</h3>
       <div class="field" style="margin-bottom:10px"><label>مالک</label>
-        <select id="accOwner">${OWNER_OPTIONS.map(([v,l])=>`<option value="${v}" ${existing&&existing.owner===v?'selected':''}>${l}</option>`).join('')}</select>
+        <input id="accOwner" type="text" list="knownOwnersList" value="${existing?existing.owner:''}" placeholder="مثلاً: حمیدرضا">
+        <datalist id="knownOwnersList">${knownOwners.map(o=>`<option value="${o}">`).join('')}</datalist>
       </div>
       <div class="field" style="margin-bottom:10px"><label>نام بانک</label><input id="accBank" type="text" value="${existing?existing.bank_name:''}" placeholder="مثلاً: بانک ملی"></div>
       <div class="field" style="margin-bottom:10px"><label>شماره حساب (اختیاری)</label><input id="accNumber" type="text" value="${existing?existing.account_number||'':''}"></div>
@@ -903,10 +1479,17 @@ function openAccountModal(existing){
   backdrop.querySelector('#cancelAccBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   backdrop.querySelector('#saveAccBtn').addEventListener('click', async ()=>{
-    const owner = backdrop.querySelector('#accOwner').value;
+    let owner = backdrop.querySelector('#accOwner').value.trim();
     const bankName = backdrop.querySelector('#accBank').value.trim();
     const accountNumber = backdrop.querySelector('#accNumber').value.trim();
     const active = backdrop.querySelector('#accActive').checked;
+    if(!owner){ showToast('نامِ مالک را وارد کنید'); return; }
+
+    const similar = findSimilarExistingName(owner, knownOwners.filter(o=>o!==owner));
+    if(similar){
+      const useExisting = confirm(`⚠️ یه مالکِ حساب با نامِ خیلی مشابه («${similar}») از قبل هست. منظورتون همونه؟\n\n«تأیید» = بله.\n«انصراف» = نه، این واقعاً شخصِ جدیدیه.`);
+      if(useExisting) owner = similar;
+    }
     if(!bankName){ showToast('نام بانک را وارد کنید'); return; }
     const body = {owner, bank_name:bankName, account_number:accountNumber, active};
     const d = isEdit ? await apiUpdate('accounts', existing.id, body) : await apiCreate('accounts', body);
