@@ -155,7 +155,6 @@
   .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
   .status-chip.open{ background:var(--yuan-soft); color:var(--yuan); }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="root"><div class="load-screen">در حال بارگذاری…</div></div>
@@ -374,6 +373,61 @@ async function searchCrmPriorityCustomers(q){
     .filter(c => ['1','5','9'].includes(String(c.priority||'').trim()))
     .filter(c => !nq || (c.name||'').includes(nq))
     .slice(0, 10);
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر — بازاستفاده‌ی عیناً از دو endpoint
+// واقعی که از قبل تو ERP/CRM کار می‌کنن (نه چیزِ جدید): همگام‌سازیِ
+// پارت‌نامبرها از گوگل‌شیتِ Verified_Weights + سرچِ آیتم.
+const FX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec';
+async function fxSheetCall(action, data = {}){
+  try{
+    const payloadStr = JSON.stringify(data);
+    const url = FX_SHEET_URL + '?action=' + encodeURIComponent(action) + '&payload=' + encodeURIComponent(payloadStr) + '&t=' + Date.now();
+    const res = await fetch(url, { method:'GET', redirect:'follow' });
+    return await res.json();
+  }catch(e){ return null; }
+}
+async function fxSyncPartsFromSheet(btn){
+  if(btn) btn.disabled = true;
+  showToast('⏳ در حال خوندنِ گوگل‌شیت (ممکنه ۱۵ تا ۴۵ ثانیه طول بکشه)...');
+  try{
+    const res = await fxSheetCall('getAllItemWeights');
+    const items = (res && res.items) || [];
+    if(!items.length){ showToast('⚠️ چیزی از گوگل‌شیت خونده نشد'); if(btn) btn.disabled=false; return; }
+    showToast(`⏳ ${items.length} پارت خونده شد، در حال ارسال به سرور...`);
+    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items}),
+    });
+    const data = await syncRes.json();
+    if(data.ok) showToast(`✅ تمام شد — ${data.created} پارتِ جدید، ${data.updated} پارت آپدیت شد`);
+    else showToast('❌ همگام‌سازی ناموفق بود: ' + (data.error||'نامشخص'));
+  }catch(e){ showToast('❌ خطا: ' + e.message); }
+  if(btn) btn.disabled = false;
+}
+async function fxSearchItems(q){
+  if(!q || q.trim().length<1) return [];
+  try{
+    const data = await fetch('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(q.trim()));
+    const j = await data.json();
+    return (j && j.items) || [];
+  }catch(e){ return []; }
+}
+function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
+  let seq = 0;
+  inputEl.addEventListener('input', async ()=>{
+    const q = inputEl.value;
+    if(q.trim().length<1){ resultsBoxEl.innerHTML=''; return; }
+    const mySeq = ++seq;
+    const items = await fxSearchItems(q);
+    if(mySeq !== seq) return; // یه سرچِ جدیدتر تو راهه
+    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+      ${items.map(name=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-part="${name}">${name}</div>`).join('')}
+    </div>` : '';
+    resultsBoxEl.querySelectorAll('[data-pick-part]').forEach(el=>el.addEventListener('click', ()=>{
+      inputEl.value = el.dataset.pickPart;
+      resultsBoxEl.innerHTML = '';
+    }));
+  });
 }
 
 async function loadAll(){
@@ -760,10 +814,31 @@ function openOrderModal(existing, presetCustomer){
 // ---------- PAYMENTS ----------
 let paymentsSearchQuery = '';
 let supplierExpenseSearchQuery = '';
-function xlsxDownload(filename, sheetName, rows){
-  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: خروجیِ اکسلِ *واقعی* (نه CSV) —
-  // با SheetJS. اعداد به‌صورتِ عددیِ واقعی ذخیره می‌شن (نه متن)، تا تو
-  // اکسل قابلِ SUM کردن باشن.
+// ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ واقعیِ کندیِ لودشدن: قبلاً SheetJS تو <head>
+// و بدونِ defer لود می‌شد — یعنی کلِ صفحه تا دانلودِ کاملِ این فایلِ
+// خارجی (از cdnjs.cloudflare.com که ممکنه از ایران کند/غیرقابل‌دسترس
+// باشه) معلق می‌موند. الان فقط وقتی واقعاً دکمه‌ی خروجی زده بشه، لود می‌شه.
+let _xlsxLibPromise = null;
+function loadXlsxLib(){
+  if(window.XLSX) return Promise.resolve();
+  if(_xlsxLibPromise) return _xlsxLibPromise;
+  _xlsxLibPromise = new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return _xlsxLibPromise;
+}
+async function xlsxDownload(filename, sheetName, rows){
+  try{
+    showToast('⏳ در حال آماده‌سازیِ فایلِ اکسل...');
+    await loadXlsxLib();
+  }catch(e){
+    showToast('❌ اتصال به کتابخانه‌ی اکسل برقرار نشد — اینترنتتون رو چک کنید');
+    return;
+  }
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
@@ -1241,16 +1316,18 @@ async function renderSupplierLedger(main){
       <button class="btn btn-primary" id="addExpenseBtn">+ ثبت فاکتورِ خرید / هزینه</button>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="supplierExpSearchInput" type="text" placeholder="🔍 جستجو با تاریخ..." value="${supplierExpenseSearchQuery}" style="min-width:180px">
+        <button class="btn btn-ghost btn-sm" id="syncPartsBtn">🔄 sync قطعات از گوگل‌شیت</button>
         <button class="btn btn-ghost btn-sm" id="exportExpensesBtn">📥 خروجی اکسل</button>
       </div>
     </div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>تاریخ</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
+        <thead><tr><th>تاریخ</th><th>پارت‌نامبر</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
         <tbody>
-          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="7">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
+          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="8">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
           expenses.map(e=>`<tr>
             <td class="num">${e.date}</td>
+            <td>${e.part_number||'—'}</td>
             <td class="num">${fmtYuan(e.goods_yuan)}</td>
             <td class="num">${fmtYuan(e.shipping_yuan)}</td>
             <td class="num">${fmtYuan(e.transfer_fee_yuan)}</td>
@@ -1284,13 +1361,14 @@ async function renderSupplierLedger(main){
   `;
   main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; renderMain(); });
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
+  main.querySelector('#syncPartsBtn').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
   main.querySelector('#supplierExpSearchInput').addEventListener('input', (e)=>{
     supplierExpenseSearchQuery = e.target.value;
     renderSupplierLedger(main);
   });
   main.querySelector('#exportExpensesBtn').addEventListener('click', ()=>{
-    const rows = [['تاریخ','خرید کالا','جابجایی جنس','کارمزد حواله','جمع یوانی','هزینه حمل ریالی','وضعیت حمل','توضیح']];
-    expenses.forEach(e=>rows.push([e.date, e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan, e.freight_rial||'', e.freight_paid?'پرداخت‌شده':'در انتظار', e.note||'']));
+    const rows = [['تاریخ','پارت‌نامبر','خرید کالا','جابجایی جنس','کارمزد حواله','جمع یوانی','هزینه حمل ریالی','وضعیت حمل','توضیح']];
+    expenses.forEach(e=>rows.push([e.date, e.part_number||'', e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan, e.freight_rial||'', e.freight_paid?'پرداخت‌شده':'در انتظار', e.note||'']));
     xlsxDownload(`هزینه‌های-${sName}.xlsx`, 'هزینه‌ها', rows);
   });
   main.querySelectorAll('[data-edit-exp]').forEach(b=>b.addEventListener('click',()=>{
@@ -1352,6 +1430,7 @@ function openExpenseModal(existing, presetSupplier){
         <table>
           <tr><th>فیلد</th><th>توضیح</th></tr>
           <tr><td>تأمین‌کننده</td><td>نام تأمین‌کننده — ممکن است چند تأمین‌کننده‌ی مختلف داشته باشید، هرکدام مانده‌ی یوانیِ جدای خودشان را دارند</td></tr>
+          <tr><td>پارت‌نامبر</td><td>هر خرید یک قلمِ مشخص است — پارت‌نامبرش را تایپ کنید تا از گوگل‌شیت پیشنهاد بیاید</td></tr>
           <tr><td>خرید کالا / جابجایی جنس / کارمزد حواله</td><td>همه یوانی‌اند — اگر یکی از این‌ها را ندارید، صفر بگذارید</td></tr>
           <tr><td>هزینه‌ی حمل</td><td>ریالی است، و اختیاری — فقط اگر این خرید هزینه‌ی حمل دارد پر کنید</td></tr>
           <tr><td>وضعیت پرداخت حمل</td><td>اگر هزینه‌ی حمل را هنوز پرداخت نکرده‌اید (مثلاً یک ماه بعد پرداخت می‌شود)، تیک نزنید</td></tr>
@@ -1360,6 +1439,10 @@ function openExpenseModal(existing, presetSupplier){
       <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
         <input id="eSupplier" type="text" list="knownSuppliersList" value="${existing ? existing.supplier_name : (presetSupplier||'')}" placeholder="مثلاً: کلافی">
         <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>پارت‌نامبر</label>
+        <input id="ePartNumber" type="text" value="${existing ? existing.part_number||'' : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
+        <div id="ePartNumberResults" style="position:relative"></div>
       </div>
       <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
       <div class="form-row">
@@ -1383,9 +1466,11 @@ function openExpenseModal(existing, presetSupplier){
   backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
+  wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
   backdrop.querySelector('#saveExpenseBtn').addEventListener('click', async ()=>{
     let supplierName = backdrop.querySelector('#eSupplier').value.trim();
     const date = backdrop.querySelector('#eDate').value.trim();
+    const partNumber = backdrop.querySelector('#ePartNumber').value.trim();
     const goods = parseFloat(backdrop.querySelector('#eGoods').value.replace(/,/g,'')) || 0;
     const shipping = parseFloat(backdrop.querySelector('#eShipping').value.replace(/,/g,'')) || 0;
     const transferFee = parseFloat(backdrop.querySelector('#eTransferFee').value.replace(/,/g,'')) || 0;
@@ -1401,7 +1486,7 @@ function openExpenseModal(existing, presetSupplier){
       if(useExisting) supplierName = similar;
     }
 
-    const body = {supplier_name:supplierName, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
+    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
     backdrop.remove();
