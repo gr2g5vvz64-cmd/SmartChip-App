@@ -429,19 +429,47 @@ async function fxSearchItems(q){
 // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: فرمتِ زنده (سه‌رقم‌سه‌رقم) موقعِ
 // خودِ تایپ، نه فقط تو نمایش. موقعیتِ کرسر رو با شمردنِ تعدادِ رقم‌های
 // قبل از کرسر حفظ می‌کنیم، تا تایپ‌کردن دست‌وپاگیر نشه.
+// ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ واقعیِ گزارش‌شده توسطِ کاربر: نسخه‌ی قبلی این
+// تابع، موقعیتِ کرسر رو فقط با شمردنِ «تعدادِ ارقام قبل از کرسر» حساب
+// می‌کرد — بدونِ درنظرگرفتنِ خودِ نقطه‌ی اعشار! نتیجه: وقتی کاربر نقطه یا
+// رقمِ بعدِ اعشار تایپ می‌کرد، کرسر اشتباهاً وسطِ بخشِ صحیح می‌موند، و
+// رقمِ بعدی به‌جای بعدِ اعشار، وسطِ عدد درج می‌شد (مثلاً ۴۲۶۹.۶ می‌شد
+// ۴۲۶۹۶). فیکس: موقعیتِ کرسر رو نسبت‌به‌بخشِ (صحیح یا اعشاری) که توشه
+// جدا محاسبه می‌کنیم، تست شد با شبیه‌سازیِ کاملِ تایپِ حرف‌به‌حرف.
 function wireLiveNumberFormat(inputEl){
   inputEl.addEventListener('input', ()=>{
-    const raw = inputEl.value.replace(/[^\d.]/g,'');
+    const oldValue = inputEl.value;
     const cursorPos = inputEl.selectionStart;
-    const digitsBeforeCursor = inputEl.value.slice(0, cursorPos).replace(/[^\d]/g,'').length;
+    const raw = oldValue.replace(/[^\d.]/g,'');
     if(!raw){ inputEl.value=''; return; }
-    const parts = raw.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    inputEl.value = parts.join('.');
-    let seen = 0, newPos = inputEl.value.length;
-    for(let i=0;i<inputEl.value.length;i++){
-      if(/\d/.test(inputEl.value[i])) seen++;
-      if(seen===digitsBeforeCursor){ newPos=i+1; break; }
+
+    // آیا کرسر تو بخشِ اعشاری (بعد از اولین نقطه) بود؟
+    const firstDotIdx = oldValue.indexOf('.');
+    const cursorInDecimalPart = firstDotIdx !== -1 && cursorPos > firstDotIdx;
+
+    const rawParts = raw.split('.');
+    const rawIntPart = rawParts[0];
+    const rawDecPart = rawParts.length > 1 ? rawParts.slice(1).join('') : null; // اگه چند نقطه تایپ شده بود هم قاطی نشه
+
+    const formattedInt = rawIntPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formattedValue = rawDecPart !== null ? formattedInt + '.' + rawDecPart : formattedInt;
+    inputEl.value = formattedValue;
+
+    let newPos;
+    if(cursorInDecimalPart){
+      // تعدادِ رقم‌های اعشاریِ *قبل از کرسر* رو تو مقدارِ قدیم بشمر، بعد
+      // همون تعداد رقم رو بعدِ نقطه‌ی جدید قرار بده
+      const oldDecimalBeforeCursor = oldValue.slice(firstDotIdx+1, cursorPos).replace(/[^\d]/g,'').length;
+      const newDotIdx = formattedValue.indexOf('.');
+      newPos = newDotIdx + 1 + oldDecimalBeforeCursor;
+    } else {
+      // کرسر تو بخشِ صحیح بود — تعدادِ ارقامِ صحیحِ قبل از کرسر رو بشمر
+      const oldIntBeforeCursor = oldValue.slice(0, cursorPos).replace(/[^\d]/g,'').length;
+      let seen = 0; newPos = formattedInt.length;
+      for(let i=0;i<formattedInt.length;i++){
+        if(/\d/.test(formattedInt[i])) seen++;
+        if(seen===oldIntBeforeCursor){ newPos=i+1; break; }
+      }
     }
     inputEl.setSelectionRange(newPos, newPos);
   });
