@@ -309,6 +309,13 @@ function openShamsiCalendarPicker(inputEl){
   }
   renderCalendar();
   document.body.appendChild(popup);
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ واقعیِ گزارش‌شده: کلیک رو دکمه‌ی prev/next
+  // باعثِ صدازدنِ renderCalendar می‌شد که popup.innerHTML رو کامل عوض
+  // می‌کنه — یعنی دکمه‌ای که کلیک شده بود از DOM جدا می‌شد، و وقتی
+  // closeHandler (پایین‌تر) چک می‌کرد popup.contains(e.target)، چون اون
+  // دکمه‌ی قدیمی دیگه بخشی از DOM نبود، false برمی‌گشت و پاپ‌آپ اشتباهاً
+  // بسته می‌شد. فیکس: کلیکِ داخلِ popup اصلاً به document نمی‌رسه.
+  popup.addEventListener('click', (e)=>e.stopPropagation());
   setTimeout(()=>{
     document.addEventListener('click', function closeHandler(e){
       if(!popup.contains(e.target) && e.target!==inputEl){ popup.remove(); document.removeEventListener('click', closeHandler); }
