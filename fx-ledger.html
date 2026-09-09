@@ -159,6 +159,11 @@
   .field-guide th{ text-align:right; padding:4px 6px; color:var(--ink); }
   .field-guide td{ padding:4px 6px; }
   .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: طراحیِ landscape برای فرم‌های
+     ثبتِ حواله/فاکتور — عریض‌تر، فیلدها کنارِ هم به‌جای زیرِ هم */
+  .modal.modal-landscape{ max-width:760px; }
+  .form-grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
+  @media(max-width:700px){ .modal.modal-landscape{ max-width:420px; } .form-grid-3{ grid-template-columns:1fr; } }
   .contrib-row{ display:grid; grid-template-columns:2fr 1fr auto; gap:8px; align-items:center; margin-bottom:6px; }
   .status-chip{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; }
   .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
@@ -771,7 +776,7 @@ function openOrderModal(existing, presetCustomer){
   backdrop.className='modal-backdrop';
   let selectedCustomerName = existing ? existing.customer_name : (presetCustomer||'');
   backdrop.innerHTML = `
-    <div class="modal">
+    <div class="modal modal-landscape">
       <h3>${isEdit ? 'ویرایش فاکتور/پیش‌فاکتور' : 'ثبت فاکتور/پیش‌فاکتورِ یوانی'}</h3>
       <div class="field-guide">
         <table>
@@ -781,12 +786,12 @@ function openOrderModal(existing, presetCustomer){
           <tr><td>مبلغ (یوان)</td><td>مبلغِ کلِ فاکتور/پیش‌فاکتور، به یوان</td></tr>
         </table>
       </div>
-      ${presetCustomer ? `<div class="field" style="margin-bottom:10px"><label>مشتری</label><input type="text" value="${presetCustomer}" disabled></div>` : `
-      <div class="field" style="margin-bottom:10px"><label>مشتری</label>
-        <input id="oCustomer" type="text" value="${selectedCustomerName}" placeholder="حداقل ۲ حرف تایپ کنید...">
-        <div id="oCustomerResults" style="position:relative"></div>
-      </div>`}
-      <div class="form-row">
+      <div class="form-grid-3">
+        ${presetCustomer ? `<div class="field"><label>مشتری</label><input type="text" value="${presetCustomer}" disabled></div>` : `
+        <div class="field"><label>مشتری</label>
+          <input id="oCustomer" type="text" value="${selectedCustomerName}" placeholder="حداقل ۲ حرف تایپ کنید...">
+          <div id="oCustomerResults" style="position:relative"></div>
+        </div>`}
         <div class="field"><label>نوع</label>
           <select id="oType">
             <option value="proforma" ${existing&&existing.order_type==='proforma'?'selected':''}>پیش‌فاکتور</option>
@@ -1126,9 +1131,9 @@ async function renderHawales(main){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخ حواله</th><th>یوان خریداری‌شده</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
+        <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخِ حواله</th><th>نرخِ روزِ واریزِ مشتری</th><th>یوان خریداری‌شده</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
         <tbody>
-          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="8">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="9">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
           filtered.map(h=>{
             const linkedPayments = state.payments.filter(p=>p.hawale==h.id);
             const linkedNames = [...new Set(linkedPayments.map(p=>p.customer_name))];
@@ -1141,6 +1146,7 @@ async function renderHawales(main){
             }).join('')}</td>
             <td class="num">${fmtRial(h.totalRial)}</td>
             <td class="num">${fmt(h.rate_at_hawale,0)}</td>
+            <td class="num">${h.rate_at_customer_deposit ? fmt(h.rate_at_customer_deposit,0) : '—'}</td>
             <td class="num">${fmtYuan(h.yuanAmount)}</td>
             <td>${linkedPayments.length ? `<span class="status-chip closed" title="${linkedNames.join('، ')}">${linkedPayments.length} واریزی — ${linkedNames.join('، ')}</span>` : '<span class="status-chip open">بدونِ لینک</span>'}</td>
             <td><button class="icon-btn" data-edit-hawale="${h.id}">ویرایش</button> <button class="icon-btn" data-del-hawale="${h.id}">حذف</button> <button class="icon-btn" data-hist-hawale="${h.id}">📜</button></td>
@@ -1199,27 +1205,30 @@ function openHawaleModal(existing){
   }
 
   backdrop.innerHTML = `
-    <div class="modal">
+    <div class="modal modal-landscape">
       <h3>${isEdit ? 'ویرایش حواله' : 'ثبت حواله جدید'}</h3>
       <div class="field-guide">
         <table>
           <tr><th>فیلد</th><th>توضیح</th></tr>
-          <tr><td>تأمین‌کننده</td><td>این حواله را برای کدام تأمین‌کننده خرید می‌کنید — ممکن است چند تأمین‌کننده داشته باشید</td></tr>
-          <tr><td>حساب‌های مشارکت‌کننده</td><td>اگر این حواله از چند حساب (مثلاً هم حساب خودتان هم حساب عباس) تأمین شده، با دکمه‌ی «+ افزودن حساب» ردیف اضافه کنید</td></tr>
-          <tr><td>نرخ خرید حواله</td><td>این همان نرخی است که ملاک اصلیِ محاسبه‌ی مانده‌ی مشتری قرار می‌گیرد</td></tr>
+          <tr><td>نرخ خرید حواله</td><td>نرخِ واقعیِ روزی که این حواله رو واقعاً خریدید — ملاکِ اصلیِ محاسبه‌ی مانده</td></tr>
+          <tr><td>نرخ در تاریخِ واریزِ مشتری</td><td>اختیاری — فقط برای مقایسه/مرجع؛ هرکدوم یا هردو رو می‌تونید پر کنید</td></tr>
         </table>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
-        <input id="hSupplier" type="text" list="knownSuppliersListH" value="${existing ? existing.supplier_name : (currentSupplier||'')}" placeholder="مثلاً: کلافی">
-        <datalist id="knownSuppliersListH">${getKnownSupplierNames().map(s=>`<option value="${s}">`).join('')}</datalist>
+      <div class="form-grid-3">
+        <div class="field"><label>تأمین‌کننده</label>
+          <input id="hSupplier" type="text" list="knownSuppliersListH" value="${existing ? existing.supplier_name : (currentSupplier||'')}" placeholder="مثلاً: کلافی">
+          <datalist id="knownSuppliersListH">${getKnownSupplierNames().map(s=>`<option value="${s}">`).join('')}</datalist>
+        </div>
+        <div class="field"><label>تاریخ حواله (شمسی)</label><input id="hDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
+        <div class="field"><label>توضیح (اختیاری)</label><input id="hNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>نرخِ خریدِ حواله (ریال به ازای هر یوان)</label><input id="hRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_hawale,0) : ''}"></div>
+        <div class="field"><label>نرخ در تاریخِ واریزِ مشتری (اختیاری)</label><input id="hRateAtDeposit" type="text" class="num" value="${existing && existing.rate_at_customer_deposit ? fmt(existing.rate_at_customer_deposit,0) : ''}"></div>
       </div>
       <div class="field" style="margin-bottom:6px"><label>حساب‌های مشارکت‌کننده و مبلغ هرکدام</label></div>
       <div id="contribRowsBox">${renderContribRows()}</div>
       <button class="btn btn-ghost btn-sm" id="addContribBtn" style="margin-bottom:14px">+ افزودن حساب</button>
-      <div class="form-row">
-        <div class="field"><label>تاریخ حواله (شمسی)</label><input id="hDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
-        <div class="field"><label>نرخ خرید حواله (ریال به ازای هر یوان)</label><input id="hRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_hawale,0) : ''}"></div>
-      </div>
       <div class="field" style="margin-bottom:10px"><label>تخصیصِ دستی به فاکتورِ خرید (اختیاری)</label>
         <select id="hManualExpense">
           <option value="">— خودکار (FIFO) —</option>
@@ -1232,7 +1241,6 @@ function openHawaleModal(existing){
         <input id="hPaymentFilter" type="text" placeholder="🔍 فیلتر با نامِ مشتری (اختیاری)...">
       </div>
       <div id="hPaymentPickerBox" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px"></div>
-      <div class="field"><label>توضیح (اختیاری)</label><input id="hNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveHawaleBtn">${isEdit?'ذخیره تغییرات':'ثبت حواله'}</button>
         <button class="btn btn-ghost" id="cancelHawaleBtn">انصراف</button>
@@ -1243,6 +1251,7 @@ function openHawaleModal(existing){
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#hDate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRate'));
+  wireLiveNumberFormat(backdrop.querySelector('#hRateAtDeposit'));
 
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سناریوی دقیقِ کاربر: لیستِ پرداخت‌هایی که هنوز به
   // هیچ حواله‌ای وصل نشدن (payment.hawale===null) — قابلِ فیلتر با نامِ
@@ -1310,7 +1319,9 @@ function openHawaleModal(existing){
     }
 
     const manualExpense = backdrop.querySelector('#hManualExpense').value || null;
-    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, manual_expense:manualExpense, note, contributions:validContribs};
+    const rateAtDepositStr = backdrop.querySelector('#hRateAtDeposit').value.replace(/,/g,'').trim();
+    const rateAtDeposit = rateAtDepositStr ? parseFloat(rateAtDepositStr) : null;
+    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs};
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
 
