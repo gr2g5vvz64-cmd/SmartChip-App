@@ -42,6 +42,11 @@
     min-height:100vh;
   }
   .num{ font-feature-settings:"tnum" 1, "lnum" 1; direction:ltr; unicode-bidi:isolate; }
+  /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ صریحِ کاربر: در کلِ دفترِ ارزی، همه‌ی
+     ستون‌ها به‌جز «تاریخ» و «شرح/توضیح» باید وسط‌چین باشن */
+  table td, table th{ text-align:center; }
+  .date-cell{ font-feature-settings:"tnum" 1, "lnum" 1; direction:ltr; unicode-bidi:isolate; text-align:right; }
+  th.col-right, td.col-right{ text-align:right !important; }
   .app{ display:flex; min-height:100vh; }
   /* Sidebar */
   .sidebar{
@@ -717,13 +722,13 @@ async function renderCustomerLedger(main){
     <div class="section-title">وضعیت فاکتورها</div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>نوع</th><th>شماره</th><th>تاریخ</th><th>مبلغ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیت تسویه</th><th>نرخ میانگین وزنی (برای هلو)</th><th>معادل ریالی حسابداری</th><th>قفل</th><th></th></tr></thead>
+        <thead><tr><th>نوع</th><th>شماره</th><th class="col-right">تاریخ</th><th>مبلغ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیت تسویه</th><th>نرخ میانگین وزنی (برای هلو)</th><th>معادل ریالی حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
           ${data.orderStatus.length===0 ? `<tr class="empty-row"><td colspan="10">هنوز فاکتوری ثبت نشده</td></tr>` :
           data.orderStatus.map(o=>`<tr>
             <td>${o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور'}</td>
             <td class="num">${o.invoiceNo||'—'}</td>
-            <td class="num">${o.date}</td>
+            <td class="date-cell">${o.date}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
             <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
@@ -745,11 +750,11 @@ async function renderCustomerLedger(main){
     <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>معادل ریالی (به نرخِ روزِ فعلی)</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th class="col-right">شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>معادل ریالی (به نرخِ روزِ فعلی)</th></tr></thead>
         <tbody>
           ${data.events.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
-            <td class="num">${e.date}</td>
-            <td>${e.type==='order'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="date-cell">${e.date}</td>
+            <td class="col-right">${e.type==='order'?'📄 ':'💰 '}${e.desc}</td>
             <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : (e.pending?'⏳ معلق':'—')}</td>
@@ -983,14 +988,14 @@ async function renderPayments(main){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>نرخ روز واریز</th><th>تخصیصِ دستی به فاکتور</th><th>وضعیتِ حواله</th><th></th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>نرخ روز واریز</th><th>تخصیصِ دستی به فاکتور</th><th>وضعیتِ حواله</th><th></th></tr></thead>
         <tbody>
           ${filtered.length===0 ? `<tr class="empty-row"><td colspan="8">${paymentsSearchQuery ? 'چیزی پیدا نشد' : 'پرداختی ثبت نشده است'}</td></tr>` :
           filtered.map(p=>{
             const acc = state.accounts.find(a=>a.id===p.account);
             const hawale = p.hawale ? state.hawales.find(h=>h.id===p.hawale) : null;
             return `<tr>
-              <td class="num">${p.date}</td>
+              <td class="date-cell">${p.date}</td>
               <td>${p.customer_name}${p.affectsLockedOrder?' <span class="tag danger" title="این مشتری فاکتورِ قفل‌شده دارد — با احتیاط ویرایش کنید">🔒</span>':''}</td>
               <td>${acc ? acc.displayName : '—'}</td>
               <td class="num">${fmtRial(p.rial_amount)}</td>
@@ -1166,14 +1171,14 @@ async function renderHawales(main){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخِ حواله</th><th>نرخِ روزِ واریزِ مشتری</th><th>یوان خریداری‌شده</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخِ حواله</th><th>نرخِ روزِ واریزِ مشتری</th><th>یوان خریداری‌شده</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
         <tbody>
           ${filtered.length===0 ? `<tr class="empty-row"><td colspan="9">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
           filtered.map(h=>{
             const linkedPayments = state.payments.filter(p=>p.hawale==h.id);
             const linkedNames = [...new Set(linkedPayments.map(p=>p.customer_name))];
             return `<tr>
-            <td class="num">${h.date}</td>
+            <td class="date-cell">${h.date}</td>
             <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
               const acc = state.accounts.find(a=>a.id===c.account);
@@ -1439,11 +1444,11 @@ async function renderSupplierLedger(main){
     <div class="section-title">وضعیتِ فاکتورهای خرید</div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>تاریخ</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
           ${data.invoiceStatus.length===0 ? `<tr class="empty-row"><td colspan="8">هنوز هزینه/فاکتورِ خریدی ثبت نشده</td></tr>` :
           data.invoiceStatus.map(o=>`<tr>
-            <td class="num">${o.date}</td>
+            <td class="date-cell">${o.date}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
             <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
@@ -1468,11 +1473,11 @@ async function renderSupplierLedger(main){
     </div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>تاریخ</th><th>پارت‌نامبر</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
         <tbody>
           ${expenses.length===0 ? `<tr class="empty-row"><td colspan="8">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
           expenses.map(e=>`<tr>
-            <td class="num">${e.date}</td>
+            <td class="date-cell">${e.date}</td>
             <td>${e.part_number||'—'}</td>
             <td class="num">${fmtYuan(e.goods_yuan)}</td>
             <td class="num">${fmtYuan(e.shipping_yuan)}</td>
@@ -1488,15 +1493,17 @@ async function renderSupplierLedger(main){
     <div class="section-title">دفترِ کامل (تاریخچه‌ی رویدادها)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>سند</th><th>شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخِ ردیف</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>تشخیص</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>سند</th><th class="col-right">شرح</th><th>مبلغِ ریالیِ حواله‌شده</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخِ ردیف</th><th>یوانِ حواله‌زده‌شده</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>تشخیص</th></tr></thead>
         <tbody>
           ${data.events.map(e=>`<tr>
-            <td class="num">${e.date}</td>
+            <td class="date-cell">${e.date}</td>
             <td class="num">${e.docNumber}</td>
-            <td>${e.type==='invoice'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="col-right">${e.type==='invoice'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="num">${e.type==='hawale' ? fmtRial(e.rial_credit) : '—'}</td>
             <td class="num">${e.type==='invoice' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='hawale' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : '—'}</td>
+            <td class="num">${e.type==='hawale' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${fmtRial(e.runningRial)}</td>
             <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span></td>
