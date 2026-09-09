@@ -1493,7 +1493,7 @@ async function renderSupplierLedger(main){
     <div class="section-title">دفترِ کامل (تاریخچه‌ی رویدادها)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>سند</th><th class="col-right">شرح</th><th>مبلغِ ریالیِ حواله‌شده</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخِ ردیف</th><th>یوانِ حواله‌زده‌شده</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>تشخیص</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>سند</th><th class="col-right">شرح</th><th>مبلغِ ریالیِ حواله‌شده</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخِ ردیف</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>تشخیص</th></tr></thead>
         <tbody>
           ${data.events.map(e=>`<tr>
             <td class="date-cell">${e.date}</td>
@@ -1503,7 +1503,6 @@ async function renderSupplierLedger(main){
             <td class="num">${e.type==='invoice' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='hawale' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : '—'}</td>
-            <td class="num">${e.type==='hawale' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${fmtRial(e.runningRial)}</td>
             <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span></td>
