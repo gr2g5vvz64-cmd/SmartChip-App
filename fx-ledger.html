@@ -653,11 +653,22 @@ async function renderCustomerLedger(main){
   const basis = state.settings.rateBasis;
   const data = await apiGetCustomerLedger(currentCustomer, basis);
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: مانده‌ی ریالیِ *واقعی* — فقط از
+  // اعدادِ مطمئن (پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگینِ نهایی‌شون
+  // مشخص شده) ساخته می‌شه، نه حدس یا تخمین. این عدد از آخرین رویدادِ
+  // دفترِ رویدادها میاد (که خودِ بک‌اند تجمعی حسابش کرده).
+  const lastEvent = data.events.length ? data.events[data.events.length-1] : null;
+  const realRialBalance = lastEvent ? lastEvent.runningRial : 0;
+  const realYuanBalance = lastEvent ? lastEvent.runningYuan : 0;
   main.innerHTML = `
     <div class="page-head">
       <button class="btn btn-ghost btn-sm" id="backBtn" style="margin-bottom:10px">‹ بازگشت به لیست مشتریان</button>
       <h1 class="page-title">${data.customer}</h1>
       <p class="page-desc">دفترِ کامل تسویه — هر ردیف یک فاکتور یا واریزی، با مانده‌ی تجمعیِ ریالی و یوانی</p>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
+      <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div></div>
     </div>
     <div class="toolbar"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
@@ -932,11 +943,12 @@ async function renderPayments(main){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>نرخ روز واریز</th><th>تخصیصِ دستی به فاکتور</th><th></th></tr></thead>
+        <thead><tr><th>تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>نرخ روز واریز</th><th>تخصیصِ دستی به فاکتور</th><th>وضعیتِ حواله</th><th></th></tr></thead>
         <tbody>
-          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="7">${paymentsSearchQuery ? 'چیزی پیدا نشد' : 'پرداختی ثبت نشده است'}</td></tr>` :
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="8">${paymentsSearchQuery ? 'چیزی پیدا نشد' : 'پرداختی ثبت نشده است'}</td></tr>` :
           filtered.map(p=>{
             const acc = state.accounts.find(a=>a.id===p.account);
+            const hawale = p.hawale ? state.hawales.find(h=>h.id===p.hawale) : null;
             return `<tr>
               <td class="num">${p.date}</td>
               <td>${p.customer_name}${p.affectsLockedOrder?' <span class="tag danger" title="این مشتری فاکتورِ قفل‌شده دارد — با احتیاط ویرایش کنید">🔒</span>':''}</td>
@@ -944,6 +956,7 @@ async function renderPayments(main){
               <td class="num">${fmtRial(p.rial_amount)}</td>
               <td class="num">${fmt(p.rate_at_payment,0)}</td>
               <td>${p.manual_order ? '<span class="tag danger">فاکتور #'+p.manual_order+' (دستی)</span>' : '<span class="tag neutral">خودکار (FIFO)</span>'}</td>
+              <td>${hawale ? `<span class="status-chip closed" title="${hawale.date} — ${hawale.supplier_name}">✅ لینک‌شده</span>` : '<span class="status-chip open">⏳ بدونِ حواله</span>'}</td>
               <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button> <button class="icon-btn" data-hist-payment="${p.id}">📜</button></td>
             </tr>`;
           }).join('')}
@@ -1021,6 +1034,12 @@ function openPaymentModal(existing){
           </select>
         </div>
       </div>
+      <div class="field" style="margin-bottom:10px"><label>حواله‌ای که این پرداخت باهاش تسویه شده (اختیاری)</label>
+        <select id="pHawale">
+          <option value="">— هنوز حواله‌ای برای این نزده‌ام —</option>
+          ${state.hawales.map(h=>`<option value="${h.id}" ${existing&&existing.hawale===h.id?'selected':''}>${h.date} — ${h.supplier_name} — ${fmtRial(h.totalRial)} (نرخ ${fmt(h.rate_at_hawale,0)})</option>`).join('')}
+        </select>
+      </div>
       <div class="field"><label>توضیح (اختیاری)</label><input id="pNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="savePaymentBtn">${isEdit?'ذخیره تغییرات':'ثبت پرداخت'}</button>
@@ -1059,6 +1078,7 @@ function openPaymentModal(existing){
     const rialAmount = parseFloat(backdrop.querySelector('#pAmount').value.replace(/,/g,''));
     const rateAtPayment = parseFloat(backdrop.querySelector('#pRate').value.replace(/,/g,''));
     const manualOrder = backdrop.querySelector('#pManualOrder').value || null;
+    const hawaleId = backdrop.querySelector('#pHawale').value || null;
     const note = backdrop.querySelector('#pNote').value.trim();
     if(!selectedCustomerName || !date || !rialAmount || !rateAtPayment){ showToast('همه‌ی فیلدهای الزامی را پر کنید'); return; }
 
@@ -1075,7 +1095,7 @@ function openPaymentModal(existing){
       if(dup && !confirm(`⚠️ یه پرداختِ کاملاً مشابه (همون مشتری، همون تاریخ، همون مبلغ) قبلاً ثبت شده. مطمئنید می‌خواید دوباره ثبت کنید؟`)) return;
     }
 
-    const body = {customer_name:selectedCustomerName, account:accountId, date, rial_amount:rialAmount, rate_at_payment:rateAtPayment, manual_order:manualOrder, note};
+    const body = {customer_name:selectedCustomerName, account:accountId, date, rial_amount:rialAmount, rate_at_payment:rateAtPayment, manual_order:manualOrder, hawale:hawaleId, note};
     const d = isEdit ? await apiUpdate('payments', existing.id, body) : await apiCreate('payments', body);
     if(!d) return;
     backdrop.remove();
@@ -1106,10 +1126,13 @@ async function renderHawales(main){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخ حواله</th><th>یوان خریداری‌شده</th><th></th></tr></thead>
+        <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخ حواله</th><th>یوان خریداری‌شده</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
         <tbody>
-          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="7">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
-          filtered.map(h=>`<tr>
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="8">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
+          filtered.map(h=>{
+            const linkedPayments = state.payments.filter(p=>p.hawale==h.id);
+            const linkedNames = [...new Set(linkedPayments.map(p=>p.customer_name))];
+            return `<tr>
             <td class="num">${h.date}</td>
             <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
@@ -1119,8 +1142,10 @@ async function renderHawales(main){
             <td class="num">${fmtRial(h.totalRial)}</td>
             <td class="num">${fmt(h.rate_at_hawale,0)}</td>
             <td class="num">${fmtYuan(h.yuanAmount)}</td>
+            <td>${linkedPayments.length ? `<span class="status-chip closed" title="${linkedNames.join('، ')}">${linkedPayments.length} واریزی — ${linkedNames.join('، ')}</span>` : '<span class="status-chip open">بدونِ لینک</span>'}</td>
             <td><button class="icon-btn" data-edit-hawale="${h.id}">ویرایش</button> <button class="icon-btn" data-del-hawale="${h.id}">حذف</button> <button class="icon-btn" data-hist-hawale="${h.id}">📜</button></td>
-          </tr>`).join('')}
+          </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -1201,6 +1226,12 @@ function openHawaleModal(existing){
           ${state.expenses.filter(e=>e.supplier_name===(existing?existing.supplier_name:currentSupplier)).map(e=>`<option value="${e.id}" ${existing&&existing.manual_expense===e.id?'selected':''}>${e.date} — ${fmtYuan(e.totalYuan)}</option>`).join('')}
         </select>
       </div>
+      <div class="field" style="margin-bottom:6px">
+        <label>لینک‌کردنِ گروهیِ واریزی‌های مشتریان (اختیاری)</label>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px">مثلاً: «۳ تا از واریزی‌های ویراتدبیر رو با این حواله تسویه کن» — می‌تونید هرچند تا که خواستید تیک بزنید، یا هیچ‌کدوم (اگه این حواله ربطی به مشتریِ خاصی نداره)</div>
+        <input id="hPaymentFilter" type="text" placeholder="🔍 فیلتر با نامِ مشتری (اختیاری)...">
+      </div>
+      <div id="hPaymentPickerBox" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px"></div>
       <div class="field"><label>توضیح (اختیاری)</label><input id="hNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveHawaleBtn">${isEdit?'ذخیره تغییرات':'ثبت حواله'}</button>
@@ -1212,6 +1243,28 @@ function openHawaleModal(existing){
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#hDate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRate'));
+
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سناریوی دقیقِ کاربر: لیستِ پرداخت‌هایی که هنوز به
+  // هیچ حواله‌ای وصل نشدن (payment.hawale===null) — قابلِ فیلتر با نامِ
+  // مشتری، قابلِ انتخابِ گروهی (چک‌باکس).
+  const selectedPaymentIds = new Set(isEdit ? state.payments.filter(p=>p.hawale==existing.id).map(p=>p.id) : []);
+  function renderPaymentPicker(filterText){
+    const q = (filterText||'').trim();
+    const candidates = state.payments.filter(p => (p.hawale==null || selectedPaymentIds.has(p.id)) && (!q || p.customer_name.includes(q)));
+    const box = backdrop.querySelector('#hPaymentPickerBox');
+    if(candidates.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--ink-soft);text-align:center;padding:8px">هیچ واریزیِ بدون‌حواله‌ای پیدا نشد</div>'; return; }
+    box.innerHTML = candidates.map(p=>`
+      <label style="display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:11.5px;cursor:pointer">
+        <input type="checkbox" data-pick-payment="${p.id}" ${selectedPaymentIds.has(p.id)?'checked':''}>
+        <span>${p.customer_name} — ${p.date} — ${fmtRial(p.rial_amount)}</span>
+      </label>`).join('');
+    box.querySelectorAll('[data-pick-payment]').forEach(cb=>cb.addEventListener('change', ()=>{
+      const pid = +cb.dataset.pickPayment;
+      if(cb.checked) selectedPaymentIds.add(pid); else selectedPaymentIds.delete(pid);
+    }));
+  }
+  renderPaymentPicker('');
+  backdrop.querySelector('#hPaymentFilter').addEventListener('input', (e)=>renderPaymentPicker(e.target.value));
 
   function wireContribRows(){
     backdrop.querySelectorAll('[data-contrib-account]').forEach(sel=>sel.addEventListener('change',()=>{
@@ -1260,6 +1313,16 @@ function openHawaleModal(existing){
     const body = {supplier_name:supplierName, date, rate_at_hawale:rate, manual_expense:manualExpense, note, contributions:validContribs};
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
+
+    // ⚠️ (۱۴۰۵/۰۶/۱۸) لینک‌کردنِ گروهیِ پرداخت‌های انتخاب‌شده به این حواله
+    const newHawaleId = d.id;
+    const previouslyLinked = isEdit ? new Set(state.payments.filter(p=>p.hawale==existing.id).map(p=>p.id)) : new Set();
+    const toLink = [...selectedPaymentIds].filter(pid => !previouslyLinked.has(pid));
+    const toUnlink = [...previouslyLinked].filter(pid => !selectedPaymentIds.has(pid));
+    for(const pid of toLink) await apiUpdate('payments', pid, {hawale: newHawaleId});
+    for(const pid of toUnlink) await apiUpdate('payments', pid, {hawale: null});
+    if(toLink.length || toUnlink.length) showToast(`✅ حواله ثبت شد — ${toLink.length} واریزی لینک شد`);
+
     backdrop.remove();
     renderHawales(document.getElementById('main'));
   });
