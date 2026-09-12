@@ -1,0 +1,27 @@
+{
+  "name": "اسمارت‌چیپ — دفتر ارزی",
+  "short_name": "دفتر ارزی",
+  "start_url": "./fx-ledger.html",
+  "scope": "./fx-ledger.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0e7d6b",
+  "background_color": "#a9c8ec",
+  "dir": "rtl",
+  "lang": "fa",
+  "icons": [
+    {
+      "src": "./icons/fxledger-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/fxledger-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "description": "تسویه ریال⇄یوان با مشتریان و تأمین‌کننده"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "اسمارت‌چیپ — CRM فروش",
+  "short_name": "CRM اسمارت‌چیپ",
+  "start_url": "./crm.html",
+  "scope": "./crm.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0e7d6b",
+  "background_color": "#a9c8ec",
+  "dir": "rtl",
+  "lang": "fa",
+  "icons": [
+    {
+      "src": "./icons/crm-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/crm-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "description": "نسخه‌ی موبایل — همراه با لیدهای فروش"
+}
