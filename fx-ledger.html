@@ -1374,6 +1374,23 @@ function openHawaleModal(existing){
         <input id="hPaymentFilter" type="text" placeholder="🔍 فیلتر با نامِ مشتری (اختیاری)...">
       </div>
       <div id="hPaymentPickerBox" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px"></div>
+
+      <div class="field-guide">
+        <table>
+          <tr><th>فیلد</th><th>توضیح</th></tr>
+          <tr><td>تخصیصِ خودکار (FIFO)</td><td>وقتی مبلغِ حواله دقیقاً رو مرزِ یه واریزی تموم نمی‌شه — سیستم از قدیمی‌ترین واریزیِ هنوز-آزادِ این مشتری شروع می‌کنه و تا مبلغِ حواله رو کامل بپوشونه پیش می‌ره، حتی اگه لازم باشه یه واریزی رو بینِ این حواله و حواله‌ی بعدی تقسیم کنه</td></tr>
+        </table>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>نامِ مشتری (برای تخصیصِ خودکار)</label>
+          <input id="hAutoSplitCustomer" type="text" list="knownCustomersListH" placeholder="مثلاً: ویراتدبیر">
+          <datalist id="knownCustomersListH">${[...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name)])].map(n=>`<option value="${n}">`).join('')}</datalist>
+        </div>
+        <div class="field"><label>مبلغی که باید پوشش داده بشه (ریال)</label><input id="hAutoSplitAmount" type="text" class="num"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="hAutoSplitBtn" style="margin-bottom:10px">🔄 محاسبه‌ی خودکار (FIFO)</button>
+      <div id="hAutoSplitResultBox" style="margin-bottom:14px"></div>
+
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveHawaleBtn">${isEdit?'ذخیره تغییرات':'ثبت حواله'}</button>
         <button class="btn btn-ghost" id="cancelHawaleBtn">انصراف</button>
@@ -1385,6 +1402,7 @@ function openHawaleModal(existing){
   wireShamsiDatePicker(backdrop.querySelector('#hDate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRateAtDeposit'));
+  wireLiveNumberFormat(backdrop.querySelector('#hAutoSplitAmount'));
 
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سناریوی دقیقِ کاربر: لیستِ پرداخت‌هایی که هنوز به
   // هیچ حواله‌ای وصل نشدن (payment.hawale===null) — قابلِ فیلتر با نامِ
@@ -1407,6 +1425,40 @@ function openHawaleModal(existing){
   }
   renderPaymentPicker('');
   backdrop.querySelector('#hPaymentFilter').addEventListener('input', (e)=>renderPaymentPicker(e.target.value));
+
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبقِ سناریوی دقیقِ کاربر: تخصیصِ خودکار (FIFO) —
+  // از قدیمی‌ترین واریزیِ هنوز-آزادِ این مشتری شروع می‌کنه، با تقسیمِ
+  // آخرین واریزی در صورتِ نیاز، تا مبلغِ خواسته‌شده رو کامل بپوشونه.
+  let autoSplitResult = null; // {allocations:[{payment_id, amount, date, paymentTotalRial}], uncovered}
+  backdrop.querySelector('#hAutoSplitBtn').addEventListener('click', async ()=>{
+    const customerName = backdrop.querySelector('#hAutoSplitCustomer').value.trim();
+    const amountStr = backdrop.querySelector('#hAutoSplitAmount').value.replace(/,/g,'').trim();
+    if(!customerName || !amountStr){ showToast('نامِ مشتری و مبلغ را وارد کنید'); return; }
+    const excludeParam = isEdit ? `&exclude_hawale_id=${existing.id}` : '';
+    const res = await fetch(FX_API+`hawales/auto_split_preview/?customer=${encodeURIComponent(customerName)}&amount=${amountStr}${excludeParam}`);
+    if(!res.ok){ showToast('❌ محاسبه ناموفق بود'); return; }
+    autoSplitResult = await res.json();
+    const box = backdrop.querySelector('#hAutoSplitResultBox');
+    if(autoSplitResult.allocations.length===0){
+      box.innerHTML = `<div style="font-size:11px;color:var(--danger)">هیچ واریزیِ آزادی برای این مشتری پیدا نشد</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>تاریخِ واریزی</th><th>مبلغِ کلِ واریزی</th><th>مقدارِ تخصیص‌یافته به این حواله</th></tr></thead>
+          <tbody>
+            ${autoSplitResult.allocations.map(a=>`<tr>
+              <td class="date-cell">${a.date}</td>
+              <td class="num">${fmtRial(a.paymentTotalRial)}</td>
+              <td class="num" style="font-weight:700">${fmtRial(a.amount)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${autoSplitResult.uncovered>0.01 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠️ واریزی‌های این مشتری کافی نبود — ${fmtRial(autoSplitResult.uncovered)} پوشش داده نشد</div>` : '<div style="font-size:11px;color:var(--rial);margin-top:6px">✅ کاملاً پوشش داده شد</div>'}
+    `;
+  });
 
   function wireContribRows(){
     backdrop.querySelectorAll('[data-contrib-account]').forEach(sel=>sel.addEventListener('change',()=>{
@@ -1455,7 +1507,8 @@ function openHawaleModal(existing){
     const rateAtDepositStr = backdrop.querySelector('#hRateAtDeposit').value.replace(/,/g,'').trim();
     const rateAtDeposit = rateAtDepositStr ? parseFloat(rateAtDepositStr) : null;
     if(rateAtDeposit !== null && rateAtDeposit < 0){ showToast('نرخِ روزِ واریز نمی‌تواند منفی باشد'); return; }
-    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs};
+    const paymentAllocations = (autoSplitResult ? autoSplitResult.allocations : []).map(a=>({payment: a.payment_id, rial_amount: a.amount}));
+    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs, paymentAllocations};
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
 
