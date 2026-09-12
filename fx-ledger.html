@@ -531,6 +531,7 @@ const NAV_STRUCTURE = [
   {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
     {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
     {id:'supplier', label:'دفتر تأمین‌کننده'},
+    {id:'action-add-expense', label:'+ ثبت فاکتورِ خرید/هزینه', action:'add-expense'},
   ]},
   {type:'item', id:'accounts', label:'حساب‌های بانکی'},
   {type:'item', id:'settings', label:'تنظیمات'},
@@ -568,7 +569,10 @@ function render(){
                 <span style="transition:transform .15s;transform:rotate(${isOpen?'0':'-90deg'})">▾</span>
               </button>
               <div style="display:${isOpen?'block':'none'};padding-right:10px">
-                ${n.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-dot"></span> ${c.label}</button>`).join('')}
+                ${n.children.map(c=>c.action
+                  ? `<button class="nav-item" data-action="${c.action}" style="color:var(--accent);font-weight:700"><span class="nav-dot" style="background:var(--accent)"></span> ${c.label}</button>`
+                  : `<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-dot"></span> ${c.label}</button>`
+                ).join('')}
               </div>`;
           }).join('')}
         </div>
@@ -576,8 +580,13 @@ function render(){
       </div>
       <div class="main" id="main"></div>
     </div>`;
-  root.querySelectorAll('.nav-item').forEach(btn=>{
+  root.querySelectorAll('.nav-item[data-tab]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ currentTab = btn.dataset.tab; currentCustomer=null; currentSupplier=null; render(); });
+  });
+  root.querySelectorAll('[data-action]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.dataset.action==='add-expense') openExpenseModal();
+    });
   });
   root.querySelectorAll('.nav-group-header').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -1660,6 +1669,12 @@ function openExpenseModal(existing, presetSupplier){
         <input id="eSupplier" type="text" list="knownSuppliersList" value="${existing ? existing.supplier_name : (presetSupplier||'')}" placeholder="مثلاً: کلافی">
         <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
       </div>
+      <div class="field" style="margin-bottom:10px"><label>لینک به یه حواله‌ی خاص (اختیاری)</label>
+        <select id="eManualHawale">
+          <option value="">— خودکار (FIFO) —</option>
+        </select>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">اگه می‌خواید این فاکتور دقیقاً از یه حواله‌ی مشخص کسر بشه، انتخاب کنید — وگرنه خودکار طبقِ ترتیبِ تاریخ (FIFO) تسویه می‌شه</div>
+      </div>
       <div class="field" style="margin-bottom:10px"><label>پارت‌نامبر</label>
         <input id="ePartNumber" type="text" value="${existing ? existing.part_number||'' : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
         <div id="ePartNumberResults" style="position:relative"></div>
@@ -1687,6 +1702,22 @@ function openExpenseModal(existing, presetSupplier){
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
+
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: لیستِ حواله‌ها بر اساسِ تأمین‌کننده‌ی
+  // انتخاب‌شده، داینامیک رندر می‌شه (چون موقعِ بازکردنِ فرم از دکمه‌ی
+  // سراسری، تأمین‌کننده هنوز مشخص نیست)
+  function renderHawaleOptions(){
+    const supplierName = backdrop.querySelector('#eSupplier').value.trim();
+    const sel = backdrop.querySelector('#eManualHawale');
+    const relevantHawales = state.hawales.filter(h=>h.supplier_name===supplierName);
+    // موقعِ ویرایش، حواله‌ای که از قبل manual_expose=این هزینه داره رو پیدا کن
+    const currentlyLinkedHawale = existing ? state.hawales.find(h=>h.manual_expense===existing.id) : null;
+    sel.innerHTML = `<option value="">— خودکار (FIFO) —</option>` +
+      relevantHawales.map(h=>`<option value="${h.id}" ${currentlyLinkedHawale&&currentlyLinkedHawale.id===h.id?'selected':''}>${h.date} — ${fmtRial(h.totalRial)} (نرخ ${fmt(h.rate_at_hawale,0)})</option>`).join('');
+  }
+  renderHawaleOptions();
+  backdrop.querySelector('#eSupplier').addEventListener('input', renderHawaleOptions);
+
   backdrop.querySelector('#saveExpenseBtn').addEventListener('click', async ()=>{
     let supplierName = backdrop.querySelector('#eSupplier').value.trim();
     const date = backdrop.querySelector('#eDate').value.trim();
@@ -1709,6 +1740,17 @@ function openExpenseModal(existing, presetSupplier){
     const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
+
+    // ⚠️ (۱۴۰۵/۰۶/۱۸) اعمالِ لینکِ دستیِ حواله (اگه انتخاب شده باشه) —
+    // اینجا برعکسِ رابطه رو تنظیم می‌کنیم (روی خودِ حواله، manual_expense)
+    const selectedHawaleId = backdrop.querySelector('#eManualHawale').value || null;
+    const previouslyLinkedHawale = isEdit ? state.hawales.find(h=>h.manual_expense===existing.id) : null;
+    if(selectedHawaleId && (!previouslyLinkedHawale || previouslyLinkedHawale.id!=selectedHawaleId)){
+      await apiUpdate('hawales', selectedHawaleId, {manual_expense: d.id});
+    } else if(!selectedHawaleId && previouslyLinkedHawale){
+      await apiUpdate('hawales', previouslyLinkedHawale.id, {manual_expense: null});
+    }
+
     backdrop.remove();
     currentSupplier = supplierName;
     renderMain();
