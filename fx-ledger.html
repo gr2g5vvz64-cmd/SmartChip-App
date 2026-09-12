@@ -1508,8 +1508,18 @@ function openHawaleModal(existing){
     const rateAtDepositStr = backdrop.querySelector('#hRateAtDeposit').value.replace(/,/g,'').trim();
     const rateAtDeposit = rateAtDepositStr ? parseFloat(rateAtDepositStr) : null;
     if(rateAtDeposit !== null && rateAtDeposit < 0){ showToast('نرخِ روزِ واریز نمی‌تواند منفی باشد'); return; }
-    const paymentAllocations = (autoSplitResult ? autoSplitResult.allocations : []).map(a=>({payment: a.payment_id, rial_amount: a.amount}));
-    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs, paymentAllocations};
+    // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ حیاتیِ واقعی: قبلاً اگه کاربر دکمه‌ی
+    // «محاسبه‌ی خودکار» رو نمی‌زد، اینجا آرایه‌ی *خالی* فرستاده می‌شد،
+    // که بک‌اند اونو «همه‌ی تخصیص‌های قبلی رو پاک کن» تفسیر می‌کرد —
+    // یعنی فقط با بازکردن‌وذخیره‌کردنِ یه حواله (بدونِ دست‌زدن به بخشِ
+    // تخصیص)، همه‌ی لینک‌های واقعیش پاک می‌شد! فیکس: اگه کاربر تو همینِ
+    // جلسه دکمه رو نزده (autoSplitResult === null)، اصلاً کلیدِ
+    // paymentAllocations رو به body اضافه نکن — تا بک‌اند (که چک می‌کنه
+    // `is not None`) دست‌نخورده نگهش داره.
+    const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs};
+    if(autoSplitResult){
+      body.paymentAllocations = autoSplitResult.allocations.map(a=>({payment: a.payment_id, rial_amount: a.amount}));
+    }
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
 
