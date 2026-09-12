@@ -831,6 +831,12 @@ async function renderCustomerLedger(main){
             <td><button class="icon-btn" data-edit-order="${o.id}">ویرایش</button> <button class="icon-btn" data-del-order="${o.id}">حذف</button> <button class="icon-btn" data-hist-order="${o.id}">📜</button></td>
           </tr>`).join('')}
         </tbody>
+        ${data.orderStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtYuan(data.orderStatus.reduce((s,o)=>s+Number(o.yuanAmount||0),0))}</td>
+          <td class="num">${fmtYuan(data.orderStatus.reduce((s,o)=>s+Number(o.remainingYuan||0),0))}</td>
+          <td colspan="4"></td>
+        </tr></tfoot>` : ''}
       </table>
     </div>
     <div class="note" style="background:var(--paper);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:11.5px;color:var(--ink-soft)">
@@ -1100,6 +1106,11 @@ async function renderPayments(main){
             </tr>`;
           }).join('')}
         </tbody>
+        ${filtered.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtRial(filtered.reduce((s,p)=>s+Number(p.rial_amount||0),0))}</td>
+          <td colspan="4"></td>
+        </tr></tfoot>` : ''}
       </table>
     </div>
   `;
@@ -1287,6 +1298,13 @@ async function renderHawales(main){
           </tr>`;
           }).join('')}
         </tbody>
+        ${filtered.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtRial(filtered.reduce((s,h)=>s+Number(h.totalRial||0),0))}</td>
+          <td colspan="2"></td>
+          <td class="num">${fmtYuan(filtered.reduce((s,h)=>s+Number(h.yuanAmount||0),0))}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>` : ''}
       </table>
     </div>
     <div class="warn-note">برای تخصیصِ دستیِ یک پرداخت به این حواله (یا فاکتور خاص)، به تب «پرداخت‌های مشتریان» بروید.</div>
@@ -1627,6 +1645,12 @@ async function renderSupplierLedger(main){
             <td><button class="icon-btn" data-edit-exp="${o.id}">ویرایش</button> <button class="icon-btn" data-del-exp="${o.id}">حذف</button> <button class="icon-btn" data-hist-exp="${o.id}">📜</button></td>
           </tr>`).join('')}
         </tbody>
+        ${data.invoiceStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtYuan(data.invoiceStatus.reduce((s,o)=>s+Number(o.yuanAmount||0),0))}</td>
+          <td class="num">${fmtYuan(data.invoiceStatus.reduce((s,o)=>s+Number(o.remainingYuan||0),0))}</td>
+          <td colspan="4"></td>
+        </tr></tfoot>` : ''}
       </table>
     </div>
 
@@ -1649,6 +1673,22 @@ async function renderSupplierLedger(main){
             </tr>`;
           }).join('')}
         </tbody>
+        ${(()=>{
+          const hs = state.hawales.filter(h=>h.supplier_name===sName);
+          if(hs.length===0) return '';
+          let totalYuan=0, spentYuan=0, remainingYuan=0;
+          hs.forEach(h=>{
+            const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount};
+            totalYuan += Number(bd.totalYuan||0); spentYuan += Number(bd.spentYuan||0); remainingYuan += Number(bd.remainingYuan||0);
+          });
+          return `<tfoot><tr style="font-weight:800;background:var(--surface)">
+            <td style="text-align:left">جمعِ کل</td>
+            <td class="num">${fmtYuan(totalYuan)}</td>
+            <td class="num">${fmtYuan(spentYuan)}</td>
+            <td class="num">${fmtYuan(remainingYuan)}</td>
+            <td colspan="2"></td>
+          </tr></tfoot>`;
+        })()}
       </table>
     </div>
 
@@ -1676,6 +1716,15 @@ async function renderSupplierLedger(main){
             <td>${e.freight_rial ? (e.freight_paid ? '<span class="status-chip closed">پرداخت‌شده</span>' : '<span class="status-chip open">در انتظار</span>') : '—'}</td>
           </tr>`).join('')}
         </tbody>
+        ${expenses.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="2" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.goods_yuan||0),0))}</td>
+          <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.shipping_yuan||0),0))}</td>
+          <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.transfer_fee_yuan||0),0))}</td>
+          <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.totalYuan||0),0))}</td>
+          <td class="num">${fmtRial(expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0))}</td>
+          <td></td>
+        </tr></tfoot>` : ''}
       </table>
     </div>
 
