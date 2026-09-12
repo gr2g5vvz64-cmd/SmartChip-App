@@ -1086,7 +1086,8 @@ async function renderPayments(main){
           ${filtered.length===0 ? `<tr class="empty-row"><td colspan="8">${paymentsSearchQuery ? 'چیزی پیدا نشد' : 'پرداختی ثبت نشده است'}</td></tr>` :
           filtered.map(p=>{
             const acc = state.accounts.find(a=>a.id===p.account);
-            const hawale = p.hawale ? state.hawales.find(h=>h.id===p.hawale) : null;
+            const linkedHawaleIds = p.linkedHawaleIds || [];
+            const linkedHawales = linkedHawaleIds.map(hid=>state.hawales.find(h=>h.id===hid)).filter(Boolean);
             return `<tr>
               <td class="date-cell">${p.date}</td>
               <td>${p.customer_name}${p.affectsLockedOrder?' <span class="tag danger" title="این مشتری فاکتورِ قفل‌شده دارد — با احتیاط ویرایش کنید">🔒</span>':''}</td>
@@ -1094,7 +1095,7 @@ async function renderPayments(main){
               <td class="num">${fmtRial(p.rial_amount)}</td>
               <td class="num">${fmt(p.rate_at_payment,0)}</td>
               <td>${p.manual_order ? '<span class="tag danger">فاکتور #'+p.manual_order+' (دستی)</span>' : '<span class="tag neutral">خودکار (FIFO)</span>'}</td>
-              <td>${hawale ? `<span class="status-chip closed" title="${hawale.date} — ${hawale.supplier_name}">✅ لینک‌شده</span>` : '<span class="status-chip open">⏳ بدونِ حواله</span>'}</td>
+              <td>${linkedHawales.length ? `<span class="status-chip closed" title="${linkedHawales.map(h=>h.date+' — '+h.supplier_name).join('، ')}">✅ لینک‌شده${linkedHawales.length>1?' ('+linkedHawales.length+' حواله)':''}</span>` : '<span class="status-chip open">⏳ بدونِ حواله</span>'}</td>
               <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button> <button class="icon-btn" data-hist-payment="${p.id}">📜</button></td>
             </tr>`;
           }).join('')}
@@ -1268,8 +1269,8 @@ async function renderHawales(main){
         <tbody>
           ${filtered.length===0 ? `<tr class="empty-row"><td colspan="9">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
           filtered.map(h=>{
-            const linkedPayments = state.payments.filter(p=>p.hawale==h.id);
-            const linkedNames = [...new Set(linkedPayments.map(p=>p.customer_name))];
+            const linkedInfo = h.linkedPaymentsInfo || [];
+            const linkedNames = [...new Set(linkedInfo.map(x=>x.customerName))];
             return `<tr>
             <td class="date-cell">${h.date}</td>
             <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
@@ -1281,7 +1282,7 @@ async function renderHawales(main){
             <td class="num">${fmt(h.rate_at_hawale,0)}</td>
             <td class="num">${h.rate_at_customer_deposit ? fmt(h.rate_at_customer_deposit,0) : '—'}</td>
             <td class="num">${fmtYuan(h.yuanAmount)}</td>
-            <td>${linkedPayments.length ? `<span class="status-chip closed" title="${linkedNames.join('، ')}">${linkedPayments.length} واریزی — ${linkedNames.join('، ')}</span>` : '<span class="status-chip open">بدونِ لینک</span>'}</td>
+            <td>${linkedInfo.length ? `<span class="status-chip closed" title="${linkedNames.join('، ')}">${linkedInfo.length} واریزی — ${linkedNames.join('، ')}</span>` : '<span class="status-chip open">بدونِ لینک</span>'}</td>
             <td><button class="icon-btn" data-edit-hawale="${h.id}">ویرایش</button> <button class="icon-btn" data-del-hawale="${h.id}">حذف</button> <button class="icon-btn" data-hist-hawale="${h.id}">📜</button></td>
           </tr>`;
           }).join('')}
