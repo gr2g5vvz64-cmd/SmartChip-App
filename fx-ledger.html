@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
+<link rel="manifest" href="./manifest-fxledger.json">
+<meta name="theme-color" content="#0e7d6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="دفتر ارزی">
+<link rel="apple-touch-icon" href="./icons/fxledger-192.png">
 <title>دفتر ارزی اسمارت‌چیپ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -515,20 +522,32 @@ async function loadAll(){
   };
 }
 // ── Rendering ──
-const TABS = [
-  {id:'dashboard', label:'داشبورد'},
-  {id:'customers', label:'مشتریان (دفتر)'},
-  {id:'payments', label:'پرداخت‌های مشتریان'},
-  {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
-  {id:'supplier', label:'دفتر تأمین‌کننده'},
-  {id:'accounts', label:'حساب‌های بانکی'},
-  {id:'settings', label:'تنظیمات'},
+const NAV_STRUCTURE = [
+  {type:'item', id:'dashboard', label:'داشبورد'},
+  {type:'group', id:'group-customer', label:'مشتری', children:[
+    {id:'customers', label:'مشتریان (دفتر)'},
+    {id:'payments', label:'پرداخت‌های مشتریان'},
+  ]},
+  {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
+    {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
+    {id:'supplier', label:'دفتر تأمین‌کننده'},
+  ]},
+  {type:'item', id:'accounts', label:'حساب‌های بانکی'},
+  {type:'item', id:'settings', label:'تنظیمات'},
 ];
 let currentTab = 'dashboard';
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: آکاردئونِ مشتری/تأمین‌کننده،
+// بدونِ شمارنده (برخلافِ الگوی CRM/ERP). گروهی که تبِ فعلی توشه، پیش‌فرض بازه.
+function groupContainingTab(tabId){
+  return NAV_STRUCTURE.find(n=>n.type==='group' && n.children.some(c=>c.id===tabId));
+}
+let openNavGroups = new Set([groupContainingTab(currentTab)?.id].filter(Boolean));
 let currentCustomer = null;
 let summaryCache = null;
 
 function render(){
+  const containingGroup = groupContainingTab(currentTab);
+  if(containingGroup) openNavGroups.add(containingGroup.id);
   const root = document.getElementById('root');
   root.innerHTML = `
     <div class="app">
@@ -538,7 +557,20 @@ function render(){
           <div class="brand-sub">تسویه ریال ⇄ یوان با مشتریان و تأمین‌کننده</div>
         </div>
         <div class="nav">
-          ${TABS.map(t=>`<button class="nav-item ${currentTab===t.id?'active':''}" data-tab="${t.id}"><span class="nav-dot"></span> ${t.label}</button>`).join('')}
+          ${NAV_STRUCTURE.map(n=>{
+            if(n.type==='item'){
+              return `<button class="nav-item ${currentTab===n.id?'active':''}" data-tab="${n.id}"><span class="nav-dot"></span> ${n.label}</button>`;
+            }
+            const isOpen = openNavGroups.has(n.id);
+            return `
+              <button class="nav-group-header" data-group="${n.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;padding:9px 10px;cursor:pointer;font-size:12.5px;color:var(--ink);font-family:inherit">
+                <span>${n.label}</span>
+                <span style="transition:transform .15s;transform:rotate(${isOpen?'0':'-90deg'})">▾</span>
+              </button>
+              <div style="display:${isOpen?'block':'none'};padding-right:10px">
+                ${n.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-dot"></span> ${c.label}</button>`).join('')}
+              </div>`;
+          }).join('')}
         </div>
         <div class="sidebar-foot">✅ داده روی سرور واقعی ذخیره می‌شود</div>
       </div>
@@ -546,6 +578,13 @@ function render(){
     </div>`;
   root.querySelectorAll('.nav-item').forEach(btn=>{
     btn.addEventListener('click', ()=>{ currentTab = btn.dataset.tab; currentCustomer=null; currentSupplier=null; render(); });
+  });
+  root.querySelectorAll('.nav-group-header').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const gid = btn.dataset.group;
+      if(openNavGroups.has(gid)) openNavGroups.delete(gid); else openNavGroups.add(gid);
+      render();
+    });
   });
   renderMain();
 }
@@ -881,7 +920,7 @@ function openOrderModal(existing, presetCustomer){
     const date = backdrop.querySelector('#oDate').value.trim();
     const yuanAmount = parseFloat(backdrop.querySelector('#oAmount').value.replace(/,/g,''));
     const note = backdrop.querySelector('#oNote').value.trim();
-    if(!selectedCustomerName || !date || !yuanAmount){ showToast('مشتری، تاریخ، و مبلغ را وارد کنید'); return; }
+    if(!selectedCustomerName || !date || !yuanAmount || yuanAmount<0){ showToast('مشتری، تاریخ، و مبلغِ مثبت را وارد کنید'); return; }
 
     const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
     if(similar){
@@ -1125,7 +1164,7 @@ function openPaymentModal(existing){
     const manualOrder = backdrop.querySelector('#pManualOrder').value || null;
     const hawaleId = backdrop.querySelector('#pHawale').value || null;
     const note = backdrop.querySelector('#pNote').value.trim();
-    if(!selectedCustomerName || !date || !rialAmount || !rateAtPayment){ showToast('همه‌ی فیلدهای الزامی را پر کنید'); return; }
+    if(!selectedCustomerName || !date || !rialAmount || !rateAtPayment || rialAmount<0 || rateAtPayment<0){ showToast('همه‌ی فیلدهای الزامی و مثبت را پر کنید'); return; }
 
     // ⚠️ (۱۴۰۵/۰۶/۱۸) چک نامِ مشابه — طبق دستور صریح کاربر: عیناً منطقِ CRM
     const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
@@ -1345,7 +1384,7 @@ function openHawaleModal(existing){
     const rate = parseFloat(backdrop.querySelector('#hRate').value.replace(/,/g,''));
     const note = backdrop.querySelector('#hNote').value.trim();
     const validContribs = contribRows.filter(r=>r.account && parseFloat(r.rial_amount)>0).map(r=>({account:r.account, rial_amount:parseFloat(r.rial_amount)}));
-    if(!supplierName || !date || !rate || validContribs.length===0){ showToast('نام تأمین‌کننده، تاریخ، نرخ، و حداقل یک حساب با مبلغ معتبر را وارد کنید'); return; }
+    if(!supplierName || !date || !rate || rate<0 || validContribs.length===0){ showToast('نام تأمین‌کننده، تاریخ، نرخِ مثبت، و حداقل یک حساب با مبلغ معتبر را وارد کنید'); return; }
 
     const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
     if(similar){
@@ -1361,6 +1400,7 @@ function openHawaleModal(existing){
     const manualExpense = backdrop.querySelector('#hManualExpense').value || null;
     const rateAtDepositStr = backdrop.querySelector('#hRateAtDeposit').value.replace(/,/g,'').trim();
     const rateAtDeposit = rateAtDepositStr ? parseFloat(rateAtDepositStr) : null;
+    if(rateAtDeposit !== null && rateAtDeposit < 0){ showToast('نرخِ روزِ واریز نمی‌تواند منفی باشد'); return; }
     const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs};
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
@@ -1426,6 +1466,11 @@ async function renderSupplierLedger(main){
   const sName = currentSupplier;
   const data = await apiGetSupplierLedger(sName);
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سؤالِ کاربر: تقارن با سمتِ مشتری — همون مانده‌ی
+  // ریالیِ واقعی (فقط اعدادِ مطمئن) + مانده‌ی یوانی، از آخرین رویدادِ دفتر
+  const lastEvent = data.events.length ? data.events[data.events.length-1] : null;
+  const realRialBalance = lastEvent ? lastEvent.runningRial : 0;
+  const realYuanBalance = lastEvent ? lastEvent.runningYuan : 0;
   let expenses = state.expenses.filter(e=>e.supplier_name===sName).sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
   const totalFreight = expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
   const unpaidFreight = expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
@@ -1435,6 +1480,10 @@ async function renderSupplierLedger(main){
       <button class="btn btn-ghost btn-sm" id="backSupplierBtn" style="margin-bottom:10px">‹ بازگشت به لیست تأمین‌کنندگان</button>
       <h1 class="page-title">${sName}</h1>
       <p class="page-desc">فاکتورِ خرید (یوانی) = بدهیِ ما به این تأمین‌کننده؛ حواله (ریالی) تسویه‌اش می‌کنه — با همون منطقِ FIFO و نرخِ میانگینِ وزنیِ مشتریان</p>
+    </div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
+      <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی حمل پرداخت‌نشده (ریالی)</div><div class="stat-value rial num">${fmtRial(unpaidFreight)}</div><div class="stat-hint">از کل ${fmtRial(totalFreight)} هزینه‌ی حمل ثبت‌شده</div></div>
@@ -1630,7 +1679,7 @@ function openExpenseModal(existing, presetSupplier){
     const freight = freightStr ? parseFloat(freightStr) : null;
     const freightPaid = backdrop.querySelector('#eFreightPaid').checked;
     const note = backdrop.querySelector('#eNote').value.trim();
-    if(!supplierName || !date || (goods===0 && shipping===0 && transferFee===0)){ showToast('نام تأمین‌کننده، تاریخ، و حداقل یکی از هزینه‌های یوانی را وارد کنید'); return; }
+    if(!supplierName || !date || (goods===0 && shipping===0 && transferFee===0) || goods<0 || shipping<0 || transferFee<0 || (freight!==null && freight<0)){ showToast('نام تأمین‌کننده، تاریخ، و حداقل یکی از هزینه‌های یوانیِ مثبت را وارد کنید'); return; }
 
     const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
     if(similar){
@@ -1735,7 +1784,7 @@ function openAdjustmentModal(accountId){
     const date = backdrop.querySelector('#adjDate').value.trim();
     const amount = parseFloat(backdrop.querySelector('#adjAmount').value.replace(/,/g,''));
     const note = backdrop.querySelector('#adjNote').value.trim();
-    if(!date || !amount){ showToast('تاریخ و مبلغ را وارد کنید'); return; }
+    if(!date || !amount || amount<0){ showToast('تاریخ و مبلغِ مثبت را وارد کنید'); return; }
     const d = await apiCreate('account-adjustments', {account:accountId, date, adjustment_type:adjustmentType, amount, note});
     if(!d) return;
     showToast('✅ ثبت شد و مانده به‌روز شد');
@@ -1788,6 +1837,7 @@ function openAccountModal(existing){
     }
     if(!bankName){ showToast('نام بانک را وارد کنید'); return; }
     const openingBalance = parseFloat(backdrop.querySelector('#accOpeningBalance').value.replace(/,/g,'')) || 0;
+    if(openingBalance < 0){ showToast('مانده‌ی اولیه نمی‌تواند منفی باشد'); return; }
     const body = {owner, bank_name:bankName, account_number:accountNumber, opening_balance:openingBalance, active};
     const d = isEdit ? await apiUpdate('accounts', existing.id, body) : await apiCreate('accounts', body);
     if(!d) return;
@@ -1824,4 +1874,12 @@ async function renderSettings(main){
   await loadAll();
   render();
 })();
+</script>
+<script>
+// ⚠️ (۱۴۰۵/۰۶/۱۸) ثبتِ سرویس‌ورکر برای قابلیتِ نصب (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 </script>
