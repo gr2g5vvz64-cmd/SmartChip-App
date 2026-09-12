@@ -126,6 +126,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
+<link rel="manifest" href="./manifest-pricelist.json">
+<meta name="theme-color" content="#b45309">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="قیمت‌گذاری">
+<link rel="apple-touch-icon" href="./icons/pricelist-192.png">
 <title>📱 SmartChip موبایل</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
@@ -4165,28 +4172,7 @@ async function pickPcPart(name){
     pcSelectedPart = null;
   }
   document.getElementById('pcPartInfo').style.display = 'block';
-  calcPrice();
-}
-function calcPrice(){
-  const qty = parseFloat((document.getElementById('pcQty').value || '0').replace(/,/g,'')) || 0;
-  const unitPrice = parseFloat(document.getElementById('pcUnitPrice').value) || 0;
-  const usdRate = parseFloat((document.getElementById('pcUsdRate').value || '0').replace(/,/g,'')) || 0;
-  const margin = parseFloat(document.getElementById('pcMargin').value) || 0;
-  const freight = parseFloat(document.getElementById('pcFreight').value) || 0;
-  if(!qty || !unitPrice || !usdRate){ document.getElementById('pcResults').style.display='none'; return; }
-  const fob = qty * unitPrice;
-  // وزن برای باربری
-  const weightKg = pcSelectedPart && pcSelectedPart.weightPack ? (qty * pcSelectedPart.weightPack / 1000) : 0;
-  const freightTotal = weightKg > 0 && freight > 0 ? weightKg * freight : 0;
-  const totalUsd = fob + freightTotal;
-  const costPerUnit = (totalUsd * usdRate) / qty;
-  const salePerUnit = costPerUnit * (1 + margin / 100);
-  document.getElementById('pcTotalFob').textContent = '$' + fob.toFixed(2);
-  document.getElementById('pcTotalFreight').textContent = freightTotal > 0 ? '$' + freightTotal.toFixed(2) : '—';
-  document.getElementById('pcTotalUsd').textContent = '$' + totalUsd.toFixed(2);
-  document.getElementById('pcCostPerUnit').textContent = Number(Math.round(costPerUnit)).toLocaleString('fa-IR') + ' ﷼';
-  document.getElementById('pcSalePerUnit').textContent = Number(Math.round(salePerUnit)).toLocaleString('fa-IR') + ' ﷼';
-  document.getElementById('pcResults').style.display = 'block';
+  pcCalc();
 }
 document.addEventListener('click', e => {
   if(!e.target.closest('#pcPartAC') && e.target.id !== 'pcPartInput')
@@ -5969,6 +5955,14 @@ function pcCalc(){
   else totRow.textContent='';
 }
 
+</script>
+<script>
+// ⚠️ (۱۴۰۵/۰۶/۱۸) ثبتِ سرویس‌ورکر برای قابلیتِ نصب (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
