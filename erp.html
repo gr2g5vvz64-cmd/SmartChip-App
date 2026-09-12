@@ -637,6 +637,13 @@
 <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
+<link rel="manifest" href="./manifest-erp.json">
+<meta name="theme-color" content="#1e40af">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ERP اسمارت‌چیپ">
+<link rel="apple-touch-icon" href="./icons/erp-192.png">
 <title>📊 SmartChip ERP</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
@@ -13050,5 +13057,13 @@ async function markFinanceTaskDone(id){
   </div>
 </div>
 
+<script>
+// ⚠️ (۱۴۰۵/۰۶/۱۸) ثبتِ سرویس‌ورکر برای قابلیتِ نصب (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
 </body>
 </html>

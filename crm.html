@@ -9,6 +9,13 @@
      که رندرش وابسته به فونت سیستم‌عامله (بعضی سیستم‌ها 👥 رو خاکستری/سیاه
      نشون می‌دن). این SVG رنگش تضمین‌شده‌ست، مستقل از فونت. -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjE2IiBmaWxsPSIjZjBhNTAwIi8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjQiIGZpbGw9IiNmZmYiLz4KPGNpcmNsZSBjeD0iMjEiIGN5PSIxMyIgcj0iMy4zIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjg1Ii8+CjxwYXRoIGQ9Ik01IDI2YzAtNC41IDMuNS03LjUgNy03LjVzNyAzIDcgNy41IiBmaWxsPSIjZmZmIi8+CjxwYXRoIGQ9Ik0xNy41IDE5LjVjMyAuMyA1LjUgMi44IDUuNSA2LjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44NSIvPgo8L3N2Zz4=">
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
+<link rel="manifest" href="./manifest-crm.json">
+<meta name="theme-color" content="#0e7d6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CRM اسمارت‌چیپ">
+<link rel="apple-touch-icon" href="./icons/crm-192.png">
 <!--
   ════════════════════════════════════════════════════
   SmartChip CRM فروش — تاریخچه نسخه‌ها
@@ -8728,3 +8735,11 @@ async function submitUrgentShipRequest(){
 </div>
 
 >
+<script>
+// ⚠️ (۱۴۰۵/۰۶/۱۸) ثبتِ سرویس‌ورکر برای قابلیتِ نصب (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>

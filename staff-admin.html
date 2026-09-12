@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
+<link rel="manifest" href="./manifest-staffadmin.json">
+<meta name="theme-color" content="#7c3aed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="کارمندان">
+<link rel="apple-touch-icon" href="./icons/staffadmin-192.png">
 <title>SmartChip — مدیریت کارمندان v1.2</title>
 <!--
   ════════════════════════════════════════════════════
@@ -382,6 +389,14 @@ async function sendStaffBotInviteWhatsAppAdmin(staffId){
   }catch(e){ alert('⚠️ خطای شبکه — دوباره امتحان کن'); }
 }
 init();
+</script>
+<script>
+// ⚠️ (۱۴۰۵/۰۶/۱۸) ثبتِ سرویس‌ورکر برای قابلیتِ نصب (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
