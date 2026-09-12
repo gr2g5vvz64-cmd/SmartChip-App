@@ -684,15 +684,34 @@ async function renderDashboard(main){
     </div>
 
     <div class="section-title">مانده کل مشتریان</div>
-    <div class="grid grid-2">
+    <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">جمع مانده مشتریان (یوان)</div><div class="stat-value yuan num">${fmtYuan(g.totalCustomerBalanceYuan)}</div></div>
       <div class="card stat-card"><div class="stat-label">معادل ریالی (به نرخ روز تنظیم‌شده)</div><div class="stat-value rial num">${g.currentRate ? fmtRial(g.totalCustomerBalanceYuan * g.currentRate) : 'نرخ روز را در تنظیمات وارد کنید'}</div></div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>فاکتور باز</th></tr></thead>
+        <tbody>
+          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="4">مشتری‌ای ثبت نشده</td></tr>` :
+          g.customers.map(c=>`<tr style="cursor:pointer" data-goto-customer="${c.name}">
+            <td><strong>${c.name}</strong></td>
+            <td class="num">${fmtYuan(c.balanceYuan)}</td>
+            <td class="num">${c.balanceRial!==null ? fmtRial(c.balanceRial) : '—'}</td>
+            <td>${c.openOrderId ? '<span class="status-chip open">باز</span>' : '<span class="status-chip closed">تسویه</span>'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
     </div>
   `;
   wireRateBasisToggle(main, ()=>renderDashboard(main));
   main.querySelectorAll('[data-goto-lock]').forEach(b=>b.addEventListener('click', ()=>{
     currentTab = 'customers';
     currentCustomer = b.dataset.gotoLock;
+    render();
+  }));
+  main.querySelectorAll('[data-goto-customer]').forEach(tr=>tr.addEventListener('click', ()=>{
+    currentTab = 'customers';
+    currentCustomer = tr.dataset.gotoCustomer;
     render();
   }));
 }
