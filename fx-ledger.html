@@ -236,6 +236,17 @@ function shamsiSortVal(s){
   const [y,m,d] = s.split(/[-/]/).map(Number);
   return y*400 + m*31 + d;
 }
+// ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ صریحِ کاربر: وقتی چند سند تو یه روز ثبت
+// می‌شن، باید به همون ترتیبی که وارد کردید تو جدول بمونن — نه به ترتیبِ
+// اتفاقی. چون `id` دیتابیس همیشه با ترتیبِ واقعیِ زمانِ ثبت افزایش پیدا
+// می‌کنه (رکوردِ جدیدتر، آی‌دیِ بزرگ‌تر می‌گیره)، از همون به‌عنوانِ
+// تای‌بریکر (وقتی تاریخ‌ها برابرن) استفاده می‌کنیم.
+function sortByDateDesc(list){
+  return [...list].sort((a,b)=> shamsiSortVal(b.date)-shamsiSortVal(a.date) || (b.id-a.id));
+}
+function sortByDateAsc(list){
+  return [...list].sort((a,b)=> shamsiSortVal(a.date)-shamsiSortVal(b.date) || (a.id-b.id));
+}
 
 // ⚠️ (۱۴۰۵/۰۶/۱۸) عیناً کپی از crm.html — طبق دستور صریح کاربر: نرمال‌سازیِ
 // نامِ مشتری/تأمین‌کننده باید دقیقاً همون منطقِ CRM باشه، تا یه نامِ مشابه
@@ -527,6 +538,8 @@ const NAV_STRUCTURE = [
   {type:'group', id:'group-customer', label:'مشتری', children:[
     {id:'customers', label:'مشتریان (دفتر)'},
     {id:'payments', label:'پرداخت‌های مشتریان'},
+    {id:'action-add-order', label:'+ ثبت فاکتور/پیش‌فاکتور', action:'add-order'},
+    {id:'action-add-payment', label:'+ ثبت پرداخت', action:'add-payment'},
   ]},
   {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
     {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
@@ -564,7 +577,7 @@ function render(){
             }
             const isOpen = openNavGroups.has(n.id);
             return `
-              <button class="nav-group-header" data-group="${n.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;padding:9px 10px;cursor:pointer;font-size:12.5px;color:var(--ink);font-family:inherit">
+              <button class="nav-group-header" data-group="${n.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;padding:9px 14px;cursor:pointer;font-size:13px;color:#C7CCD6;font-family:inherit;font-weight:700">
                 <span>${n.label}</span>
                 <span style="transition:transform .15s;transform:rotate(${isOpen?'0':'-90deg'})">▾</span>
               </button>
@@ -586,6 +599,8 @@ function render(){
   root.querySelectorAll('[data-action]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       if(btn.dataset.action==='add-expense') openExpenseModal();
+      if(btn.dataset.action==='add-order') openOrderModal();
+      if(btn.dataset.action==='add-payment') openPaymentModal();
     });
   });
   root.querySelectorAll('.nav-group-header').forEach(btn=>{
@@ -817,15 +832,17 @@ async function renderCustomerLedger(main){
     <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th class="col-right">شرح</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>معادل ریالی (به نرخِ روزِ فعلی)</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th class="col-right">شرح</th><th>مبلغِ ریالی</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>معادل ریالی (به نرخِ روزِ فعلی)</th></tr></thead>
         <tbody>
           ${data.events.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell">${e.date}</td>
             <td class="col-right">${e.type==='order'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="num">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : fmtRial(e.rial_credit)}</td>
             <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : (e.pending?'⏳ معلق':'—')}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
+            <td class="num">${fmtRial(e.runningRial)}</td>
             <td class="num">${e.runningRialAtCurrentRate!==null ? fmtRial(e.runningRialAtCurrentRate) : '— (نرخِ روز را در تنظیمات وارد کنید)'}</td>
           </tr>`).join('')}
         </tbody>
@@ -1036,7 +1053,7 @@ function showHistoryModal(record){
 
 async function renderPayments(main){
   await loadAll();
-  let filtered = [...state.payments].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  let filtered = sortByDateDesc(state.payments);
   if(paymentsSearchQuery.trim()){
     const q = paymentsSearchQuery.trim();
     filtered = filtered.filter(p=>p.customer_name.includes(q) || p.date.includes(q));
@@ -1219,7 +1236,7 @@ function openPaymentModal(existing){
 let hawalesSearchQuery = '';
 async function renderHawales(main){
   await loadAll();
-  let filtered = [...state.hawales].sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  let filtered = sortByDateDesc(state.hawales);
   if(hawalesSearchQuery.trim()){
     const q = hawalesSearchQuery.trim();
     filtered = filtered.filter(h=>h.supplier_name.includes(q) || h.date.includes(q));
@@ -1499,7 +1516,7 @@ async function renderSupplierLedger(main){
   const lastEvent = data.events.length ? data.events[data.events.length-1] : null;
   const realRialBalance = lastEvent ? lastEvent.runningRial : 0;
   const realYuanBalance = lastEvent ? lastEvent.runningYuan : 0;
-  let expenses = state.expenses.filter(e=>e.supplier_name===sName).sort((a,b)=>shamsiSortVal(b.date)-shamsiSortVal(a.date));
+  let expenses = sortByDateDesc(state.expenses.filter(e=>e.supplier_name===sName));
   const totalFreight = expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
   const unpaidFreight = expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
   if(supplierExpenseSearchQuery.trim()) expenses = expenses.filter(e=>e.date.includes(supplierExpenseSearchQuery.trim()));
@@ -1536,6 +1553,28 @@ async function renderSupplierLedger(main){
               : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
             <td><button class="icon-btn" data-edit-exp="${o.id}">ویرایش</button> <button class="icon-btn" data-del-exp="${o.id}">حذف</button> <button class="icon-btn" data-hist-exp="${o.id}">📜</button></td>
           </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">وضعیتِ حواله‌ها — چقدر رفته، چقدر مونده</div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr><th class="col-right">تاریخ</th><th>کلِ حواله (یوان)</th><th>خرج‌شده (یوان)</th><th>مانده‌ی تخصیص‌نیافته (یوان)</th><th>وضعیت</th><th></th></tr></thead>
+        <tbody>
+          ${state.hawales.filter(h=>h.supplier_name===sName).length===0 ? `<tr class="empty-row"><td colspan="6">هنوز حواله‌ای ثبت نشده</td></tr>` :
+          sortByDateAsc(state.hawales.filter(h=>h.supplier_name===sName)).map(h=>{
+            const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount, spentItems:[]};
+            const fullySpent = bd.remainingYuan <= 0.01;
+            return `<tr>
+              <td class="date-cell">${h.date}</td>
+              <td class="num">${fmtYuan(bd.totalYuan)}</td>
+              <td class="num">${fmtYuan(bd.spentYuan)}</td>
+              <td class="num" style="font-weight:700">${fmtYuan(bd.remainingYuan)}</td>
+              <td>${fullySpent ? '<span class="status-chip closed">✅ کامل خرج شده</span>' : (bd.spentYuan>0.01 ? '<span class="status-chip open">⏳ بخشی خرج شده</span>' : '<span class="status-chip open">⏳ هنوز خرج نشده</span>')}</td>
+              <td>${bd.spentItems.length ? `<button class="icon-btn" data-show-breakdown="${h.id}">📋 جزئیات</button>` : '—'}</td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -1634,6 +1673,31 @@ async function renderSupplierLedger(main){
     if(!res.ok){ showToast('❌ بازکردنِ قفل ناموفق بود'); return; }
     showToast('✅ قفل باز شد');
     renderSupplierLedger(main);
+  }));
+  main.querySelectorAll('[data-show-breakdown]').forEach(b=>b.addEventListener('click', ()=>{
+    const hid = +b.dataset.showBreakdown;
+    const h = state.hawales.find(x=>x.id===hid);
+    const bd = data.hawaleBreakdown[hid];
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal">
+        <h3>جزئیاتِ خرجِ حواله‌ی ${h.date}</h3>
+        <p class="page-desc">کلِ این حواله: ${fmtYuan(bd.totalYuan)} — این‌طور خرج شده:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>فاکتورِ خرید</th><th>مقدارِ گرفته‌شده (یوان)</th></tr></thead>
+            <tbody>
+              ${bd.spentItems.map(item=>`<tr><td>فاکتور #${item.invoiceId}</td><td class="num">${fmtYuan(item.yuan)}</td></tr>`).join('')}
+              ${bd.remainingYuan>0.01 ? `<tr><td style="color:var(--ink-soft)">مانده‌ی تخصیص‌نیافته</td><td class="num" style="color:var(--ink-soft)">${fmtYuan(bd.remainingYuan)}</td></tr>` : ''}
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions"><button class="btn btn-ghost" id="closeBreakdownBtn">بستن</button></div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    backdrop.querySelector('#closeBreakdownBtn').addEventListener('click', ()=>backdrop.remove());
+    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   }));
 }
 
