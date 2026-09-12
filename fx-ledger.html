@@ -12,7 +12,14 @@
 <link rel="apple-touch-icon" href="./icons/fxledger-192.png">
 <title>دفتر ارزی اسمارت‌چیپ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ واقعیِ کندیِ لود: فونت قبلاً به‌صورتِ
+     render-blocking (<link rel="stylesheet"> ساده) لود می‌شد — یعنی
+     صفحه تا دانلودِ کاملِ فونت از fonts.googleapis.com (که ممکنه از
+     ایران کند/غیرقابل‌دسترس باشه) معلق می‌موند. الان با الگوی استاندارد
+     preload+onload، فونت در پس‌زمینه لود می‌شه بدونِ معطل‌کردنِ رندرِ
+     اولیه‌ی صفحه. -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
   :root{
     /* ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ ناهماهنگیِ رنگی — طبقِ گزارشِ کاربر: این پالت
@@ -714,13 +721,14 @@ async function renderDashboard(main){
     </div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>فاکتور باز</th></tr></thead>
+        <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>ریالِ واریزی‌شده — هنوز حواله نشده</th><th>فاکتور باز</th></tr></thead>
         <tbody>
-          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="4">مشتری‌ای ثبت نشده</td></tr>` :
+          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="5">مشتری‌ای ثبت نشده</td></tr>` :
           g.customers.map(c=>`<tr style="cursor:pointer" data-goto-customer="${c.name}">
             <td><strong>${c.name}</strong></td>
             <td class="num">${fmtYuan(c.balanceYuan)}</td>
             <td class="num">${c.balanceRial!==null ? fmtRial(c.balanceRial) : '—'}</td>
+            <td class="num">${c.unlinkedRial>0.01 ? fmtRial(c.unlinkedRial) : '—'}</td>
             <td>${c.openOrderId ? '<span class="status-chip open">باز</span>' : '<span class="status-chip closed">تسویه</span>'}</td>
           </tr>`).join('')}
         </tbody>
@@ -753,13 +761,14 @@ async function renderCustomersList(main){
     <div class="toolbar"><button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button>${rateBasisToggle()}</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>فاکتور باز</th><th></th></tr></thead>
+        <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>ریالِ واریزی‌شده — هنوز حواله نشده</th><th>فاکتور باز</th><th></th></tr></thead>
         <tbody>
-          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="5">هنوز مشتری‌ای در دفتر ثبت نشده — با «ثبت فاکتور/پیش‌فاکتور» شروع کنید</td></tr>` :
+          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="6">هنوز مشتری‌ای در دفتر ثبت نشده — با «ثبت فاکتور/پیش‌فاکتور» شروع کنید</td></tr>` :
           g.customers.map(c=>`<tr style="cursor:pointer" data-open-customer="${c.name}">
             <td><strong>${c.name}</strong></td>
             <td class="num">${fmtYuan(c.balanceYuan)}</td>
             <td class="num">${c.balanceRial!==null ? fmtRial(c.balanceRial) : '—'}</td>
+            <td class="num">${c.unlinkedRial>0.01 ? fmtRial(c.unlinkedRial) : '—'}</td>
             <td>${c.openOrderId ? '<span class="status-chip open">باز</span>' : '<span class="status-chip closed">تسویه</span>'}</td>
             <td><button class="btn btn-ghost btn-sm">مشاهده دفتر ›</button></td>
           </tr>`).join('')}
