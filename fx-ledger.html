@@ -1855,12 +1855,11 @@ function openExpenseModal(existing, presetSupplier){
         <input id="eSupplier" type="text" list="knownSuppliersList" value="${existing ? existing.supplier_name : (presetSupplier||'')}" placeholder="مثلاً: کلافی">
         <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>لینک به یه حواله‌ی خاص (اختیاری)</label>
-        <select id="eManualHawale">
-          <option value="">— خودکار (FIFO) —</option>
-        </select>
-        <div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">اگه می‌خواید این فاکتور دقیقاً از یه حواله‌ی مشخص کسر بشه، انتخاب کنید — وگرنه خودکار طبقِ ترتیبِ تاریخ (FIFO) تسویه می‌شه</div>
+      <div class="field" style="margin-bottom:6px"><label>لینک به یک یا چند حواله‌ی خاص (اختیاری)</label>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px">اگه می‌خواید این فاکتور دقیقاً از یک یا چند حواله‌ی مشخص کسر بشه (مثلاً وقتی مبلغِ فاکتور زیاده و چندتا حواله باید بهش برسه)، هرچندتا که خواستید تیک بزنید — وگرنه خودکار طبقِ ترتیبِ تاریخ (FIFO) تسویه می‌شه</div>
+        <input id="eHawaleFilter" type="text" placeholder="🔍 فیلتر با تاریخ (اختیاری)...">
       </div>
+      <div id="eHawalePickerBox" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px"></div>
       <div class="field" style="margin-bottom:10px"><label>پارت‌نامبر</label>
         <input id="ePartNumber" type="text" value="${existing ? existing.part_number||'' : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
         <div id="ePartNumberResults" style="position:relative"></div>
@@ -1889,20 +1888,40 @@ function openExpenseModal(existing, presetSupplier){
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
 
-  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: لیستِ حواله‌ها بر اساسِ تأمین‌کننده‌ی
-  // انتخاب‌شده، داینامیک رندر می‌شه (چون موقعِ بازکردنِ فرم از دکمه‌ی
-  // سراسری، تأمین‌کننده هنوز مشخص نیست)
-  function renderHawaleOptions(){
+  // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: چند حواله (۲ تا، ۱۰ تا، هرچقدر)
+  // می‌تونن به یه فاکتورِ خریدِ خاص لینک بشن — قبلاً فقط یه <select> تکی
+  // بود. اینجا هم‌الگو با پیکرِ گروهیِ سمتِ مشتریه.
+  //
+  // ⚠️ درسِ حیاتیِ باگِ قبلی: selectedHawaleIds باید از وضعیتِ *موجود*
+  // مقداردهیِ اولیه بشه (نه خالی) — وگرنه بازکردن‌وذخیره‌کردنِ بی‌ربطِ
+  // این فرم، لینک‌های واقعی رو پاک می‌کنه.
+  const selectedHawaleIds = new Set(
+    existing ? state.hawales.filter(h=>h.manual_expense===existing.id).map(h=>h.id) : []
+  );
+  function renderHawalePicker(filterText){
     const supplierName = backdrop.querySelector('#eSupplier').value.trim();
-    const sel = backdrop.querySelector('#eManualHawale');
-    const relevantHawales = state.hawales.filter(h=>h.supplier_name===supplierName);
-    // موقعِ ویرایش، حواله‌ای که از قبل manual_expose=این هزینه داره رو پیدا کن
-    const currentlyLinkedHawale = existing ? state.hawales.find(h=>h.manual_expense===existing.id) : null;
-    sel.innerHTML = `<option value="">— خودکار (FIFO) —</option>` +
-      relevantHawales.map(h=>`<option value="${h.id}" ${currentlyLinkedHawale&&currentlyLinkedHawale.id===h.id?'selected':''}>${h.date} — ${fmtRial(h.totalRial)} (نرخ ${fmt(h.rate_at_hawale,0)})</option>`).join('');
+    const q = (filterText||'').trim();
+    const candidates = state.hawales.filter(h =>
+      h.supplier_name===supplierName &&
+      (h.manual_expense===null || h.manual_expense===undefined || selectedHawaleIds.has(h.id)) &&
+      (!q || h.date.includes(q))
+    );
+    const box = backdrop.querySelector('#eHawalePickerBox');
+    if(!supplierName){ box.innerHTML = '<div style="font-size:11px;color:var(--ink-soft);text-align:center;padding:8px">اول نامِ تأمین‌کننده رو بنویسید</div>'; return; }
+    if(candidates.length===0){ box.innerHTML = '<div style="font-size:11px;color:var(--ink-soft);text-align:center;padding:8px">هیچ حواله‌ی بدونِ‌لینکی برای این تأمین‌کننده پیدا نشد</div>'; return; }
+    box.innerHTML = candidates.map(h=>`
+      <label style="display:flex;align-items:center;gap:6px;padding:4px 2px;font-size:11.5px;cursor:pointer">
+        <input type="checkbox" data-pick-hawale="${h.id}" ${selectedHawaleIds.has(h.id)?'checked':''}>
+        <span>${h.date} — ${fmtRial(h.totalRial)} (نرخ ${fmt(h.rate_at_hawale,0)})</span>
+      </label>`).join('');
+    box.querySelectorAll('[data-pick-hawale]').forEach(cb=>cb.addEventListener('change', ()=>{
+      const hid = +cb.dataset.pickHawale;
+      if(cb.checked) selectedHawaleIds.add(hid); else selectedHawaleIds.delete(hid);
+    }));
   }
-  renderHawaleOptions();
-  backdrop.querySelector('#eSupplier').addEventListener('input', renderHawaleOptions);
+  renderHawalePicker('');
+  backdrop.querySelector('#eSupplier').addEventListener('input', ()=>renderHawalePicker(backdrop.querySelector('#eHawaleFilter').value));
+  backdrop.querySelector('#eHawaleFilter').addEventListener('input', (e)=>renderHawalePicker(e.target.value));
 
   backdrop.querySelector('#saveExpenseBtn').addEventListener('click', async ()=>{
     let supplierName = backdrop.querySelector('#eSupplier').value.trim();
@@ -1927,15 +1946,16 @@ function openExpenseModal(existing, presetSupplier){
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
 
-    // ⚠️ (۱۴۰۵/۰۶/۱۸) اعمالِ لینکِ دستیِ حواله (اگه انتخاب شده باشه) —
-    // اینجا برعکسِ رابطه رو تنظیم می‌کنیم (روی خودِ حواله، manual_expense)
-    const selectedHawaleId = backdrop.querySelector('#eManualHawale').value || null;
-    const previouslyLinkedHawale = isEdit ? state.hawales.find(h=>h.manual_expense===existing.id) : null;
-    if(selectedHawaleId && (!previouslyLinkedHawale || previouslyLinkedHawale.id!=selectedHawaleId)){
-      await apiUpdate('hawales', selectedHawaleId, {manual_expense: d.id});
-    } else if(!selectedHawaleId && previouslyLinkedHawale){
-      await apiUpdate('hawales', previouslyLinkedHawale.id, {manual_expense: null});
-    }
+    // ⚠️ (۱۴۰۵/۰۶/۱۸) لینک‌کردنِ گروهیِ چند حواله به این فاکتورِ خرید —
+    // برعکسِ رابطه رو تنظیم می‌کنیم (روی خودِ حواله، manual_expense).
+    // previouslyLinked با وضعیتِ *موجود* مقداردهیِ اولیه شده بود (نه
+    // خالی)، پس اگه کاربر دست نزنه، toLink/toUnlink هردو خالی می‌مونن.
+    const previouslyLinked = isEdit ? new Set(state.hawales.filter(h=>h.manual_expense===existing.id).map(h=>h.id)) : new Set();
+    const toLink = [...selectedHawaleIds].filter(hid => !previouslyLinked.has(hid));
+    const toUnlink = [...previouslyLinked].filter(hid => !selectedHawaleIds.has(hid));
+    for(const hid of toLink) await apiUpdate('hawales', hid, {manual_expense: d.id});
+    for(const hid of toUnlink) await apiUpdate('hawales', hid, {manual_expense: null});
+    if(toLink.length || toUnlink.length) showToast(`✅ ثبت شد — ${toLink.length} حواله لینک شد`);
 
     backdrop.remove();
     currentSupplier = supplierName;
