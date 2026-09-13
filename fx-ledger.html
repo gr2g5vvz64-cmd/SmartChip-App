@@ -564,11 +564,11 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  const [accounts, orders, hawales, payments, expenses, incomes, settings] = await Promise.all([
-    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiGetSettings(),
+  const [accounts, orders, hawales, payments, expenses, incomes, transfers, settings] = await Promise.all([
+    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiList('account-transfers'), apiGetSettings(),
   ]);
   state = {
-    accounts, orders, hawales, payments, expenses, incomes,
+    accounts, orders, hawales, payments, expenses, incomes, transfers,
     settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
   };
 }
@@ -2261,7 +2261,10 @@ async function renderAccounts(main){
     </div>
     <div class="toolbar">
       <button class="btn btn-primary" id="addAccBtn">+ افزودن حساب</button>
-      <input id="accountsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${accountsSearchQuery}" style="min-width:200px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost" id="addTransferBtn">🔄 جابجایی بین حساب‌ها</button>
+        <input id="accountsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${accountsSearchQuery}" style="min-width:200px">
+      </div>
     </div>
     <div class="table-wrap">
       <table>
@@ -2283,8 +2286,41 @@ async function renderAccounts(main){
         </tbody>
       </table>
     </div>
+
+    <div class="section-title">جابجایی‌های بینِ حساب‌ها</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="col-right">تاریخ</th><th>از حساب</th><th>به حساب</th><th>مبلغ (ریال)</th><th>توضیح</th><th></th></tr></thead>
+        <tbody>
+          ${state.transfers.length===0 ? `<tr class="empty-row"><td colspan="6">جابجایی‌ای ثبت نشده است</td></tr>` :
+          sortByDateDesc(state.transfers).map(t=>{
+            const fromAcc = state.accounts.find(a=>a.id===t.from_account);
+            const toAcc = state.accounts.find(a=>a.id===t.to_account);
+            return `<tr>
+              <td class="date-cell">${t.date}</td>
+              <td>${fromAcc ? fromAcc.displayName : '—'}</td>
+              <td>${toAcc ? toAcc.displayName : '—'}</td>
+              <td class="num">${fmtRial(t.rial_amount)}</td>
+              <td>${t.note || '—'}</td>
+              <td><button class="icon-btn" data-edit-transfer="${t.id}">ویرایش</button> <button class="icon-btn" data-del-transfer="${t.id}">حذف</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
   `;
   main.querySelector('#addAccBtn').addEventListener('click', ()=>openAccountModal());
+  main.querySelector('#addTransferBtn').addEventListener('click', ()=>openTransferModal());
+  main.querySelectorAll('[data-edit-transfer]').forEach(b=>b.addEventListener('click', ()=>{
+    const t = state.transfers.find(x=>x.id==b.dataset.editTransfer);
+    openTransferModal(t);
+  }));
+  main.querySelectorAll('[data-del-transfer]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ مطمئنید می‌خواید این جابجایی را حذف کنید؟')) return;
+    const ok = await apiDelete('account-transfers', b.dataset.delTransfer);
+    if(!ok) return;
+    renderAccounts(main);
+  }));
   main.querySelector('#accountsSearchInput').addEventListener('input', (e)=>{
     accountsSearchQuery = e.target.value;
     renderAccounts(main);
@@ -2424,6 +2460,56 @@ async function renderSettings(main){
     if(!ok){ showToast('❌ ذخیره ناموفق بود'); return; }
     state.settings.currentRate = isNaN(v) ? null : v;
     showToast('نرخ ذخیره شد');
+  });
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۲۲) طبق درخواستِ صریحِ کاربر: جابجاییِ پول بینِ دو حسابِ
+// بانکیِ خودمون — از یکی کم، به دیگری اضافه.
+function openTransferModal(existing){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش جابجایی' : 'جابجاییِ بینِ حساب‌ها'}</h3>
+      <div class="field" style="margin-bottom:10px"><label>از حساب</label>
+        <select id="trFromAccount">${state.accounts.map(a=>`<option value="${a.id}" ${existing&&existing.from_account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>به حساب</label>
+        <select id="trToAccount">${state.accounts.map(a=>`<option value="${a.id}" ${existing&&existing.to_account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاریخ (شمسی)</label><input id="trDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
+        <div class="field"><label>مبلغ (ریال)</label><input id="trAmount" type="text" class="num" value="${existing ? fmt(existing.rial_amount,0) : ''}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>توضیح کوتاه (اختیاری)</label><input id="trNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveTransferBtn">${isEdit?'ذخیره تغییرات':'ثبتِ جابجایی'}</button>
+        <button class="btn btn-ghost" id="cancelTransferBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  backdrop.querySelector('#cancelTransferBtn').addEventListener('click', ()=>backdrop.remove());
+  wireShamsiDatePicker(backdrop.querySelector('#trDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#trAmount'));
+
+  backdrop.querySelector('#saveTransferBtn').addEventListener('click', async ()=>{
+    const fromAccount = backdrop.querySelector('#trFromAccount').value;
+    const toAccount = backdrop.querySelector('#trToAccount').value;
+    const date = backdrop.querySelector('#trDate').value.trim();
+    const rialAmount = parseFloat(backdrop.querySelector('#trAmount').value.replace(/,/g,''));
+    const note = backdrop.querySelector('#trNote').value.trim();
+    if(!fromAccount || !toAccount || !date || !rialAmount || rialAmount<0){ showToast('حسابِ مبدأ، مقصد، تاریخ، و مبلغِ مثبت را وارد کنید'); return; }
+    if(fromAccount === toAccount){ showToast('❌ حسابِ مبدأ و مقصد نمی‌توانند یکی باشند'); return; }
+
+    const body = {from_account:fromAccount, to_account:toAccount, date, rial_amount:rialAmount, note};
+    const d = isEdit ? await apiUpdate('account-transfers', existing.id, body) : await apiCreate('account-transfers', body);
+    if(!d) return;
+    showToast('✅ جابجایی ثبت شد');
+    backdrop.remove();
+    renderMain();
   });
 }
 
