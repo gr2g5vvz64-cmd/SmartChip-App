@@ -2289,6 +2289,15 @@ async function renderAccounts(main){
             </tr>`;
           }).join('')}
         </tbody>
+        ${filteredAccounts.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtRial(filteredAccounts.reduce((s,a)=>s+Number(a.opening_balance||0),0))}</td>
+          <td class="num">${fmtRial(filteredAccounts.reduce((s,a)=>{
+            const stat = balanceMap[a.displayName];
+            return s + Number(stat ? stat.balance : 0);
+          },0))}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>` : ''}
       </table>
     </div>
 
