@@ -1353,6 +1353,9 @@ function openIncomeModal(existing){
         <input id="incCustomer" type="text" value="${existing ? existing.customer_name : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
         <div id="incCustomerResults" style="position:relative"></div>
       </div>
+      <div class="field" style="margin-bottom:10px"><label>حساب دریافت‌کننده — این پول کجا نشسته؟</label>
+        <select id="incAccount">${state.accounts.map(a=>`<option value="${a.id}" ${existing&&existing.account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+      </div>
       <div class="form-row">
         <div class="field"><label>تاریخ (شمسی)</label><input id="incDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
         <div class="field"><label>مبلغ (ریال)</label><input id="incAmount" type="text" class="num" value="${existing ? fmt(existing.rial_amount,0) : ''}"></div>
@@ -1391,7 +1394,8 @@ function openIncomeModal(existing){
     const date = backdrop.querySelector('#incDate').value.trim();
     const rialAmount = parseFloat(backdrop.querySelector('#incAmount').value.replace(/,/g,''));
     const note = backdrop.querySelector('#incNote').value.trim();
-    if(!selectedCustomerName || !date || !rialAmount || rialAmount<0){ showToast('مشتری، تاریخ، و مبلغِ مثبت را وارد کنید'); return; }
+    const accountId = backdrop.querySelector('#incAccount').value;
+    if(!selectedCustomerName || !date || !rialAmount || rialAmount<0 || !accountId){ showToast('مشتری، حساب، تاریخ، و مبلغِ مثبت را وارد کنید'); return; }
 
     const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
     if(similar){
@@ -1399,11 +1403,12 @@ function openIncomeModal(existing){
       if(useExisting) selectedCustomerName = similar;
     }
 
-    const body = {customer_name:selectedCustomerName, date, rial_amount:rialAmount, note};
+    const body = {customer_name:selectedCustomerName, account:accountId, date, rial_amount:rialAmount, note};
     const d = isEdit ? await apiUpdate('customer-incomes', existing.id, body) : await apiCreate('customer-incomes', body);
     if(!d) return;
     showToast('✅ درآمد ثبت شد');
     backdrop.remove();
+    renderMain();
   });
 }
 
