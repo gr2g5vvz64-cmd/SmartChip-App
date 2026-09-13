@@ -910,7 +910,7 @@ async function renderCustomerLedger(main){
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="9">چیزی پیدا نشد</td></tr>` :
             filteredEvents.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell">${e.date}</td>
-            <td class="col-right">${e.type==='order'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="col-right">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':'💰 ')}${e.desc}</td>
             <td class="num">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : fmtRial(e.rial_credit)}</td>
             <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
