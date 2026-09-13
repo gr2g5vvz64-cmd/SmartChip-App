@@ -254,6 +254,15 @@ function sortByDateDesc(list){
 function sortByDateAsc(list){
   return [...list].sort((a,b)=> shamsiSortVal(a.date)-shamsiSortVal(b.date) || (a.id-b.id));
 }
+// ⚠️ (۱۴۰۵/۰۶/۲۲) طبق درخواستِ صریحِ کاربر: سرچ باید همه‌ی ستون‌های
+// نمایش‌داده‌شده رو پوشش بده (نه فقط یکی‌دو تا) — این تابعِ عمومی، یه
+// آرایه از مقادیرِ دلخواه (متن، عدد، هرچی) می‌گیره و همه‌شونو با query
+// چک می‌کنه.
+function matchesSearch(values, query){
+  const q = (query||'').trim();
+  if(!q) return true;
+  return values.some(v => v!==null && v!==undefined && String(v).includes(q));
+}
 
 // ⚠️ (۱۴۰۵/۰۶/۱۸) عیناً کپی از crm.html — طبق دستور صریح کاربر: نرمال‌سازیِ
 // نامِ مشتری/تأمین‌کننده باید دقیقاً همون منطقِ CRM باشه، تا یه نامِ مشابه
@@ -1071,7 +1080,16 @@ async function renderPayments(main){
   let filtered = sortByDateDesc(state.payments);
   if(paymentsSearchQuery.trim()){
     const q = paymentsSearchQuery.trim();
-    filtered = filtered.filter(p=>p.customer_name.includes(q) || p.date.includes(q));
+    filtered = filtered.filter(p=>{
+      const acc = state.accounts.find(a=>a.id===p.account);
+      const linkedHawales = (p.linkedHawaleIds||[]).map(hid=>state.hawales.find(h=>h.id===hid)).filter(Boolean);
+      return matchesSearch([
+        p.date, p.customer_name, acc?acc.displayName:'', p.rial_amount, p.rate_at_payment,
+        p.manual_order ? `فاکتور #${p.manual_order}` : 'خودکار FIFO',
+        linkedHawales.length ? 'لینک‌شده' : 'بدون حواله',
+        ...linkedHawales.map(h=>h.supplier_name),
+      ], q);
+    });
   }
   main.innerHTML = `
     <div class="page-head">
@@ -1260,7 +1278,18 @@ async function renderHawales(main){
   let filtered = sortByDateDesc(state.hawales);
   if(hawalesSearchQuery.trim()){
     const q = hawalesSearchQuery.trim();
-    filtered = filtered.filter(h=>h.supplier_name.includes(q) || h.date.includes(q));
+    filtered = filtered.filter(h=>{
+      const accNames = (h.contributions||[]).map(c=>{
+        const acc = state.accounts.find(a=>a.id===c.account);
+        return acc ? acc.displayName : '';
+      });
+      const linkedInfo = h.linkedPaymentsInfo || [];
+      const linkedNames = [...new Set(linkedInfo.map(x=>x.customerName))];
+      return matchesSearch([
+        h.date, h.supplier_name, h.totalRial, h.rate_at_hawale, h.rate_at_customer_deposit,
+        h.yuanAmount, ...accNames, ...linkedNames,
+      ], q);
+    });
   }
   main.innerHTML = `
     <div class="page-head">
@@ -1610,7 +1639,13 @@ async function renderSupplierLedger(main){
   let expenses = sortByDateDesc(state.expenses.filter(e=>e.supplier_name===sName));
   const totalFreight = expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
   const unpaidFreight = expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
-  if(supplierExpenseSearchQuery.trim()) expenses = expenses.filter(e=>e.date.includes(supplierExpenseSearchQuery.trim()));
+  if(supplierExpenseSearchQuery.trim()){
+    const q = supplierExpenseSearchQuery.trim();
+    expenses = expenses.filter(e=>matchesSearch([
+      e.date, e.part_number, e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan,
+      e.freight_rial, e.freight_paid ? 'پرداخت‌شده' : 'در انتظار',
+    ], q));
+  }
   main.innerHTML = `
     <div class="page-head">
       <button class="btn btn-ghost btn-sm" id="backSupplierBtn" style="margin-bottom:10px">‹ بازگشت به لیست تأمین‌کنندگان</button>
