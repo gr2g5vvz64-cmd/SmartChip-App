@@ -762,18 +762,24 @@ async function renderCustomersList(main){
   const basis = state.settings.rateBasis;
   const g = await apiGetSummary(basis);
   if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
+  const filteredCustomers = g.customers.filter(c=>matchesSearch([
+    c.name, c.balanceYuan, c.balanceRial, c.unlinkedRial, c.openOrderId?'باز':'تسویه',
+  ], customersListSearchQuery));
   main.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">مشتریان</h1>
       <p class="page-desc">هر مشتری را باز کنید تا دفتر کامل تسویه (به‌سبک صورت‌حساب) را ببینید</p>
     </div>
-    <div class="toolbar"><button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button>${rateBasisToggle()}</div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button>
+      <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<input id="customersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customersListSearchQuery}" style="min-width:200px"></div>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>مشتری</th><th>مانده (یوان)</th><th>معادل ریالی</th><th>ریالِ واریزی‌شده — هنوز حواله نشده</th><th>فاکتور باز</th><th></th></tr></thead>
         <tbody>
-          ${g.customers.length===0 ? `<tr class="empty-row"><td colspan="6">هنوز مشتری‌ای در دفتر ثبت نشده — با «ثبت فاکتور/پیش‌فاکتور» شروع کنید</td></tr>` :
-          g.customers.map(c=>`<tr style="cursor:pointer" data-open-customer="${c.name}">
+          ${filteredCustomers.length===0 ? `<tr class="empty-row"><td colspan="6">${customersListSearchQuery?'چیزی پیدا نشد':'هنوز مشتری‌ای در دفتر ثبت نشده — با «ثبت فاکتور/پیش‌فاکتور» شروع کنید'}</td></tr>` :
+          filteredCustomers.map(c=>`<tr style="cursor:pointer" data-open-customer="${c.name}">
             <td><strong>${c.name}</strong></td>
             <td class="num">${fmtYuan(c.balanceYuan)}</td>
             <td class="num">${c.balanceRial!==null ? fmtRial(c.balanceRial) : '—'}</td>
@@ -787,6 +793,10 @@ async function renderCustomersList(main){
   `;
   main.querySelector('#addOrderGlobalBtn').addEventListener('click', ()=>openOrderModal());
   wireRateBasisToggle(main, ()=>renderCustomersList(main));
+  main.querySelector('#customersListSearchInput').addEventListener('input', (e)=>{
+    customersListSearchQuery = e.target.value;
+    renderCustomersList(main);
+  });
   main.querySelectorAll('[data-open-customer]').forEach(tr=>tr.addEventListener('click', ()=>{
     currentCustomer = tr.dataset.openCustomer;
     renderMain();
@@ -820,12 +830,18 @@ async function renderCustomerLedger(main){
     </div>
 
     <div class="section-title">وضعیت فاکتورها</div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><input id="customerOrdersSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customerOrdersSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
         <thead><tr><th>نوع</th><th>شماره</th><th class="col-right">تاریخ</th><th>مبلغ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیت تسویه</th><th>نرخ میانگین وزنی (برای هلو)</th><th>معادل ریالی حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
-          ${data.orderStatus.length===0 ? `<tr class="empty-row"><td colspan="10">هنوز فاکتوری ثبت نشده</td></tr>` :
-          data.orderStatus.map(o=>`<tr>
+          ${(()=>{
+            const filteredOrders = data.orderStatus.filter(o=>matchesSearch([
+              o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور', o.invoiceNo, o.date, o.yuanAmount, o.remainingYuan,
+              o.closed?'تسویه‌شده':'باز', o.weightedAvgRate, o.rialEquivalentForAccounting, o.isLocked?'قفل‌شده':'',
+            ], customerOrdersSearchQuery));
+            return filteredOrders.length===0 ? `<tr class="empty-row"><td colspan="10">${customerOrdersSearchQuery?'چیزی پیدا نشد':'هنوز فاکتوری ثبت نشده'}</td></tr>` :
+            filteredOrders.map(o=>`<tr>
             <td>${o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور'}</td>
             <td class="num">${o.invoiceNo||'—'}</td>
             <td class="date-cell">${o.date}</td>
@@ -838,7 +854,8 @@ async function renderCustomerLedger(main){
               ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-order="'+o.id+'" style="font-size:10px">بازکردن</button>'
               : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-order="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
             <td><button class="icon-btn" data-edit-order="${o.id}">ویرایش</button> <button class="icon-btn" data-del-order="${o.id}">حذف</button> <button class="icon-btn" data-hist-order="${o.id}">📜</button></td>
-          </tr>`).join('')}
+          </tr>`).join('');
+          })()}
         </tbody>
         ${data.orderStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
           <td colspan="3" style="text-align:left">جمعِ کل</td>
@@ -854,11 +871,18 @@ async function renderCustomerLedger(main){
     ${data.excessYuan > 0.01 ? `<div class="tag yuan" style="margin-bottom:16px">⚠️ مازاد ${fmtYuan(data.excessYuan)} — پرداختی که به هیچ فاکتوری تعلق نگرفته (منتظر فاکتور بعدی)</div>` : ''}
 
     <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><input id="customerEventsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customerEventsSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th class="col-right">تاریخ</th><th class="col-right">شرح</th><th>مبلغِ ریالی</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخ ردیف</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>معادل ریالی (به نرخِ روزِ فعلی)</th></tr></thead>
         <tbody>
-          ${data.events.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
+          ${(()=>{
+            const filteredEvents = data.events.filter(e=>matchesSearch([
+              e.date, e.desc, e.type==='order'?e.rial_debit:e.rial_credit, e.yuan_debit, e.yuan_credit,
+              e.rate, e.runningYuan, e.runningRial, e.runningRialAtCurrentRate,
+            ], customerEventsSearchQuery));
+            return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="9">چیزی پیدا نشد</td></tr>` :
+            filteredEvents.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell">${e.date}</td>
             <td class="col-right">${e.type==='order'?'📄 ':'💰 '}${e.desc}</td>
             <td class="num">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : fmtRial(e.rial_credit)}</td>
@@ -868,12 +892,21 @@ async function renderCustomerLedger(main){
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${fmtRial(e.runningRial)}</td>
             <td class="num">${e.runningRialAtCurrentRate!==null ? fmtRial(e.runningRialAtCurrentRate) : '— (نرخِ روز را در تنظیمات وارد کنید)'}</td>
-          </tr>`).join('')}
+          </tr>`).join('');
+          })()}
         </tbody>
       </table>
     </div>
   `;
   main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
+  main.querySelector('#customerOrdersSearchInput').addEventListener('input', (e)=>{
+    customerOrdersSearchQuery = e.target.value;
+    renderCustomerLedger(main);
+  });
+  main.querySelector('#customerEventsSearchInput').addEventListener('input', (e)=>{
+    customerEventsSearchQuery = e.target.value;
+    renderCustomerLedger(main);
+  });
   wireRateBasisToggle(main, ()=>renderCustomerLedger(main));
   main.querySelectorAll('[data-lock-order]').forEach(b=>b.addEventListener('click', async ()=>{
     if(!confirm('این نرخ رو الان تو هلو ثبت کردید؟ بعد از قفل‌کردن، این عدد دیگه با تغییرِ پرداخت‌های قدیمی خودکار عوض نمی‌شه.')) return;
@@ -1009,6 +1042,14 @@ function openOrderModal(existing, presetCustomer){
 // ---------- PAYMENTS ----------
 let paymentsSearchQuery = '';
 let supplierExpenseSearchQuery = '';
+let customersListSearchQuery = '';
+let suppliersListSearchQuery = '';
+let accountsSearchQuery = '';
+let customerOrdersSearchQuery = '';
+let customerEventsSearchQuery = '';
+let supplierInvoicesSearchQuery = '';
+let supplierHawaleStatusSearchQuery = '';
+let supplierEventsSearchQuery = '';
 // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ واقعیِ کندیِ لودشدن: قبلاً SheetJS تو <head>
 // و بدونِ defer لود می‌شد — یعنی کلِ صفحه تا دانلودِ کاملِ این فایلِ
 // خارجی (از cdnjs.cloudflare.com که ممکنه از ایران کند/غیرقابل‌دسترس
@@ -1596,17 +1637,21 @@ async function renderSuppliersList(main){
   const basis = state.settings.rateBasis;
   const g = await apiGetSummary(basis);
   if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
+  const filteredSuppliers = g.suppliers.filter(s=>matchesSearch([
+    s.name, s.yuanBought, s.expenseYuan, s.yuanBalance, s.unpaidFreightRial,
+  ], suppliersListSearchQuery));
   main.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">تأمین‌کنندگان</h1>
       <p class="page-desc">هر تأمین‌کننده مانده‌ی یوانیِ کاملاً جدای خودش را دارد — روی هرکدام بزنید تا دفترش را ببینید</p>
     </div>
+    <div class="toolbar"><div></div><input id="suppliersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${suppliersListSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>تأمین‌کننده</th><th>یوان خریداری‌شده</th><th>یوان خرج‌شده</th><th>مانده (یوان)</th><th>مانده‌ی حمل پرداخت‌نشده</th><th></th></tr></thead>
         <tbody>
-          ${g.suppliers.length===0 ? `<tr class="empty-row"><td colspan="6">هنوز تأمین‌کننده‌ای ثبت نشده — از تب «حواله‌ها» یا «ثبت هزینه» شروع کنید</td></tr>` :
-          g.suppliers.map(s=>`<tr style="cursor:pointer" data-open-supplier="${s.name}">
+          ${filteredSuppliers.length===0 ? `<tr class="empty-row"><td colspan="6">${suppliersListSearchQuery?'چیزی پیدا نشد':'هنوز تأمین‌کننده‌ای ثبت نشده — از تب «حواله‌ها» یا «ثبت هزینه» شروع کنید'}</td></tr>` :
+          filteredSuppliers.map(s=>`<tr style="cursor:pointer" data-open-supplier="${s.name}">
             <td><strong>${s.name}</strong></td>
             <td class="num">${fmtYuan(s.yuanBought)}</td>
             <td class="num">${fmtYuan(s.expenseYuan)}</td>
@@ -1618,6 +1663,10 @@ async function renderSuppliersList(main){
       </table>
     </div>
   `;
+  main.querySelector('#suppliersListSearchInput').addEventListener('input', (e)=>{
+    suppliersListSearchQuery = e.target.value;
+    renderSuppliersList(main);
+  });
   main.querySelectorAll('[data-open-supplier]').forEach(tr=>tr.addEventListener('click', ()=>{
     currentSupplier = tr.dataset.openSupplier;
     renderMain();
@@ -1646,6 +1695,18 @@ async function renderSupplierLedger(main){
       e.freight_rial, e.freight_paid ? 'پرداخت‌شده' : 'در انتظار',
     ], q));
   }
+  const filteredInvoices = data.invoiceStatus.filter(o=>matchesSearch([
+    o.date, o.yuanAmount, o.remainingYuan, o.closed?'تسویه‌شده':'باز', o.weightedAvgRate, o.rialEquivalentForAccounting, o.isLocked?'قفل‌شده':'',
+  ], supplierInvoicesSearchQuery));
+  const hawalesForSupplier = sortByDateAsc(state.hawales.filter(h=>h.supplier_name===sName));
+  const filteredHawaleStatus = hawalesForSupplier.filter(h=>{
+    const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount};
+    return matchesSearch([h.date, bd.totalYuan, bd.spentYuan, bd.remainingYuan], supplierHawaleStatusSearchQuery);
+  });
+  const filteredSupplierEvents = data.events.filter(e=>matchesSearch([
+    e.date, e.docNumber, e.desc, e.type==='hawale'?e.rial_credit:null, e.yuan_debit, e.yuan_credit, e.rate,
+    e.runningYuan, e.runningRial, e.diagnosis,
+  ], supplierEventsSearchQuery));
   main.innerHTML = `
     <div class="page-head">
       <button class="btn btn-ghost btn-sm" id="backSupplierBtn" style="margin-bottom:10px">‹ بازگشت به لیست تأمین‌کنندگان</button>
@@ -1662,12 +1723,13 @@ async function renderSupplierLedger(main){
     </div>
 
     <div class="section-title">وضعیتِ فاکتورهای خرید</div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierInvoicesSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierInvoicesSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
         <thead><tr><th class="col-right">تاریخ</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
-          ${data.invoiceStatus.length===0 ? `<tr class="empty-row"><td colspan="8">هنوز هزینه/فاکتورِ خریدی ثبت نشده</td></tr>` :
-          data.invoiceStatus.map(o=>`<tr>
+          ${filteredInvoices.length===0 ? `<tr class="empty-row"><td colspan="8">${supplierInvoicesSearchQuery?'چیزی پیدا نشد':'هنوز هزینه/فاکتورِ خریدی ثبت نشده'}</td></tr>` :
+          filteredInvoices.map(o=>`<tr>
             <td class="date-cell">${o.date}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
@@ -1690,12 +1752,13 @@ async function renderSupplierLedger(main){
     </div>
 
     <div class="section-title">وضعیتِ حواله‌ها — چقدر رفته، چقدر مونده</div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierHawaleStatusSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierHawaleStatusSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
         <thead><tr><th class="col-right">تاریخ</th><th>کلِ حواله (یوان)</th><th>خرج‌شده (یوان)</th><th>مانده‌ی تخصیص‌نیافته (یوان)</th><th>وضعیت</th><th></th></tr></thead>
         <tbody>
-          ${state.hawales.filter(h=>h.supplier_name===sName).length===0 ? `<tr class="empty-row"><td colspan="6">هنوز حواله‌ای ثبت نشده</td></tr>` :
-          sortByDateAsc(state.hawales.filter(h=>h.supplier_name===sName)).map(h=>{
+          ${filteredHawaleStatus.length===0 ? `<tr class="empty-row"><td colspan="6">${supplierHawaleStatusSearchQuery?'چیزی پیدا نشد':'هنوز حواله‌ای ثبت نشده'}</td></tr>` :
+          filteredHawaleStatus.map(h=>{
             const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount, spentItems:[]};
             const fullySpent = bd.remainingYuan <= 0.01;
             return `<tr>
@@ -1730,7 +1793,7 @@ async function renderSupplierLedger(main){
     <div class="toolbar">
       <button class="btn btn-primary" id="addExpenseBtn">+ ثبت فاکتورِ خرید / هزینه</button>
       <div style="display:flex;gap:8px;align-items:center">
-        <input id="supplierExpSearchInput" type="text" placeholder="🔍 جستجو با تاریخ..." value="${supplierExpenseSearchQuery}" style="min-width:180px">
+        <input id="supplierExpSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierExpenseSearchQuery}" style="min-width:180px">
         <button class="btn btn-ghost btn-sm" id="syncPartsBtn">🔄 sync قطعات از گوگل‌شیت</button>
         <button class="btn btn-ghost btn-sm" id="exportExpensesBtn">📥 خروجی اکسل</button>
       </div>
@@ -1764,11 +1827,13 @@ async function renderSupplierLedger(main){
     </div>
 
     <div class="section-title">دفترِ کامل (تاریخچه‌ی رویدادها)</div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierEventsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierEventsSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th class="col-right">تاریخ</th><th>سند</th><th class="col-right">شرح</th><th>مبلغِ ریالیِ حواله‌شده</th><th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>نرخِ ردیف</th><th>مانده یوانی</th><th>مانده‌ی ریالیِ شناخته‌شده</th><th>تشخیص</th></tr></thead>
         <tbody>
-          ${data.events.map(e=>`<tr>
+          ${filteredSupplierEvents.length===0 ? `<tr class="empty-row"><td colspan="10">چیزی پیدا نشد</td></tr>` :
+          filteredSupplierEvents.map(e=>`<tr>
             <td class="date-cell">${e.date}</td>
             <td class="num">${e.docNumber}</td>
             <td class="col-right">${e.type==='invoice'?'📄 ':'💰 '}${e.desc}</td>
@@ -1787,6 +1852,18 @@ async function renderSupplierLedger(main){
   main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; renderMain(); });
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
   main.querySelector('#syncPartsBtn').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
+  main.querySelector('#supplierInvoicesSearchInput').addEventListener('input', (e)=>{
+    supplierInvoicesSearchQuery = e.target.value;
+    renderSupplierLedger(main);
+  });
+  main.querySelector('#supplierHawaleStatusSearchInput').addEventListener('input', (e)=>{
+    supplierHawaleStatusSearchQuery = e.target.value;
+    renderSupplierLedger(main);
+  });
+  main.querySelector('#supplierEventsSearchInput').addEventListener('input', (e)=>{
+    supplierEventsSearchQuery = e.target.value;
+    renderSupplierLedger(main);
+  });
   main.querySelector('#supplierExpSearchInput').addEventListener('input', (e)=>{
     supplierExpenseSearchQuery = e.target.value;
     renderSupplierLedger(main);
@@ -2005,18 +2082,28 @@ async function renderAccounts(main){
   const g = await apiGetSummary(basis);
   const balanceMap = {};
   if(g) g.accounts.forEach(a=>{ balanceMap[a.name] = a; }); // نگاشت با نام چون g.accounts فقط id نداره؛ فالبک با محاسبه دستی زیر
+  const filteredAccounts = state.accounts.filter(a=>{
+    const stat = balanceMap[a.displayName];
+    return matchesSearch([
+      a.owner, a.bank_name, a.account_number, a.opening_balance,
+      stat?stat.balance:'', a.active?'فعال':'غیرفعال',
+    ], accountsSearchQuery);
+  });
   main.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">حساب‌های بانکی</h1>
       <p class="page-desc">هر شخص می‌تواند چند حساب داشته باشد — مثلاً هم ملی هم ملت. مانده شامل مانده‌ی اولیه + دریافتی‌ها − حواله‌ها + تعدیلات است</p>
     </div>
-    <div class="toolbar"><button class="btn btn-primary" id="addAccBtn">+ افزودن حساب</button><div></div></div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addAccBtn">+ افزودن حساب</button>
+      <input id="accountsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${accountsSearchQuery}" style="min-width:200px">
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>مالک</th><th>نام بانک</th><th>شماره حساب</th><th>مانده‌ی اولیه</th><th>مانده‌ی فعلی</th><th>فعال</th><th></th></tr></thead>
         <tbody>
-          ${state.accounts.length===0 ? `<tr class="empty-row"><td colspan="7">حسابی ثبت نشده است</td></tr>` :
-          state.accounts.map(a=>{
+          ${filteredAccounts.length===0 ? `<tr class="empty-row"><td colspan="7">${accountsSearchQuery?'چیزی پیدا نشد':'حسابی ثبت نشده است'}</td></tr>` :
+          filteredAccounts.map(a=>{
             const stat = balanceMap[a.displayName];
             return `<tr>
               <td>${a.owner}</td>
@@ -2033,6 +2120,10 @@ async function renderAccounts(main){
     </div>
   `;
   main.querySelector('#addAccBtn').addEventListener('click', ()=>openAccountModal());
+  main.querySelector('#accountsSearchInput').addEventListener('input', (e)=>{
+    accountsSearchQuery = e.target.value;
+    renderAccounts(main);
+  });
   main.querySelectorAll('[data-edit-acc]').forEach(b=>b.addEventListener('click',()=>{
     const a = state.accounts.find(x=>x.id==b.dataset.editAcc);
     openAccountModal(a);
