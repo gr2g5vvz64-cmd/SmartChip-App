@@ -564,11 +564,11 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  const [accounts, orders, hawales, payments, expenses, settings] = await Promise.all([
-    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiGetSettings(),
+  const [accounts, orders, hawales, payments, expenses, incomes, settings] = await Promise.all([
+    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiGetSettings(),
   ]);
   state = {
-    accounts, orders, hawales, payments, expenses,
+    accounts, orders, hawales, payments, expenses, incomes,
     settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
   };
 }
@@ -578,6 +578,7 @@ const NAV_STRUCTURE = [
   {type:'group', id:'group-customer', label:'مشتری', children:[
     {id:'customers', label:'مشتریان (دفتر)'},
     {id:'payments', label:'پرداخت‌های مشتریان'},
+    {id:'incomes', label:'درآمدهای مشتریان'},
     {id:'action-add-order', label:'+ ثبت فاکتور/پیش‌فاکتور', action:'add-order'},
     {id:'action-add-payment', label:'+ ثبت پرداخت', action:'add-payment'},
     {id:'action-add-income', label:'+ ثبت درآمد', action:'add-income'},
@@ -661,6 +662,7 @@ async function renderMain(){
   if(currentTab === 'dashboard') return renderDashboard(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
   if(currentTab === 'payments') return renderPayments(main);
+  if(currentTab === 'incomes') return renderIncomes(main);
   if(currentTab === 'hawales') return renderHawales(main);
   if(currentTab === 'supplier') return renderSupplier(main);
   if(currentTab === 'accounts') return renderAccounts(main);
@@ -1410,6 +1412,69 @@ function openIncomeModal(existing){
     backdrop.remove();
     renderMain();
   });
+}
+
+// ---------- INCOMES (درآمدهای مشتریان — با قابلیتِ ویرایش/حذف، هم‌الگو با پرداخت‌ها) ----------
+let incomesSearchQuery = '';
+async function renderIncomes(main){
+  await loadAll();
+  let filtered = sortByDateDesc(state.incomes);
+  if(incomesSearchQuery.trim()){
+    const q = incomesSearchQuery.trim();
+    filtered = filtered.filter(inc=>{
+      const acc = state.accounts.find(a=>a.id===inc.account);
+      return matchesSearch([inc.date, inc.customer_name, acc?acc.displayName:'', inc.rial_amount, inc.note], q);
+    });
+  }
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">درآمدهای مشتریان</h1>
+      <p class="page-desc">سندهایی که مانده‌ی مشتری را بدونِ واریزِ مستقیم بالا می‌برند (مثلاً کمیسیون یا تسویه‌ی حساب)</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addIncomeGlobalBtn">+ ثبت درآمد</button>
+      <input id="incomesSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${incomesSearchQuery}" style="min-width:220px">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="col-right">تاریخ</th><th>مشتری</th><th>حساب دریافت‌کننده</th><th>مبلغ (ریال)</th><th>توضیح</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="6">${incomesSearchQuery ? 'چیزی پیدا نشد' : 'درآمدی ثبت نشده است'}</td></tr>` :
+          filtered.map(inc=>{
+            const acc = state.accounts.find(a=>a.id===inc.account);
+            return `<tr>
+              <td class="date-cell">${inc.date}</td>
+              <td>${inc.customer_name}</td>
+              <td>${acc ? acc.displayName : '—'}</td>
+              <td class="num">${fmtRial(inc.rial_amount)}</td>
+              <td>${inc.note || '—'}</td>
+              <td><button class="icon-btn" data-edit-income="${inc.id}">ویرایش</button> <button class="icon-btn" data-del-income="${inc.id}">حذف</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        ${filtered.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtRial(filtered.reduce((s,inc)=>s+Number(inc.rial_amount||0),0))}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>` : ''}
+      </table>
+    </div>
+  `;
+  main.querySelector('#addIncomeGlobalBtn').addEventListener('click', ()=>openIncomeModal());
+  main.querySelector('#incomesSearchInput').addEventListener('input', (e)=>{
+    incomesSearchQuery = e.target.value;
+    renderIncomes(main);
+  });
+  main.querySelectorAll('[data-edit-income]').forEach(b=>b.addEventListener('click', ()=>{
+    const inc = state.incomes.find(x=>x.id==b.dataset.editIncome);
+    openIncomeModal(inc);
+  }));
+  main.querySelectorAll('[data-del-income]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ مطمئنید می‌خواید این سندِ درآمد را حذف کنید؟')) return;
+    const ok = await apiDelete('customer-incomes', b.dataset.delIncome);
+    if(!ok) return;
+    renderIncomes(main);
+  }));
 }
 
 // ---------- HAWALES (ترکیبی — چند حساب در یک حواله) ----------
