@@ -556,6 +556,7 @@ const NAV_STRUCTURE = [
     {id:'payments', label:'پرداخت‌های مشتریان'},
     {id:'action-add-order', label:'+ ثبت فاکتور/پیش‌فاکتور', action:'add-order'},
     {id:'action-add-payment', label:'+ ثبت پرداخت', action:'add-payment'},
+    {id:'action-add-income', label:'+ ثبت درآمد', action:'add-income'},
   ]},
   {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
     {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
@@ -617,6 +618,7 @@ function render(){
       if(btn.dataset.action==='add-expense') openExpenseModal();
       if(btn.dataset.action==='add-order') openOrderModal();
       if(btn.dataset.action==='add-payment') openPaymentModal();
+      if(btn.dataset.action==='add-income') openIncomeModal();
     });
   });
   root.querySelectorAll('.nav-group-header').forEach(btn=>{
@@ -1309,6 +1311,75 @@ function openPaymentModal(existing){
     if(!d) return;
     backdrop.remove();
     renderPayments(document.getElementById('main'));
+  });
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۲۲) طبق درخواستِ صریحِ کاربر: «ثبت درآمد» — جدا از «ثبت
+// پرداخت»، چون درآمد ربطی به خریدِ یوان/FIFO نداره؛ فقط یه ثبتِ ساده‌ی
+// مشتری+تاریخ+مبلغ.
+function openIncomeModal(existing){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایش درآمد' : 'ثبت درآمدِ مشتری'}</h3>
+      <div class="field" style="margin-bottom:10px"><label>مشتری</label>
+        <input id="incCustomer" type="text" value="${existing ? existing.customer_name : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
+        <div id="incCustomerResults" style="position:relative"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاریخ (شمسی)</label><input id="incDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
+        <div class="field"><label>مبلغ (ریال)</label><input id="incAmount" type="text" class="num" value="${existing ? fmt(existing.rial_amount,0) : ''}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>توضیح کوتاه (اختیاری)</label><input id="incNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveIncomeBtn">${isEdit?'ذخیره تغییرات':'ثبت درآمد'}</button>
+        <button class="btn btn-ghost" id="cancelIncomeBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  backdrop.querySelector('#cancelIncomeBtn').addEventListener('click', ()=>backdrop.remove());
+  wireShamsiDatePicker(backdrop.querySelector('#incDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#incAmount'));
+
+  let selectedCustomerName = existing ? existing.customer_name : '';
+  const custInput = backdrop.querySelector('#incCustomer');
+  const custResults = backdrop.querySelector('#incCustomerResults');
+  custInput.addEventListener('input', async ()=>{
+    const q = custInput.value.trim();
+    if(q.length < 2){ custResults.innerHTML=''; return; }
+    const matches = await searchCrmPriorityCustomers(q);
+    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+      ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${m.name}">${m.name}</div>`).join('')}
+    </div>` : '';
+    custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
+      selectedCustomerName = el.dataset.pickCust;
+      custInput.value = selectedCustomerName;
+      custResults.innerHTML = '';
+    }));
+  });
+
+  backdrop.querySelector('#saveIncomeBtn').addEventListener('click', async ()=>{
+    selectedCustomerName = selectedCustomerName || custInput.value.trim();
+    const date = backdrop.querySelector('#incDate').value.trim();
+    const rialAmount = parseFloat(backdrop.querySelector('#incAmount').value.replace(/,/g,''));
+    const note = backdrop.querySelector('#incNote').value.trim();
+    if(!selectedCustomerName || !date || !rialAmount || rialAmount<0){ showToast('مشتری، تاریخ، و مبلغِ مثبت را وارد کنید'); return; }
+
+    const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
+    if(similar){
+      const useExisting = confirm(`⚠️ یه مشتری با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همون مشتریه؟\n\n«تأیید» = بله، همون «${similar}» است.\n«انصراف» = نه، این واقعاً مشتریِ جدیدیه («${selectedCustomerName}»).`);
+      if(useExisting) selectedCustomerName = similar;
+    }
+
+    const body = {customer_name:selectedCustomerName, date, rial_amount:rialAmount, note};
+    const d = isEdit ? await apiUpdate('customer-incomes', existing.id, body) : await apiCreate('customer-incomes', body);
+    if(!d) return;
+    showToast('✅ درآمد ثبت شد');
+    backdrop.remove();
   });
 }
 
