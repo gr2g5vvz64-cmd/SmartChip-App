@@ -928,7 +928,7 @@ async function renderCustomerLedger(main){
             <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
-            <td class="num">${e.rate ? fmt(e.rate,0) : (e.pending?'⏳ معلق':'—')}</td>
+            <td class="num">${e.rate ? fmt(e.rate,0)+(e.rateBreakdown ? ` <button class="icon-btn" data-show-rate-breakdown='${JSON.stringify(e.rateBreakdown)}' style="font-size:9.5px;padding:1px 5px">🔀 ${e.rateBreakdown.length} نرخ</button>` : '') : (e.pending?'⏳ معلق':'—')}${e.pendingRial>0.01 ? `<div style="font-size:9.5px;color:var(--danger)">⚠️ ${fmtRial(e.pendingRial)} هنوز لینک نشده</div>` : ''}</td>
             <td class="num" style="max-width:70px;font-size:10.5px">${e.runningRialAtCurrentRate!==null ? fmtRial(e.runningRialAtCurrentRate) : '—'}</td>
           </tr>`).join('');
           })()}
@@ -946,6 +946,28 @@ async function renderCustomerLedger(main){
     </div>
   `;
   main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
+  main.querySelectorAll('[data-show-rate-breakdown]').forEach(b=>b.addEventListener('click', ()=>{
+    const breakdown = JSON.parse(b.dataset.showRateBreakdown);
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal">
+        <h3>چرا این واریزی چند نرخ دارد؟</h3>
+        <p class="page-desc">این واریزی طبقِ روشِ FIFO بینِ چند حواله تقسیم شده — هر بخشش نرخِ همون حواله‌ای که ازش تسویه شده رو گرفته:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>مبلغِ این بخش (ریال)</th><th>نرخِ همین بخش</th><th>معادلِ یوانی</th></tr></thead>
+            <tbody>
+              ${breakdown.map(b=>`<tr><td class="num">${fmtRial(b.rialAmount)}</td><td class="num">${fmt(b.rate,0)}</td><td class="num">${fmtYuan(b.rialAmount/b.rate)}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions"><button class="btn btn-ghost" id="closeRateBreakdownBtn">بستن</button></div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    backdrop.querySelector('#closeRateBreakdownBtn').addEventListener('click', ()=>backdrop.remove());
+    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  }));
   main.querySelector('#customerOrdersSearchInput').addEventListener('input', (e)=>{
     customerOrdersSearchQuery = e.target.value;
     renderCustomerLedger(main);
