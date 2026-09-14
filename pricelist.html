@@ -240,6 +240,7 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
       <span class="rate-lbl">نرخ ارز</span>
       <div class="ri"><span>¥=</span><div class="hdr-iw"><input type="text" id="cnyRate" placeholder="—" oninput="fmtHdrInput(this);calc()" style="direction:ltr;text-align:left"><div class="sfx">﷼</div></div></div>
       <div class="ri"><span>$=</span><div class="hdr-iw"><input type="text" id="usdRate" placeholder="—" oninput="fmtHdrInput(this);calc()" style="direction:ltr;text-align:left"><div class="sfx">﷼</div></div></div>
+      <div class="ri" title="وقتی پیش‌فاکتور یوانی می‌دهید، این درصد از نرخِ امروز کم می‌شود تا اگر تا روزِ تأیید مشتری نرخ بالا رفت، ضرر نکنید"><span>حاشیه٪</span><div class="hdr-iw"><input type="text" id="fxSafetyPct" placeholder="0" oninput="calc()" style="direction:ltr;text-align:left;width:38px"></div></div>
     </div>
     <div class="hdr-actions">
       <div class="date-badge" id="dateBadge"></div>
@@ -330,7 +331,13 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
         <div id="weightCalcSection"><div class="empty">—</div></div>
       </div>
       <div class="rp">
-        <div class="rp-t">نتیجه محاسبات</div>
+        <div class="rp-t" style="display:flex;align-items:center;justify-content:space-between">
+          <span>نتیجه محاسبات</span>
+          <span style="display:flex;gap:8px;font-size:10px;font-weight:400">
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="radio" name="calcDisplayCur" value="rial" checked onchange="calc()" style="margin:0"> ریالی</label>
+            <label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="radio" name="calcDisplayCur" value="yuan" onchange="calc()" style="margin:0"> یوانی</label>
+          </span>
+        </div>
         <div class="rp-fin">
           <div class="rp-fl">قیمت نهایی هر عدد</div>
           <div class="rp-fp" id="r_final">—</div>
@@ -356,7 +363,10 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
 <!-- ═══ سبد ═══ -->
 <div class="panel" style="width:756px;flex-shrink:0;display:flex;flex-direction:column;gap:0;padding:8px">
   <!-- بازار: ارتفاع ۸.۵cm = ~322px -->
-  <div id="marketRefBox" style="height:322px;flex-shrink:0;background:var(--surface);border:2.5px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+  <!-- ⚠️ (۱۴۰۵/۰۶/۲۲) طبق درخواستِ صریحِ کاربر: فعلاً غیرفعال/مخفی — کاربردی
+       ندارد الان، ولی حذف نشده تا اگر بعداً لازم شد، فقط همین یک استایلِ
+       inline (display:none) برداشته بشه و برگرده. -->
+  <div id="marketRefBox" style="display:none;height:322px;flex-shrink:0;background:var(--surface);border:2.5px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:var(--sh);flex-direction:column;gap:8px;margin-bottom:8px">
     <div style="font-size:11px;letter-spacing:.1em;color:var(--gold);font-weight:700;display:flex;align-items:center;gap:5px">
       <span style="display:block;width:3px;height:11px;background:var(--goldL);border-radius:2px"></span>
       قیمت و سورس بازار
@@ -822,15 +832,33 @@ function calc(){
 
   document.getElementById('r_supLbl').textContent=`سود تامین‌کننده (${supPct}٪)`;
   document.getElementById('r_scLbl').textContent=`سود اسمارت‌چیپ (${scPct}٪)`;
-  document.getElementById('r_buy').textContent=buyIRR>0?fmt(buyIRR)+' ﷼':'—';
-  document.getElementById('r_sup').textContent=supProfit>0?fmt(supProfit)+' ﷼':'—';
-  document.getElementById('r_ship').textContent=shipPP>0?fmt(shipPP)+' ﷼':'—';
-  document.getElementById('r_base').textContent=base>0?fmt(base)+' ﷼':'—';
-  document.getElementById('r_sc').textContent=scProfit>0?fmt(scProfit)+' ﷼':'—';
-  document.getElementById('r_final').textContent=final>0?fmt(final):'—';
+
+  // ⚠️ (۱۴۰۵/۰۶/۲۲) طبق درخواستِ صریحِ کاربر — بدونِ تغییرِ منطقِ محاسباتیِ
+  // اصلی (که همیشه بر مبنای ریال حساب می‌شه): فقط *نمایشِ* جدولِ پایین،
+  // وقتی رادیوباکس رو «یوانی» باشه، با یه نرخِ «ایمن» (پایین‌تر از نرخِ
+  // امروز، به‌اندازه‌ی درصدِ حاشیه) تبدیل می‌شه — تا اگه پیش‌فاکتور یوانی
+  // بدید و مشتری چند روزِ بعد تأیید کنه (و نرخ بالا رفته باشه)، همون
+  // حاشیه جلوی ضرر رو بگیره.
+  const dispMode = document.querySelector('input[name="calcDisplayCur"]:checked')?.value || 'rial';
+  const safetyPct = parseFloat((document.getElementById('fxSafetyPct').value||'').replace(/,/g,''))||0;
+  const safeCny = cny * (1 - safetyPct/100);
+  const toDisp = (rialVal) => {
+    if(dispMode==='yuan' && safeCny>0) return rialVal>0 ? fmt(rialVal/safeCny,2)+' ¥' : '—';
+    return rialVal>0 ? fmt(rialVal)+' ﷼' : '—';
+  };
+  document.getElementById('r_buy').textContent=toDisp(buyIRR);
+  document.getElementById('r_sup').textContent=toDisp(supProfit);
+  document.getElementById('r_ship').textContent=toDisp(shipPP);
+  document.getElementById('r_base').textContent=toDisp(base);
+  document.getElementById('r_sc').textContent=toDisp(scProfit);
+  document.getElementById('r_final').textContent=final>0 ? (dispMode==='yuan' && safeCny>0 ? fmt(final/safeCny,2) : fmt(final)) : '—';
+  document.querySelector('.rp-fc').textContent = (dispMode==='yuan' && safeCny>0) ? 'یوان' : 'ریال';
   window.lastFinalPriceRial=final; // برای دکمه‌ی «ارسال قیمت به استعلام» — مقدار خام (نه فرمت‌شده)
   const tot=document.getElementById('r_total');
-  if(final>0&&qty>1){tot.style.display='block';tot.textContent=`جمع ${qty} عدد: ${fmt(final*qty)} ﷼`;}
+  if(final>0&&qty>1){
+    tot.style.display='block';
+    tot.textContent = (dispMode==='yuan' && safeCny>0) ? `جمع ${qty} عدد: ${fmt(final*qty/safeCny,2)} ¥` : `جمع ${qty} عدد: ${fmt(final*qty)} ﷼`;
+  }
   else tot.style.display='none';
   document.getElementById('r_partName').textContent=sel?sel.part:'';
 
