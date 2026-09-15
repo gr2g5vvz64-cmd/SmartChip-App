@@ -699,9 +699,12 @@ async function renderDashboard(main){
   if(!g){ main.innerHTML = '<div class="page-head"><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>'; return; }
   summaryCache = g;
   main.innerHTML = `
-    <div class="page-head">
-      <h1 class="page-title">داشبورد</h1>
-      <p class="page-desc">وضعیت لحظه‌ای ریال، یوان و مانده مشتریان — بر اساس مبنای انتخابی نرخ</p>
+    <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <h1 class="page-title">داشبورد</h1>
+        <p class="page-desc">وضعیت لحظه‌ای ریال، یوان و مانده مشتریان — بر اساس مبنای انتخابی نرخ</p>
+      </div>
+      <a href="${FX_API}backup/download/" download class="btn btn-ghost btn-sm" title="چون سرورِ رایگان بک‌آپِ خودکار نداره، هرچند وقت یک‌بار این دکمه رو بزنید و فایل رو یه‌جای امن نگه دارید">💾 دانلودِ بک‌آپِ کامل</a>
     </div>
     ${g.unlockedClosedOrders && g.unlockedClosedOrders.length ? `
     <div style="background:#FEF3C7;border:2px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:18px">
