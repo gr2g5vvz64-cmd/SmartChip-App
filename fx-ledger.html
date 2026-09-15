@@ -568,11 +568,11 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  const [accounts, orders, hawales, payments, expenses, incomes, transfers, settings] = await Promise.all([
-    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiList('account-transfers'), apiGetSettings(),
+  const [accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, settings] = await Promise.all([
+    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiList('account-transfers'), apiList('capital-advances'), apiGetSettings(),
   ]);
   state = {
-    accounts, orders, hawales, payments, expenses, incomes, transfers,
+    accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances,
     settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
   };
 }
@@ -583,6 +583,7 @@ const NAV_STRUCTURE = [
     {id:'customers', label:'مشتریان (دفتر)'},
     {id:'payments', label:'پرداخت‌های مشتریان'},
     {id:'incomes', label:'درآمدهای مشتریان'},
+    {id:'capital-advances', label:'پیش‌پرداخت‌های سرمایه‌ای'},
     {id:'action-add-order', label:'+ ثبت فاکتور/پیش‌فاکتور', action:'add-order'},
     {id:'action-add-payment', label:'+ ثبت پرداخت', action:'add-payment'},
     {id:'action-add-income', label:'+ ثبت درآمد', action:'add-income'},
@@ -667,6 +668,7 @@ async function renderMain(){
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
   if(currentTab === 'payments') return renderPayments(main);
   if(currentTab === 'incomes') return renderIncomes(main);
+  if(currentTab === 'capital-advances') return renderCapitalAdvances(main);
   if(currentTab === 'hawales') return renderHawales(main);
   if(currentTab === 'supplier') return renderSupplier(main);
   if(currentTab === 'accounts') return currentAccount ? renderAccountLedger(main) : renderAccounts(main);
@@ -1739,7 +1741,7 @@ function openHawaleModal(existing){
     autoSplitResult = await res.json();
     const box = backdrop.querySelector('#hAutoSplitResultBox');
     if(autoSplitResult.allocations.length===0){
-      box.innerHTML = `<div style="font-size:11px;color:var(--danger)">هیچ واریزیِ آزادی برای این مشتری پیدا نشد</div>`;
+      box.innerHTML = `<div style="padding:10px;border-radius:8px;background:var(--paper)"><div style="font-size:11.5px;color:var(--danger)">⚠️ هیچ واریزیِ آزادی برای <strong>${customerName}</strong> پیدا نشد — کلِ مبلغِ <strong>${fmtRial(autoSplitResult.uncovered)}</strong> از <strong>سرمایه/حسابِ خودِ شرکت</strong> برداشته می‌شه. این مبلغ خودکار تو صفحه‌ی «پیش‌پرداخت‌های سرمایه‌ای» ثبت می‌شه.</div></div>`;
       return;
     }
     box.innerHTML = `
@@ -1755,7 +1757,10 @@ function openHawaleModal(existing){
           </tbody>
         </table>
       </div>
-      ${autoSplitResult.uncovered>0.01 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠️ واریزی‌های این مشتری کافی نبود — ${fmtRial(autoSplitResult.uncovered)} پوشش داده نشد</div>` : '<div style="font-size:11px;color:var(--rial);margin-top:6px">✅ کاملاً پوشش داده شد</div>'}
+      <div style="margin-top:8px;padding:10px;border-radius:8px;background:var(--paper)">
+        <div style="font-size:11.5px">✅ از واریزیِ راکدِ خودِ <strong>${customerName}</strong> پوشش داده شد: <strong>${fmtRial(autoSplitResult.allocations.reduce((s,a)=>s+Number(a.amount||0),0))}</strong></div>
+        ${autoSplitResult.uncovered>0.01 ? `<div style="font-size:11.5px;color:var(--danger);margin-top:4px">⚠️ باقیِ مبلغ — <strong>${fmtRial(autoSplitResult.uncovered)}</strong> — چون واریزیِ آزادِ این مشتری کافی نبود، از <strong>سرمایه/حسابِ خودِ شرکت</strong> برداشته می‌شه. این مبلغ خودکار تو صفحه‌ی «پیش‌پرداخت‌های سرمایه‌ای» ثبت می‌شه تا وقتی این مشتری بعداً پول داد، خودکار تسویه بشه.</div>` : ''}
+      </div>
     `;
   });
 
@@ -1817,6 +1822,13 @@ function openHawaleModal(existing){
     const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs};
     if(autoSplitResult){
       body.paymentAllocations = autoSplitResult.allocations.map(a=>({payment: a.payment_id, rial_amount: a.amount}));
+      // ⚠️ (۱۴۰۵/۰۶/۲۳) طبق طراحیِ دقیقِ کاربر: اگه واریزیِ آزادِ این
+      // مشتری کافی نبود، مابه‌التفاوت از سرمایه/حسابِ خودِ شرکت برداشته
+      // شده — خودکار یه رکوردِ «پیش‌پرداختِ سرمایه‌ای» ثبت می‌شه.
+      if(autoSplitResult.uncovered > 0.01){
+        const custName = backdrop.querySelector('#hAutoSplitCustomer').value.trim();
+        body.capitalAdvance = {customerName: custName, rialAmount: autoSplitResult.uncovered};
+      }
     }
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
@@ -2636,6 +2648,137 @@ async function renderAccountLedger(main){
   main.querySelector('#accountLedgerSearchInput').addEventListener('input', (e)=>{
     accountLedgerSearchQuery = e.target.value;
     renderAccountLedger(main);
+  });
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۲۳) طبق طراحیِ دقیقِ کاربر: صفحه‌ی ردیابیِ «پیش‌پرداختِ
+// سرمایه‌ای» — کاملاً موازی و بی‌اثر رو محاسباتِ اصلی؛ فقط برایِ شفافیت
+// که «الان چقدر از پولِ خودم، بدونِ برگشت، بیرونه».
+let capitalAdvancesSearchQuery = '';
+async function renderCapitalAdvances(main){
+  await loadAll();
+  let filtered = sortByDateDesc(state.capitalAdvances);
+  if(capitalAdvancesSearchQuery.trim()){
+    filtered = filtered.filter(a=>matchesSearch([a.date, a.customer_name, a.rate_at_advance, a.rial_amount, a.remainingRial], capitalAdvancesSearchQuery));
+  }
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">پیش‌پرداخت‌های سرمایه‌ای</h1>
+      <p class="page-desc">وقتی برای پیش‌بردنِ کارِ مشتری، از سرمایه/حسابِ خودتون (نه واریزیِ خودِ مشتری) حواله زدید — این صفحه ردیابی می‌کنه چقدر بیرونه و کِی/با چه سود یا زیانی برمی‌گرده</p>
+    </div>
+    <div class="toolbar"><div></div><input id="capAdvSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${capitalAdvancesSearchQuery}" style="min-width:220px"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="col-right">تاریخ</th><th>مشتری</th><th>نرخِ همان روز</th><th>مبلغِ اصلی (ریال)</th><th>تسویه‌شده (ریال)</th><th>مانده (ریال)</th><th>وضعیت</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="8">${capitalAdvancesSearchQuery ? 'چیزی پیدا نشد' : 'هنوز پیش‌پرداختی ثبت نشده — این خودکار موقعِ ثبتِ حواله ساخته می‌شه اگه واریزیِ مشتری کافی نباشه'}</td></tr>` :
+          filtered.map(a=>{
+            const isSettled = a.remainingRial <= 10;
+            return `<tr>
+              <td class="date-cell">${a.date}</td>
+              <td>${a.customer_name}</td>
+              <td class="num">${fmt(a.rate_at_advance,0)}</td>
+              <td class="num">${fmtRial(a.rial_amount)}</td>
+              <td class="num">${fmtRial(a.settled_rial)}</td>
+              <td class="num" style="font-weight:700">${fmtRial(a.remainingRial)}</td>
+              <td>${isSettled ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ بازِ‌سرمایه</span>'}</td>
+              <td>
+                ${a.settlements.length ? `<button class="icon-btn" data-show-settlements="${a.id}">📋 جزئیاتِ تسویه</button>` : ''}
+                <button class="icon-btn" data-edit-capadv="${a.id}">ویرایش</button>
+                <button class="icon-btn" data-del-capadv="${a.id}">حذف</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        ${filtered.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td class="num">${fmtRial(filtered.reduce((s,a)=>s+Number(a.rial_amount||0),0))}</td>
+          <td class="num">${fmtRial(filtered.reduce((s,a)=>s+Number(a.settled_rial||0),0))}</td>
+          <td class="num">${fmtRial(filtered.reduce((s,a)=>s+Number(a.remainingRial||0),0))}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>` : ''}
+      </table>
+    </div>
+  `;
+  main.querySelector('#capAdvSearchInput').addEventListener('input', (e)=>{
+    capitalAdvancesSearchQuery = e.target.value;
+    renderCapitalAdvances(main);
+  });
+  main.querySelectorAll('[data-show-settlements]').forEach(b=>b.addEventListener('click', ()=>{
+    const adv = state.capitalAdvances.find(x=>x.id==b.dataset.showSettlements);
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal">
+        <h3>جزئیاتِ تسویه — ${adv.customer_name}</h3>
+        <p class="page-desc">هر بار این مشتری پول واریز کرد، به‌اندازه‌ی موردنیاز از این پیش‌پرداخت کسر شده — با نرخِ همون روزِ واریز، در مقایسه با نرخِ روزی که شما از سرمایه‌ی خودتون گذاشتید:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>تاریخِ تسویه</th><th>مبلغ (ریال)</th><th>یوان با نرخِ سرمایه‌گذاری</th><th>یوان با نرخِ روزِ واریز</th><th>سود/زیانِ نوسان (یوان)</th></tr></thead>
+            <tbody>
+              ${adv.settlements.map(s=>`<tr>
+                <td class="date-cell">${s.date}</td>
+                <td class="num">${fmtRial(s.rialAmount)}</td>
+                <td class="num">${fmtYuan(s.yuanAtAdvanceRate)}</td>
+                <td class="num">${s.yuanAtPaymentRate!=null ? fmtYuan(s.yuanAtPaymentRate) : '—'}</td>
+                <td class="num" style="font-weight:700;color:${s.yuanDiff>0?'var(--rial)':'var(--danger)'}">${s.yuanDiff!=null ? (s.yuanDiff>0?'+':'')+fmtYuan(s.yuanDiff) : '—'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions"><button class="btn btn-ghost" id="closeSettlementsBtn">بستن</button></div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    backdrop.querySelector('#closeSettlementsBtn').addEventListener('click', ()=>backdrop.remove());
+    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  }));
+  main.querySelectorAll('[data-edit-capadv]').forEach(b=>b.addEventListener('click', ()=>{
+    openCapitalAdvanceModal(state.capitalAdvances.find(x=>x.id==b.dataset.editCapadv));
+  }));
+  main.querySelectorAll('[data-del-capadv]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ مطمئنید می‌خواید این پیش‌پرداختِ سرمایه‌ای را حذف کنید؟')) return;
+    const ok = await apiDelete('capital-advances', b.dataset.delCapadv);
+    if(!ok) return;
+    renderCapitalAdvances(main);
+  }));
+}
+
+function openCapitalAdvanceModal(existing){
+  if(!existing) return;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>ویرایشِ پیش‌پرداختِ سرمایه‌ای</h3>
+      <div class="field" style="margin-bottom:10px"><label>مشتری</label><input id="capAdvCustomer" type="text" value="${existing.customer_name}"></div>
+      <div class="form-row">
+        <div class="field"><label>تاریخ (شمسی)</label><input id="capAdvDate" type="text" value="${existing.date}"></div>
+        <div class="field"><label>نرخِ همان روز</label><input id="capAdvRate" type="text" class="num" value="${fmt(existing.rate_at_advance,0)}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>مبلغِ اصلی (ریال)</label><input id="capAdvAmount" type="text" class="num" value="${fmt(existing.rial_amount,0)}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveCapAdvBtn">ذخیره تغییرات</button>
+        <button class="btn btn-ghost" id="cancelCapAdvBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#cancelCapAdvBtn').addEventListener('click', ()=>backdrop.remove());
+  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  wireShamsiDatePicker(backdrop.querySelector('#capAdvDate'));
+  wireLiveNumberFormat(backdrop.querySelector('#capAdvRate'));
+  wireLiveNumberFormat(backdrop.querySelector('#capAdvAmount'));
+  backdrop.querySelector('#saveCapAdvBtn').addEventListener('click', async ()=>{
+    const body = {
+      customer_name: backdrop.querySelector('#capAdvCustomer').value.trim(),
+      date: backdrop.querySelector('#capAdvDate').value.trim(),
+      rate_at_advance: parseFloat(backdrop.querySelector('#capAdvRate').value.replace(/,/g,'')),
+      rial_amount: parseFloat(backdrop.querySelector('#capAdvAmount').value.replace(/,/g,'')),
+    };
+    const d = await apiUpdate('capital-advances', existing.id, body);
+    if(!d) return;
+    showToast('✅ ذخیره شد');
+    backdrop.remove();
+    renderMain();
   });
 }
 
