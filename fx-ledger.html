@@ -730,7 +730,14 @@ async function renderDashboard(main){
     <div class="grid grid-3">
       <div class="card stat-card"><div class="stat-label">جمع ریال دریافتی از مشتریان</div><div class="stat-value rial num">${fmtRial(g.totalReceivedRial)}</div></div>
       <div class="card stat-card"><div class="stat-label">جمع ریال حواله‌شده به تأمین‌کننده</div><div class="stat-value rial num">${fmtRial(g.totalHawaleRial)}</div></div>
-      <div class="card stat-card"><div class="stat-label">ریال راکد (تبدیل‌نشده)</div><div class="stat-value rial num">${fmtRial(g.idleRial)}</div><div class="stat-hint">هنوز حواله نزده‌اید</div></div>
+      <div class="card stat-card">
+        <div class="stat-label">ریال راکد (تبدیل‌نشده)</div>
+        <div class="stat-value rial num">${fmtRial(g.idleRial)}</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between"><span>مبلغِ ریالیِ لینک‌نشده (مالِ مشتری، منتظرِ حواله)</span><span class="num" style="font-weight:700">${fmtRial(g.unlinkedRialTotal)}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>سرمایه/داراییِ خودِ مجموعه</span><span class="num" style="font-weight:700">${fmtRial(g.companyCapitalRial)}</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="section-title">یوان — کل تأمین‌کنندگان (تجمعی)</div>
