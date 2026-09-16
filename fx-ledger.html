@@ -568,11 +568,11 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  const [accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, settings] = await Promise.all([
-    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiList('account-transfers'), apiList('capital-advances'), apiGetSettings(),
+  const [accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, adjustments, settings] = await Promise.all([
+    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiList('account-transfers'), apiList('capital-advances'), apiList('account-adjustments'), apiGetSettings(),
   ]);
   state = {
-    accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances,
+    accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, adjustments,
     settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
   };
 }
@@ -1384,7 +1384,7 @@ function openPaymentModal(existing){
     const d = isEdit ? await apiUpdate('payments', existing.id, body) : await apiCreate('payments', body);
     if(!d) return;
     backdrop.remove();
-    renderPayments(document.getElementById('main'));
+    renderMain();
   });
 }
 
@@ -2435,13 +2435,14 @@ async function renderAccounts(main){
   }));
 }
 
-function openAdjustmentModal(accountId){
+function openAdjustmentModal(accountId, existing){
   const today = todayShamsi();
+  const isEdit = !!existing;
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
   backdrop.innerHTML = `
     <div class="modal">
-      <h3>ثبتِ هزینه/درآمدِ متفرقه</h3>
+      <h3>${isEdit ? 'ویرایشِ هزینه/درآمدِ متفرقه' : 'ثبتِ هزینه/درآمدِ متفرقه'}</h3>
       <div class="field-guide">
         <table>
           <tr><th>فیلد</th><th>توضیح</th></tr>
@@ -2451,14 +2452,14 @@ function openAdjustmentModal(accountId){
       </div>
       <div class="form-row">
         <div class="field"><label>نوع</label>
-          <select id="adjType"><option value="expense">هزینه (کسر از حساب)</option><option value="income">درآمد (افزوده به حساب)</option></select>
+          <select id="adjType"><option value="expense" ${existing&&existing.adjustment_type==='expense'?'selected':''}>هزینه (کسر از حساب)</option><option value="income" ${existing&&existing.adjustment_type==='income'?'selected':''}>درآمد (افزوده به حساب)</option></select>
         </div>
-        <div class="field"><label>تاریخ (شمسی)</label><input id="adjDate" type="text" value="${today}"></div>
+        <div class="field"><label>تاریخ (شمسی)</label><input id="adjDate" type="text" value="${existing ? existing.date : today}"></div>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>مبلغ (ریال)</label><input id="adjAmount" type="text" class="num"></div>
-      <div class="field"><label>توضیح کوتاه (اختیاری)</label><input id="adjNote" type="text"></div>
+      <div class="field" style="margin-bottom:10px"><label>مبلغ (ریال)</label><input id="adjAmount" type="text" class="num" value="${existing ? fmt(existing.amount,0) : ''}"></div>
+      <div class="field"><label>توضیح کوتاه (اختیاری)</label><input id="adjNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="saveAdjBtn">ثبت</button>
+        <button class="btn btn-primary" id="saveAdjBtn">${isEdit?'ذخیره تغییرات':'ثبت'}</button>
         <button class="btn btn-ghost" id="cancelAdjBtn">انصراف</button>
       </div>
     </div>`;
@@ -2473,11 +2474,12 @@ function openAdjustmentModal(accountId){
     const amount = parseFloat(backdrop.querySelector('#adjAmount').value.replace(/,/g,''));
     const note = backdrop.querySelector('#adjNote').value.trim();
     if(!date || !amount || amount<0){ showToast('تاریخ و مبلغِ مثبت را وارد کنید'); return; }
-    const d = await apiCreate('account-adjustments', {account:accountId, date, adjustment_type:adjustmentType, amount, note});
+    const body = {account:accountId, date, adjustment_type:adjustmentType, amount, note};
+    const d = isEdit ? await apiUpdate('account-adjustments', existing.id, body) : await apiCreate('account-adjustments', body);
     if(!d) return;
-    showToast('✅ ثبت شد و مانده به‌روز شد');
+    showToast('✅ ذخیره شد و مانده به‌روز شد');
     backdrop.remove();
-    renderAccounts(document.getElementById('main'));
+    renderMain();
   });
 }
 
@@ -2627,22 +2629,31 @@ async function renderAccountLedger(main){
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="accountLedgerSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${accountLedgerSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th class="col-right">شرح</th><th>بدهکار (ریال)</th><th>بستانکار (ریال)</th><th>مانده</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th class="col-right">شرح</th><th>بدهکار (ریال)</th><th>بستانکار (ریال)</th><th>مانده</th><th></th></tr></thead>
         <tbody>
-          ${events.length===0 ? `<tr class="empty-row"><td colspan="5">${accountLedgerSearchQuery?'چیزی پیدا نشد':'هنوز تراکنشی ثبت نشده'}</td></tr>` :
-          events.map(e=>`<tr>
+          ${events.length===0 ? `<tr class="empty-row"><td colspan="6">${accountLedgerSearchQuery?'چیزی پیدا نشد':'هنوز تراکنشی ثبت نشده'}</td></tr>` :
+          events.map(e=>{
+            let actions = '';
+            if(e.type==='payment') actions = `<button class="icon-btn" data-edit-ledger-payment="${e.id}">ویرایش</button> <button class="icon-btn" data-del-ledger-payment="${e.id}">حذف</button>`;
+            else if(e.type==='income') actions = `<button class="icon-btn" data-edit-ledger-income="${e.id}">ویرایش</button> <button class="icon-btn" data-del-ledger-income="${e.id}">حذف</button>`;
+            else if(e.type==='adjustment') actions = `<button class="icon-btn" data-edit-ledger-adj="${e.id}">ویرایش</button> <button class="icon-btn" data-del-ledger-adj="${e.id}">حذف</button>`;
+            else if(e.type==='transfer_in'||e.type==='transfer_out') actions = `<button class="icon-btn" data-edit-ledger-transfer="${e.id}">ویرایش</button> <button class="icon-btn" data-del-ledger-transfer="${e.id}">حذف</button>`;
+            else if(e.type==='contribution') actions = `<button class="icon-btn" data-edit-ledger-contrib="${e.hawaleId}" title="مشارکت فقط از طریقِ فرمِ خودِ حواله قابلِ‌ویرایشه">ویرایش از طریقِ حواله</button>`;
+            return `<tr>
             <td class="date-cell">${e.date}</td>
             <td class="col-right">${e.desc}</td>
             <td class="num">${e.debit!==null ? fmtRial(e.debit) : '—'}</td>
             <td class="num">${e.credit!==null ? fmtRial(e.credit) : '—'}</td>
             <td class="num" style="font-weight:700">${fmtRial(e.runningBalance)}</td>
-          </tr>`).join('')}
+            <td>${actions}</td>
+          </tr>`;
+          }).join('')}
         </tbody>
         ${events.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
           <td colspan="2" style="text-align:left">جمعِ کل</td>
           <td class="num">${fmtRial(events.reduce((s,e)=>s+Number(e.debit||0),0))}</td>
           <td class="num">${fmtRial(events.reduce((s,e)=>s+Number(e.credit||0),0))}</td>
-          <td></td>
+          <td colspan="2"></td>
         </tr></tfoot>` : ''}
       </table>
     </div>
@@ -2652,6 +2663,39 @@ async function renderAccountLedger(main){
     accountLedgerSearchQuery = e.target.value;
     renderAccountLedger(main);
   });
+  main.querySelectorAll('[data-edit-ledger-payment]').forEach(b=>b.addEventListener('click', ()=>{
+    openPaymentModal(state.payments.find(x=>x.id==b.dataset.editLedgerPayment));
+  }));
+  main.querySelectorAll('[data-del-ledger-payment]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ این واریزی حذف شود؟')) return;
+    if(await apiDelete('payments', b.dataset.delLedgerPayment)) renderAccountLedger(main);
+  }));
+  main.querySelectorAll('[data-edit-ledger-income]').forEach(b=>b.addEventListener('click', ()=>{
+    openIncomeModal(state.incomes.find(x=>x.id==b.dataset.editLedgerIncome));
+  }));
+  main.querySelectorAll('[data-del-ledger-income]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ این سندِ درآمد حذف شود؟')) return;
+    if(await apiDelete('customer-incomes', b.dataset.delLedgerIncome)) renderAccountLedger(main);
+  }));
+  main.querySelectorAll('[data-edit-ledger-adj]').forEach(b=>b.addEventListener('click', ()=>{
+    openAdjustmentModal(currentAccount, state.adjustments.find(x=>x.id==b.dataset.editLedgerAdj));
+  }));
+  main.querySelectorAll('[data-del-ledger-adj]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ این تعدیل حذف شود؟')) return;
+    if(await apiDelete('account-adjustments', b.dataset.delLedgerAdj)) renderAccountLedger(main);
+  }));
+  main.querySelectorAll('[data-edit-ledger-transfer]').forEach(b=>b.addEventListener('click', ()=>{
+    openTransferModal(state.transfers.find(x=>x.id==b.dataset.editLedgerTransfer));
+  }));
+  main.querySelectorAll('[data-del-ledger-transfer]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('⚠️ این جابجایی حذف شود؟')) return;
+    if(await apiDelete('account-transfers', b.dataset.delLedgerTransfer)) renderAccountLedger(main);
+  }));
+  main.querySelectorAll('[data-edit-ledger-contrib]').forEach(b=>b.addEventListener('click', ()=>{
+    const hawale = state.hawales.find(x=>x.id==b.dataset.editLedgerContrib);
+    if(hawale) openHawaleModal(hawale);
+    else showToast('حواله‌ی مربوطه پیدا نشد');
+  }));
 }
 
 // ⚠️ (۱۴۰۵/۰۶/۲۳) طبق طراحیِ دقیقِ کاربر: صفحه‌ی ردیابیِ «پیش‌پرداختِ
