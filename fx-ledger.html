@@ -403,12 +403,18 @@ let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], sett
 // لحظه‌ی گذرا. قبلاً یه شکستِ ساده، کلِ لودِ صفحه رو می‌شکست. الان با
 // چند بار تلاشِ خودکار (با تأخیرِ فزاینده)، این نوسان‌های موقتی رو
 // نادیده می‌گیریم.
-async function fetchWithRetry(url, options, retries=3, delayMs=1500){
+// ⚠️ (۱۴۰۵/۰۶/۲۵) فیکسِ باگِ واقعی: نسخه‌ی قبلی فقط ۳ بار تلاش می‌کرد
+// (جمعاً ~۹ ثانیه) — ولی بیدارشدنِ کاملِ سرورِ رایگانِ رندر از خواب
+// می‌تونه ۳۰-۶۰ ثانیه طول بکشه. یعنی این retry هیچ‌وقت به‌اندازه‌ی کافی
+// صبر نمی‌کرد و شکستِ واقعی رو نشون می‌داد، درصورتی‌که چند ثانیه‌ی
+// دیگه صبر کافی بود. الان تا ۸ بار تلاش می‌کنه (جمعاً حدودِ ۹۰ ثانیه).
+async function fetchWithRetry(url, options, retries=8, delayMs=2000){
   for(let i=0; i<retries; i++){
     try{
       return await fetch(url, options);
     }catch(err){
       if(i === retries-1) throw err;
+      if(i === 1) showToast('⏳ سرور در حالِ بیدارشدنه، لطفاً صبر کنید...');
       await new Promise(r=>setTimeout(r, delayMs*(i+1)));
     }
   }
