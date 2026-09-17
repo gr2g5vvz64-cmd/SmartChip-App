@@ -383,8 +383,17 @@ function fmt(n, digits){
   }
   return s;
 }
-function fmtRial(n){ return fmt(n,0) + ' ریال'; }
-function fmtYuan(n){ return fmt(n,4) + ' ¥'; }
+// ⚠️ (۱۴۰۵/۰۶/۲۶) طبق درخواستِ صریحِ کاربر: بخشِ صحیحِ عدد Bold، بخشِ
+// اعشاری معمولی — تا وضوح بیشتر بشه. این تابعِ *جدا*ست (نه خودِ `fmt`)
+// چون `fmt` خامِ خودش تو مقادیرِ فرم‌ها (`value="${fmt(...)}"`) هم
+// استفاده می‌شه که آنجا نباید HTML برگرده، فقط عددِ خام.
+function fmtBoldInt(s){
+  if(s === '—') return s;
+  const parts = s.split('.');
+  return parts.length===1 ? `<b>${parts[0]}</b>` : `<b>${parts[0]}</b>.${parts[1]}`;
+}
+function fmtRial(n){ return fmtBoldInt(fmt(n,0)) + ' ریال'; }
+function fmtYuan(n){ return fmtBoldInt(fmt(n,4)) + ' ¥'; }
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -873,7 +882,7 @@ async function renderCustomerLedger(main){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
-      <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div></div>
+      <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="toolbar"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
@@ -1994,7 +2003,7 @@ async function renderSupplierLedger(main){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
-      <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div></div>
+      <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — ما به تأمین‌کننده یوان بدهکاریم (باید حواله بزنیم)' : (realYuanBalance < -0.01 ? '🟢 منفی — تأمین‌کننده به ما بدهکار است (بیش از فاکتورهایش حواله زده‌ایم)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی حمل پرداخت‌نشده (ریالی)</div><div class="stat-value rial num">${fmtRial(unpaidFreight)}</div><div class="stat-hint">از کل ${fmtRial(totalFreight)} هزینه‌ی حمل ثبت‌شده</div></div>
