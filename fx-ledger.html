@@ -1632,7 +1632,7 @@ async function renderHawales(main){
             <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
               const acc = state.accounts.find(a=>a.id===c.account);
-              return `<div style="font-size:11px">${acc?acc.displayName:'—'}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
+              return `<div style="font-size:11px">${acc?acc.displayName:'⚠️ منبعِ نامعلوم'}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
             }).join('')}</td>
             <td class="num">${fmtRial(h.totalRial)}</td>
             <td class="num">${fmt(h.rate_at_hawale,0)}</td>
@@ -1696,7 +1696,10 @@ function openHawaleModal(existing){
   function renderContribRows(){
     return contribRows.map((r,i)=>`
       <div class="contrib-row" data-contrib-row="${i}">
-        <select data-contrib-account="${i}">${state.accounts.map(a=>`<option value="${a.id}" ${r.account==a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+        <select data-contrib-account="${i}">
+          <option value="" ${!r.account?'selected':''}>⚠️ منبعِ نامعلوم (بدونِ اثر رویِ هیچ حساب/سرمایه‌ای)</option>
+          ${state.accounts.map(a=>`<option value="${a.id}" ${r.account==a.id?'selected':''}>${a.displayName}</option>`).join('')}
+        </select>
         <input data-contrib-amount="${i}" type="text" class="num" placeholder="مبلغ ریالی" value="${r.rial_amount?fmt(r.rial_amount,0):''}">
         <button class="icon-btn" data-remove-contrib="${i}" ${contribRows.length<=1?'disabled':''}>✕</button>
       </div>`).join('');
@@ -1857,7 +1860,10 @@ function openHawaleModal(existing){
     const date = backdrop.querySelector('#hDate').value.trim();
     const rate = parseFloat(backdrop.querySelector('#hRate').value.replace(/,/g,''));
     const note = backdrop.querySelector('#hNote').value.trim();
-    const validContribs = contribRows.filter(r=>r.account && parseFloat(r.rial_amount)>0).map(r=>({account:r.account, rial_amount:parseFloat(r.rial_amount)}));
+    // ⚠️ (۱۴۰۵/۰۶/۲۶) طبق درخواستِ کاربر: دیگه `r.account &&` بلاک نمی‌کنه —
+    // چون یه ردیف با حسابِ خالی («منبعِ نامعلوم») هم باید معتبر باشه؛
+    // فقط مبلغِ مثبت لازمه. account:'' رو به null تبدیل می‌کنیم.
+    const validContribs = contribRows.filter(r=>parseFloat(r.rial_amount)>0).map(r=>({account:r.account||null, rial_amount:parseFloat(r.rial_amount)}));
     if(!supplierName || !date || !rate || rate<0 || validContribs.length===0){ showToast('نام تأمین‌کننده، تاریخ، نرخِ مثبت، و حداقل یک حساب با مبلغ معتبر را وارد کنید'); return; }
 
     const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
