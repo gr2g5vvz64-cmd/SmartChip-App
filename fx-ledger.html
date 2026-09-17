@@ -923,31 +923,41 @@ async function renderCustomerLedger(main){
     <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="customerEventsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customerEventsSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
-      <table>
+      <table style="text-align:center">
         <thead><tr>
-          <th class="col-right">تاریخ</th><th class="col-right">شرح</th>
+          <th class="col-right" style="text-align:center">تاریخ</th><th class="col-right" style="text-align:center;max-width:110px">شرح</th>
           <th class="col-group-rial">بدهکار ریالی</th><th class="col-group-rial">بستانکار ریالی</th><th class="col-group-rial col-group-end">مانده‌ی ریالیِ شناخته‌شده</th>
           <th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>مانده یوانی</th>
-          <th>نرخ ردیف</th><th style="max-width:70px;font-size:10px">معادل ریالی (نرخِ روز)</th>
+          <th>نرخ حواله</th><th style="max-width:80px;font-size:10px">نرخ حواله واریزی</th>
+          <th style="max-width:95px;font-size:10px">نرخ پیشنهادی حواله</th>
         </tr></thead>
         <tbody>
           ${(()=>{
             const filteredEvents = data.events.filter(e=>matchesSearch([
               e.date, e.desc, e.type==='order'?e.rial_debit:e.rial_credit, e.yuan_debit, e.yuan_credit,
-              e.rate, e.runningYuan, e.runningRial, e.runningRialAtCurrentRate,
+              e.rate, e.runningYuan, e.runningRial, e.hawaleRate, e.depositRate, e.suggestedRate,
             ], customerEventsSearchQuery));
-            return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="10">چیزی پیدا نشد</td></tr>` :
+            return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
             filteredEvents.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
-            <td class="date-cell">${e.date}</td>
-            <td class="col-right">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':'💰 ')}${e.desc}</td>
+            <td class="date-cell" style="text-align:center">${e.date}</td>
+            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':'💰 ')}${e.desc}</td>
             <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : '—'}</td>
             <td class="num col-group-rial">${e.type!=='order' ? fmtRial(e.rial_credit) : '—'}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
             <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
-            <td class="num">${e.rate ? fmt(e.rate,0)+(e.rateBreakdown ? ` <button class="icon-btn" data-show-rate-breakdown='${JSON.stringify(e.rateBreakdown)}' style="font-size:9.5px;padding:1px 5px">🔀 ${e.rateBreakdown.length} نرخ</button>` : '') : (e.pending?'⏳ معلق':'—')}${e.pendingRial>0.01 ? `<div style="font-size:9.5px;color:var(--danger)">⚠️ ${fmtRial(e.pendingRial)} هنوز لینک نشده</div>` : ''}</td>
-            <td class="num" style="max-width:70px;font-size:10.5px">${e.runningRialAtCurrentRate!==null ? fmtRial(e.runningRialAtCurrentRate) : '—'}</td>
+            <td class="num">${e.type==='order' ? '—' : (e.hawaleRate ? fmt(e.hawaleRate,0)+(e.rateBreakdown ? ` <button class="icon-btn" data-show-rate-breakdown='${JSON.stringify(e.rateBreakdown)}' style="font-size:9.5px;padding:1px 5px">🔀 ${e.rateBreakdown.length} نرخ</button>` : '') : '⏳ هنوز حواله نشده')}${e.pendingRial>0.01 ? `<div style="font-size:9.5px;color:var(--danger)">⚠️ ${fmtRial(e.pendingRial)} هنوز لینک نشده</div>` : ''}</td>
+            <td class="num" style="max-width:80px;font-size:10.5px">${e.type==='payment' && e.depositRate ? fmt(e.depositRate,0) : '—'}</td>
+            <td style="max-width:95px" class="${e.type==='payment' ? '' : ''}">
+              ${e.type==='payment' ? `
+                <label style="display:flex;align-items:center;gap:3px;justify-content:center;font-size:10px">
+                  <input type="checkbox" data-suggested-toggle="${e.id}" ${e.suggestedRate?'checked':''} ${!e.hawaleRate?'disabled title="اول باید این واریزی به یه حواله لینک بشه"':''}>
+                </label>
+                <input type="text" class="num" data-suggested-input="${e.id}" value="${e.suggestedRate?fmt(e.suggestedRate,0):''}" placeholder="نرخِ سوم"
+                  style="width:80px;font-size:10.5px;margin-top:2px;${e.suggestedRate?'':'display:none'}" ${!e.hawaleRate?'disabled':''}>
+              ` : '—'}
+            </td>
           </tr>`).join('');
           })()}
         </tbody>
@@ -958,12 +968,35 @@ async function renderCustomerLedger(main){
           <td class="num col-group-rial col-group-end"></td>
           <td class="num">${fmtYuan(data.events.filter(e=>e.type==='order').reduce((s,e)=>s+Number(e.yuan_debit||0),0))}</td>
           <td class="num">${fmtYuan(data.events.filter(e=>e.type==='payment').reduce((s,e)=>s+Number(e.yuan_credit||0),0))}</td>
-          <td colspan="3"></td>
+          <td colspan="4"></td>
         </tr></tfoot>` : ''}
       </table>
     </div>
   `;
   main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
+  main.querySelectorAll('[data-suggested-toggle]').forEach(cb=>cb.addEventListener('change', async ()=>{
+    const paymentId = cb.dataset.suggestedToggle;
+    const input = main.querySelector(`[data-suggested-input="${paymentId}"]`);
+    if(cb.checked){
+      input.style.display = '';
+      input.focus();
+    } else {
+      input.style.display = 'none';
+      input.value = '';
+      const ok = await apiUpdate('payments', paymentId, {suggested_rate: null});
+      if(ok) renderCustomerLedger(main);
+    }
+  }));
+  main.querySelectorAll('[data-suggested-input]').forEach(inp=>{
+    wireLiveNumberFormat(inp);
+    inp.addEventListener('change', async ()=>{
+      const paymentId = inp.dataset.suggestedInput;
+      const val = parseFloat(inp.value.replace(/,/g,''));
+      if(!val || val<1000){ showToast('❌ نرخِ پیشنهادی باید یه عددِ معقول باشه'); return; }
+      const ok = await apiUpdate('payments', paymentId, {suggested_rate: val});
+      if(ok){ showToast('✅ نرخِ پیشنهادی ثبت شد'); renderCustomerLedger(main); }
+    });
+  });
   main.querySelectorAll('[data-show-rate-breakdown]').forEach(b=>b.addEventListener('click', ()=>{
     const breakdown = JSON.parse(b.dataset.showRateBreakdown);
     const backdrop = document.createElement('div');
@@ -1379,6 +1412,12 @@ function openPaymentModal(existing){
     const hawaleId = backdrop.querySelector('#pHawale').value || null;
     const note = backdrop.querySelector('#pNote').value.trim();
     if(!selectedCustomerName || !date || !rialAmount || !rateAtPayment || rialAmount<0 || rateAtPayment<0){ showToast('همه‌ی فیلدهای الزامی و مثبت را پر کنید'); return; }
+    // ⚠️ (۱۴۰۵/۰۶/۲۵) فیکسِ باگِ واقعیِ تکرارشونده: قبلاً هر عددِ غیرِصفر
+    // (حتی ۱) به‌عنوانِ نرخ قبول می‌شد — که باعث شد چندبار (هم تو یه
+    // migrationِ قدیمی، هم موقعِ ثبتِ دستی) نرخِ «۱» بشینه و کلِ محاسبه‌ی
+    // یوانی رو خراب کنه. نرخِ واقعیِ یوان هیچ‌وقت زیرِ چند هزار تومان
+    // نیست، پس هر عددِ کمتر از ۱۰۰۰ قطعاً اشتباهه.
+    if(rateAtPayment < 1000){ showToast('❌ نرخِ واردشده نامعقول است — نرخِ واقعیِ روزِ واریز را وارد کنید (نه عددِ ۱ یا مشابه)'); return; }
 
     // ⚠️ (۱۴۰۵/۰۶/۱۸) چک نامِ مشابه — طبق دستور صریح کاربر: عیناً منطقِ CRM
     const similar = findSimilarExistingName(selectedCustomerName, getKnownCustomerNames());
@@ -2071,19 +2110,19 @@ async function renderSupplierLedger(main){
     <div class="section-title">دفترِ کامل (تاریخچه‌ی رویدادها)</div>
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierEventsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierEventsSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
-      <table>
+      <table style="text-align:center">
         <thead><tr>
-          <th class="col-right">تاریخ</th><th>سند</th><th class="col-right">شرح</th>
+          <th class="col-right" style="text-align:center">تاریخ</th><th>سند</th><th class="col-right" style="text-align:center;max-width:110px">شرح</th>
           <th class="col-group-rial">بدهکار ریالی</th><th class="col-group-rial">بستانکار ریالی</th><th class="col-group-rial col-group-end">مانده‌ی ریالیِ شناخته‌شده</th>
           <th>بدهکار (یوان)</th><th>بستانکار (یوان)</th><th>مانده یوانی</th>
-          <th>نرخِ ردیف</th><th>تشخیص</th>
+          <th>نرخِ حواله</th><th>تشخیص</th>
         </tr></thead>
         <tbody>
           ${filteredSupplierEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
           filteredSupplierEvents.map(e=>`<tr>
-            <td class="date-cell">${e.date}</td>
+            <td class="date-cell" style="text-align:center">${e.date}</td>
             <td class="num">${e.docNumber}</td>
-            <td class="col-right">${e.type==='invoice'?'📄 ':'💰 '}${e.desc}</td>
+            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='invoice'?'📄 ':'💰 '}${e.desc}</td>
             <td class="num col-group-rial">${e.type==='invoice' && e.rial_debit!==null ? fmtRial(e.rial_debit) : '—'}</td>
             <td class="num col-group-rial">${e.type==='hawale' ? fmtRial(e.rial_credit) : '—'}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
