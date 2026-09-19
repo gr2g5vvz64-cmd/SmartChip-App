@@ -1,0 +1,27 @@
+{
+  "name": "اسمارت‌چیپ — یادآوری‌ها",
+  "short_name": "یادآوری‌ها",
+  "start_url": "./reminders.html",
+  "scope": "./reminders.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#7c3aed",
+  "background_color": "#f3f0fb",
+  "dir": "rtl",
+  "lang": "fa",
+  "icons": [
+    {
+      "src": "./icons/reminders-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/reminders-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "description": "کارهای فردا، یادآوری آزاد، یادآوری دوره‌ای، و تقویم"
+}
