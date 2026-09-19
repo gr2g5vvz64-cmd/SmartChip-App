@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest-reminders.json">
+<meta name="theme-color" content="#7c3aed">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>یادآوری‌ها — اسمارت‌چیپ</title>
+<style>
+  :root{ --accent:#7c3aed; --bg:#f3f0fb; --card:#fff; --border:#e2d9f7; --ink:#2a2140; --ink-soft:#7a6f96; --danger:#d0374c; --ok:#0e7d6b; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--ink);padding:12px;max-width:520px;margin:0 auto}
+  h1{font-size:18px;margin:8px 0 4px}
+  .sub{font-size:11px;color:var(--ink-soft);margin-bottom:14px}
+  .seg{display:flex;gap:4px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:3px;margin-bottom:14px;overflow-x:auto}
+  .seg button{flex:1;border:none;background:none;padding:8px 6px;border-radius:8px;font-size:11.5px;cursor:pointer;white-space:nowrap;color:var(--ink-soft)}
+  .seg button.active{background:var(--accent);color:#fff}
+  .card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+  .field label{font-size:11px;color:var(--ink-soft)}
+  input,select,textarea{font-family:inherit;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;color:var(--ink)}
+  textarea{resize:vertical;min-height:50px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{padding:10px 14px;border-radius:9px;border:none;font-size:13px;cursor:pointer;font-weight:600}
+  .btn-primary{background:var(--accent);color:#fff;width:100%}
+  .btn-ghost{background:var(--card);border:1.5px solid var(--border);color:var(--ink)}
+  .btn-danger{background:#fde8ea;color:var(--danger)}
+  .item{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:7px;background:#fff}
+  .item.done{opacity:.5}
+  .item-body{flex:1;min-width:0}
+  .item-title{font-size:13.5px;font-weight:600}
+  .item-meta{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
+  .item-note{font-size:11.5px;color:var(--ink-soft);margin-top:4px;white-space:pre-wrap}
+  .item-actions{display:flex;flex-direction:column;gap:4px}
+  .icon-btn{border:none;background:var(--bg);border-radius:6px;padding:4px 7px;font-size:10.5px;cursor:pointer}
+  .tag-recur{display:inline-block;font-size:9.5px;background:#efe6ff;color:var(--accent);border-radius:5px;padding:1px 6px;margin-inline-start:5px}
+  .empty{text-align:center;color:var(--ink-soft);font-size:12px;padding:20px}
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .cal-head button{border:none;background:var(--bg);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-wd{text-align:center;font-size:9.5px;color:var(--ink-soft);padding:2px 0}
+  .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid transparent;position:relative}
+  .cal-day.today{border-color:var(--accent);font-weight:700}
+  .cal-day.has-rem{background:#efe6ff}
+  .cal-day .dot{width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;bottom:3px}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(20px);background:#2a2140;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;opacity:0;pointer-events:none;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
+  .modal{background:#fff;border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
+  .modal h3{margin:0 0 12px;font-size:15px}
+</style>
+</head>
+<body>
+<h1>⏰ یادآوری‌ها</h1>
+<div class="sub" id="dateBadge"></div>
+
+<div class="seg" id="mainTabs">
+  <button data-tab="today" class="active">امروز/فردا</button>
+  <button data-tab="all">همه</button>
+  <button data-tab="recurring">دوره‌ای</button>
+  <button data-tab="calendar">تقویم</button>
+</div>
+
+<button class="btn btn-primary" id="addBtn" style="margin-bottom:14px">+ یادآوریِ جدید</button>
+
+<div id="main"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://smartchip-backend.onrender.com/api/reminders/';
+
+// ── تبدیل تاریخِ شمسی (عیناً از دفترِ ارزی، طبق قاعده‌ی «کدِ محک‌شده رو دوباره ننویس») ──
+function gregorianToJalali(gy, gm, gd){
+  const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+  let jy = (gy <= 1600) ? 0 : 979;
+  gy -= (gy <= 1600) ? 621 : 1600;
+  const gy2 = (gm > 2) ? (gy + 1) : gy;
+  let days = (365*gy) + (Math.floor((gy2+3)/4)) - (Math.floor((gy2+99)/100)) + (Math.floor((gy2+399)/400)) - 80 + gd + g_d_m[gm-1];
+  jy += 33*Math.floor(days/12053); days %= 12053;
+  jy += 4*Math.floor(days/1461); days %= 1461;
+  jy += Math.floor((days-1)/365); if(days > 365) days = (days-1)%365;
+  const jm = (days < 186) ? 1+Math.floor(days/31) : 7+Math.floor((days-186)/30);
+  const jd = 1 + ((days < 186) ? (days%31) : ((days-186)%30));
+  return [jy, jm, jd];
+}
+function jalaliToGregorian(jy, jm, jd){
+  let gy = (jy <= 979) ? 621 : 1600;
+  jy -= (jy <= 979) ? 0 : 979;
+  let days = (365*jy) + (Math.floor(jy/33)*8) + Math.floor(((jy%33)+3)/4) + 78 + jd + ((jm<7) ? (jm-1)*31 : ((jm-7)*30)+186);
+  gy += 400*Math.floor(days/146097); days %= 146097;
+  let leap = true;
+  if(days > 36524){ days--; gy += 100*Math.floor(days/36524); days %= 36524; if(days >= 365) days++; else leap=false; }
+  gy += 4*Math.floor(days/1461); days %= 1461;
+  if(days > 365){ leap=false; gy += Math.floor((days-1)/365); days = (days-1)%365; }
+  const d = new Date(gy, 0, 1); d.setDate(d.getDate() + days);
+  return [d.getFullYear(), d.getMonth()+1, d.getDate()];
+}
+function todayShamsi(){
+  const now = new Date();
+  const [jy,jm,jd] = gregorianToJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
+  return `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
+}
+function tomorrowShamsi(){
+  const now = new Date(); now.setDate(now.getDate()+1);
+  const [jy,jm,jd] = gregorianToJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
+  return `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
+}
+function jalaliLeapSimple(jy){
+  const g1 = jalaliToGregorian(jy, 12, 30);
+  const back = gregorianToJalali(g1[0], g1[1], g1[2]);
+  return back[1] === 12 && back[2] === 30;
+}
+function daysInJalaliMonth(jy, jm){
+  if(jm <= 6) return 31;
+  if(jm <= 11) return 30;
+  return jalaliLeapSimple(jy) ? 30 : 29;
+}
+const JALALI_MONTH_NAMES = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const JALALI_WEEKDAY_NAMES = ['ش','ی','د','س','چ','پ','ج'];
+const RECUR_LABEL = {none:'یک‌بار', daily:'روزانه', weekly:'هفتگی', monthly:'ماهانه'};
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+async function apiList(){ const r = await fetch(API); return r.ok ? r.json() : []; }
+async function apiCreate(body){ const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); if(!r.ok){showToast('❌ ثبت ناموفق'); return null;} return r.json(); }
+async function apiUpdate(id, body){ const r = await fetch(API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); if(!r.ok){showToast('❌ ویرایش ناموفق'); return null;} return r.json(); }
+async function apiDelete(id){ const r = await fetch(API+id+'/', {method:'DELETE'}); return r.ok; }
+
+let allReminders = [];
+let currentTab = 'today';
+let calYear, calMonth;
+{
+  const t = todayShamsi().split('-').map(Number);
+  calYear = t[0]; calMonth = t[1];
+}
+
+function fmtDateHuman(dateStr){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return `${d} ${JALALI_MONTH_NAMES[m-1]} ${y}`;
+}
+
+function renderItem(r){
+  const isToday = r.date === todayShamsi();
+  const isPast = r.date < todayShamsi();
+  return `<div class="item ${r.is_done?'done':''}">
+    <div class="item-body">
+      <div class="item-title">${r.is_done?'✅ ':''}${r.title}${r.recurrence!=='none'?`<span class="tag-recur">🔁 ${RECUR_LABEL[r.recurrence]}</span>`:''}</div>
+      <div class="item-meta">${fmtDateHuman(r.date)}${r.time?' — ساعت '+r.time:''}${isPast&&!r.is_done?' ⚠️ گذشته':''}</div>
+      ${r.note?`<div class="item-note">${r.note}</div>`:''}
+    </div>
+    <div class="item-actions">
+      <button class="icon-btn" data-toggle-done="${r.id}">${r.is_done?'↩️':'✔️'}</button>
+      <button class="icon-btn" data-edit="${r.id}">✏️</button>
+      <button class="icon-btn" data-del="${r.id}">🗑️</button>
+    </div>
+  </div>`;
+}
+
+function renderList(items){
+  if(items.length===0) return `<div class="empty">چیزی نیست</div>`;
+  return items.map(renderItem).join('');
+}
+
+async function renderMain(){
+  const main = document.getElementById('main');
+  allReminders = await apiList();
+  const today = todayShamsi();
+  const tomorrow = tomorrowShamsi();
+
+  if(currentTab === 'today'){
+    const todays = allReminders.filter(r=>r.date===today && !r.is_done);
+    const tomorrows = allReminders.filter(r=>r.date===tomorrow && !r.is_done);
+    const overdue = allReminders.filter(r=>r.date<today && !r.is_done);
+    main.innerHTML = `
+      ${overdue.length ? `<div class="card"><div style="font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ گذشته و انجام‌نشده</div>${renderList(overdue)}</div>` : ''}
+      <div class="card"><div style="font-weight:700;margin-bottom:8px">امروز</div>${renderList(todays)}</div>
+      <div class="card"><div style="font-weight:700;margin-bottom:8px">فردا</div>${renderList(tomorrows)}</div>
+    `;
+  } else if(currentTab === 'all'){
+    const sorted = [...allReminders].sort((a,b)=> (a.date+  (a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
+    main.innerHTML = `<div class="card">${renderList(sorted)}</div>`;
+  } else if(currentTab === 'recurring'){
+    const recurring = allReminders.filter(r=>r.recurrence!=='none');
+    main.innerHTML = `<div class="card">${renderList(recurring)}</div>`;
+  } else if(currentTab === 'calendar'){
+    renderCalendar(main);
+  }
+  wireItemButtons(main);
+}
+
+function renderCalendar(main){
+  const firstOfMonthG = jalaliToGregorian(calYear, calMonth, 1);
+  const jsDate = new Date(firstOfMonthG[0], firstOfMonthG[1]-1, firstOfMonthG[2]);
+  const startOffset = (jsDate.getDay() + 1) % 7;
+  const totalDays = daysInJalaliMonth(calYear, calMonth);
+  const today = todayShamsi();
+
+  const remindersByDate = {};
+  allReminders.forEach(r=>{ (remindersByDate[r.date] = remindersByDate[r.date]||[]).push(r); });
+
+  let cells = '';
+  for(let i=0;i<startOffset;i++) cells += '<div></div>';
+  for(let d=1; d<=totalDays; d++){
+    const dateStr = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasRem = !!remindersByDate[dateStr];
+    cells += `<div class="cal-day ${dateStr===today?'today':''} ${hasRem?'has-rem':''}" data-cal-day="${dateStr}">${d}${hasRem?'<span class="dot"></span>':''}</div>`;
+  }
+
+  main.innerHTML = `
+    <div class="card">
+      <div class="cal-head">
+        <button id="calPrev">‹</button>
+        <div style="font-weight:700">${JALALI_MONTH_NAMES[calMonth-1]} ${calYear}</div>
+        <button id="calNext">›</button>
+      </div>
+      <div class="cal-grid" style="margin-bottom:6px">${JALALI_WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
+      <div class="cal-grid">${cells}</div>
+    </div>
+    <div id="calDayDetail"></div>
+  `;
+  main.querySelector('#calPrev').addEventListener('click', ()=>{ calMonth--; if(calMonth<1){calMonth=12;calYear--;} renderMain(); });
+  main.querySelector('#calNext').addEventListener('click', ()=>{ calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderMain(); });
+  main.querySelectorAll('[data-cal-day]').forEach(el=>el.addEventListener('click', ()=>{
+    const dateStr = el.dataset.calDay;
+    const items = remindersByDate[dateStr] || [];
+    const detail = main.querySelector('#calDayDetail');
+    detail.innerHTML = `<div class="card"><div style="font-weight:700;margin-bottom:8px">${fmtDateHuman(dateStr)}</div>${items.length?renderList(items):'<div class="empty">یادآوری‌ای برای این روز نیست</div>'}</div>`;
+    wireItemButtons(detail);
+  }));
+}
+
+function wireItemButtons(container){
+  container.querySelectorAll('[data-toggle-done]').forEach(b=>b.addEventListener('click', async ()=>{
+    const r = allReminders.find(x=>x.id==b.dataset.toggleDone);
+    await apiUpdate(r.id, {is_done: !r.is_done});
+    renderMain();
+  }));
+  container.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('حذفِ این یادآوری؟')) return;
+    await apiDelete(b.dataset.del);
+    renderMain();
+  }));
+  container.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', ()=>{
+    openReminderModal(allReminders.find(x=>x.id==b.dataset.edit));
+  }));
+}
+
+function openReminderModal(existing){
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit?'ویرایشِ یادآوری':'یادآوریِ جدید'}</h3>
+      <div class="field"><label>عنوان</label><input id="rTitle" type="text" value="${existing?.title||''}"></div>
+      <div class="row2">
+        <div class="field"><label>تاریخ (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||todayShamsi()}" placeholder="1405-06-26"></div>
+        <div class="field"><label>ساعت (اختیاری)</label><input id="rTime" type="time" value="${existing?.time||''}"></div>
+      </div>
+      <div class="field"><label>تکرار</label>
+        <select id="rRecur">
+          <option value="none" ${(!existing||existing.recurrence==='none')?'selected':''}>یک‌بار</option>
+          <option value="daily" ${existing?.recurrence==='daily'?'selected':''}>روزانه</option>
+          <option value="weekly" ${existing?.recurrence==='weekly'?'selected':''}>هفتگی</option>
+          <option value="monthly" ${existing?.recurrence==='monthly'?'selected':''}>ماهانه</option>
+        </select>
+      </div>
+      <div class="field"><label>توضیح (اختیاری)</label><textarea id="rNote">${existing?.note||''}</textarea></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-primary" id="rSaveBtn">${isEdit?'ذخیره':'ثبت'}</button>
+        <button class="btn btn-ghost" id="rCancelBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  backdrop.querySelector('#rCancelBtn').addEventListener('click', ()=>backdrop.remove());
+  const dateInput = backdrop.querySelector('#rDate');
+  dateInput.addEventListener('click', ()=>openCalendarPicker(dateInput));
+  backdrop.querySelector('#rSaveBtn').addEventListener('click', async ()=>{
+    const title = backdrop.querySelector('#rTitle').value.trim();
+    const date = dateInput.value.trim();
+    const time = backdrop.querySelector('#rTime').value;
+    const recurrence = backdrop.querySelector('#rRecur').value;
+    const note = backdrop.querySelector('#rNote').value.trim();
+    if(!title || !date){ showToast('عنوان و تاریخ را وارد کنید'); return; }
+    const body = {title, date, time, recurrence, note};
+    if(!isEdit) body.notified = false;
+    const d = isEdit ? await apiUpdate(existing.id, body) : await apiCreate(body);
+    if(!d) return;
+    showToast('✅ ذخیره شد');
+    backdrop.remove();
+    renderMain();
+  });
+}
+
+function openCalendarPicker(inputEl){
+  document.querySelectorAll('.mini-cal-popup').forEach(p=>p.remove());
+  let [vy,vm] = (inputEl.value || todayShamsi()).split('-').map(Number);
+  const popup = document.createElement('div');
+  popup.className = 'mini-cal-popup';
+  popup.style.cssText = 'position:fixed;z-index:300;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.2);padding:10px;width:250px;top:50%;left:50%;transform:translate(-50%,-50%)';
+  function draw(){
+    const firstOfMonthG = jalaliToGregorian(vy, vm, 1);
+    const jsDate = new Date(firstOfMonthG[0], firstOfMonthG[1]-1, firstOfMonthG[2]);
+    const startOffset = (jsDate.getDay() + 1) % 7;
+    const totalDays = daysInJalaliMonth(vy, vm);
+    let cells = '';
+    for(let i=0;i<startOffset;i++) cells += '<div></div>';
+    for(let d=1; d<=totalDays; d++){
+      const dateStr = `${vy}-${String(vm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      cells += `<div data-pick="${dateStr}" style="text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;font-size:11px;${inputEl.value===dateStr?'background:var(--accent);color:#fff':''}">${d}</div>`;
+    }
+    popup.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <button type="button" id="mcPrev" style="border:none;background:none;cursor:pointer">‹</button>
+        <div style="font-size:12px;font-weight:700">${JALALI_MONTH_NAMES[vm-1]} ${vy}</div>
+        <button type="button" id="mcNext" style="border:none;background:none;cursor:pointer">›</button>
+      </div>
+      <div class="cal-grid" style="margin-bottom:4px">${JALALI_WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
+      <div class="cal-grid">${cells}</div>
+    `;
+    popup.querySelector('#mcPrev').addEventListener('click', ()=>{ vm--; if(vm<1){vm=12;vy--;} draw(); });
+    popup.querySelector('#mcNext').addEventListener('click', ()=>{ vm++; if(vm>12){vm=1;vy++;} draw(); });
+    popup.querySelectorAll('[data-pick]').forEach(el=>el.addEventListener('click', ()=>{
+      inputEl.value = el.dataset.pick;
+      popup.remove();
+    }));
+  }
+  draw();
+  document.body.appendChild(popup);
+  popup.addEventListener('click', e=>e.stopPropagation());
+  setTimeout(()=>{
+    document.addEventListener('click', function close(e){
+      if(!popup.contains(e.target) && e.target!==inputEl){ popup.remove(); document.removeEventListener('click', close); }
+    });
+  },0);
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=>openReminderModal(null));
+document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('click', ()=>{
+  document.querySelectorAll('#mainTabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  currentTab = b.dataset.tab;
+  renderMain();
+}));
+document.getElementById('dateBadge').textContent = fmtDateHuman(todayShamsi());
+renderMain();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
