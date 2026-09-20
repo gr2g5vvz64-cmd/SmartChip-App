@@ -145,7 +145,22 @@ function showToast(msg){
   t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
-async function apiList(){ const r = await fetch(API); return r.ok ? r.json() : []; }
+// ⚠️ (۱۴۰۵/۰۶/۲۸) فیکسِ باگِ واقعی: قبلاً اگه سرور به‌جایِ آرایه‌ی خام،
+// یه پاسخِ صفحه‌بندی‌شده (مثلِ {count,results:[...]}) یا هر چیزِ دیگه‌ای
+// برمی‌گردوند، `allReminders` آرایه نمی‌شد و کلِ صفحه با
+// «allReminders.filter is not a function» کرش می‌کرد — نه فقط تقویم،
+// حتی تبِ پیش‌فرض هم خالی می‌موند. الان همیشه، در هر شرایطی، آرایه
+// برمی‌گردونه.
+async function apiList(){
+  try{
+    const r = await fetch(API);
+    if(!r.ok) return [];
+    const data = await r.json();
+    if(Array.isArray(data)) return data;
+    if(data && Array.isArray(data.results)) return data.results;
+    return [];
+  }catch(e){ return []; }
+}
 async function apiCreate(body){ const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); if(!r.ok){showToast('❌ ثبت ناموفق'); return null;} return r.json(); }
 async function apiUpdate(id, body){ const r = await fetch(API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); if(!r.ok){showToast('❌ ویرایش ناموفق'); return null;} return r.json(); }
 async function apiDelete(id){ const r = await fetch(API+id+'/', {method:'DELETE'}); return r.ok; }
