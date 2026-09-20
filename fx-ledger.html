@@ -2291,7 +2291,11 @@ function openExpenseModal(existing, presetSupplier){
         <input id="eHawaleFilter" type="text" placeholder="🔍 فیلتر با تاریخ (اختیاری)...">
       </div>
       <div id="eHawalePickerBox" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px"></div>
-      <div class="field" style="margin-bottom:10px"><label>پارت‌نامبر</label>
+      <div class="field" style="margin-bottom:10px">
+        <label style="display:flex;justify-content:space-between;align-items:center">
+          <span>پارت‌نامبر</span>
+          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10.5px;padding:3px 8px">🔄 بروزرسانیِ قطعات از گوگل‌شیت</button>
+        </label>
         <input id="ePartNumber" type="text" value="${existing ? existing.part_number||'' : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
         <div id="ePartNumberResults" style="position:relative"></div>
       </div>
@@ -2318,6 +2322,7 @@ function openExpenseModal(existing, presetSupplier){
   backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
+  backdrop.querySelector('#syncPartsBtnInModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
 
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: چند حواله (۲ تا، ۱۰ تا، هرچقدر)
   // می‌تونن به یه فاکتورِ خریدِ خاص لینک بشن — قبلاً فقط یه <select> تکی
