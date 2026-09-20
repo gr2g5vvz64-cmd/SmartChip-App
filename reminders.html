@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>یادآوری‌ها — اسمارت‌چیپ</title>
 <style>
-  :root{ --accent:#7c3aed; --bg:#f3f0fb; --card:#fff; --border:#e2d9f7; --ink:#2a2140; --ink-soft:#7a6f96; --danger:#d0374c; --ok:#0e7d6b; }
+  :root{ --accent:#7c3aed; --bg:#f3f0fb; --card:#fff; --border:#e2d9f7; --ink:#2a2140; --ink-soft:#7a6f96; --danger:#d0374c; --ok:#0e7d6b; --warn:#f59e0b; }
   *{box-sizing:border-box}
   body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--ink);padding:12px;max-width:520px;margin:0 auto}
   h1{font-size:18px;margin:8px 0 4px}
   .sub{font-size:11px;color:var(--ink-soft);margin-bottom:14px}
   .seg{display:flex;gap:4px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:3px;margin-bottom:14px;overflow-x:auto}
-  .seg button{flex:1;border:none;background:none;padding:8px 6px;border-radius:8px;font-size:11.5px;cursor:pointer;white-space:nowrap;color:var(--ink-soft)}
+  .seg button{flex:1;border:none;background:none;padding:8px 6px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap;color:var(--ink-soft)}
   .seg button.active{background:var(--accent);color:#fff}
   .card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
   .field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
@@ -28,24 +28,36 @@
   .btn-ghost{background:var(--card);border:1.5px solid var(--border);color:var(--ink)}
   .btn-danger{background:#fde8ea;color:var(--danger)}
   .item{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:7px;background:#fff}
-  .item.done{opacity:.5}
+  .item.st-done{opacity:.6;border-color:#cfead4}
+  .item.st-cancelled{opacity:.55;border-color:#f3d2d8}
+  .item.st-archived{opacity:.45}
   .item-body{flex:1;min-width:0}
   .item-title{font-size:13.5px;font-weight:600}
   .item-meta{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
   .item-note{font-size:11.5px;color:var(--ink-soft);margin-top:4px;white-space:pre-wrap}
   .item-actions{display:flex;flex-direction:column;gap:4px}
   .icon-btn{border:none;background:var(--bg);border-radius:6px;padding:4px 7px;font-size:10.5px;cursor:pointer}
+  .status-chip{display:inline-block;font-size:9.5px;border-radius:5px;padding:1px 6px;margin-inline-start:5px}
+  .status-chip.done{background:#e3f5ea;color:var(--ok)}
+  .status-chip.cancelled{background:#fde8ea;color:var(--danger)}
+  .status-chip.archived{background:#eee;color:#666}
   .tag-recur{display:inline-block;font-size:9.5px;background:#efe6ff;color:var(--accent);border-radius:5px;padding:1px 6px;margin-inline-start:5px}
   .empty{text-align:center;color:var(--ink-soft);font-size:12px;padding:20px}
   .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
   .cal-head button{border:none;background:var(--bg);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
   .cal-wd{text-align:center;font-size:9.5px;color:var(--ink-soft);padding:2px 0}
-  .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid transparent;position:relative}
+  .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid transparent;position:relative;padding:2px}
+  .cal-day.other{opacity:.3}
   .cal-day.today{border-color:var(--accent);font-weight:700}
   .cal-day.has-rem{background:#efe6ff}
-  .cal-day .dot{width:4px;height:4px;border-radius:50%;background:var(--accent);position:absolute;bottom:3px}
-  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(20px);background:#2a2140;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;opacity:0;pointer-events:none;transition:.25s}
+  .cal-day .g-date{font-size:7px;color:var(--ink-soft)}
+  .cal-day .dot{width:5px;height:5px;border-radius:50%;position:absolute;top:2px;left:2px}
+  .cal-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--ink-soft);margin-top:8px}
+  .cal-legend span{display:flex;align-items:center;gap:3px}
+  .cal-legend .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .hol-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border)}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(20px);background:#2a2140;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;opacity:0;pointer-events:none;transition:.25s;z-index:400}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
   .modal{background:#fff;border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
@@ -58,8 +70,10 @@
 
 <div class="seg" id="mainTabs">
   <button data-tab="today" class="active">امروز/فردا</button>
-  <button data-tab="all">همه</button>
-  <button data-tab="recurring">دوره‌ای</button>
+  <button data-tab="open">باز</button>
+  <button data-tab="done">تکمیل‌شده</button>
+  <button data-tab="cancelled">کنسل‌شده</button>
+  <button data-tab="archived">بایگانی</button>
   <button data-tab="calendar">تقویم</button>
 </div>
 
@@ -72,55 +86,57 @@
 <script>
 const API = 'https://smartchip-backend.onrender.com/api/reminders/';
 
-// ── تبدیل تاریخِ شمسی (عیناً از دفترِ ارزی، طبق قاعده‌ی «کدِ محک‌شده رو دوباره ننویس») ──
-function gregorianToJalali(gy, gm, gd){
-  const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
-  let jy = (gy <= 1600) ? 0 : 979;
-  gy -= (gy <= 1600) ? 621 : 1600;
-  const gy2 = (gm > 2) ? (gy + 1) : gy;
-  let days = (365*gy) + (Math.floor((gy2+3)/4)) - (Math.floor((gy2+99)/100)) + (Math.floor((gy2+399)/400)) - 80 + gd + g_d_m[gm-1];
-  jy += 33*Math.floor(days/12053); days %= 12053;
-  jy += 4*Math.floor(days/1461); days %= 1461;
-  jy += Math.floor((days-1)/365); if(days > 365) days = (days-1)%365;
-  const jm = (days < 186) ? 1+Math.floor(days/31) : 7+Math.floor((days-186)/30);
-  const jd = 1 + ((days < 186) ? (days%31) : ((days-186)%30));
-  return [jy, jm, jd];
-}
-function jalaliToGregorian(jy, jm, jd){
-  let gy = (jy <= 979) ? 621 : 1600;
-  jy -= (jy <= 979) ? 0 : 979;
-  let days = (365*jy) + (Math.floor(jy/33)*8) + Math.floor(((jy%33)+3)/4) + 78 + jd + ((jm<7) ? (jm-1)*31 : ((jm-7)*30)+186);
-  gy += 400*Math.floor(days/146097); days %= 146097;
-  let leap = true;
-  if(days > 36524){ days--; gy += 100*Math.floor(days/36524); days %= 36524; if(days >= 365) days++; else leap=false; }
-  gy += 4*Math.floor(days/1461); days %= 1461;
-  if(days > 365){ leap=false; gy += Math.floor((days-1)/365); days = (days-1)%365; }
-  const d = new Date(gy, 0, 1); d.setDate(d.getDate() + days);
-  return [d.getFullYear(), d.getMonth()+1, d.getDate()];
-}
+// ══════════════════════════════════════════════════════════════
+// تقویمِ شمسیِ کامل — عیناً همون الگوریتمِ محک‌شده‌ی CRM/ERP، برایِ
+// اطمینانِ کامل از صحتِ محاسبات (نه بازنویسیِ ازنو)
+// ══════════════════════════════════════════════════════════════
+function fn(n){ return String(n).replace(/\d/g, x=>'۰۱۲۳۴۵۶۷۸۹'[x]); }
+function isLeapS(y){ const base=y>=0?y-474:y-473; const jy=((base%2820)+2820)%2820+474; return(((jy*682)-110)%2816)<682; }
+function sDim(y,m){ if(m<12) return m<=6?31:30; return isLeapS(y)?30:29; }
+function sToJD(y,m,d){ const base=y>=0?y-474:y-473; const jy=((base%2820)+2820)%2820+474; const dbm=(m<=7?(m-1)*31:(m-1)*30+6); return d+dbm+Math.floor((jy*682-110)/2816)+(jy-1)*365+Math.floor(base/2820)*1029983+1948320; }
+function gToJD(y,m,d){ return 367*y-Math.floor(7*(y+Math.floor((m+9)/12))/4)-Math.floor(3*(Math.floor((y+(m-9)/7)/100)+1)/4)+Math.floor(275*m/9)+d+1721029; }
+function jdToS(jd){ const j=Math.floor(jd)+0.5; const dep=j-sToJD(475,1,1); const cyc=Math.floor(dep/1029983); const cr=dep%1029983; let yc=cr===1029982?2820:Math.floor((2134*Math.floor(cr/366)+2816*(cr%366)+2815)/1028522)+Math.floor(cr/366)+1; let year=yc+2820*cyc+474; if(year<=0)year--; const yd=j-sToJD(year,1,1)+1; let month=yd<=186?Math.ceil(yd/31):Math.ceil((yd-6)/30); let day=Math.floor(j-sToJD(year,month,1)+1); if(day<1){month--; if(month<1){month=12;year--;} day=Math.floor(j-sToJD(year,month,1)+1);} return {y:year,m:month,d:day}; }
+function sDow(y,m,d){ return (Math.floor(sToJD(y,m,d)+1.5)%7+1)%7; }
+function jdToG(jd){ const j=Math.floor(jd); const d=new Date((j-2440588)*86400000); return {y:d.getUTCFullYear(), m:d.getUTCMonth()+1, d:d.getUTCDate()}; }
+const SMONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const WEEKDAY_NAMES = ['ش','ی','د','س','چ','پ','ج'];
+
 function todayShamsi(){
   const now = new Date();
-  const [jy,jm,jd] = gregorianToJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
-  return `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
+  const s = jdToS(gToJD(now.getFullYear(), now.getMonth()+1, now.getDate()));
+  return `${s.y}-${String(s.m).padStart(2,'0')}-${String(s.d).padStart(2,'0')}`;
 }
 function tomorrowShamsi(){
   const now = new Date(); now.setDate(now.getDate()+1);
-  const [jy,jm,jd] = gregorianToJalali(now.getFullYear(), now.getMonth()+1, now.getDate());
-  return `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
+  const s = jdToS(gToJD(now.getFullYear(), now.getMonth()+1, now.getDate()));
+  return `${s.y}-${String(s.m).padStart(2,'0')}-${String(s.d).padStart(2,'0')}`;
 }
-function jalaliLeapSimple(jy){
-  const g1 = jalaliToGregorian(jy, 12, 30);
-  const back = gregorianToJalali(g1[0], g1[1], g1[2]);
-  return back[1] === 12 && back[2] === 30;
-}
-function daysInJalaliMonth(jy, jm){
-  if(jm <= 6) return 31;
-  if(jm <= 11) return 30;
-  return jalaliLeapSimple(jy) ? 30 : 29;
-}
-const JALALI_MONTH_NAMES = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-const JALALI_WEEKDAY_NAMES = ['ش','ی','د','س','چ','پ','ج'];
+function jalaliToGregorian(jy,jm,jd){ return jdToG(sToJD(jy,jm,jd)); }
+function gregorianToJalali(gy,gm,gd){ return jdToS(gToJD(gy,gm,gd)); }
+
+// ── تعطیلاتِ ایران و چین — عیناً همون دیتایِ محک‌شده‌ی CRM/ERP ──
+const IR_H={'1/1':'نوروز','1/2':'نوروز','1/3':'نوروز','1/4':'نوروز','1/12':'جمهوری اسلامی','1/13':'سیزده‌به‌در','3/14':'رحلت امام','3/15':'قیام ۱۵ خرداد','11/22':'پیروزی انقلاب','12/29':'ملی شدن نفت'};
+const IR_LUNAR_H={
+  '1404-2-4':'شهادت امام جعفر صادق','1404-3-16':'عید قربان','1404-3-24':'عید غدیر',
+  '1404-4-14':'تاسوعا','1404-4-15':'عاشورا','1404-5-23':'اربعین',
+  '1404-5-31':'رحلت پیامبر / شهادت امام حسن','1404-6-2':'شهادت امام رضا',
+  '1404-6-10':'شهادت امام حسن عسکری','1404-6-19':'میلاد پیامبر',
+  '1405-1-1':'عید فطر','1405-1-2':'عید فطر','1405-1-25':'شهادت امام جعفر صادق',
+  '1405-3-6':'عید قربان','1405-3-14':'عید غدیر',
+  '1405-4-3':'تاسوعا','1405-4-4':'عاشورا','1405-5-13':'اربعین',
+  '1405-5-21':'رحلت پیامبر / شهادت امام حسن','1405-5-22':'شهادت امام رضا',
+  '1405-5-30':'شهادت امام حسن عسکری','1405-6-8':'میلاد پیامبر',
+  '1406-1-14':'شهادت امام جعفر صادق','1406-2-23':'عید قربان','1406-3-3':'عید غدیر',
+  '1406-3-23':'تاسوعا','1406-3-24':'عاشورا','1406-5-2':'اربعین',
+  '1406-5-10':'رحلت پیامبر / شهادت امام حسن','1406-5-11':'شهادت امام رضا',
+  '1406-5-19':'شهادت امام حسن عسکری','1406-5-28':'میلاد پیامبر',
+};
+const CN_G={'2025-1-28':'عید بهار🧨','2025-1-29':'عید بهار🧨','2025-1-30':'عید بهار🧨','2025-1-31':'عید بهار🧨','2025-2-1':'عید بهار🧨','2025-2-2':'عید بهار🧨','2025-2-3':'عید بهار🧨','2025-2-4':'عید بهار🧨','2025-5-1':'روز کارگر','2025-5-2':'روز کارگر','2025-5-3':'روز کارگر','2025-5-4':'روز کارگر','2025-5-5':'روز کارگر','2025-10-1':'هفته ملی🇨🇳','2025-10-2':'هفته ملی🇨🇳','2025-10-3':'هفته ملی🇨🇳','2025-10-4':'هفته ملی🇨🇳','2025-10-5':'هفته ملی🇨🇳','2025-10-6':'هفته ملی🇨🇳','2025-10-7':'هفته ملی🇨🇳','2026-2-15':'عید بهار🧨','2026-2-16':'عید بهار🧨','2026-2-17':'عید بهار🧨','2026-2-18':'عید بهار🧨','2026-2-19':'عید بهار🧨','2026-2-20':'عید بهار🧨','2026-2-21':'عید بهار🧨','2026-2-22':'عید بهار🧨','2026-2-23':'عید بهار🧨','2026-5-1':'روز کارگر','2026-5-2':'روز کارگر','2026-5-3':'روز کارگر','2026-5-4':'روز کارگر','2026-5-5':'روز کارگر','2026-10-1':'هفته ملی🇨🇳','2026-10-2':'هفته ملی🇨🇳','2026-10-3':'هفته ملی🇨🇳','2026-10-4':'هفته ملی🇨🇳','2026-10-5':'هفته ملی🇨🇳','2026-10-6':'هفته ملی🇨🇳','2026-10-7':'هفته ملی🇨🇳'};
+const CN_S={};
+Object.entries(CN_G).forEach(([k,v])=>{ const [y,m,d]=k.split('-').map(Number); const s=jdToS(gToJD(y,m,d)); CN_S[`${s.y}-${s.m}-${s.d}`]=v; });
+
 const RECUR_LABEL = {none:'یک‌بار', daily:'روزانه', weekly:'هفتگی', monthly:'ماهانه'};
+const STATUS_LABEL = {open:'باز', done:'تکمیل‌شده', cancelled:'کنسل‌شده', archived:'بایگانی'};
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -144,20 +160,34 @@ let calYear, calMonth;
 
 function fmtDateHuman(dateStr){
   const [y,m,d] = dateStr.split('-').map(Number);
-  return `${d} ${JALALI_MONTH_NAMES[m-1]} ${y}`;
+  return `${d} ${SMONTHS[m-1]} ${y}`;
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۲۷) طبق درخواستِ صریحِ کاربر: وقتی وضعیت هرجایِ پلتفرم
+// عوض بشه (تکمیل/کنسل)، باید در کل جا اعمال بشه — چون این PWA همیشه
+// مستقیم از همون API واحد می‌خونه (نه یه کپیِ محلی)، هر بارِ باز‌کردنِ
+// هر تب، آخرین وضعیت رو از سرور می‌گیره؛ پس این خودکار تضمین می‌شه.
+function statusActions(r){
+  if(r.status==='open') return [
+    {label:'✔️ تکمیل', to:'done'}, {label:'❌ کنسل', to:'cancelled'},
+  ];
+  if(r.status==='done' || r.status==='cancelled') return [
+    {label:'↩️ بازگردانی به باز', to:'open'}, {label:'📦 بایگانی', to:'archived'},
+  ];
+  return [{label:'↩️ بازگردانی به باز', to:'open'}]; // archived
 }
 
 function renderItem(r){
-  const isToday = r.date === todayShamsi();
-  const isPast = r.date < todayShamsi();
-  return `<div class="item ${r.is_done?'done':''}">
+  const chip = r.status!=='open' ? `<span class="status-chip ${r.status}">${STATUS_LABEL[r.status]}</span>` : '';
+  const actions = statusActions(r).map(a=>`<button class="icon-btn" data-set-status="${r.id}" data-to="${a.to}">${a.label}</button>`).join('');
+  return `<div class="item st-${r.status}">
     <div class="item-body">
-      <div class="item-title">${r.is_done?'✅ ':''}${r.title}${r.recurrence!=='none'?`<span class="tag-recur">🔁 ${RECUR_LABEL[r.recurrence]}</span>`:''}</div>
-      <div class="item-meta">${fmtDateHuman(r.date)}${r.time?' — ساعت '+r.time:''}${isPast&&!r.is_done?' ⚠️ گذشته':''}</div>
+      <div class="item-title">${r.title}${chip}${r.recurrence!=='none'?`<span class="tag-recur">🔁 ${RECUR_LABEL[r.recurrence]}</span>`:''}</div>
+      <div class="item-meta">${fmtDateHuman(r.date)}${r.time?' — ساعت '+r.time:''}</div>
       ${r.note?`<div class="item-note">${r.note}</div>`:''}
     </div>
     <div class="item-actions">
-      <button class="icon-btn" data-toggle-done="${r.id}">${r.is_done?'↩️':'✔️'}</button>
+      ${actions}
       <button class="icon-btn" data-edit="${r.id}">✏️</button>
       <button class="icon-btn" data-del="${r.id}">🗑️</button>
     </div>
@@ -176,20 +206,19 @@ async function renderMain(){
   const tomorrow = tomorrowShamsi();
 
   if(currentTab === 'today'){
-    const todays = allReminders.filter(r=>r.date===today && !r.is_done);
-    const tomorrows = allReminders.filter(r=>r.date===tomorrow && !r.is_done);
-    const overdue = allReminders.filter(r=>r.date<today && !r.is_done);
+    const openOnly = allReminders.filter(r=>r.status==='open');
+    const todays = openOnly.filter(r=>r.date===today);
+    const tomorrows = openOnly.filter(r=>r.date===tomorrow);
+    const overdue = openOnly.filter(r=>r.date<today);
     main.innerHTML = `
-      ${overdue.length ? `<div class="card"><div style="font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ گذشته و انجام‌نشده</div>${renderList(overdue)}</div>` : ''}
+      ${overdue.length ? `<div class="card"><div style="font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ گذشته و هنوز باز</div>${renderList(overdue)}</div>` : ''}
       <div class="card"><div style="font-weight:700;margin-bottom:8px">امروز</div>${renderList(todays)}</div>
       <div class="card"><div style="font-weight:700;margin-bottom:8px">فردا</div>${renderList(tomorrows)}</div>
     `;
-  } else if(currentTab === 'all'){
-    const sorted = [...allReminders].sort((a,b)=> (a.date+  (a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
-    main.innerHTML = `<div class="card">${renderList(sorted)}</div>`;
-  } else if(currentTab === 'recurring'){
-    const recurring = allReminders.filter(r=>r.recurrence!=='none');
-    main.innerHTML = `<div class="card">${renderList(recurring)}</div>`;
+  } else if(['open','done','cancelled','archived'].includes(currentTab)){
+    const filtered = allReminders.filter(r=>r.status===currentTab)
+      .sort((a,b)=> (a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
+    main.innerHTML = `<div class="card">${renderList(filtered)}</div>`;
   } else if(currentTab === 'calendar'){
     renderCalendar(main);
   }
@@ -198,31 +227,59 @@ async function renderMain(){
 
 function renderCalendar(main){
   const firstOfMonthG = jalaliToGregorian(calYear, calMonth, 1);
-  const jsDate = new Date(firstOfMonthG[0], firstOfMonthG[1]-1, firstOfMonthG[2]);
+  const jsDate = new Date(firstOfMonthG.y, firstOfMonthG.m-1, firstOfMonthG.d);
   const startOffset = (jsDate.getDay() + 1) % 7;
-  const totalDays = daysInJalaliMonth(calYear, calMonth);
+  const totalDays = sDim(calYear, calMonth);
   const today = todayShamsi();
 
   const remindersByDate = {};
-  allReminders.forEach(r=>{ (remindersByDate[r.date] = remindersByDate[r.date]||[]).push(r); });
+  allReminders.filter(r=>r.status==='open').forEach(r=>{ (remindersByDate[r.date] = remindersByDate[r.date]||[]).push(r); });
 
+  const monthHolidays = [];
   let cells = '';
   for(let i=0;i<startOffset;i++) cells += '<div></div>';
   for(let d=1; d<=totalDays; d++){
     const dateStr = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const sk = `${calYear}-${calMonth}-${d}`;
+    const ik = `${calMonth}/${d}`;
+    const fixedH = IR_H[ik] || null;
+    const lunarH = IR_LUNAR_H[sk] || null;
+    const cnH = CN_S[sk] || null;
     const hasRem = !!remindersByDate[dateStr];
-    cells += `<div class="cal-day ${dateStr===today?'today':''} ${hasRem?'has-rem':''}" data-cal-day="${dateStr}">${d}${hasRem?'<span class="dot"></span>':''}</div>`;
+    if(fixedH||lunarH||cnH) monthHolidays.push({d, fixedH, lunarH, cnH});
+    let dotColor = '';
+    if(fixedH||lunarH||cnH) dotColor = ((fixedH||lunarH)&&cnH) ? 'var(--warn)' : ((fixedH||lunarH)?'var(--ok)':'var(--danger)');
+    const g = jalaliToGregorian(calYear, calMonth, d);
+    cells += `<div class="cal-day ${dateStr===today?'today':''} ${hasRem?'has-rem':''}" data-cal-day="${dateStr}">
+      ${dotColor?`<span class="dot" style="background:${dotColor}"></span>`:''}
+      <span>${fn(d)}</span>
+      <span class="g-date">${g.m}/${g.d}</span>
+    </div>`;
   }
 
   main.innerHTML = `
     <div class="card">
       <div class="cal-head">
         <button id="calPrev">‹</button>
-        <div style="font-weight:700">${JALALI_MONTH_NAMES[calMonth-1]} ${calYear}</div>
+        <div style="font-weight:700">${SMONTHS[calMonth-1]} ${fn(calYear)}</div>
         <button id="calNext">›</button>
       </div>
-      <div class="cal-grid" style="margin-bottom:6px">${JALALI_WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
+      <div class="cal-grid" style="margin-bottom:6px">${WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
       <div class="cal-grid">${cells}</div>
+      <div class="cal-legend">
+        <span><span class="dot" style="background:var(--ok)"></span>تعطیلِ ایران</span>
+        <span><span class="dot" style="background:var(--danger)"></span>تعطیلِ چین</span>
+        <span><span class="dot" style="background:var(--warn)"></span>هردو</span>
+        <span>📅 عددِ کوچیک = تاریخِ میلادی</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px">تعطیلاتِ این ماه</div>
+      ${monthHolidays.length ? monthHolidays.map(h=>{
+        const flags = [h.fixedH?'🇮🇷':'', h.lunarH?'🌙':'', h.cnH?'🇨🇳':''].filter(Boolean).join(' ');
+        const labels = [h.fixedH, h.lunarH, h.cnH].filter(Boolean).join(' / ');
+        return `<div class="hol-row"><span>${flags} ${labels}</span><span style="color:var(--ink-soft)">${fn(calMonth)}/${fn(h.d)}</span></div>`;
+      }).join('') : '<div class="empty">این ماه تعطیلی ندارد ✅</div>'}
     </div>
     <div id="calDayDetail"></div>
   `;
@@ -238,13 +295,16 @@ function renderCalendar(main){
 }
 
 function wireItemButtons(container){
-  container.querySelectorAll('[data-toggle-done]').forEach(b=>b.addEventListener('click', async ()=>{
-    const r = allReminders.find(x=>x.id==b.dataset.toggleDone);
-    await apiUpdate(r.id, {is_done: !r.is_done});
-    renderMain();
+  container.querySelectorAll('[data-set-status]').forEach(b=>b.addEventListener('click', async ()=>{
+    const id = b.dataset.setStatus;
+    const to = b.dataset.to;
+    const body = {status: to};
+    if(to==='open') body.notified = false; // اگه برگشت به باز، دوباره باید بتونه یادآوری بفرسته
+    const ok = await apiUpdate(id, body);
+    if(ok){ showToast(`✅ وضعیت شد: ${STATUS_LABEL[to]}`); renderMain(); }
   }));
   container.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(!confirm('حذفِ این یادآوری؟')) return;
+    if(!confirm('حذفِ کاملِ این یادآوری؟ (این با «کنسل» یا «بایگانی» فرق داره — دیگه هیچ‌جا قابلِ‌بازیابی نیست)')) return;
     await apiDelete(b.dataset.del);
     renderMain();
   }));
@@ -292,7 +352,7 @@ function openReminderModal(existing){
     const note = backdrop.querySelector('#rNote').value.trim();
     if(!title || !date){ showToast('عنوان و تاریخ را وارد کنید'); return; }
     const body = {title, date, time, recurrence, note};
-    if(!isEdit) body.notified = false;
+    if(!isEdit){ body.status = 'open'; body.notified = false; }
     const d = isEdit ? await apiUpdate(existing.id, body) : await apiCreate(body);
     if(!d) return;
     showToast('✅ ذخیره شد');
@@ -309,22 +369,22 @@ function openCalendarPicker(inputEl){
   popup.style.cssText = 'position:fixed;z-index:300;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.2);padding:10px;width:250px;top:50%;left:50%;transform:translate(-50%,-50%)';
   function draw(){
     const firstOfMonthG = jalaliToGregorian(vy, vm, 1);
-    const jsDate = new Date(firstOfMonthG[0], firstOfMonthG[1]-1, firstOfMonthG[2]);
+    const jsDate = new Date(firstOfMonthG.y, firstOfMonthG.m-1, firstOfMonthG.d);
     const startOffset = (jsDate.getDay() + 1) % 7;
-    const totalDays = daysInJalaliMonth(vy, vm);
+    const totalDays = sDim(vy, vm);
     let cells = '';
     for(let i=0;i<startOffset;i++) cells += '<div></div>';
     for(let d=1; d<=totalDays; d++){
       const dateStr = `${vy}-${String(vm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      cells += `<div data-pick="${dateStr}" style="text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;font-size:11px;${inputEl.value===dateStr?'background:var(--accent);color:#fff':''}">${d}</div>`;
+      cells += `<div data-pick="${dateStr}" style="text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;font-size:11px;${inputEl.value===dateStr?'background:var(--accent);color:#fff':''}">${fn(d)}</div>`;
     }
     popup.innerHTML = `
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <button type="button" id="mcPrev" style="border:none;background:none;cursor:pointer">‹</button>
-        <div style="font-size:12px;font-weight:700">${JALALI_MONTH_NAMES[vm-1]} ${vy}</div>
+        <div style="font-size:12px;font-weight:700">${SMONTHS[vm-1]} ${fn(vy)}</div>
         <button type="button" id="mcNext" style="border:none;background:none;cursor:pointer">›</button>
       </div>
-      <div class="cal-grid" style="margin-bottom:4px">${JALALI_WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
+      <div class="cal-grid" style="margin-bottom:4px">${WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
       <div class="cal-grid">${cells}</div>
     `;
     popup.querySelector('#mcPrev').addEventListener('click', ()=>{ vm--; if(vm<1){vm=12;vy--;} draw(); });
