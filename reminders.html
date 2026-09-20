@@ -304,7 +304,14 @@ function renderCalendar(main){
     const dateStr = el.dataset.calDay;
     const items = remindersByDate[dateStr] || [];
     const detail = main.querySelector('#calDayDetail');
-    detail.innerHTML = `<div class="card"><div style="font-weight:700;margin-bottom:8px">${fmtDateHuman(dateStr)}</div>${items.length?renderList(items):'<div class="empty">یادآوری‌ای برای این روز نیست</div>'}</div>`;
+    detail.innerHTML = `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700">${fmtDateHuman(dateStr)}</div>
+        <button class="btn btn-ghost btn-sm" id="calAddForDayBtn" style="width:auto;font-size:11px;padding:6px 10px">+ یادآوریِ جدید برایِ این روز</button>
+      </div>
+      ${items.length?renderList(items):'<div class="empty">یادآوری‌ای برای این روز نیست</div>'}
+    </div>`;
+    detail.querySelector('#calAddForDayBtn').addEventListener('click', ()=>openReminderModal(null, dateStr));
     wireItemButtons(detail);
   }));
 }
@@ -328,7 +335,7 @@ function wireItemButtons(container){
   }));
 }
 
-function openReminderModal(existing){
+function openReminderModal(existing, presetDate){
   const isEdit = !!existing;
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
@@ -337,7 +344,7 @@ function openReminderModal(existing){
       <h3>${isEdit?'ویرایشِ یادآوری':'یادآوریِ جدید'}</h3>
       <div class="field"><label>عنوان</label><input id="rTitle" type="text" value="${existing?.title||''}"></div>
       <div class="row2">
-        <div class="field"><label>تاریخ (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||todayShamsi()}" placeholder="1405-06-26"></div>
+        <div class="field"><label>تاریخ (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||presetDate||todayShamsi()}" placeholder="1405-06-26"></div>
         <div class="field"><label>ساعت (اختیاری)</label><input id="rTime" type="time" value="${existing?.time||''}"></div>
       </div>
       <div class="field"><label>تکرار</label>
