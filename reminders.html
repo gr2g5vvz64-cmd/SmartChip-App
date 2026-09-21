@@ -27,6 +27,9 @@
   .btn-primary{background:var(--accent);color:#fff;width:100%}
   .btn-ghost{background:var(--card);border:1.5px solid var(--border);color:var(--ink)}
   .btn-danger{background:#fde8ea;color:var(--danger)}
+  .type-seg{display:flex;gap:6px;margin-bottom:10px}
+  .type-seg button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:12px;cursor:pointer}
+  .type-seg button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
   .item{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:7px;background:#fff}
   .item.st-done{opacity:.6;border-color:#cfead4}
   .item.st-cancelled{opacity:.55;border-color:#f3d2d8}
@@ -48,7 +51,6 @@
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
   .cal-wd{text-align:center;font-size:9.5px;color:var(--ink-soft);padding:2px 0}
   .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid transparent;position:relative;padding:2px}
-  .cal-day.other{opacity:.3}
   .cal-day.today{border-color:var(--accent);font-weight:700}
   .cal-day.has-rem{background:#efe6ff}
   .cal-day .g-date{font-size:7px;color:var(--ink-soft)}
@@ -84,11 +86,17 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'https://smartchip-backend.onrender.com/api/reminders/';
+// ⚠️ (۱۴۰۵/۰۶/۲۸) طبق تصمیمِ صریحِ کاربر: این PWA دیگه به دیتابیسِ
+// جداگانه‌ی خودش وصل نیست — مستقیم به همون worklog که از قبل تویِ
+// CRM/ERP/Mobile استفاده می‌شه وصل می‌شه، تا دیتا یکی و مشترک بمونه.
+const FREE_API = 'https://smartchip-backend.onrender.com/api/worklog/free-reminders/';
+const RECUR_API = 'https://smartchip-backend.onrender.com/api/worklog/recurring-reminders/';
+// ⚠️ فقط یادآوری‌های خودِ همین کارمند نشون داده می‌شه (نه کلِ تیم) —
+// یادآوری‌هایِ تیمی جای جداگانه‌ای (تبِ CRM) دیده می‌شن، نه اینجا.
+const MY_NAME = 'حمیدرضا چاوشی ابیانه';
 
 // ══════════════════════════════════════════════════════════════
-// تقویمِ شمسیِ کامل — عیناً همون الگوریتمِ محک‌شده‌ی CRM/ERP، برایِ
-// اطمینانِ کامل از صحتِ محاسبات (نه بازنویسیِ ازنو)
+// تقویمِ شمسیِ کامل — عیناً همون الگوریتمِ محک‌شده‌ی CRM/ERP
 // ══════════════════════════════════════════════════════════════
 function fn(n){ return String(n).replace(/\d/g, x=>'۰۱۲۳۴۵۶۷۸۹'[x]); }
 function isLeapS(y){ const base=y>=0?y-474:y-473; const jy=((base%2820)+2820)%2820+474; return(((jy*682)-110)%2816)<682; }
@@ -96,7 +104,6 @@ function sDim(y,m){ if(m<12) return m<=6?31:30; return isLeapS(y)?30:29; }
 function sToJD(y,m,d){ const base=y>=0?y-474:y-473; const jy=((base%2820)+2820)%2820+474; const dbm=(m<=7?(m-1)*31:(m-1)*30+6); return d+dbm+Math.floor((jy*682-110)/2816)+(jy-1)*365+Math.floor(base/2820)*1029983+1948320; }
 function gToJD(y,m,d){ return 367*y-Math.floor(7*(y+Math.floor((m+9)/12))/4)-Math.floor(3*(Math.floor((y+(m-9)/7)/100)+1)/4)+Math.floor(275*m/9)+d+1721029; }
 function jdToS(jd){ const j=Math.floor(jd)+0.5; const dep=j-sToJD(475,1,1); const cyc=Math.floor(dep/1029983); const cr=dep%1029983; let yc=cr===1029982?2820:Math.floor((2134*Math.floor(cr/366)+2816*(cr%366)+2815)/1028522)+Math.floor(cr/366)+1; let year=yc+2820*cyc+474; if(year<=0)year--; const yd=j-sToJD(year,1,1)+1; let month=yd<=186?Math.ceil(yd/31):Math.ceil((yd-6)/30); let day=Math.floor(j-sToJD(year,month,1)+1); if(day<1){month--; if(month<1){month=12;year--;} day=Math.floor(j-sToJD(year,month,1)+1);} return {y:year,m:month,d:day}; }
-function sDow(y,m,d){ return (Math.floor(sToJD(y,m,d)+1.5)%7+1)%7; }
 function jdToG(jd){ const j=Math.floor(jd); const d=new Date((j-2440588)*86400000); return {y:d.getUTCFullYear(), m:d.getUTCMonth()+1, d:d.getUTCDate()}; }
 const SMONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const WEEKDAY_NAMES = ['ش','ی','د','س','چ','پ','ج'];
@@ -112,9 +119,7 @@ function tomorrowShamsi(){
   return `${s.y}-${String(s.m).padStart(2,'0')}-${String(s.d).padStart(2,'0')}`;
 }
 function jalaliToGregorian(jy,jm,jd){ return jdToG(sToJD(jy,jm,jd)); }
-function gregorianToJalali(gy,gm,gd){ return jdToS(gToJD(gy,gm,gd)); }
 
-// ── تعطیلاتِ ایران و چین — عیناً همون دیتایِ محک‌شده‌ی CRM/ERP ──
 const IR_H={'1/1':'نوروز','1/2':'نوروز','1/3':'نوروز','1/4':'نوروز','1/12':'جمهوری اسلامی','1/13':'سیزده‌به‌در','3/14':'رحلت امام','3/15':'قیام ۱۵ خرداد','11/22':'پیروزی انقلاب','12/29':'ملی شدن نفت'};
 const IR_LUNAR_H={
   '1404-2-4':'شهادت امام جعفر صادق','1404-3-16':'عید قربان','1404-3-24':'عید غدیر',
@@ -135,7 +140,6 @@ const CN_G={'2025-1-28':'عید بهار🧨','2025-1-29':'عید بهار🧨',
 const CN_S={};
 Object.entries(CN_G).forEach(([k,v])=>{ const [y,m,d]=k.split('-').map(Number); const s=jdToS(gToJD(y,m,d)); CN_S[`${s.y}-${s.m}-${s.d}`]=v; });
 
-const RECUR_LABEL = {none:'یک‌بار', daily:'روزانه', weekly:'هفتگی', monthly:'ماهانه'};
 const STATUS_LABEL = {open:'باز', done:'تکمیل‌شده', cancelled:'کنسل‌شده', archived:'بایگانی'};
 
 function showToast(msg){
@@ -145,15 +149,26 @@ function showToast(msg){
   t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
-// ⚠️ (۱۴۰۵/۰۶/۲۸) فیکسِ باگِ واقعی: قبلاً اگه سرور به‌جایِ آرایه‌ی خام،
-// یه پاسخِ صفحه‌بندی‌شده (مثلِ {count,results:[...]}) یا هر چیزِ دیگه‌ای
-// برمی‌گردوند، `allReminders` آرایه نمی‌شد و کلِ صفحه با
-// «allReminders.filter is not a function» کرش می‌کرد — نه فقط تقویم،
-// حتی تبِ پیش‌فرض هم خالی می‌موند. الان همیشه، در هر شرایطی، آرایه
-// برمی‌گردونه.
-async function apiList(){
+// ── تبدیلِ دیتایِ خامِ worklog به یه شکلِ یکسان برایِ نمایش ──
+function normalizeFree(r){
+  let status = 'open';
+  if(r.archived) status = 'archived';
+  else if(r.canceled) status = 'cancelled';
+  else if(r.done) status = 'done';
+  return { _type:'free', id:r.id, title:r.desc, customer:r.customer, date:r.date, time:r.time||'',
+           note:r.category ? `دسته: ${r.category}` : '', status, raw:r };
+}
+function normalizeRecurring(r){
+  let status = 'open';
+  if(r.archived) status = 'archived';
+  else if(r.canceled) status = 'cancelled';
+  return { _type:'recurring', id:r.id, title:r.title, customer:r.customer, date:r.next_date, time:r.time||'',
+           note:r.note ? `${r.note} — هر ${r.interval} روز` : `هر ${r.interval} روز`, status, raw:r };
+}
+
+async function apiFetchArray(url){
   try{
-    const r = await fetch(API);
+    const r = await fetch(url);
     if(!r.ok) return [];
     const data = await r.json();
     if(Array.isArray(data)) return data;
@@ -161,11 +176,26 @@ async function apiList(){
     return [];
   }catch(e){ return []; }
 }
-async function apiCreate(body){ const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); if(!r.ok){showToast('❌ ثبت ناموفق'); return null;} return r.json(); }
-async function apiUpdate(id, body){ const r = await fetch(API+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); if(!r.ok){showToast('❌ ویرایش ناموفق'); return null;} return r.json(); }
-async function apiDelete(id){ const r = await fetch(API+id+'/', {method:'DELETE'}); return r.ok; }
 
-let allReminders = [];
+async function apiUpdate(type, id, body){
+  const url = (type==='free'?FREE_API:RECUR_API) + id + '/';
+  const r = await fetch(url, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if(!r.ok){ showToast('❌ ویرایش ناموفق'); return null; }
+  return r.json();
+}
+async function apiCreate(type, body){
+  const url = type==='free' ? FREE_API : RECUR_API;
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if(!r.ok){ showToast('❌ ثبت ناموفق'); return null; }
+  return r.json();
+}
+async function apiDelete(type, id){
+  const url = (type==='free'?FREE_API:RECUR_API) + id + '/';
+  const r = await fetch(url, {method:'DELETE'});
+  return r.ok;
+}
+
+let allItems = [];
 let currentTab = 'today';
 let calYear, calMonth;
 {
@@ -178,33 +208,33 @@ function fmtDateHuman(dateStr){
   return `${d} ${SMONTHS[m-1]} ${y}`;
 }
 
-// ⚠️ (۱۴۰۵/۰۶/۲۷) طبق درخواستِ صریحِ کاربر: وقتی وضعیت هرجایِ پلتفرم
-// عوض بشه (تکمیل/کنسل)، باید در کل جا اعمال بشه — چون این PWA همیشه
-// مستقیم از همون API واحد می‌خونه (نه یه کپیِ محلی)، هر بارِ باز‌کردنِ
-// هر تب، آخرین وضعیت رو از سرور می‌گیره؛ پس این خودکار تضمین می‌شه.
-function statusActions(r){
-  if(r.status==='open') return [
-    {label:'✔️ تکمیل', to:'done'}, {label:'❌ کنسل', to:'cancelled'},
-  ];
-  if(r.status==='done' || r.status==='cancelled') return [
-    {label:'↩️ بازگردانی به باز', to:'open'}, {label:'📦 بایگانی', to:'archived'},
-  ];
-  return [{label:'↩️ بازگردانی به باز', to:'open'}]; // archived
+// ⚠️ (۱۴۰۵/۰۶/۲۸) عملیاتِ وضعیت — برایِ «آزاد» و «دوره‌ای» متفاوته،
+// چون آزاد یه فیلدِ `done` جدا داره، دوره‌ای نداره (هیچ‌وقت «تکمیل»
+// نمی‌شه، فقط باز/کنسل/بایگانی، چون خودش تکرار می‌شه)
+function statusActions(item){
+  if(item._type === 'free'){
+    if(item.status==='open') return [{label:'✔️ تکمیل', body:{done:true}}, {label:'❌ کنسل', body:{canceled:true}}];
+    if(item.status==='done' || item.status==='cancelled') return [{label:'↩️ بازگردانی به باز', body:{done:false, canceled:false}}, {label:'📦 بایگانی', body:{archived:true}}];
+    return [{label:'↩️ بازگردانی به باز', body:{archived:false}}];
+  } else {
+    if(item.status==='open') return [{label:'❌ کنسل', body:{canceled:true}}];
+    if(item.status==='cancelled') return [{label:'↩️ بازگردانی به باز', body:{canceled:false}}, {label:'📦 بایگانی', body:{archived:true}}];
+    return [{label:'↩️ بازگردانی به باز', body:{archived:false}}];
+  }
 }
 
-function renderItem(r){
-  const chip = r.status!=='open' ? `<span class="status-chip ${r.status}">${STATUS_LABEL[r.status]}</span>` : '';
-  const actions = statusActions(r).map(a=>`<button class="icon-btn" data-set-status="${r.id}" data-to="${a.to}">${a.label}</button>`).join('');
-  return `<div class="item st-${r.status}">
+function renderItem(item){
+  const chip = item.status!=='open' ? `<span class="status-chip ${item.status}">${STATUS_LABEL[item.status]}</span>` : '';
+  const actions = statusActions(item).map(a=>`<button class="icon-btn" data-set-status="${item._type}-${item.id}">${a.label}</button>`).join('');
+  return `<div class="item st-${item.status}" data-item-key="${item._type}-${item.id}">
     <div class="item-body">
-      <div class="item-title">${r.title}${chip}${r.recurrence!=='none'?`<span class="tag-recur">🔁 ${RECUR_LABEL[r.recurrence]}</span>`:''}</div>
-      <div class="item-meta">${fmtDateHuman(r.date)}${r.time?' — ساعت '+r.time:''}</div>
-      ${r.note?`<div class="item-note">${r.note}</div>`:''}
+      <div class="item-title">${item.title||'(بدون عنوان)'}${chip}${item._type==='recurring'?`<span class="tag-recur">🔁 دوره‌ای</span>`:''}</div>
+      <div class="item-meta">${item.customer?`مشتری: ${item.customer} — `:''}${fmtDateHuman(item.date)}${item.time?' — ساعت '+item.time:''}</div>
+      ${item.note?`<div class="item-note">${item.note}</div>`:''}
     </div>
     <div class="item-actions">
       ${actions}
-      <button class="icon-btn" data-edit="${r.id}">✏️</button>
-      <button class="icon-btn" data-del="${r.id}">🗑️</button>
+      <button class="icon-btn" data-del-key="${item._type}-${item.id}">🗑️</button>
     </div>
   </div>`;
 }
@@ -214,24 +244,33 @@ function renderList(items){
   return items.map(renderItem).join('');
 }
 
+async function loadAllItems(){
+  const [freeRaw, recurRaw] = await Promise.all([apiFetchArray(FREE_API), apiFetchArray(RECUR_API)]);
+  // ⚠️ طبقِ تصمیمِ کاربر: فقط یادآوریِ آزادِ *خودش* — دوره‌ای فعلاً
+  // فیلدِ assignee نداره (طبقِ خودِ مدلِ worklog)، پس همه‌ش نشون داده می‌شه
+  const myFree = freeRaw.filter(r=>r.assignee_name === MY_NAME).map(normalizeFree);
+  const recurring = recurRaw.map(normalizeRecurring);
+  return [...myFree, ...recurring];
+}
+
 async function renderMain(){
   const main = document.getElementById('main');
-  allReminders = await apiList();
+  allItems = await loadAllItems();
   const today = todayShamsi();
   const tomorrow = tomorrowShamsi();
 
   if(currentTab === 'today'){
-    const openOnly = allReminders.filter(r=>r.status==='open');
+    const openOnly = allItems.filter(r=>r.status==='open');
     const todays = openOnly.filter(r=>r.date===today);
     const tomorrows = openOnly.filter(r=>r.date===tomorrow);
-    const overdue = openOnly.filter(r=>r.date<today);
+    const overdue = openOnly.filter(r=>r.date && r.date<today);
     main.innerHTML = `
       ${overdue.length ? `<div class="card"><div style="font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ گذشته و هنوز باز</div>${renderList(overdue)}</div>` : ''}
       <div class="card"><div style="font-weight:700;margin-bottom:8px">امروز</div>${renderList(todays)}</div>
       <div class="card"><div style="font-weight:700;margin-bottom:8px">فردا</div>${renderList(tomorrows)}</div>
     `;
   } else if(['open','done','cancelled','archived'].includes(currentTab)){
-    const filtered = allReminders.filter(r=>r.status===currentTab)
+    const filtered = allItems.filter(r=>r.status===currentTab)
       .sort((a,b)=> (a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
     main.innerHTML = `<div class="card">${renderList(filtered)}</div>`;
   } else if(currentTab === 'calendar'){
@@ -247,8 +286,8 @@ function renderCalendar(main){
   const totalDays = sDim(calYear, calMonth);
   const today = todayShamsi();
 
-  const remindersByDate = {};
-  allReminders.filter(r=>r.status==='open').forEach(r=>{ (remindersByDate[r.date] = remindersByDate[r.date]||[]).push(r); });
+  const itemsByDate = {};
+  allItems.filter(r=>r.status==='open').forEach(r=>{ if(r.date) (itemsByDate[r.date] = itemsByDate[r.date]||[]).push(r); });
 
   const monthHolidays = [];
   let cells = '';
@@ -260,7 +299,7 @@ function renderCalendar(main){
     const fixedH = IR_H[ik] || null;
     const lunarH = IR_LUNAR_H[sk] || null;
     const cnH = CN_S[sk] || null;
-    const hasRem = !!remindersByDate[dateStr];
+    const hasRem = !!itemsByDate[dateStr];
     if(fixedH||lunarH||cnH) monthHolidays.push({d, fixedH, lunarH, cnH});
     let dotColor = '';
     if(fixedH||lunarH||cnH) dotColor = ((fixedH||lunarH)&&cnH) ? 'var(--warn)' : ((fixedH||lunarH)?'var(--ok)':'var(--danger)');
@@ -302,7 +341,7 @@ function renderCalendar(main){
   main.querySelector('#calNext').addEventListener('click', ()=>{ calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderMain(); });
   main.querySelectorAll('[data-cal-day]').forEach(el=>el.addEventListener('click', ()=>{
     const dateStr = el.dataset.calDay;
-    const items = remindersByDate[dateStr] || [];
+    const items = itemsByDate[dateStr] || [];
     const detail = main.querySelector('#calDayDetail');
     detail.innerHTML = `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -318,69 +357,84 @@ function renderCalendar(main){
 
 function wireItemButtons(container){
   container.querySelectorAll('[data-set-status]').forEach(b=>b.addEventListener('click', async ()=>{
-    const id = b.dataset.setStatus;
-    const to = b.dataset.to;
-    const body = {status: to};
-    if(to==='open') body.notified = false; // اگه برگشت به باز، دوباره باید بتونه یادآوری بفرسته
-    const ok = await apiUpdate(id, body);
-    if(ok){ showToast(`✅ وضعیت شد: ${STATUS_LABEL[to]}`); renderMain(); }
+    const [type, id] = b.dataset.setStatus.split('-');
+    const item = allItems.find(x=>x._type===type && String(x.id)===id);
+    const action = statusActions(item).find(a=>b.textContent.trim()===a.label);
+    const ok = await apiUpdate(type, id, action.body);
+    if(ok){ showToast('✅ وضعیت بروزرسانی شد'); renderMain(); }
   }));
-  container.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(!confirm('حذفِ کاملِ این یادآوری؟ (این با «کنسل» یا «بایگانی» فرق داره — دیگه هیچ‌جا قابلِ‌بازیابی نیست)')) return;
-    await apiDelete(b.dataset.del);
+  container.querySelectorAll('[data-del-key]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('حذفِ کاملِ این یادآوری؟ این با «کنسل»/«بایگانی» فرق داره — دیگه هیچ‌جا قابلِ‌بازیابی نیست.')) return;
+    const [type, id] = b.dataset.delKey.split('-');
+    await apiDelete(type, id);
     renderMain();
-  }));
-  container.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', ()=>{
-    openReminderModal(allReminders.find(x=>x.id==b.dataset.edit));
   }));
 }
 
 function openReminderModal(existing, presetDate){
-  const isEdit = !!existing;
+  let modalType = existing ? existing._type : 'free';
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = `
-    <div class="modal">
-      <h3>${isEdit?'ویرایشِ یادآوری':'یادآوریِ جدید'}</h3>
-      <div class="field"><label>عنوان</label><input id="rTitle" type="text" value="${existing?.title||''}"></div>
-      <div class="row2">
-        <div class="field"><label>تاریخ (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||presetDate||todayShamsi()}" placeholder="1405-06-26"></div>
-        <div class="field"><label>ساعت (اختیاری)</label><input id="rTime" type="time" value="${existing?.time||''}"></div>
-      </div>
-      <div class="field"><label>تکرار</label>
-        <select id="rRecur">
-          <option value="none" ${(!existing||existing.recurrence==='none')?'selected':''}>یک‌بار</option>
-          <option value="daily" ${existing?.recurrence==='daily'?'selected':''}>روزانه</option>
-          <option value="weekly" ${existing?.recurrence==='weekly'?'selected':''}>هفتگی</option>
-          <option value="monthly" ${existing?.recurrence==='monthly'?'selected':''}>ماهانه</option>
-        </select>
-      </div>
-      <div class="field"><label>توضیح (اختیاری)</label><textarea id="rNote">${existing?.note||''}</textarea></div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-primary" id="rSaveBtn">${isEdit?'ذخیره':'ثبت'}</button>
-        <button class="btn btn-ghost" id="rCancelBtn">انصراف</button>
-      </div>
-    </div>`;
+
+  function draw(){
+    const isEdit = !!existing;
+    backdrop.innerHTML = `
+      <div class="modal">
+        <h3>${isEdit?'ویرایشِ یادآوری':'یادآوریِ جدید'}</h3>
+        ${!isEdit ? `
+        <div class="type-seg">
+          <button type="button" data-pick-type="free" class="${modalType==='free'?'active':''}">آزاد (یک‌بار)</button>
+          <button type="button" data-pick-type="recurring" class="${modalType==='recurring'?'active':''}">دوره‌ای</button>
+        </div>` : ''}
+        <div class="field"><label>${modalType==='free'?'شرح':'عنوان'}</label><input id="rTitle" type="text" value="${existing ? (existing.title||'') : ''}"></div>
+        <div class="field"><label>مشتری (اختیاری)</label><input id="rCustomer" type="text" value="${existing?.customer||''}"></div>
+        <div class="row2">
+          <div class="field"><label>تاریخِ ${modalType==='free'?'یادآوری':'شروع/موعدِ بعدی'} (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||presetDate||todayShamsi()}" placeholder="1405-06-26"></div>
+          <div class="field"><label>ساعت (اختیاری)</label><input id="rTime" type="time" value="${existing?.raw?.time||''}"></div>
+        </div>
+        ${modalType==='recurring' ? `<div class="field"><label>هر چند روز تکرار بشه؟</label><input id="rInterval" type="number" min="1" value="${existing?.raw?.interval||30}"></div>` : ''}
+        <div class="field"><label>${modalType==='free'?'دسته (اختیاری)':'یادداشت (اختیاری)'}</label><textarea id="rNote">${modalType==='free' ? (existing?.raw?.category||'') : (existing?.raw?.note||'')}</textarea></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary" id="rSaveBtn">${isEdit?'ذخیره':'ثبت'}</button>
+          <button class="btn btn-ghost" id="rCancelBtn">انصراف</button>
+        </div>
+      </div>`;
+    backdrop.querySelector('#rCancelBtn').addEventListener('click', ()=>backdrop.remove());
+    if(!isEdit){
+      backdrop.querySelectorAll('[data-pick-type]').forEach(b=>b.addEventListener('click', ()=>{
+        modalType = b.dataset.pickType; draw();
+      }));
+    }
+    const dateInput = backdrop.querySelector('#rDate');
+    dateInput.addEventListener('click', ()=>openCalendarPicker(dateInput));
+    backdrop.querySelector('#rSaveBtn').addEventListener('click', async ()=>{
+      const title = backdrop.querySelector('#rTitle').value.trim();
+      const customer = backdrop.querySelector('#rCustomer').value.trim();
+      const date = dateInput.value.trim();
+      const time = backdrop.querySelector('#rTime').value;
+      const noteVal = backdrop.querySelector('#rNote').value.trim();
+      if(!title || !date){ showToast('عنوان/شرح و تاریخ را وارد کنید'); return; }
+      let body, type;
+      if(modalType === 'free'){
+        type = 'free';
+        body = { desc:title, customer, date, time, category: noteVal, assignee_name: MY_NAME, assigned_by_name: MY_NAME };
+        if(!existing){ body.done=false; body.canceled=false; body.archived=false; }
+      } else {
+        type = 'recurring';
+        const interval = parseInt(backdrop.querySelector('#rInterval').value) || 30;
+        body = { title, customer, interval: String(interval), start_date: existing?.raw?.start_date || date, next_date: date, time, note: noteVal };
+        if(!existing){ body.canceled=false; body.archived=false; }
+      }
+      const d = existing ? await apiUpdate(type, existing.id, body) : await apiCreate(type, body);
+      if(!d) return;
+      showToast('✅ ذخیره شد');
+      backdrop.remove();
+      renderMain();
+    });
+  }
+  draw();
   document.body.appendChild(backdrop);
   backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
-  backdrop.querySelector('#rCancelBtn').addEventListener('click', ()=>backdrop.remove());
-  const dateInput = backdrop.querySelector('#rDate');
-  dateInput.addEventListener('click', ()=>openCalendarPicker(dateInput));
-  backdrop.querySelector('#rSaveBtn').addEventListener('click', async ()=>{
-    const title = backdrop.querySelector('#rTitle').value.trim();
-    const date = dateInput.value.trim();
-    const time = backdrop.querySelector('#rTime').value;
-    const recurrence = backdrop.querySelector('#rRecur').value;
-    const note = backdrop.querySelector('#rNote').value.trim();
-    if(!title || !date){ showToast('عنوان و تاریخ را وارد کنید'); return; }
-    const body = {title, date, time, recurrence, note};
-    if(!isEdit){ body.status = 'open'; body.notified = false; }
-    const d = isEdit ? await apiUpdate(existing.id, body) : await apiCreate(body);
-    if(!d) return;
-    showToast('✅ ذخیره شد');
-    backdrop.remove();
-    renderMain();
-  });
 }
 
 function openCalendarPicker(inputEl){
@@ -433,7 +487,7 @@ document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('cli
   currentTab = b.dataset.tab;
   renderMain();
 }));
-document.getElementById('dateBadge').textContent = fmtDateHuman(todayShamsi());
+document.getElementById('dateBadge').textContent = fmtDateHuman(todayShamsi()) + ' — یادآوری‌های ' + MY_NAME;
 renderMain();
 
 if('serviceWorker' in navigator){
