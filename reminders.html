@@ -9,66 +9,124 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>یادآوری‌ها — اسمارت‌چیپ</title>
 <style>
-  :root{ --accent:#7c3aed; --bg:#f3f0fb; --card:#fff; --border:#e2d9f7; --ink:#2a2140; --ink-soft:#7a6f96; --danger:#d0374c; --ok:#0e7d6b; --warn:#f59e0b; }
+  /* ═══ سیستمِ طراحیِ «دفترچه‌ی رومیزی» — سرمه‌ای + کاغذیِ گرم + طلایی‌مسی ═══ */
+  :root{
+    --ink:#1C2333; --paper:#FAF6F0; --card:#FFFFFF; --line:#E4DDD0;
+    --ink-soft:#8B8272; --brass:#B8863F; --brass-deep:#8F6A2E;
+    --teal:#2F6F63; --brick:#A83B33; --brick-soft:#F4E4E1;
+    --teal-soft:#E3EEEB; --grey-soft:#EDEAE3;
+  }
   *{box-sizing:border-box}
-  body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--ink);padding:12px;max-width:520px;margin:0 auto}
-  h1{font-size:18px;margin:8px 0 4px}
-  .sub{font-size:11px;color:var(--ink-soft);margin-bottom:14px}
-  .seg{display:flex;gap:4px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:3px;margin-bottom:14px;overflow-x:auto}
-  .seg button{flex:1;border:none;background:none;padding:8px 6px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap;color:var(--ink-soft)}
-  .seg button.active{background:var(--accent);color:#fff}
-  .card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
-  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
-  .field label{font-size:11px;color:var(--ink-soft)}
-  input,select,textarea{font-family:inherit;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;color:var(--ink)}
-  textarea{resize:vertical;min-height:50px}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .btn{padding:10px 14px;border-radius:9px;border:none;font-size:13px;cursor:pointer;font-weight:600}
-  .btn-primary{background:var(--accent);color:#fff;width:100%}
-  .btn-ghost{background:var(--card);border:1.5px solid var(--border);color:var(--ink)}
-  .btn-danger{background:#fde8ea;color:var(--danger)}
-  .type-seg{display:flex;gap:6px;margin-bottom:10px}
-  .type-seg button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:12px;cursor:pointer}
-  .type-seg button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .item{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:7px;background:#fff}
-  .item.st-done{opacity:.6;border-color:#cfead4}
-  .item.st-cancelled{opacity:.55;border-color:#f3d2d8}
-  .item.st-archived{opacity:.45}
-  .item-body{flex:1;min-width:0}
-  .item-title{font-size:13.5px;font-weight:600}
-  .item-meta{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
-  .item-note{font-size:11.5px;color:var(--ink-soft);margin-top:4px;white-space:pre-wrap}
-  .item-actions{display:flex;flex-direction:column;gap:4px}
-  .icon-btn{border:none;background:var(--bg);border-radius:6px;padding:4px 7px;font-size:10.5px;cursor:pointer}
-  .status-chip{display:inline-block;font-size:9.5px;border-radius:5px;padding:1px 6px;margin-inline-start:5px}
-  .status-chip.done{background:#e3f5ea;color:var(--ok)}
-  .status-chip.cancelled{background:#fde8ea;color:var(--danger)}
-  .status-chip.archived{background:#eee;color:#666}
-  .tag-recur{display:inline-block;font-size:9.5px;background:#efe6ff;color:var(--accent);border-radius:5px;padding:1px 6px;margin-inline-start:5px}
-  .empty{text-align:center;color:var(--ink-soft);font-size:12px;padding:20px}
-  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-  .cal-head button{border:none;background:var(--bg);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-  .cal-wd{text-align:center;font-size:9.5px;color:var(--ink-soft);padding:2px 0}
-  .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-size:11px;cursor:pointer;border:1.5px solid transparent;position:relative;padding:2px}
-  .cal-day.today{border-color:var(--accent);font-weight:700}
-  .cal-day.has-rem{background:#efe6ff}
-  .cal-day .g-date{font-size:7px;color:var(--ink-soft)}
-  .cal-day .dot{width:5px;height:5px;border-radius:50%;position:absolute;top:2px;left:2px}
-  .cal-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--ink-soft);margin-top:8px}
-  .cal-legend span{display:flex;align-items:center;gap:3px}
-  .cal-legend .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
-  .hol-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border)}
-  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(20px);background:#2a2140;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;opacity:0;pointer-events:none;transition:.25s;z-index:400}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
-  .modal{background:#fff;border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
-  .modal h3{margin:0 0 12px;font-size:15px}
+  body{
+    margin:0; font-family:Vazirmatn,Tahoma,sans-serif; background:var(--paper); color:var(--ink);
+    padding:0 14px 24px; max-width:520px; margin:0 auto;
+    font-feature-settings:"tnum" 1, "lnum" 1;
+  }
+  .day-header{ display:flex; align-items:baseline; gap:14px; padding:22px 0 16px; border-bottom:3px solid var(--ink) }
+  .day-header .big-day{ font-size:44px; font-weight:800; line-height:1; color:var(--ink) }
+  .day-header .day-meta{ display:flex; flex-direction:column; gap:2px }
+  .day-header .day-meta .month{ font-size:14px; font-weight:700; color:var(--ink) }
+  .day-header .day-meta .app-name{ font-size:11px; color:var(--ink-soft) }
+
+  .seg{ display:flex; gap:2px; overflow-x:auto; margin:16px 0 14px; border-bottom:1.5px solid var(--line) }
+  .seg button{
+    flex:0 0 auto; border:none; background:none; padding:9px 12px; font-size:12px; cursor:pointer;
+    color:var(--ink-soft); white-space:nowrap; border-bottom:2.5px solid transparent; margin-bottom:-1.5px;
+    font-family:inherit;
+  }
+  .seg button.active{ color:var(--ink); font-weight:700; border-bottom-color:var(--brass) }
+
+  .btn{ padding:11px 14px; border-radius:8px; border:none; font-size:13px; cursor:pointer; font-weight:700; font-family:inherit }
+  .btn-primary{ background:var(--ink); color:var(--paper); width:100%; letter-spacing:.2px }
+  .btn-ghost{ background:var(--card); border:1.5px solid var(--line); color:var(--ink) }
+  .btn-danger{ background:var(--brick-soft); color:var(--brick) }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px }
+  .card > .card-title{ font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:10px; display:flex; align-items:center; gap:6px }
+  .card > .card-title.warn{ color:var(--brick) }
+
+  .field{ display:flex; flex-direction:column; gap:5px; margin-bottom:10px }
+  .field label{ font-size:11px; color:var(--ink-soft); font-weight:600 }
+  input,select,textarea{
+    font-family:inherit; padding:10px 11px; border:1.5px solid var(--line); border-radius:7px;
+    font-size:13px; background:#fff; color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{ outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass) }
+  textarea{ resize:vertical; min-height:50px }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:9px }
+
+  .type-seg{ display:flex; gap:6px; margin-bottom:12px }
+  .type-seg button{ flex:1; padding:10px; border-radius:7px; border:1.5px solid var(--line); background:#fff; font-size:12px; cursor:pointer; font-family:inherit; font-weight:600; color:var(--ink-soft) }
+  .type-seg button.active{ background:var(--ink); color:var(--paper); border-color:var(--ink) }
+
+  .timeline{ position:relative; padding-inline-start:22px }
+  .timeline::before{ content:''; position:absolute; right:6px; top:6px; bottom:6px; width:1.5px; background:var(--line) }
+  .t-item{ position:relative; padding-bottom:18px }
+  .t-item:last-child{ padding-bottom:2px }
+  .t-item::before{
+    content:''; position:absolute; right:-19.5px; top:3px; width:10px; height:10px; border-radius:50%;
+    background:var(--brass); border:2px solid var(--paper); box-shadow:0 0 0 1.5px var(--brass);
+  }
+  .t-item.st-done::before{ background:var(--teal); box-shadow:0 0 0 1.5px var(--teal) }
+  .t-item.st-cancelled::before{ background:var(--brick); box-shadow:0 0 0 1.5px var(--brick) }
+  .t-item.st-archived::before{ background:var(--ink-soft); box-shadow:0 0 0 1.5px var(--ink-soft) }
+  .t-item.st-done,.t-item.st-cancelled,.t-item.st-archived{ opacity:.65 }
+
+  .t-time{ font-size:11px; font-weight:700; color:var(--brass-deep); font-feature-settings:"tnum" 1 }
+  .t-title{ font-size:14px; font-weight:700; color:var(--ink); margin-top:2px }
+  .t-meta{ font-size:11px; color:var(--ink-soft); margin-top:2px }
+  .t-note{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; white-space:pre-wrap; background:var(--grey-soft); border-radius:6px; padding:6px 8px }
+  .t-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px }
+  .status-chip{ display:inline-block; font-size:10px; font-weight:700; border-radius:5px; padding:2px 7px; margin-inline-start:6px }
+  .status-chip.done{ background:var(--teal-soft); color:var(--teal) }
+  .status-chip.cancelled{ background:var(--brick-soft); color:var(--brick) }
+  .status-chip.archived{ background:var(--grey-soft); color:var(--ink-soft) }
+  .tag-recur{ display:inline-block; font-size:10px; font-weight:700; background:#F3E9D6; color:var(--brass-deep); border-radius:5px; padding:2px 7px; margin-inline-start:6px }
+
+  .icon-btn{ border:1.5px solid var(--line); background:#fff; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; font-family:inherit; color:var(--ink) }
+  .icon-btn:hover{ border-color:var(--brass) }
+
+  .empty{ text-align:center; color:var(--ink-soft); font-size:12px; padding:28px 10px }
+
+  .cal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px }
+  .cal-head button{ border:1.5px solid var(--line); background:#fff; border-radius:7px; padding:6px 11px; font-size:14px; cursor:pointer; color:var(--ink) }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px }
+  .cal-wd{ text-align:center; font-size:10px; color:var(--ink-soft); padding:2px 0; font-weight:700 }
+  .cal-day{
+    aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border-radius:7px; font-size:11.5px; cursor:pointer; border:1.5px solid transparent; position:relative; padding:2px;
+    font-feature-settings:"tnum" 1;
+  }
+  .cal-day.today{ border-color:var(--brass); font-weight:800; background:#FBF3E7 }
+  .cal-day.has-rem{ background:var(--grey-soft) }
+  .cal-day.today.has-rem{ background:#FBF3E7 }
+  .cal-day .g-date{ font-size:7px; color:var(--ink-soft) }
+  .cal-day .dot{ width:5px; height:5px; border-radius:50%; position:absolute; top:2px; left:2px }
+  .cal-legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:10px; color:var(--ink-soft); margin-top:10px }
+  .cal-legend span{ display:flex; align-items:center; gap:4px }
+  .cal-legend .dot{ width:7px; height:7px; border-radius:50%; display:inline-block }
+  .hol-row{ display:flex; justify-content:space-between; font-size:11.5px; padding:6px 0; border-bottom:1px solid var(--line) }
+  .hol-row:last-child{ border-bottom:none }
+
+  .toast{
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink);
+    color:var(--paper); padding:9px 18px; border-radius:8px; font-size:12px; opacity:0; pointer-events:none;
+    transition:.25s; z-index:400;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0) }
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(28,35,51,.5); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px }
+  .modal{ background:#fff; border-radius:12px; padding:20px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto }
+  .modal h3{ margin:0 0 14px; font-size:16px; font-weight:800; color:var(--ink) }
 </style>
 </head>
 <body>
-<h1>⏰ یادآوری‌ها</h1>
-<div class="sub" id="dateBadge"></div>
+<div class="day-header">
+  <div class="big-day" id="bigDayNum"></div>
+  <div class="day-meta">
+    <div class="month" id="dayMonthYear"></div>
+    <div class="app-name">⏰ یادآوری‌های حمیدرضا</div>
+  </div>
+</div>
 
 <div class="seg" id="mainTabs">
   <button data-tab="today" class="active">امروز/فردا</button>
@@ -226,22 +284,21 @@ function statusActions(item){
 function renderItem(item){
   const chip = item.status!=='open' ? `<span class="status-chip ${item.status}">${STATUS_LABEL[item.status]}</span>` : '';
   const actions = statusActions(item).map(a=>`<button class="icon-btn" data-set-status="${item._type}-${item.id}">${a.label}</button>`).join('');
-  return `<div class="item st-${item.status}" data-item-key="${item._type}-${item.id}">
-    <div class="item-body">
-      <div class="item-title">${item.title||'(بدون عنوان)'}${chip}${item._type==='recurring'?`<span class="tag-recur">🔁 دوره‌ای</span>`:''}</div>
-      <div class="item-meta">${item.customer?`مشتری: ${item.customer} — `:''}${fmtDateHuman(item.date)}${item.time?' — ساعت '+item.time:''}</div>
-      ${item.note?`<div class="item-note">${item.note}</div>`:''}
-    </div>
-    <div class="item-actions">
+  return `<div class="t-item st-${item.status}" data-item-key="${item._type}-${item.id}">
+    <div class="t-time">${item.time || fmtDateHuman(item.date)}</div>
+    <div class="t-title">${item.title||'(بدون عنوان)'}${chip}${item._type==='recurring'?`<span class="tag-recur">🔁 دوره‌ای</span>`:''}</div>
+    <div class="t-meta">${item.customer?`مشتری: ${item.customer}`:''}${item.time?' — '+fmtDateHuman(item.date):''}</div>
+    ${item.note?`<div class="t-note">${item.note}</div>`:''}
+    <div class="t-actions">
       ${actions}
-      <button class="icon-btn" data-del-key="${item._type}-${item.id}">🗑️</button>
+      <button class="icon-btn" data-del-key="${item._type}-${item.id}">🗑️ حذف</button>
     </div>
   </div>`;
 }
 
 function renderList(items){
   if(items.length===0) return `<div class="empty">چیزی نیست</div>`;
-  return items.map(renderItem).join('');
+  return `<div class="timeline">${items.map(renderItem).join('')}</div>`;
 }
 
 async function loadAllItems(){
@@ -265,9 +322,9 @@ async function renderMain(){
     const tomorrows = openOnly.filter(r=>r.date===tomorrow);
     const overdue = openOnly.filter(r=>r.date && r.date<today);
     main.innerHTML = `
-      ${overdue.length ? `<div class="card"><div style="font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ گذشته و هنوز باز</div>${renderList(overdue)}</div>` : ''}
-      <div class="card"><div style="font-weight:700;margin-bottom:8px">امروز</div>${renderList(todays)}</div>
-      <div class="card"><div style="font-weight:700;margin-bottom:8px">فردا</div>${renderList(tomorrows)}</div>
+      ${overdue.length ? `<div class="card"><div class="card-title warn">⚠️ گذشته و هنوز باز</div>${renderList(overdue)}</div>` : ''}
+      <div class="card"><div class="card-title">امروز</div>${renderList(todays)}</div>
+      <div class="card"><div class="card-title">فردا</div>${renderList(tomorrows)}</div>
     `;
   } else if(['open','done','cancelled','archived'].includes(currentTab)){
     const filtered = allItems.filter(r=>r.status===currentTab)
@@ -328,7 +385,7 @@ function renderCalendar(main){
       </div>
     </div>
     <div class="card">
-      <div style="font-weight:700;margin-bottom:8px">تعطیلاتِ این ماه</div>
+      <div class="card-title">تعطیلاتِ این ماه</div>
       ${monthHolidays.length ? monthHolidays.map(h=>{
         const flags = [h.fixedH?'🇮🇷':'', h.lunarH?'🌙':'', h.cnH?'🇨🇳':''].filter(Boolean).join(' ');
         const labels = [h.fixedH, h.lunarH, h.cnH].filter(Boolean).join(' / ');
@@ -487,7 +544,11 @@ document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('cli
   currentTab = b.dataset.tab;
   renderMain();
 }));
-document.getElementById('dateBadge').textContent = fmtDateHuman(todayShamsi()) + ' — یادآوری‌های ' + MY_NAME;
+{
+  const t = todayShamsi().split('-').map(Number);
+  document.getElementById('bigDayNum').textContent = fn(t[2]);
+  document.getElementById('dayMonthYear').textContent = SMONTHS[t[1]-1] + ' ' + fn(t[0]);
+}
 renderMain();
 
 if('serviceWorker' in navigator){
