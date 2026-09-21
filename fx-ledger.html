@@ -1697,7 +1697,6 @@ function openHawaleModal(existing){
     return contribRows.map((r,i)=>`
       <div class="contrib-row" data-contrib-row="${i}">
         <select data-contrib-account="${i}">
-          <option value="" ${!r.account?'selected':''}>⚠️ منبعِ نامعلوم (بدونِ اثر رویِ هیچ حساب/سرمایه‌ای)</option>
           ${state.accounts.map(a=>`<option value="${a.id}" ${r.account==a.id?'selected':''}>${a.displayName}</option>`).join('')}
         </select>
         <input data-contrib-amount="${i}" type="text" class="num" placeholder="مبلغ ریالی" value="${r.rial_amount?fmt(r.rial_amount,0):''}">
