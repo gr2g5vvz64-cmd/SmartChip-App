@@ -61,10 +61,10 @@
 
   .timeline{ position:relative; padding-inline-start:22px }
   .timeline::before{ content:''; position:absolute; right:6px; top:6px; bottom:6px; width:1.5px; background:var(--line) }
-  .t-item{ position:relative; padding-bottom:18px }
-  .t-item:last-child{ padding-bottom:2px }
+  .t-item{ position:relative; padding:10px 12px; margin-bottom:10px; background:var(--card); border:1.5px solid var(--line); border-radius:8px }
+  .t-item:last-child{ margin-bottom:0 }
   .t-item::before{
-    content:''; position:absolute; right:-19.5px; top:3px; width:10px; height:10px; border-radius:50%;
+    content:''; position:absolute; right:-20.5px; top:16px; width:10px; height:10px; border-radius:50%;
     background:var(--brass); border:2px solid var(--paper); box-shadow:0 0 0 1.5px var(--brass);
   }
   .t-item.st-done::before{ background:var(--teal); box-shadow:0 0 0 1.5px var(--teal) }
@@ -146,7 +146,10 @@
   <button data-tab="calendar">تقویم</button>
 </div>
 
-<button class="btn btn-primary" id="addBtn" style="margin-bottom:14px">+ یادآوریِ جدید</button>
+<div style="display:flex;gap:8px;margin-bottom:14px">
+  <button class="btn btn-primary" id="addBtn" style="flex:2">+ یادآوریِ جدید</button>
+  <button class="btn btn-ghost" id="quickTomorrowBtn" style="flex:1">⚡ کارِ فردا</button>
+</div>
 
 <div id="main"></div>
 
@@ -466,6 +469,43 @@ function wireItemButtons(container){
   }));
 }
 
+// ⚠️ (۱۴۰۵/۰۶/۲۹) طبق توضیحِ صریحِ کاربر: «کارِ فردا» مفهوماً از
+// «یادآوریِ آزاد» فرق داره — چیزی که همین الان به ذهن می‌رسه و باید
+// *فردا* پیگیرش بشید، بدونِ نیازِ به بازکردنِ فرمِ کامل و انتخابِ
+// تاریخ/نوع. این یه ثبتِ فوری‌ست: فقط عنوان می‌پرسه، بقیه خودکاره.
+function openQuickTomorrowModal(){
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>⚡ کارِ فردا</h3>
+      <div class="field"><label>چی به ذهنت رسید که فردا باید پیگیرش بشی؟</label><input id="qtTitle" type="text" placeholder="مثلاً: پیگیریِ فاکتورِ شرکتِ الف" autofocus></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-primary" id="qtSaveBtn">ثبت برایِ فردا</button>
+        <button class="btn btn-ghost" id="qtCancelBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
+  backdrop.querySelector('#qtCancelBtn').addEventListener('click', ()=>backdrop.remove());
+  const titleInput = backdrop.querySelector('#qtTitle');
+  titleInput.focus();
+  async function save(){
+    const title = titleInput.value.trim();
+    if(!title){ showToast('یه عنوان بنویس'); return; }
+    const d = await apiCreate('free', {
+      desc:title, customer:'', date:tomorrowShamsi(), time:'', category:'',
+      assignee_name:MY_NAME, assigned_by_name:MY_NAME, done:false, canceled:false, archived:false,
+    });
+    if(!d) return;
+    showToast('✅ برایِ فردا ثبت شد');
+    backdrop.remove();
+    renderMain();
+  }
+  backdrop.querySelector('#qtSaveBtn').addEventListener('click', save);
+  titleInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') save(); });
+}
+
 function openReminderModal(existing, presetDate){
   let modalType = existing ? existing._type : 'free';
   const backdrop = document.createElement('div');
@@ -482,7 +522,10 @@ function openReminderModal(existing, presetDate){
           <button type="button" data-pick-type="recurring" class="${modalType==='recurring'?'active':''}">دوره‌ای</button>
         </div>` : ''}
         <div class="field"><label>${modalType==='free'?'شرح':'عنوان'}</label><input id="rTitle" type="text" value="${existing ? (existing.title||'') : ''}"></div>
-        <div class="field"><label>مشتری (اختیاری)</label><input id="rCustomer" type="text" value="${existing?.customer||''}"></div>
+        <div class="field"><label>مشتری (اختیاری)</label>
+          <input id="rCustomer" type="text" list="knownCustomersList" value="${existing?.customer||''}">
+          <datalist id="knownCustomersList">${[...new Set(allItems.map(x=>x.customer).filter(Boolean))].map(c=>`<option value="${c}">`).join('')}</datalist>
+        </div>
         <div class="row2">
           <div class="field"><label>تاریخِ ${modalType==='free'?'یادآوری':'شروع/موعدِ بعدی'} (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||presetDate||todayShamsi()}" placeholder="1405-06-26"></div>
           <div class="field"><label>ساعت (اختیاری)</label><input id="rTime" type="time" value="${existing?.raw?.time||''}"></div>
@@ -576,6 +619,7 @@ function openCalendarPicker(inputEl){
 }
 
 document.getElementById('addBtn').addEventListener('click', ()=>openReminderModal(null));
+document.getElementById('quickTomorrowBtn').addEventListener('click', ()=>openQuickTomorrowModal());
 document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('click', ()=>{
   document.querySelectorAll('#mainTabs button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
