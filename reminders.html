@@ -11,10 +11,14 @@
 <style>
   /* ═══ سیستمِ طراحیِ «دفترچه‌ی رومیزی» — سرمه‌ای + کاغذیِ گرم + طلایی‌مسی ═══ */
   :root{
-    --ink:#1C2333; --paper:#FAF6F0; --card:#FFFFFF; --line:#E4DDD0;
-    --ink-soft:#8B8272; --brass:#B8863F; --brass-deep:#8F6A2E;
-    --teal:#2F6F63; --brick:#A83B33; --brick-soft:#F4E4E1;
-    --teal-soft:#E3EEEB; --grey-soft:#EDEAE3;
+    /* ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: دقیقاً همون پالتِ
+       آبیِ حالتِ روشنِ CRM (نه یه چیزِ الهام‌گرفته) — --line تیره‌تر
+       از استانداردِ خودِ CRM انتخاب شده چون کاربر صریحاً خواسته
+       کادرها خیلی پررنگ‌تر و واضح‌تر باشن. */
+    --ink:#0f1f36; --paper:#a9c8ec; --card:#c3dbf3; --line:#4a6f96;
+    --ink-soft:#3f5875; --brass:#0e7d6b; --brass-deep:#0a5c50;
+    --teal:#0e7d6b; --brick:#a83b33; --brick-soft:#f4e4e1;
+    --teal-soft:#d3ece7; --grey-soft:#b3cdea;
   }
   *{box-sizing:border-box}
   body{
@@ -41,7 +45,7 @@
   .btn-ghost{ background:var(--card); border:1.5px solid var(--line); color:var(--ink) }
   .btn-danger{ background:var(--brick-soft); color:var(--brick) }
 
-  .card{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px }
+  .card{ background:var(--card); border:2.5px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; box-shadow:0 2px 5px rgba(15,31,54,.12) }
   .card > .card-title{ font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:10px; display:flex; align-items:center; gap:6px }
   .card > .card-title.warn{ color:var(--brick) }
 
@@ -49,19 +53,19 @@
   .field label{ font-size:11px; color:var(--ink-soft); font-weight:600 }
   input,select,textarea{
     font-family:inherit; padding:10px 11px; border:1.5px solid var(--line); border-radius:7px;
-    font-size:13px; background:#fff; color:var(--ink);
+    font-size:13px; background:var(--card); color:var(--ink);
   }
   input:focus,select:focus,textarea:focus{ outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass) }
   textarea{ resize:vertical; min-height:50px }
   .row2{ display:grid; grid-template-columns:1fr 1fr; gap:9px }
 
   .type-seg{ display:flex; gap:6px; margin-bottom:12px }
-  .type-seg button{ flex:1; padding:10px; border-radius:7px; border:1.5px solid var(--line); background:#fff; font-size:12px; cursor:pointer; font-family:inherit; font-weight:600; color:var(--ink-soft) }
+  .type-seg button{ flex:1; padding:10px; border-radius:7px; border:1.5px solid var(--line); background:var(--card); font-size:12px; cursor:pointer; font-family:inherit; font-weight:600; color:var(--ink-soft) }
   .type-seg button.active{ background:var(--ink); color:var(--paper); border-color:var(--ink) }
 
   .timeline{ position:relative; padding-inline-start:22px }
   .timeline::before{ content:''; position:absolute; right:6px; top:6px; bottom:6px; width:1.5px; background:var(--line) }
-  .t-item{ position:relative; padding:10px 12px; margin-bottom:10px; background:var(--card); border:1.5px solid var(--line); border-radius:8px }
+  .t-item{ position:relative; padding:10px 12px; margin-bottom:10px; background:#dcebf9; border:2.5px solid var(--line); border-radius:8px; box-shadow:0 2px 5px rgba(15,31,54,.15) }
   .t-item:last-child{ margin-bottom:0 }
   .t-item::before{
     content:''; position:absolute; right:-20.5px; top:16px; width:10px; height:10px; border-radius:50%;
@@ -83,13 +87,13 @@
   .status-chip.archived{ background:var(--grey-soft); color:var(--ink-soft) }
   .tag-recur{ display:inline-block; font-size:10px; font-weight:700; background:#F3E9D6; color:var(--brass-deep); border-radius:5px; padding:2px 7px; margin-inline-start:6px }
 
-  .icon-btn{ border:1.5px solid var(--line); background:#fff; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; font-family:inherit; color:var(--ink) }
+  .icon-btn{ border:1.5px solid var(--line); background:var(--card); border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; font-family:inherit; color:var(--ink) }
   .icon-btn:hover{ border-color:var(--brass) }
 
   .empty{ text-align:center; color:var(--ink-soft); font-size:12px; padding:28px 10px }
 
   .cal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px }
-  .cal-head button{ border:1.5px solid var(--line); background:#fff; border-radius:7px; padding:6px 11px; font-size:14px; cursor:pointer; color:var(--ink) }
+  .cal-head button{ border:1.5px solid var(--line); background:var(--card); border-radius:7px; padding:6px 11px; font-size:14px; cursor:pointer; color:var(--ink) }
   .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px }
   .cal-wd{ text-align:center; font-size:10px; color:var(--ink-soft); padding:2px 0; font-weight:700 }
   .cal-day{
@@ -124,7 +128,7 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0) }
   .modal-backdrop{ position:fixed; inset:0; background:rgba(28,35,51,.5); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px }
-  .modal{ background:#fff; border-radius:12px; padding:20px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto }
+  .modal{ background:var(--card); border-radius:12px; padding:20px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto }
   .modal h3{ margin:0 0 14px; font-size:16px; font-weight:800; color:var(--ink) }
 </style>
 </head>
@@ -580,7 +584,7 @@ function openCalendarPicker(inputEl){
   let [vy,vm] = (inputEl.value || todayShamsi()).split('-').map(Number);
   const popup = document.createElement('div');
   popup.className = 'mini-cal-popup';
-  popup.style.cssText = 'position:fixed;z-index:300;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.2);padding:10px;width:250px;top:50%;left:50%;transform:translate(-50%,-50%)';
+  popup.style.cssText = 'position:fixed;z-index:300;background:var(--card);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.2);padding:10px;width:250px;top:50%;left:50%;transform:translate(-50%,-50%)';
   function draw(){
     const firstOfMonthG = jalaliToGregorian(vy, vm, 1);
     const jsDate = new Date(firstOfMonthG.y, firstOfMonthG.m-1, firstOfMonthG.d);
