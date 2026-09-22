@@ -681,6 +681,13 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
     </div>` : '';
     resultsBoxEl.querySelectorAll('[data-pick-part]').forEach(el=>el.addEventListener('click', ()=>{
       inputEl.value = el.dataset.pickPart;
+      // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده توسطِ کاربر: قبلاً
+      // اینجا فقط `.value` ست می‌شد، بدونِ صدازدنِ رویدادِ 'input' —
+      // پس هر جایی که (مثلِ فرمِ چندردیفیِ خرید) رویِ رویدادِ 'input'
+      // گوش می‌داد تا وضعیتِ داخلیِ خودشو آپدیت کنه، هیچ‌وقت از مقدارِ
+      // *واقعاً انتخاب‌شده* باخبر نمی‌شد و برمی‌گشت به آخرین چیزی که
+      // کاربر با دست تایپ کرده بود.
+      inputEl.dispatchEvent(new Event('input', {bubbles:true}));
       resultsBoxEl.innerHTML = '';
     }));
   });
@@ -2578,27 +2585,18 @@ function openExpenseModalMultiRow(presetSupplier){
 
   function rowsHtml(){
     return rows.map((r,i)=>`
-      <div class="card" style="margin-bottom:8px;padding:10px;position:relative" data-row="${i}">
-        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px;font-weight:700">آیتم ${i+1}</div>
-        <div class="field" style="margin-bottom:6px">
-          <label style="display:flex;justify-content:space-between;align-items:center">
-            <span>پارت‌نامبر</span>
-            ${i===0?'<span style="display:flex;gap:4px"><button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:9.5px;padding:2px 6px">⚡ فقط جدیدها</button><button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:9.5px;padding:2px 6px">🔄 ارسالِ کاملِ همه</button></span>':''}
-          </label>
-          <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="حداقل ۲ حرف...">
+      <tr data-row="${i}">
+        <td style="position:relative;min-width:140px">
+          <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="پارت‌نامبر..." style="width:100%">
           <div data-part-results="${i}" style="position:relative"></div>
-        </div>
-        <div class="form-row">
-          <div class="field"><label>تعداد</label><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="مثلاً 100"></div>
-          <div class="field"><label>فیِ خرید (یوان)</label><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}"></div>
-        </div>
-        <div class="form-row">
-          <div class="field"><label>جابجاییِ کالا (یوان)</label><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}"></div>
-          <div class="field"><label>کارمزدِ جابجاییِ حواله (یوان)</label><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}"></div>
-        </div>
-        <div class="field" style="margin-bottom:0"><label>توضیح/اضافات (اختیاری)</label><input data-f="note" data-row-i="${i}" type="text" value="${r.note}"></div>
-        ${rows.length>1?`<button type="button" class="icon-btn" data-remove-row="${i}" style="position:absolute;top:8px;left:8px">✕</button>`:''}
-      </div>`).join('');
+        </td>
+        <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد" style="width:100%"></td>
+        <td style="min-width:80px"><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}" placeholder="فیِ خرید" style="width:100%"></td>
+        <td style="min-width:80px"><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}" style="width:100%"></td>
+        <td style="min-width:80px"><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}" style="width:100%"></td>
+        <td style="min-width:100px"><input data-f="note" data-row-i="${i}" type="text" value="${r.note}" placeholder="اضافات" style="width:100%"></td>
+        <td style="width:30px">${rows.length>1?`<button type="button" class="icon-btn" data-remove-row="${i}">✕</button>`:''}</td>
+      </tr>`).join('');
   }
 
   function draw(){
@@ -2610,7 +2608,18 @@ function openExpenseModalMultiRow(presetSupplier){
           <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
         </div>
         <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${today}"></div>
-        <div id="rowsContainer">${rowsHtml()}</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10.5px">⚡ فقط جدیدها</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10.5px">🔄 ارسالِ کاملِ همه</button>
+        </div>
+        <div style="overflow-x:auto;margin-bottom:8px">
+          <table class="data-table" style="min-width:600px">
+            <thead><tr>
+              <th>پارت‌نامبر</th><th>تعداد</th><th>فیِ خرید (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
+            </tr></thead>
+            <tbody id="rowsContainer">${rowsHtml()}</tbody>
+          </table>
+        </div>
         <button type="button" class="btn btn-ghost" id="addRowBtn" style="margin-bottom:14px">+ افزودنِ آیتمِ بعدی</button>
         <div style="font-size:11px;color:var(--ink-soft);margin-bottom:10px">همه‌ی آیتم‌ها زیرِ یه شماره‌سندِ مشترک ثبت می‌شن — تویِ دفترِ تأمین‌کننده، هم تک‌تک هم به‌صورتِ جمعِ کل قابلِ‌دیدنن. تسویه‌ی هرکدوم مستقل و خودکار (FIFO) انجام می‌شه.</div>
         <div class="modal-actions">
