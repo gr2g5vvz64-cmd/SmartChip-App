@@ -482,11 +482,21 @@ async function searchCrmPriorityCustomers(q){
 // واقعی که از قبل تو ERP/CRM کار می‌کنن (نه چیزِ جدید): همگام‌سازیِ
 // پارت‌نامبرها از گوگل‌شیتِ Verified_Weights + سرچِ آیتم.
 const FX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec';
+// ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده توسطِ کاربر: این fetch به
+// گوگل‌اپس‌اسکریپت قبلاً هیچ مهلتِ زمانی نداشت — اگه Apps Script کند
+// می‌شد یا گیر می‌کرد، این تابع *بی‌نهایت* معلق می‌موند (نه خطا می‌داد
+// نه جواب)، و چون خودِ توست هم فقط ۲.۵ ثانیه می‌موند، کاربر هیچ اثری
+// از این گیرکردن نمی‌دید — دقیقاً حالتی که گزارش شد («۲ دقیقه صبر
+// کردم، هیچی نیومد»). الان بعدِ ۶۰ ثانیه خودکار قطع می‌شه و catch
+// می‌ره، پس همیشه به مودالِ نتیجه (موفق یا خطا) می‌رسه.
 async function fxSheetCall(action, data = {}){
   try{
     const payloadStr = JSON.stringify(data);
     const url = FX_SHEET_URL + '?action=' + encodeURIComponent(action) + '&payload=' + encodeURIComponent(payloadStr) + '&t=' + Date.now();
-    const res = await fetch(url, { method:'GET', redirect:'follow' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 60000);
+    const res = await fetch(url, { method:'GET', redirect:'follow', signal: controller.signal });
+    clearTimeout(timeoutId);
     return await res.json();
   }catch(e){ return null; }
 }
@@ -519,7 +529,11 @@ async function fxSyncPartsFromSheet(btn){
     const res = await fxSheetCall('getAllItemWeights');
     const items = (res && res.items) || [];
     if(!items.length){
-      showPersistentResultModal('⚠️ چیزی از گوگل‌شیت خونده نشد', 'پاسخِ خامِ Apps Script:\n' + JSON.stringify(res, null, 2), true);
+      showPersistentResultModal(
+        '⚠️ چیزی از گوگل‌شیت خونده نشد',
+        'یا Apps Script بعدِ ۶۰ ثانیه جواب نداد (تایم‌اوت)، یا خودش یه خطا/پاسخِ خالی برگردوند.\n\nپاسخِ خامِ Apps Script:\n' + JSON.stringify(res, null, 2),
+        true
+      );
       if(btn) btn.disabled=false; return;
     }
     showToast(`⏳ ${items.length} پارت خونده شد، در حال ارسال به سرور...`);
