@@ -523,19 +523,23 @@ function showPersistentResultModal(title, bodyHtml, isError){
   backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
 }
 // ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: با ~۳۲هزار پارت، فرستادنِ
-// *همه* رو هر بار (حتی با دسته‌بندی) کاری غیرضروری و کندیه — چون در
-// عملِ روزمره فقط چندتا آیتمِ *جدید* (آخرِ شیت) اضافه می‌شن، نه اینکه
-// کلِ لیست عوض بشه. الان دو حالت داریم:
-// - limitToLast=false (پیش‌فرض): ارسالِ کاملِ همه (برایِ اولین‌بار، یا
-//   وقتی مطمئن نیستید فقط آخرش تغییر کرده)
-// - limitToLast=100: فقط ۱۰۰ آیتمِ آخرِ لیست رو می‌فرسته — یه درخواستِ
-//   تکی و سریع، برایِ حالتِ رایجِ «چندتا پارتِ جدید اضافه کردم»
+// *همه* رو هر بار (حتی با دسته‌بندی) کاری غیرضروری و کندیه. به‌جایِ
+// حدسِ عددی («۱۰۰ آخر»)، الان دقیقاً از جنگو می‌پرسیم کدوم پارت‌نامبرها
+// از قبل هستن، و فقط چیزهایی که *واقعاً* جدیدن (صرفِ‌نظر از تعداد یا
+// موقعیت‌شون تو شیت) فرستاده می‌شن.
+// - onlyNew=false (پیش‌فرض): ارسالِ کاملِ همه (برایِ اولین‌بار، یا وقتی
+//   می‌خواید آپدیت‌هایِ آیتم‌هایِ موجود رو هم دوباره sync کنید)
+// - onlyNew=true: فقط پارت‌هایی که تو جنگو نیستن — دقیق، نه حدسی
 //
 // ⚠️ محدودیتِ فنی: چون به کدِ خودِ Apps Scriptِ گوگل‌شیت دسترسی نداریم،
 // نمی‌تونیم ازش بخوایم *فقط* آخرین ردیف‌ها رو بخونه — همچنان باید کلِ
-// شیت رو بخونه (همون ۱۵-۴۵ ثانیه)، فقط از این‌بار به بعد، فقط تکه‌ی
-// آخرش رو به سرورِ جنگو می‌فرستیم (که بخشِ کند و پرتکرار بود، نه خوندن).
-async function fxSyncPartsFromSheet(btn, limitToLast){
+// شیت رو بخونه (همون ۱۵-۴۵ ثانیه)، فقط از این‌بار به بعد، فقط پارت‌هایِ
+// واقعاً جدید به سرورِ جنگو فرستاده می‌شن (که بخشِ کند و پرتکرار بود).
+// ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: به‌جایِ حدسِ عددی («۱۰۰
+// آخر»)، حالا `onlyNew=true` دقیقاً چک می‌کنه کدوم پارت‌نامبرهایِ
+// گوگل‌شیت *واقعاً* تو جنگو نیستن (نه فرضِ اینکه «آخرِ لیست»)، و فقط
+// همون‌هارو می‌فرسته — صرفِ‌نظر از تعداد یا موقعیت‌شون تو شیت.
+async function fxSyncPartsFromSheet(btn, onlyNew){
   if(btn) btn.disabled = true;
   showToast('⏳ در حال خوندنِ گوگل‌شیت (ممکنه ۱۵ تا ۴۵ ثانیه طول بکشه)...');
   try{
@@ -550,8 +554,22 @@ async function fxSyncPartsFromSheet(btn, limitToLast){
       if(btn) btn.disabled=false; return;
     }
     const totalReadFromSheet = items.length;
-    if(limitToLast){
-      items = items.slice(-limitToLast);
+    if(onlyNew){
+      showToast('⏳ در حال چک‌کردنِ پارت‌نامبرهایِ موجود در جنگو...');
+      let existingSet;
+      try{
+        const existRes = await fetch('https://smartchip-backend.onrender.com/api/items/existing-part-numbers/');
+        const existData = await existRes.json();
+        existingSet = new Set((existData.partNumbers || []).map(p => (p||'').trim().toLowerCase()));
+      }catch(existErr){
+        showPersistentResultModal('❌ نتونستیم لیستِ پارت‌نامبرهایِ موجود رو از سرور بگیریم', 'پیام:\n' + existErr.message, true);
+        if(btn) btn.disabled=false; return;
+      }
+      items = items.filter(it => !existingSet.has(((it.partNumber)||'').trim().toLowerCase()));
+      if(!items.length){
+        showPersistentResultModal('✅ چیزِ جدیدی پیدا نشد', `کلِ ${totalReadFromSheet} پارتِ گوگل‌شیت از قبل تو جنگو هستن — چیزِ جدیدی برای ارسال نبود.`, false);
+        if(btn) btn.disabled=false; return;
+      }
     }
 
     const CHUNK_SIZE = 2000;
@@ -586,7 +604,7 @@ async function fxSyncPartsFromSheet(btn, limitToLast){
       totalCreated += data.created || 0;
       totalUpdated += data.updated || 0;
     }
-    const modeLine = limitToLast ? `حالت: فقط ${limitToLast} آیتمِ آخر (از کلِ ${totalReadFromSheet} پارتِ گوگل‌شیت)` : `حالت: ارسالِ کاملِ همه (${totalReadFromSheet} پارت)`;
+    const modeLine = onlyNew ? `حالت: فقط پارت‌هایِ واقعاً جدید (${items.length} تا از کلِ ${totalReadFromSheet} پارتِ گوگل‌شیت)` : `حالت: ارسالِ کاملِ همه (${totalReadFromSheet} پارت)`;
     showPersistentResultModal('✅ همگام‌سازی تمام شد', `${modeLine}\nتعدادِ ارسال‌شده: ${items.length}${chunks.length>1?`\nدر ${chunks.length} دسته ارسال شد`:''}\nپارتِ جدید: ${totalCreated}\nپارتِ آپدیت‌شده: ${totalUpdated}`, false);
   }catch(e){
     showPersistentResultModal('❌ خطایِ اتصال یا اجرا', 'پیام:\n' + e.message + '\n\nStack:\n' + (e.stack||'—'), true);
@@ -2206,7 +2224,7 @@ async function renderSupplierLedger(main){
       <div style="display:flex;gap:8px;align-items:center">
         <input id="supplierExpSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierExpenseSearchQuery}" style="min-width:180px">
         <button class="btn btn-ghost btn-sm" id="syncPartsBtn">🔄 ارسالِ کاملِ همه (کند، فقط بارِ اول)</button>
-        <button class="btn btn-ghost btn-sm" id="syncPartsBtnLast100">⚡ فقط ۱۰۰ آیتمِ آخر (سریع)</button>
+        <button class="btn btn-ghost btn-sm" id="syncPartsBtnLast100">⚡ فقط پارت‌هایِ جدید (دقیق و سریع)</button>
         <button class="btn btn-ghost btn-sm" id="exportExpensesBtn">📥 خروجی اکسل</button>
       </div>
     </div>
@@ -2288,7 +2306,7 @@ async function renderSupplierLedger(main){
     renderMain();
   }));
   main.querySelector('#syncPartsBtn').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
-  main.querySelector('#syncPartsBtnLast100').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, 100));
+  main.querySelector('#syncPartsBtnLast100').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
   main.querySelector('#supplierInvoicesSearchInput').addEventListener('input', (e)=>{
     supplierInvoicesSearchQuery = e.target.value;
     renderSupplierLedger(main);
@@ -2432,7 +2450,7 @@ function openExpenseModalSingle(existing, presetSupplier){
         <label style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
           <span>پارت‌نامبر</span>
           <span style="display:flex;gap:4px">
-            <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10px;padding:3px 7px">⚡ فقط ۱۰۰ آخر</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10px;padding:3px 7px">⚡ فقط جدیدها</button>
             <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10px;padding:3px 7px">🔄 ارسالِ کاملِ همه</button>
           </span>
         </label>
@@ -2467,7 +2485,7 @@ function openExpenseModalSingle(existing, presetSupplier){
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
   backdrop.querySelector('#syncPartsBtnInModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
-  backdrop.querySelector('#syncPartsBtnLast100InModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, 100));
+  backdrop.querySelector('#syncPartsBtnLast100InModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
 
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: چند حواله (۲ تا، ۱۰ تا، هرچقدر)
   // می‌تونن به یه فاکتورِ خریدِ خاص لینک بشن — قبلاً فقط یه <select> تکی
@@ -2565,7 +2583,7 @@ function openExpenseModalMultiRow(presetSupplier){
         <div class="field" style="margin-bottom:6px">
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>پارت‌نامبر</span>
-            ${i===0?'<span style="display:flex;gap:4px"><button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:9.5px;padding:2px 6px">⚡ فقط ۱۰۰ آخر</button><button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:9.5px;padding:2px 6px">🔄 ارسالِ کاملِ همه</button></span>':''}
+            ${i===0?'<span style="display:flex;gap:4px"><button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:9.5px;padding:2px 6px">⚡ فقط جدیدها</button><button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:9.5px;padding:2px 6px">🔄 ارسالِ کاملِ همه</button></span>':''}
           </label>
           <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="حداقل ۲ حرف...">
           <div data-part-results="${i}" style="position:relative"></div>
@@ -2605,7 +2623,7 @@ function openExpenseModalMultiRow(presetSupplier){
     const syncBtn = backdrop.querySelector('#syncPartsBtnInModal');
     if(syncBtn) syncBtn.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
     const syncBtnLast100 = backdrop.querySelector('#syncPartsBtnLast100InModal');
-    if(syncBtnLast100) syncBtnLast100.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, 100));
+    if(syncBtnLast100) syncBtnLast100.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
 
     backdrop.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('input', ()=>{
       const i = +inp.dataset.rowI; const f = inp.dataset.f;
