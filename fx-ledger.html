@@ -536,26 +536,46 @@ async function fxSyncPartsFromSheet(btn){
       );
       if(btn) btn.disabled=false; return;
     }
-    showToast(`⏳ ${items.length} پارت خونده شد، در حال ارسال به سرور...`);
-    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items}),
-    });
-    const rawText = await syncRes.text();
-    let data;
-    try{ data = JSON.parse(rawText); }
-    catch(parseErr){
-      showPersistentResultModal(
-        `❌ پاسخِ سرور معتبر نبود (وضعیتِ HTTP: ${syncRes.status})`,
-        'متنِ خامِ پاسخ (ممکنه صفحه‌ی خطایِ سرور باشه):\n\n' + rawText.substring(0, 2000),
-        true
-      );
-      if(btn) btn.disabled=false; return;
+
+    // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده: وقتی همه‌ی آیتم‌ها
+    // (که می‌تونن چندهزارتا باشن) یکجا تو یه درخواستِ POST فرستاده
+    // می‌شدن، از سقفِ DATA_UPLOAD_MAX_MEMORY_SIZEِ جنگو رد می‌شد و
+    // سرور کلِ درخواست رو رد می‌کرد. الان به دسته‌هایِ ۲۰۰تایی تقسیم
+    // و جداگانه فرستاده می‌شه — هر دسته به‌تنهایی خیلی کوچیک‌تر از هر
+    // سقفِ معقولیه.
+    const CHUNK_SIZE = 200;
+    const chunks = [];
+    for(let i=0; i<items.length; i+=CHUNK_SIZE) chunks.push(items.slice(i, i+CHUNK_SIZE));
+
+    let totalCreated = 0, totalUpdated = 0;
+    for(let ci=0; ci<chunks.length; ci++){
+      showToast(`⏳ ارسالِ دسته‌ی ${ci+1} از ${chunks.length} (${items.length} پارت)...`);
+      const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items: chunks[ci]}),
+      });
+      const rawText = await syncRes.text();
+      let data;
+      try{ data = JSON.parse(rawText); }
+      catch(parseErr){
+        showPersistentResultModal(
+          `❌ پاسخِ سرور معتبر نبود (دسته‌ی ${ci+1} از ${chunks.length} — وضعیتِ HTTP: ${syncRes.status})`,
+          `تا اینجا: ${totalCreated} جدید، ${totalUpdated} آپدیت‌شده با موفقیت ثبت شد.\n\nمتنِ خامِ پاسخِ همین دسته (ممکنه صفحه‌ی خطایِ سرور باشه):\n\n` + rawText.substring(0, 2000),
+          true
+        );
+        if(btn) btn.disabled=false; return;
+      }
+      if(!data.ok){
+        showPersistentResultModal(
+          `❌ همگام‌سازی در دسته‌ی ${ci+1} از ${chunks.length} ناموفق بود`,
+          `تا اینجا: ${totalCreated} جدید، ${totalUpdated} آپدیت‌شده با موفقیت ثبت شد.\n\nپیامِ خطایِ سرور:\n` + (data.error || JSON.stringify(data, null, 2)),
+          true
+        );
+        if(btn) btn.disabled=false; return;
+      }
+      totalCreated += data.created || 0;
+      totalUpdated += data.updated || 0;
     }
-    if(data.ok){
-      showPersistentResultModal('✅ همگام‌سازی تمام شد', `تعدادِ کلِ پارت‌هایِ خونده‌شده از گوگل‌شیت: ${items.length}\nپارتِ جدید: ${data.created}\nپارتِ آپدیت‌شده: ${data.updated}`, false);
-    } else {
-      showPersistentResultModal('❌ همگام‌سازی ناموفق بود', 'پیامِ خطایِ سرور:\n' + (data.error || JSON.stringify(data, null, 2)), true);
-    }
+    showPersistentResultModal('✅ همگام‌سازی تمام شد', `تعدادِ کلِ پارت‌هایِ خونده‌شده از گوگل‌شیت: ${items.length}\nدر ${chunks.length} دسته ارسال شد\nپارتِ جدید: ${totalCreated}\nپارتِ آپدیت‌شده: ${totalUpdated}`, false);
   }catch(e){
     showPersistentResultModal('❌ خطایِ اتصال یا اجرا', 'پیام:\n' + e.message + '\n\nStack:\n' + (e.stack||'—'), true);
   }
