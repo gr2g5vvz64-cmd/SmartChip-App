@@ -1998,14 +1998,45 @@ async function renderSupplierLedger(main){
   });
   const filteredSupplierEvents = data.events.filter(e=>matchesSearch([
     e.date, e.docNumber, e.desc, e.type==='hawale'?e.rial_credit:null, e.yuan_debit, e.yuan_credit, e.rate,
-    e.runningYuan, e.runningRial, e.diagnosis,
+    e.runningYuan, e.runningRial, e.diagnosis, e.docGroup,
   ], supplierEventsSearchQuery));
+
+  // ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: خلاصه‌ی اسنادِ چندآیتمی —
+  // فقط اسنادی که واقعاً بیش از یه آیتم دارن نشون داده می‌شن (اسنادِ
+  // تک‌آیتمی یا رکوردهایِ قدیمیِ بدونِ doc_number کلاً نادیده گرفته می‌شن)
+  const docGroups = {};
+  data.events.filter(e=>e.type==='invoice' && e.docGroup).forEach(e=>{
+    (docGroups[e.docGroup] = docGroups[e.docGroup] || []).push(e);
+  });
+  const multiItemDocs = Object.entries(docGroups).filter(([_,items])=>items.length>1);
+
   main.innerHTML = `
     <div class="page-head">
       <button class="btn btn-ghost btn-sm" id="backSupplierBtn" style="margin-bottom:10px">‹ بازگشت به لیست تأمین‌کنندگان</button>
       <h1 class="page-title">${sName}</h1>
       <p class="page-desc">فاکتورِ خرید (یوانی) = بدهیِ ما به این تأمین‌کننده؛ حواله (ریالی) تسویه‌اش می‌کنه — با همون منطقِ FIFO و نرخِ میانگینِ وزنیِ مشتریان</p>
     </div>
+    ${multiItemDocs.length ? `
+    <div class="card" style="margin-bottom:14px">
+      <div class="section-title">اسنادِ چندآیتمی (خلاصه)</div>
+      <table class="data-table">
+        <thead><tr><th>شماره‌ی سند</th><th>تعدادِ آیتم</th><th>جمعِ یوان</th><th>تسویه‌شده</th><th>مانده</th><th></th></tr></thead>
+        <tbody>
+          ${multiItemDocs.map(([doc, items])=>{
+            const totalYuan = items.reduce((s,e)=>s+e.yuan_debit, 0);
+            const remainingYuan = items.reduce((s,e)=>s+(e.remainingYuan!=null?e.remainingYuan:e.yuan_debit), 0);
+            const settledYuan = totalYuan - remainingYuan;
+            return `<tr>
+              <td>${doc}</td><td class="num">${items.length}</td>
+              <td class="num">${fmtYuan(totalYuan)}</td>
+              <td class="num" style="color:var(--ok)">${fmtYuan(settledYuan)}</td>
+              <td class="num" style="color:${remainingYuan>0.01?'var(--danger)':'var(--ok)'}">${fmtYuan(remainingYuan)}</td>
+              <td><button class="btn btn-ghost btn-sm" data-filter-doc="${doc}">مشاهده‌ی آیتم‌ها</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
     <div class="toolbar" style="margin-bottom:10px"><div></div><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
@@ -2182,6 +2213,10 @@ async function renderSupplierLedger(main){
     supplierEventsSearchQuery = e.target.value;
     renderSupplierLedger(main);
   });
+  main.querySelectorAll('[data-filter-doc]').forEach(b=>b.addEventListener('click', ()=>{
+    supplierEventsSearchQuery = b.dataset.filterDoc;
+    renderSupplierLedger(main);
+  }));
   main.querySelector('#supplierExpSearchInput').addEventListener('input', (e)=>{
     supplierExpenseSearchQuery = e.target.value;
     renderSupplierLedger(main);
@@ -2266,6 +2301,21 @@ function openExpenseModal(existing, presetSupplier){
   const today = todayShamsi();
   const isEdit = !!existing;
   const knownSuppliers = getKnownSupplierNames();
+
+  // ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: ثبتِ جدید حالا چندردیفیه
+  // (چند آیتم زیرِ یه سندِ مشترک، هرکدوم مستقل با FIFOِ خودش تسویه
+  // می‌شه) — ولی ویرایشِ یه رکوردِ *موجود* دقیقاً همونِ فرمِ کاملِ قبلی
+  // می‌مونه (با لینکِ دستیِ حواله)، چون این برایِ یه رکوردِ مشخصه و
+  // چندردیفی‌کردنِ ویرایش معنی نداره.
+  if(isEdit) return openExpenseModalSingle(existing, presetSupplier);
+  return openExpenseModalMultiRow(presetSupplier);
+}
+
+// ⚠️ فرمِ کاملِ تک‌ردیفیِ قدیمی — فقط برایِ ویرایش، عیناً دست‌نخورده
+function openExpenseModalSingle(existing, presetSupplier){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const knownSuppliers = getKnownSupplierNames();
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
   backdrop.innerHTML = `
@@ -2299,6 +2349,10 @@ function openExpenseModal(existing, presetSupplier){
         <div id="ePartNumberResults" style="position:relative"></div>
       </div>
       <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
+      <div class="form-row">
+        <div class="field"><label>تعداد (اختیاری)</label><input id="eQty" type="text" class="num" value="${existing && existing.quantity!=null ? fmt(existing.quantity,2) : ''}" placeholder="مثلاً 100"></div>
+        <div class="field"><label>فیِ خرید — واحد (یوان، اختیاری)</label><input id="eUnitPrice" type="text" class="num" value="${existing && existing.unit_price_yuan!=null ? fmt(existing.unit_price_yuan,4) : ''}"></div>
+      </div>
       <div class="form-row">
         <div class="field"><label>خرید کالا (یوان)</label><input id="eGoods" type="text" class="num" value="${existing ? fmt(existing.goods_yuan,4) : '0'}"></div>
         <div class="field"><label>جابجایی جنس (یوان)</label><input id="eShipping" type="text" class="num" value="${existing ? fmt(existing.shipping_yuan,4) : '0'}"></div>
@@ -2362,6 +2416,8 @@ function openExpenseModal(existing, presetSupplier){
     let supplierName = backdrop.querySelector('#eSupplier').value.trim();
     const date = backdrop.querySelector('#eDate').value.trim();
     const partNumber = backdrop.querySelector('#ePartNumber').value.trim();
+    const qtyStr = backdrop.querySelector('#eQty').value.replace(/,/g,'').trim();
+    const unitPriceStr = backdrop.querySelector('#eUnitPrice').value.replace(/,/g,'').trim();
     const goods = parseFloat(backdrop.querySelector('#eGoods').value.replace(/,/g,'')) || 0;
     const shipping = parseFloat(backdrop.querySelector('#eShipping').value.replace(/,/g,'')) || 0;
     const transferFee = parseFloat(backdrop.querySelector('#eTransferFee').value.replace(/,/g,'')) || 0;
@@ -2377,7 +2433,8 @@ function openExpenseModal(existing, presetSupplier){
       if(useExisting) supplierName = similar;
     }
 
-    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note};
+    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note,
+      quantity: qtyStr?parseFloat(qtyStr):null, unit_price_yuan: unitPriceStr?parseFloat(unitPriceStr):null};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
 
@@ -2396,6 +2453,124 @@ function openExpenseModal(existing, presetSupplier){
     currentSupplier = supplierName;
     renderMain();
   });
+}
+
+// ⚠️ (۱۴۰۵/۰۶/۲۹) فرمِ جدیدِ چندردیفی — طبق درخواستِ صریحِ کاربر: چند
+// آیتم (مثلاً ۳۰تا) رو زیرِ یه سندِ مشترک، بدونِ بازکردن‌وبستنِ مودال
+// ۳۰ بار، ثبت کنه. هر ردیف یه FxExpense کاملاً مستقل می‌شه (با FIFOِ
+// خودش تسویه می‌شه)، فقط doc_number مشترک دارن برایِ نمایشِ گروهی.
+function openExpenseModalMultiRow(presetSupplier){
+  const today = todayShamsi();
+  const knownSuppliers = getKnownSupplierNames();
+  let rows = [{partNumber:'', qty:'', unitPrice:'', shipping:'0', transferFee:'0', note:''}];
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+
+  function rowsHtml(){
+    return rows.map((r,i)=>`
+      <div class="card" style="margin-bottom:8px;padding:10px;position:relative" data-row="${i}">
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px;font-weight:700">آیتم ${i+1}</div>
+        <div class="field" style="margin-bottom:6px">
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>پارت‌نامبر</span>
+            ${i===0?'<button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10px;padding:2px 7px">🔄 بروزرسانیِ قطعات</button>':''}
+          </label>
+          <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="حداقل ۲ حرف...">
+          <div data-part-results="${i}" style="position:relative"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>تعداد</label><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="مثلاً 100"></div>
+          <div class="field"><label>فیِ خرید (یوان)</label><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>جابجاییِ کالا (یوان)</label><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}"></div>
+          <div class="field"><label>کارمزدِ جابجاییِ حواله (یوان)</label><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}"></div>
+        </div>
+        <div class="field" style="margin-bottom:0"><label>توضیح/اضافات (اختیاری)</label><input data-f="note" data-row-i="${i}" type="text" value="${r.note}"></div>
+        ${rows.length>1?`<button type="button" class="icon-btn" data-remove-row="${i}" style="position:absolute;top:8px;left:8px">✕</button>`:''}
+      </div>`).join('');
+  }
+
+  function draw(){
+    backdrop.innerHTML = `
+      <div class="modal modal-landscape">
+        <h3>ثبتِ سندِ خرید — چند آیتم</h3>
+        <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
+          <input id="eSupplier" type="text" list="knownSuppliersList" value="${presetSupplier||''}" placeholder="مثلاً: کلافی">
+          <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
+        </div>
+        <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${today}"></div>
+        <div id="rowsContainer">${rowsHtml()}</div>
+        <button type="button" class="btn btn-ghost" id="addRowBtn" style="margin-bottom:14px">+ افزودنِ آیتمِ بعدی</button>
+        <div style="font-size:11px;color:var(--ink-soft);margin-bottom:10px">همه‌ی آیتم‌ها زیرِ یه شماره‌سندِ مشترک ثبت می‌شن — تویِ دفترِ تأمین‌کننده، هم تک‌تک هم به‌صورتِ جمعِ کل قابلِ‌دیدنن. تسویه‌ی هرکدوم مستقل و خودکار (FIFO) انجام می‌شه.</div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="saveExpenseBtn">ثبتِ همه (${rows.length} آیتم)</button>
+          <button class="btn btn-ghost" id="cancelExpenseBtn">انصراف</button>
+        </div>
+      </div>`;
+    backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
+    wireShamsiDatePicker(backdrop.querySelector('#eDate'));
+    const syncBtn = backdrop.querySelector('#syncPartsBtnInModal');
+    if(syncBtn) syncBtn.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
+
+    backdrop.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('input', ()=>{
+      const i = +inp.dataset.rowI; const f = inp.dataset.f;
+      rows[i][f] = inp.value;
+    }));
+    backdrop.querySelectorAll('[data-row-i][data-f="partNumber"]').forEach(inp=>{
+      wirePartNumberAutocomplete(inp, backdrop.querySelector(`[data-part-results="${inp.dataset.rowI}"]`));
+    });
+    backdrop.querySelectorAll('[data-remove-row]').forEach(b=>b.addEventListener('click', ()=>{
+      rows.splice(+b.dataset.removeRow, 1); draw();
+    }));
+    backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
+      rows.push({partNumber:'', qty:'', unitPrice:'', shipping:'0', transferFee:'0', note:''}); draw();
+    });
+    backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
+  }
+
+  async function onSave(){
+    let supplierName = backdrop.querySelector('#eSupplier').value.trim();
+    const date = backdrop.querySelector('#eDate').value.trim();
+    if(!supplierName || !date){ showToast('نامِ تأمین‌کننده و تاریخ را وارد کنید'); return; }
+
+    const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
+    if(similar){
+      const useExisting = confirm(`⚠️ یه تأمین‌کننده با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همونه؟\n\n«تأیید» = بله، همون «${similar}».\n«انصراف» = نه، این واقعاً تأمین‌کننده‌ی جدیدیه.`);
+      if(useExisting) supplierName = similar;
+    }
+
+    const validRows = rows.filter(r=>{
+      const qty = parseFloat(r.qty)||0, up = parseFloat(r.unitPrice)||0, sh = parseFloat(r.shipping)||0, tf = parseFloat(r.transferFee)||0;
+      return r.partNumber.trim() && (qty*up + sh + tf) > 0;
+    });
+    if(validRows.length===0){ showToast('حداقل یک آیتمِ معتبر (پارت‌نامبر + مبلغِ مثبت) لازم است'); return; }
+
+    // ⚠️ شماره‌سندِ مشترک — بر مبنایِ تاریخ+زمانِ ثبت، یکتا برایِ این دسته
+    const docNumber = `${date}-${Date.now().toString().slice(-6)}`;
+    let okCount = 0;
+    for(const r of validRows){
+      const qty = parseFloat(r.qty)||null, up = parseFloat(r.unitPrice)||null;
+      const goods = (qty && up) ? qty*up : 0;
+      const shipping = parseFloat(r.shipping)||0, transferFee = parseFloat(r.transferFee)||0;
+      const body = {
+        supplier_name:supplierName, part_number:r.partNumber.trim(), date,
+        goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee,
+        freight_rial:null, freight_paid:false, note:r.note.trim(),
+        quantity:qty, unit_price_yuan:up, doc_number:docNumber,
+      };
+      const d = await apiCreate('expenses', body);
+      if(d) okCount++;
+    }
+    showToast(`✅ ${okCount} از ${validRows.length} آیتم ثبت شد`);
+    backdrop.remove();
+    currentSupplier = supplierName;
+    renderMain();
+  }
+
+  draw();
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
 }
 
 // ---------- ACCOUNTS (چندگانه — هر شخص می‌تواند چند حساب داشته باشد) ----------
