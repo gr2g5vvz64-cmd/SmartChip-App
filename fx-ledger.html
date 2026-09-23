@@ -717,6 +717,7 @@ const NAV_STRUCTURE = [
   {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
     {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
     {id:'supplier', label:'دفتر تأمین‌کننده'},
+    {id:'action-add-hawale', label:'+ ثبت حواله', action:'add-hawale'},
     {id:'action-add-expense', label:'+ ثبت فاکتورِ خرید/هزینه', action:'add-expense'},
   ]},
   {type:'item', id:'accounts', label:'حساب‌های بانکی'},
@@ -772,6 +773,7 @@ function render(){
   root.querySelectorAll('[data-action]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       if(btn.dataset.action==='add-expense') openExpenseModal();
+      if(btn.dataset.action==='add-hawale') openHawaleModal();
       if(btn.dataset.action==='add-order') openOrderModal();
       if(btn.dataset.action==='add-payment') openPaymentModal();
       if(btn.dataset.action==='add-income') openIncomeModal();
@@ -1041,7 +1043,13 @@ async function renderCustomerLedger(main){
     ${data.excessYuan > 0.01 ? `<div class="tag yuan" style="margin-bottom:16px">⚠️ مازاد ${fmtYuan(data.excessYuan)} — پرداختی که به هیچ فاکتوری تعلق نگرفته (منتظر فاکتور بعدی)</div>` : ''}
 
     <div class="section-title">دفتر کامل (تاریخچه‌ی رویدادها)</div>
-    <div class="toolbar" style="margin-bottom:10px"><div></div><input id="customerEventsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customerEventsSearchQuery}" style="min-width:200px"></div>
+    <div class="toolbar" style="margin-bottom:10px">
+      <div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="customerEventsSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customerEventsSearchQuery}" style="min-width:200px">
+        <button class="btn btn-ghost btn-sm" id="exportCustomerEventsBtn">📥 خروجی اکسلِ دفترِ کامل</button>
+      </div>
+    </div>
     <div class="table-wrap">
       <table style="text-align:center">
         <thead><tr>
@@ -1146,6 +1154,16 @@ async function renderCustomerLedger(main){
   main.querySelector('#customerEventsSearchInput').addEventListener('input', (e)=>{
     customerEventsSearchQuery = e.target.value;
     renderCustomerLedger(main);
+  });
+  main.querySelector('#exportCustomerEventsBtn').addEventListener('click', ()=>{
+    const rows = [['تاریخ','شرح','بدهکار ریالی','بستانکار ریالی','مانده ریالی','بدهکار یوانی','بستانکار یوانی','مانده یوانی','نرخِ حواله','نرخِ روزِ واریز','نرخِ پیشنهادی']];
+    data.events.forEach(e=>rows.push([
+      e.date, e.desc,
+      e.type==='order'?e.rial_debit:'', e.type!=='order'?e.rial_credit:'', e.runningRial,
+      e.yuan_debit||'', e.yuan_credit||'', e.runningYuan,
+      e.hawaleRate||'', e.depositRate||'', e.suggestedRate||'',
+    ]));
+    xlsxDownload(`دفتر-کامل-${currentCustomer}.xlsx`, 'دفتر کامل', rows);
   });
   wireRateBasisToggle(main, ()=>renderCustomerLedger(main));
   main.querySelectorAll('[data-lock-order]').forEach(b=>b.addEventListener('click', async ()=>{
@@ -2095,7 +2113,7 @@ async function renderSupplierLedger(main){
   if(supplierExpenseSearchQuery.trim()){
     const q = supplierExpenseSearchQuery.trim();
     expenses = expenses.filter(e=>matchesSearch([
-      e.date, e.part_number, e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan,
+      e.date, e.part_number, e.doc_number, e.quantity, e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan,
       e.freight_rial, e.freight_paid ? 'پرداخت‌شده' : 'در انتظار',
     ], q));
   }
@@ -2237,12 +2255,14 @@ async function renderSupplierLedger(main){
     </div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>مانده‌ی تأمین‌کننده بعد از این (یوان)</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>تعداد</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>مانده‌ی تأمین‌کننده بعد از این (یوان)</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
         <tbody>
-          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="9">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
+          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="11">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
           expenses.map(e=>`<tr>
             <td class="date-cell">${e.date}</td>
             <td>${e.part_number||'—'}</td>
+            <td>${e.doc_number||'—'}</td>
+            <td class="num">${e.quantity!=null?fmt(e.quantity,2):'—'}</td>
             <td class="num">${fmtYuan(e.goods_yuan)}</td>
             <td class="num">${fmtYuan(e.shipping_yuan)}</td>
             <td class="num">${fmtYuan(e.transfer_fee_yuan)}</td>
@@ -2253,7 +2273,7 @@ async function renderSupplierLedger(main){
           </tr>`).join('')}
         </tbody>
         ${expenses.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
-          <td colspan="2" style="text-align:left">جمعِ کل</td>
+          <td colspan="4" style="text-align:left">جمعِ کل</td>
           <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.goods_yuan||0),0))}</td>
           <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.shipping_yuan||0),0))}</td>
           <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.transfer_fee_yuan||0),0))}</td>
@@ -2335,8 +2355,8 @@ async function renderSupplierLedger(main){
     renderSupplierLedger(main);
   });
   main.querySelector('#exportExpensesBtn').addEventListener('click', ()=>{
-    const rows = [['تاریخ','پارت‌نامبر','خرید کالا','جابجایی جنس','کارمزد حواله','جمع یوانی','هزینه حمل ریالی','وضعیت حمل','توضیح']];
-    expenses.forEach(e=>rows.push([e.date, e.part_number||'', e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan, e.freight_rial||'', e.freight_paid?'پرداخت‌شده':'در انتظار', e.note||'']));
+    const rows = [['تاریخ','پارت‌نامبر','شماره سند','تعداد','فیِ واحد (یوان)','خرید کالا','جابجایی جنس','کارمزد حواله','جمع یوانی','هزینه حمل ریالی','وضعیت حمل','توضیح']];
+    expenses.forEach(e=>rows.push([e.date, e.part_number||'', e.doc_number||'', e.quantity!=null?e.quantity:'', e.unit_price_yuan!=null?e.unit_price_yuan:'', e.goods_yuan, e.shipping_yuan, e.transfer_fee_yuan, e.totalYuan, e.freight_rial||'', e.freight_paid?'پرداخت‌شده':'در انتظار', e.note||'']));
     xlsxDownload(`هزینه‌های-${sName}.xlsx`, 'هزینه‌ها', rows);
   });
   main.querySelectorAll('[data-edit-exp]').forEach(b=>b.addEventListener('click',()=>{
@@ -2722,16 +2742,15 @@ async function renderAccounts(main){
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>مالک</th><th>نام بانک</th><th>شماره حساب</th><th>مانده‌ی اولیه</th><th>مانده‌ی فعلی</th><th>فعال</th><th></th></tr></thead>
+        <thead><tr><th>مالک</th><th>نام بانک</th><th>شماره حساب</th><th>مانده‌ی فعلی</th><th>فعال</th><th></th></tr></thead>
         <tbody>
-          ${filteredAccounts.length===0 ? `<tr class="empty-row"><td colspan="7">${accountsSearchQuery?'چیزی پیدا نشد':'حسابی ثبت نشده است'}</td></tr>` :
+          ${filteredAccounts.length===0 ? `<tr class="empty-row"><td colspan="6">${accountsSearchQuery?'چیزی پیدا نشد':'حسابی ثبت نشده است'}</td></tr>` :
           filteredAccounts.map(a=>{
             const stat = balanceMap[a.displayName];
             return `<tr>
               <td>${a.owner}</td>
               <td>${a.bank_name}</td>
               <td class="num">${a.account_number||'—'}</td>
-              <td class="num">${fmtRial(a.opening_balance)}</td>
               <td class="num" style="font-weight:700">${stat ? fmtRial(stat.balance) : '—'}</td>
               <td>${a.active ? '<span class="status-chip closed">فعال</span>' : '<span class="status-chip open">غیرفعال</span>'}</td>
               <td><button class="icon-btn" data-view-ledger="${a.id}">📖 دفتر حساب</button> <button class="icon-btn" data-edit-acc="${a.id}">ویرایش</button> <button class="icon-btn" data-del-acc="${a.id}">حذف</button> <button class="icon-btn" data-adj-acc="${a.id}">💰 هزینه/درآمدِ متفرقه</button></td>
@@ -2740,7 +2759,6 @@ async function renderAccounts(main){
         </tbody>
         ${filteredAccounts.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
           <td colspan="3" style="text-align:left">جمعِ کل</td>
-          <td class="num">${fmtRial(filteredAccounts.reduce((s,a)=>s+Number(a.opening_balance||0),0))}</td>
           <td class="num">${fmtRial(filteredAccounts.reduce((s,a)=>{
             const stat = balanceMap[a.displayName];
             return s + Number(stat ? stat.balance : 0);
