@@ -694,9 +694,23 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  const [accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, adjustments, settings] = await Promise.all([
-    apiList('accounts'), apiList('orders'), apiList('hawales'), apiList('payments'), apiList('expenses'), apiList('customer-incomes'), apiList('account-transfers'), apiList('capital-advances'), apiList('account-adjustments'), apiGetSettings(),
-  ]);
+  // ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ ریشه‌ایِ باگِ واقعیِ گزارش‌شده: سرورِ Render
+  // فقط یه worker داره (WEB_CONCURRENCY=1، sync). قبلاً این ۱۰ درخواست
+  // با Promise.all *هم‌زمان* فرستاده می‌شدن — چون سرور فقط می‌تونه
+  // یکی‌یکی جواب بده، ۹ تایِ دیگه تو صف می‌موندن و قبلِ نوبتشون
+  // تایم‌اوت می‌شدن (ERR_CONNECTION_TIMED_OUT رویِ *همه‌شون* هم‌زمان).
+  // الان پشتِ‌سرِهم (یکی‌یکی) فرستاده می‌شن — کندتر، ولی هیچ‌وقت سرورِ
+  // تک‌کاره رو overload نمی‌کنه.
+  const accounts = await apiList('accounts');
+  const orders = await apiList('orders');
+  const hawales = await apiList('hawales');
+  const payments = await apiList('payments');
+  const expenses = await apiList('expenses');
+  const incomes = await apiList('customer-incomes');
+  const transfers = await apiList('account-transfers');
+  const capitalAdvances = await apiList('capital-advances');
+  const adjustments = await apiList('account-adjustments');
+  const settings = await apiGetSettings();
   state = {
     accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, adjustments,
     settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
