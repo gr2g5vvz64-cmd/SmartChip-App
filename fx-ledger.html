@@ -443,10 +443,19 @@ async function apiList(endpoint){
     return [];
   }
 }
+// ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ باگِ واقعیِ گزارش‌شده: این تابع هم مثلِ
+// apiUpdate/apiDelete هیچ مکانیزمِ تلاشِ مجددی نداشت — با ثبتِ چندآیتمی
+// (که چندتا apiCreate پشتِ‌سرِهم می‌زنه)، اولین قطعیِ گذرایِ شبکه باعث
+// می‌شد «۰ از N آیتم» ثبت بشه، چون هیچ‌کدوم دوباره تلاش نمی‌کردن.
 async function apiCreate(endpoint, body){
-  const res = await fetch(FX_API+endpoint+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  if(!res.ok){ showToast('❌ ثبت ناموفق بود'); return null; }
-  return res.json();
+  try{
+    const res = await fetchWithRetry(FX_API+endpoint+'/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!res.ok){ showToast('❌ ثبت ناموفق بود'); return null; }
+    return res.json();
+  }catch(err){
+    showToast('❌ اتصال به سرور برقرار نشد — چند ثانیه صبر کنید و دوباره امتحان کنید');
+    return null;
+  }
 }
 // ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ باگِ واقعیِ گزارش‌شده: برخلافِ apiList، این دو
 // تابع هیچ مکانیزمِ تلاشِ مجددی نداشتن — با هر قطعیِ گذرایِ شبکه (که
@@ -471,13 +480,28 @@ async function apiDelete(endpoint, id){
     return false;
   }
 }
+// ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ باگِ واقعیِ گزارش‌شده: این توابع هم مثلِ بقیه
+// هیچ مکانیزمِ تلاشِ مجددی نداشتن — ازجمله apiGetSettings که دقیقاً
+// همون تابعی بود که تویِ خطایِ کنسولِ گزارش‌شده («Failed to fetch at
+// apiGetSettings») دیده شد.
 async function apiPatchSettings(body){
-  const res = await fetch(FX_API+'settings/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  return res.ok ? res.json() : null;
+  try{
+    const res = await fetchWithRetry(FX_API+'settings/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    return res.ok ? res.json() : null;
+  }catch(err){ showToast('❌ اتصال به سرور برقرار نشد'); return null; }
 }
-async function apiGetSettings(){ const r = await fetch(FX_API+'settings/'); return r.ok ? r.json() : {}; }
-async function apiGetSummary(basis){ const r = await fetch(FX_API+'summary/?basis='+basis); return r.ok ? r.json() : null; }
-async function apiGetCustomerLedger(customer, basis){ const r = await fetch(FX_API+'customer-ledger/?customer='+encodeURIComponent(customer)+'&basis='+basis); return r.ok ? r.json() : null; }
+async function apiGetSettings(){
+  try{ const r = await fetchWithRetry(FX_API+'settings/'); return r.ok ? r.json() : {}; }
+  catch(err){ return {}; }
+}
+async function apiGetSummary(basis){
+  try{ const r = await fetchWithRetry(FX_API+'summary/?basis='+basis); return r.ok ? r.json() : null; }
+  catch(err){ return null; }
+}
+async function apiGetCustomerLedger(customer, basis){
+  try{ const r = await fetchWithRetry(FX_API+'customer-ledger/?customer='+encodeURIComponent(customer)+'&basis='+basis); return r.ok ? r.json() : null; }
+  catch(err){ return null; }
+}
 
 // ⚠️ (۱۴۰۵/۰۶/۱۸) سرچ مشتری — طبق تصمیم صریح کاربر: از همون فایل مشتریانِ
 // CRM میاد، فقط اولویت ۱/۵/۹ (مشتریان تثبیت‌شده) — نه یه لیست جدای مخصوصِ
@@ -2125,8 +2149,14 @@ async function renderSuppliersList(main){
   }));
 }
 
-async function apiGetSupplierLedger(supplier){ const r = await fetch(FX_API+'supplier-ledger/?supplier='+encodeURIComponent(supplier)); return r.ok ? r.json() : null; }
-async function apiGetAccountLedger(accountId){ const r = await fetch(FX_API+'account-ledger/?account='+accountId); return r.ok ? r.json() : null; }
+async function apiGetSupplierLedger(supplier){
+  try{ const r = await fetchWithRetry(FX_API+'supplier-ledger/?supplier='+encodeURIComponent(supplier)); return r.ok ? r.json() : null; }
+  catch(err){ return null; }
+}
+async function apiGetAccountLedger(accountId){
+  try{ const r = await fetchWithRetry(FX_API+'account-ledger/?account='+accountId); return r.ok ? r.json() : null; }
+  catch(err){ return null; }
+}
 
 async function renderSupplierLedger(main){
   await loadAll();
