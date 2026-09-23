@@ -2191,7 +2191,10 @@ async function renderSupplierLedger(main){
               <td class="num">${fmtYuan(totalYuan)}</td>
               <td class="num" style="color:var(--ok)">${fmtYuan(settledYuan)}</td>
               <td class="num" style="color:${remainingYuan>0.01?'var(--danger)':'var(--ok)'}">${fmtYuan(remainingYuan)}</td>
-              <td><button class="btn btn-ghost btn-sm" data-filter-doc="${doc}">مشاهده‌ی آیتم‌ها</button></td>
+              <td>
+                <button class="btn btn-ghost btn-sm" data-filter-doc="${doc}">مشاهده</button>
+                <button class="btn btn-ghost btn-sm" data-edit-doc="${doc}">✏️ ویرایشِ کاملِ سند</button>
+              </td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -2382,6 +2385,9 @@ async function renderSupplierLedger(main){
   main.querySelectorAll('[data-filter-doc]').forEach(b=>b.addEventListener('click', ()=>{
     supplierEventsSearchQuery = b.dataset.filterDoc;
     renderSupplierLedger(main);
+  }));
+  main.querySelectorAll('[data-edit-doc]').forEach(b=>b.addEventListener('click', ()=>{
+    openExpenseDocEditModal(b.dataset.editDoc, sName);
   }));
   main.querySelector('#supplierExpSearchInput').addEventListener('input', (e)=>{
     supplierExpenseSearchQuery = e.target.value;
@@ -2627,6 +2633,114 @@ function openExpenseModalSingle(existing, presetSupplier){
 // آیتم (مثلاً ۳۰تا) رو زیرِ یه سندِ مشترک، بدونِ بازکردن‌وبستنِ مودال
 // ۳۰ بار، ثبت کنه. هر ردیف یه FxExpense کاملاً مستقل می‌شه (با FIFOِ
 // خودش تسویه می‌شه)، فقط doc_number مشترک دارن برایِ نمایشِ گروهی.
+// ⚠️ (۱۴۰۵/۰۷/۰۱) طبق درخواستِ صریحِ کاربر: قبلاً فقط می‌شد هر آیتمِ
+// یه سند رو تک‌تک ویرایش کرد، نه اینکه کلِ سند رو (با اضافه/کم‌کردنِ
+// آیتم) یکجا مدیریت کرد. این تابع دقیقاً همینو اضافه می‌کنه — بارگذاریِ
+// همه‌ی آیتم‌هایِ یه doc_number، امکانِ افزودن/حذف/ویرایش، و رعایتِ
+// درستِ create/update/delete موقعِ ذخیره.
+function openExpenseDocEditModal(docNumber, supplierName){
+  const existingItems = state.expenses.filter(e=>e.supplier_name===supplierName && e.doc_number===docNumber);
+  let rows = existingItems.map(e=>({
+    id:e.id, partNumber:e.part_number||'', qty:e.quantity!=null?String(e.quantity):'', unitPrice:e.unit_price_yuan!=null?String(e.unit_price_yuan):'',
+    shipping:String(e.shipping_yuan||0), transferFee:String(e.transfer_fee_yuan||0), note:e.note||'',
+  }));
+  const originalIds = new Set(existingItems.map(e=>e.id));
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+
+  function rowsHtml(){
+    return rows.map((r,i)=>`
+      <tr data-row="${i}">
+        <td style="position:relative;min-width:260px">
+          <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="پارت‌نامبر..." style="width:100%;font-size:13px">
+          <div data-part-results="${i}" style="position:relative;z-index:50"></div>
+        </td>
+        <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد" style="width:100%"></td>
+        <td style="min-width:80px"><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}" placeholder="فیِ خرید" style="width:100%"></td>
+        <td style="min-width:80px"><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}" style="width:100%"></td>
+        <td style="min-width:80px"><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}" style="width:100%"></td>
+        <td style="min-width:100px"><input data-f="note" data-row-i="${i}" type="text" value="${r.note}" placeholder="اضافات" style="width:100%"></td>
+        <td style="width:30px"><button type="button" class="icon-btn" data-remove-row="${i}">✕ حذف</button></td>
+      </tr>`).join('');
+  }
+
+  function draw(){
+    backdrop.innerHTML = `
+      <div class="modal modal-xl">
+        <h3>ویرایشِ کاملِ سند — ${docNumber}</h3>
+        <p class="page-desc">می‌تونید آیتمِ جدید اضافه کنید، آیتمِ موجود رو حذف کنید، یا مقادیرشو تغییر بدید. حذف‌کردنِ یه آیتم از اینجا، اون رکورد رو کاملاً از دفتر پاک می‌کنه.</p>
+        <div style="margin-bottom:8px">
+          <table class="data-table" style="min-width:600px">
+            <thead><tr>
+              <th>پارت‌نامبر</th><th>تعداد</th><th>فیِ خرید (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
+            </tr></thead>
+            <tbody id="rowsContainer">${rowsHtml()}</tbody>
+          </table>
+        </div>
+        <button type="button" class="btn btn-ghost" id="addRowBtn" style="margin-bottom:14px">+ افزودنِ آیتمِ جدید به همینِ سند</button>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="saveExpenseBtn">ذخیره‌ی تغییراتِ سند</button>
+          <button class="btn btn-ghost" id="cancelExpenseBtn">انصراف</button>
+        </div>
+      </div>`;
+    backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
+    backdrop.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('input', ()=>{
+      const i = +inp.dataset.rowI; const f = inp.dataset.f;
+      rows[i][f] = inp.value;
+    }));
+    backdrop.querySelectorAll('[data-row-i][data-f="partNumber"]').forEach(inp=>{
+      wirePartNumberAutocomplete(inp, backdrop.querySelector(`[data-part-results="${inp.dataset.rowI}"]`));
+    });
+    backdrop.querySelectorAll('[data-remove-row]').forEach(b=>b.addEventListener('click', ()=>{
+      if(rows.length<=1){ showToast('حداقل یه آیتم باید تو سند بمونه — اگه می‌خواید کلِ سند حذف بشه، از دکمه‌ی حذفِ خودِ ردیف تو جدولِ اصلی استفاده کنید'); return; }
+      rows.splice(+b.dataset.removeRow, 1); draw();
+    }));
+    backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
+      rows.push({id:null, partNumber:'', qty:'', unitPrice:'', shipping:'0', transferFee:'0', note:''}); draw();
+    });
+    backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
+  }
+
+  async function onSave(){
+    const validRows = rows.filter(r=>{
+      const qty = parseFloat(r.qty)||0, up = parseFloat(r.unitPrice)||0, sh = parseFloat(r.shipping)||0, tf = parseFloat(r.transferFee)||0;
+      return r.partNumber.trim() && (qty*up + sh + tf) > 0;
+    });
+    if(validRows.length===0){ showToast('حداقل یک آیتمِ معتبر لازم است'); return; }
+
+    const remainingIds = new Set(validRows.filter(r=>r.id).map(r=>r.id));
+    const toDelete = [...originalIds].filter(id=>!remainingIds.has(id));
+
+    let okCount = 0;
+    for(const id of toDelete) await apiDelete('expenses', id);
+    for(const r of validRows){
+      const qty = parseFloat(r.qty)||null, up = parseFloat(r.unitPrice)||null;
+      const goods = (qty && up) ? qty*up : 0;
+      const body = {
+        supplier_name:supplierName, part_number:r.partNumber.trim(), doc_number:docNumber,
+        goods_yuan:goods, shipping_yuan:parseFloat(r.shipping)||0, transfer_fee_yuan:parseFloat(r.transferFee)||0,
+        note:r.note.trim(), quantity:qty, unit_price_yuan:up,
+      };
+      if(r.id){
+        const d = await apiUpdate('expenses', r.id, body);
+        if(d) okCount++;
+      } else {
+        const existing0 = existingItems[0];
+        body.date = existing0 ? existing0.date : todayShamsi();
+        const d = await apiCreate('expenses', body);
+        if(d) okCount++;
+      }
+    }
+    showToast(`✅ سند به‌روزرسانی شد — ${okCount} آیتم، ${toDelete.length} حذف`);
+    backdrop.remove();
+    currentSupplier = supplierName;
+    renderMain();
+  }
+
+  draw();
+  document.body.appendChild(backdrop);
+}
+
 function openExpenseModalMultiRow(presetSupplier){
   const today = todayShamsi();
   const knownSuppliers = getKnownSupplierNames();
