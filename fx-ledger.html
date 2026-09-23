@@ -448,15 +448,28 @@ async function apiCreate(endpoint, body){
   if(!res.ok){ showToast('❌ ثبت ناموفق بود'); return null; }
   return res.json();
 }
+// ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ باگِ واقعیِ گزارش‌شده: برخلافِ apiList، این دو
+// تابع هیچ مکانیزمِ تلاشِ مجددی نداشتن — با هر قطعیِ گذرایِ شبکه (که
+// این چند وقته زیاد داشتیم)، ویرایش/حذف فوراً «ناموفق» می‌داد.
 async function apiUpdate(endpoint, id, body){
-  const res = await fetch(FX_API+endpoint+'/'+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  if(!res.ok){ showToast('❌ ویرایش ناموفق بود'); return null; }
-  return res.json();
+  try{
+    const res = await fetchWithRetry(FX_API+endpoint+'/'+id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!res.ok){ showToast('❌ ویرایش ناموفق بود'); return null; }
+    return res.json();
+  }catch(err){
+    showToast('❌ اتصال به سرور برقرار نشد — چند ثانیه صبر کنید و دوباره امتحان کنید');
+    return null;
+  }
 }
 async function apiDelete(endpoint, id){
-  const res = await fetch(FX_API+endpoint+'/'+id+'/', {method:'DELETE'});
-  if(!res.ok) showToast('❌ حذف ناموفق بود');
-  return res.ok;
+  try{
+    const res = await fetchWithRetry(FX_API+endpoint+'/'+id+'/', {method:'DELETE'});
+    if(!res.ok) showToast('❌ حذف ناموفق بود');
+    return res.ok;
+  }catch(err){
+    showToast('❌ اتصال به سرور برقرار نشد — چند ثانیه صبر کنید و دوباره امتحان کنید');
+    return false;
+  }
 }
 async function apiPatchSettings(body){
   const res = await fetch(FX_API+'settings/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
@@ -676,7 +689,17 @@ function wireLiveNumberFormat(inputEl){
 
 function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
   let seq = 0;
+  let suppressNextSearch = false;
   inputEl.addEventListener('input', async ()=>{
+    // ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ باگِ واقعیِ گزارش‌شده: بعدِ کلیک‌کردن رویِ
+    // یه پیشنهاد، برایِ اینکه بقیه‌ی listenerهایِ بیرونی (مثلِ فرمِ
+    // چندردیفی) از مقدارِ *واقعاً انتخاب‌شده* باخبر بشن، یه رویدادِ
+    // 'input' دستی dispatch می‌شد — ولی این خودِ همینِ handler رو هم
+    // دوباره trigger می‌کرد، که چون async بود، *بعدِ* پاک‌کردنِ
+    // dropdown، دوباره میومد و همون‌رو با نتیجه‌ی جدید پر می‌کرد
+    // (چون متنِ انتخاب‌شده، خودش با جست‌وجو مطابقت داشت). الان یه
+    // پرچمِ ساده جلویِ این سرچِ اضافه رو می‌گیره.
+    if(suppressNextSearch){ suppressNextSearch = false; return; }
     const q = inputEl.value;
     if(q.trim().length<1){ resultsBoxEl.innerHTML=''; return; }
     const mySeq = ++seq;
@@ -687,12 +710,7 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
     </div>` : '';
     resultsBoxEl.querySelectorAll('[data-pick-part]').forEach(el=>el.addEventListener('click', ()=>{
       inputEl.value = el.dataset.pickPart;
-      // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده توسطِ کاربر: قبلاً
-      // اینجا فقط `.value` ست می‌شد، بدونِ صدازدنِ رویدادِ 'input' —
-      // پس هر جایی که (مثلِ فرمِ چندردیفیِ خرید) رویِ رویدادِ 'input'
-      // گوش می‌داد تا وضعیتِ داخلیِ خودشو آپدیت کنه، هیچ‌وقت از مقدارِ
-      // *واقعاً انتخاب‌شده* باخبر نمی‌شد و برمی‌گشت به آخرین چیزی که
-      // کاربر با دست تایپ کرده بود.
+      suppressNextSearch = true;
       inputEl.dispatchEvent(new Event('input', {bubbles:true}));
       resultsBoxEl.innerHTML = '';
     }));
