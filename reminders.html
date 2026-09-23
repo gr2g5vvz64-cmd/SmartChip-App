@@ -97,18 +97,12 @@
   .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px }
   .cal-wd{ text-align:center; font-size:10px; color:var(--ink-soft); padding:2px 0; font-weight:700 }
   .cal-day{
-    min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-    border-radius:7px; font-size:11.5px; cursor:pointer; border:1.5px solid transparent; position:relative; padding:4px 2px;
-    font-feature-settings:"tnum" 1; gap:2px;
+    min-height:42px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border-radius:7px; font-size:11.5px; cursor:pointer; border:1.5px solid transparent; position:relative; padding:3px 2px;
+    font-feature-settings:"tnum" 1; gap:1px;
   }
   .cal-day .day-num{ font-size:12px }
-  .cal-day .hol-tag{
-    font-size:8px; font-weight:700; padding:1.5px 3px; border-radius:4px; line-height:1.3;
-    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  .cal-day .hol-tag.ir{ background:var(--teal-soft); color:var(--teal) }
-  .cal-day .hol-tag.cn{ background:var(--brick-soft); color:var(--brick) }
-  .cal-day .hol-tag.both{ background:#F3E9D6; color:var(--brass-deep) }
+  .cal-day .hol-tag{ font-size:11px; line-height:1 }
   .cal-day .rem-dot{ width:4px; height:4px; border-radius:50%; background:var(--brass); position:absolute; bottom:3px }
   .cal-day.today{ border-color:var(--brass); font-weight:800; background:#FBF3E7 }
   .cal-day.has-rem{ background:var(--grey-soft) }
@@ -236,8 +230,9 @@ function normalizeRecurring(r){
   let status = 'open';
   if(r.archived) status = 'archived';
   else if(r.canceled) status = 'cancelled';
+  const warnPart = (r.warn_days && r.warn_days.length) ? ` — هشدارِ زودتر: ${r.warn_days.join('،')} روز قبل` : '';
   return { _type:'recurring', id:r.id, title:r.title, customer:r.customer, date:r.next_date, time:r.time||'',
-           note:r.note ? `${r.note} — هر ${r.interval} روز` : `هر ${r.interval} روز`, status, raw:r };
+           note:(r.note ? `${r.note} — ` : '') + `هر ${r.interval} روز` + warnPart, status, raw:r };
 }
 
 // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعی: این fetch قبلاً فقط یه‌بار تلاش
@@ -293,6 +288,7 @@ async function apiDelete(type, id){
 
 let allItems = [];
 let currentTab = 'today';
+let listSearchQuery = '';
 let calYear, calMonth;
 {
   const t = todayShamsi().split('-').map(Number);
@@ -365,9 +361,19 @@ async function renderMain(){
       <div class="card"><div class="card-title">فردا</div>${renderList(tomorrows)}</div>
     `;
   } else if(['open','done','cancelled','archived'].includes(currentTab)){
-    const filtered = allItems.filter(r=>r.status===currentTab)
+    let filtered = allItems.filter(r=>r.status===currentTab)
       .sort((a,b)=> (a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
-    main.innerHTML = `<div class="card">${renderList(filtered)}</div>`;
+    if(listSearchQuery.trim()){
+      const q = listSearchQuery.trim().toLowerCase();
+      filtered = filtered.filter(r => (r.title||'').toLowerCase().includes(q) || (r.customer||'').toLowerCase().includes(q) || (r.note||'').toLowerCase().includes(q));
+    }
+    main.innerHTML = `
+      <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در عنوان، مشتری، توضیح..." value="${listSearchQuery}"></div>
+      <div class="card">${renderList(filtered)}</div>`;
+    main.querySelector('#listSearchInput').addEventListener('input', (e)=>{
+      listSearchQuery = e.target.value;
+      renderMain();
+    });
   } else if(currentTab === 'calendar'){
     renderCalendar(main);
   }
@@ -399,10 +405,15 @@ function renderCalendar(main){
     let holTag = '';
     if(fixedH||lunarH||cnH){
       const irH = fixedH || lunarH;
+      // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده: نمایشِ متنِ کاملِ
+      // اسمِ تعطیلی داخلِ سلولِ کوچیکِ تقویم (خصوصاً موبایل) باعثِ
+      // سرریزِ بصری و به‌هم‌ریختگیِ کاملِ چیدمان می‌شد — خصوصاً وقتی
+      // چندین روزِ پیاپی (مثلِ هفته‌ی ملیِ چین) همه‌شون برچسب داشتن.
+      // الان فقط خودِ ایموجیِ پرچم تو سلول می‌مونه؛ اسمِ کاملِ تعطیلی
+      // همچنان تو تولتیپ (hover/tap) و لیستِ «تعطیلاتِ این ماه» هست.
       const flagIcons = [fixedH?'🇮🇷':'', lunarH?'🌙':'', cnH?'🇨🇳':''].filter(Boolean).join('');
-      const label = (irH || cnH || '').substring(0,10);
       const cls = (irH && cnH) ? 'both' : (irH ? 'ir' : 'cn');
-      holTag = `<span class="hol-tag ${cls}" title="${[fixedH,lunarH,cnH].filter(Boolean).join(' / ')}">${flagIcons} ${label}</span>`;
+      holTag = `<span class="hol-tag ${cls}" title="${[fixedH,lunarH,cnH].filter(Boolean).join(' / ')}">${flagIcons}</span>`;
     }
     const g = jalaliToGregorian(calYear, calMonth, d);
     cells += `<div class="cal-day ${dateStr===today?'today':''} ${hasRem?'has-rem':''}" data-cal-day="${dateStr}">
@@ -534,7 +545,9 @@ function openReminderModal(existing, presetDate){
           <div class="field"><label>تاریخِ ${modalType==='free'?'یادآوری':'شروع/موعدِ بعدی'} (شمسی)</label><input id="rDate" type="text" readonly value="${existing?.date||presetDate||todayShamsi()}" placeholder="1405-06-26"></div>
           <div class="field"><label>ساعت (اختیاری)</label><input id="rTime" type="time" value="${existing?.raw?.time||''}"></div>
         </div>
-        ${modalType==='recurring' ? `<div class="field"><label>هر چند روز تکرار بشه؟</label><input id="rInterval" type="number" min="1" value="${existing?.raw?.interval||30}"></div>` : ''}
+        ${modalType==='recurring' ? `
+        <div class="field"><label>هر چند روز تکرار بشه؟</label><input id="rInterval" type="number" min="1" value="${existing?.raw?.interval||30}"></div>
+        <div class="field"><label>چند روز قبل از موعد هم هشدار بده؟ (اختیاری — با کاما جدا کنید، مثلاً: 3,1)</label><input id="rWarnDays" type="text" placeholder="مثلاً: 3,1" value="${(existing?.raw?.warn_days||[]).join(',')}"></div>` : ''}
         <div class="field"><label>${modalType==='free'?'دسته (اختیاری)':'یادداشت (اختیاری)'}</label><textarea id="rNote">${modalType==='free' ? (existing?.raw?.category||'') : (existing?.raw?.note||'')}</textarea></div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="btn btn-primary" id="rSaveBtn">${isEdit?'ذخیره':'ثبت'}</button>
@@ -564,7 +577,9 @@ function openReminderModal(existing, presetDate){
       } else {
         type = 'recurring';
         const interval = parseInt(backdrop.querySelector('#rInterval').value) || 30;
-        body = { title, customer, interval: String(interval), start_date: existing?.raw?.start_date || date, next_date: date, time, note: noteVal };
+        const warnDaysStr = backdrop.querySelector('#rWarnDays').value.trim();
+        const warnDays = warnDaysStr ? warnDaysStr.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n) && n>0) : [];
+        body = { title, customer, interval: String(interval), start_date: existing?.raw?.start_date || date, next_date: date, time, note: noteVal, warn_days: warnDays };
         if(!existing){ body.canceled=false; body.archived=false; }
       }
       const d = existing ? await apiUpdate(type, existing.id, body) : await apiCreate(type, body);
