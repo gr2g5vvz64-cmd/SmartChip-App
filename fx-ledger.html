@@ -539,7 +539,6 @@ function showPersistentResultModal(title, bodyHtml, isError){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#closeSyncResultBtn').addEventListener('click', ()=>backdrop.remove());
-  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
 }
 // ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: با ~۳۲هزار پارت، فرستادنِ
 // *همه* رو هر بار (حتی با دسته‌بندی) کاری غیرضروری و کندیه. به‌جایِ
@@ -1183,7 +1182,6 @@ async function renderCustomerLedger(main){
       </div>`;
     document.body.appendChild(backdrop);
     backdrop.querySelector('#closeRateBreakdownBtn').addEventListener('click', ()=>backdrop.remove());
-    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   }));
   main.querySelector('#customerOrdersSearchInput').addEventListener('input', (e)=>{
     customerOrdersSearchQuery = e.target.value;
@@ -1289,7 +1287,6 @@ function openOrderModal(existing, presetCustomer){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelOrderBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#oDate'));
   wireLiveNumberFormat(backdrop.querySelector('#oAmount'));
 
@@ -1410,7 +1407,6 @@ function showHistoryModal(record){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#closeHistoryBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
 }
 
 async function renderPayments(main){
@@ -1555,7 +1551,6 @@ function openPaymentModal(existing){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelPaymentBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#pDate'));
   wireLiveNumberFormat(backdrop.querySelector('#pAmount'));
   wireLiveNumberFormat(backdrop.querySelector('#pRate'));
@@ -1645,7 +1640,6 @@ function openIncomeModal(existing){
       </div>
     </div>`;
   document.body.appendChild(backdrop);
-  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   backdrop.querySelector('#cancelIncomeBtn').addEventListener('click', ()=>backdrop.remove());
   wireShamsiDatePicker(backdrop.querySelector('#incDate'));
   wireLiveNumberFormat(backdrop.querySelector('#incAmount'));
@@ -1932,7 +1926,6 @@ function openHawaleModal(existing){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelHawaleBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#hDate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRateAtDeposit'));
@@ -2156,7 +2149,7 @@ async function renderSupplierLedger(main){
     ], q));
   }
   const filteredInvoices = data.invoiceStatus.filter(o=>matchesSearch([
-    o.date, o.yuanAmount, o.remainingYuan, o.closed?'تسویه‌شده':'باز', o.weightedAvgRate, o.rialEquivalentForAccounting, o.isLocked?'قفل‌شده':'',
+    o.date, o.partNumber, o.docGroup, o.yuanAmount, o.remainingYuan, o.closed?'تسویه‌شده':'باز', o.weightedAvgRate, o.rialEquivalentForAccounting, o.isLocked?'قفل‌شده':'',
   ], supplierInvoicesSearchQuery));
   const hawalesForSupplier = sortByDateAsc(state.hawales.filter(h=>h.supplier_name===sName));
   const filteredHawaleStatus = hawalesForSupplier.filter(h=>{
@@ -2218,11 +2211,13 @@ async function renderSupplierLedger(main){
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierInvoicesSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierInvoicesSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
+        <thead><tr><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
-          ${filteredInvoices.length===0 ? `<tr class="empty-row"><td colspan="8">${supplierInvoicesSearchQuery?'چیزی پیدا نشد':'هنوز هزینه/فاکتورِ خریدی ثبت نشده'}</td></tr>` :
+          ${filteredInvoices.length===0 ? `<tr class="empty-row"><td colspan="10">${supplierInvoicesSearchQuery?'چیزی پیدا نشد':'هنوز هزینه/فاکتورِ خریدی ثبت نشده'}</td></tr>` :
           filteredInvoices.map(o=>`<tr>
             <td class="date-cell">${o.date}</td>
+            <td>${o.partNumber||'—'}</td>
+            <td>${o.docGroup||'—'}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
             <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
@@ -2235,7 +2230,7 @@ async function renderSupplierLedger(main){
           </tr>`).join('')}
         </tbody>
         ${data.invoiceStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
-          <td style="text-align:left">جمعِ کل</td>
+          <td colspan="3" style="text-align:left">جمعِ کل</td>
           <td class="num">${fmtYuan(data.invoiceStatus.reduce((s,o)=>s+Number(o.yuanAmount||0),0))}</td>
           <td class="num">${fmtYuan(data.invoiceStatus.reduce((s,o)=>s+Number(o.remainingYuan||0),0))}</td>
           <td colspan="4"></td>
@@ -2455,7 +2450,6 @@ async function renderSupplierLedger(main){
       </div>`;
     document.body.appendChild(backdrop);
     backdrop.querySelector('#closeBreakdownBtn').addEventListener('click', ()=>backdrop.remove());
-    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   }));
 }
 
@@ -2546,7 +2540,6 @@ function openExpenseModalSingle(existing, presetSupplier){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
   backdrop.querySelector('#syncPartsBtnInModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
@@ -2749,7 +2742,6 @@ function openExpenseModalMultiRow(presetSupplier){
 
   draw();
   document.body.appendChild(backdrop);
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
 }
 
 // ---------- ACCOUNTS (چندگانه — هر شخص می‌تواند چند حساب داشته باشد) ----------
@@ -2896,7 +2888,6 @@ function openAdjustmentModal(accountId, existing){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelAdjBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#adjDate'));
   wireLiveNumberFormat(backdrop.querySelector('#adjAmount'));
   backdrop.querySelector('#saveAdjBtn').addEventListener('click', async ()=>{
@@ -2942,7 +2933,6 @@ function openAccountModal(existing){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelAccBtn').addEventListener('click',()=>backdrop.remove());
-  backdrop.addEventListener('click',(e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireLiveNumberFormat(backdrop.querySelector('#accOpeningBalance'));
   backdrop.querySelector('#saveAccBtn').addEventListener('click', async ()=>{
     let owner = backdrop.querySelector('#accOwner').value.trim();
@@ -3017,7 +3007,6 @@ function openTransferModal(existing){
       </div>
     </div>`;
   document.body.appendChild(backdrop);
-  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   backdrop.querySelector('#cancelTransferBtn').addEventListener('click', ()=>backdrop.remove());
   wireShamsiDatePicker(backdrop.querySelector('#trDate'));
   wireLiveNumberFormat(backdrop.querySelector('#trAmount'));
@@ -3208,7 +3197,6 @@ async function renderCapitalAdvances(main){
       </div>`;
     document.body.appendChild(backdrop);
     backdrop.querySelector('#closeSettlementsBtn').addEventListener('click', ()=>backdrop.remove());
-    backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   }));
   main.querySelectorAll('[data-edit-capadv]').forEach(b=>b.addEventListener('click', ()=>{
     openCapitalAdvanceModal(state.capitalAdvances.find(x=>x.id==b.dataset.editCapadv));
@@ -3241,7 +3229,6 @@ function openCapitalAdvanceModal(existing){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelCapAdvBtn').addEventListener('click', ()=>backdrop.remove());
-  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#capAdvDate'));
   wireLiveNumberFormat(backdrop.querySelector('#capAdvRate'));
   wireLiveNumberFormat(backdrop.querySelector('#capAdvAmount'));
@@ -3289,7 +3276,6 @@ function openYuanAdjustmentModal(supplierName){
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelYuanAdjBtn').addEventListener('click', ()=>backdrop.remove());
-  backdrop.addEventListener('click', (e)=>{ if(e.target===backdrop) backdrop.remove(); });
   wireShamsiDatePicker(backdrop.querySelector('#yuanAdjDate'));
   backdrop.querySelector('#saveYuanAdjBtn').addEventListener('click', async ()=>{
     const date = backdrop.querySelector('#yuanAdjDate').value.trim();
