@@ -185,8 +185,9 @@
   /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: طراحیِ landscape برای فرم‌های
      ثبتِ حواله/فاکتور — عریض‌تر، فیلدها کنارِ هم به‌جای زیرِ هم */
   .modal.modal-landscape{ max-width:760px; }
+  .modal.modal-xl{ max-width:1080px; }
   .form-grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
-  @media(max-width:700px){ .modal.modal-landscape{ max-width:420px; } .form-grid-3{ grid-template-columns:1fr; } }
+  @media(max-width:700px){ .modal.modal-landscape{ max-width:420px; } .modal.modal-xl{ max-width:96vw; } .form-grid-3{ grid-template-columns:1fr; } }
   .contrib-row{ display:grid; grid-template-columns:2fr 1fr auto; gap:8px; align-items:center; margin-bottom:6px; }
   .status-chip{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; }
   .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
@@ -681,7 +682,7 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
     const mySeq = ++seq;
     const items = await fxSearchItems(q);
     if(mySeq !== seq) return; // یه سرچِ جدیدتر تو راهه
-    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:100;max-height:160px;overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.18)">
       ${items.map(name=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-part="${name}">${name}</div>`).join('')}
     </div>` : '';
     resultsBoxEl.querySelectorAll('[data-pick-part]').forEach(el=>el.addEventListener('click', ()=>{
@@ -2625,9 +2626,9 @@ function openExpenseModalMultiRow(presetSupplier){
   function rowsHtml(){
     return rows.map((r,i)=>`
       <tr data-row="${i}">
-        <td style="position:relative;min-width:140px">
-          <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="پارت‌نامبر..." style="width:100%">
-          <div data-part-results="${i}" style="position:relative"></div>
+        <td style="position:relative;min-width:260px">
+          <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="پارت‌نامبر..." style="width:100%;font-size:13px">
+          <div data-part-results="${i}" style="position:relative;z-index:50"></div>
         </td>
         <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}" placeholder="فیِ خرید" style="width:100%"></td>
@@ -2640,7 +2641,7 @@ function openExpenseModalMultiRow(presetSupplier){
 
   function draw(){
     backdrop.innerHTML = `
-      <div class="modal modal-landscape">
+      <div class="modal modal-xl">
         <h3>ثبتِ سندِ خرید — چند آیتم</h3>
         <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
           <input id="eSupplier" type="text" list="knownSuppliersList" value="${presetSupplier||''}" placeholder="مثلاً: کلافی">
@@ -2651,7 +2652,7 @@ function openExpenseModalMultiRow(presetSupplier){
           <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10.5px">⚡ فقط جدیدها</button>
           <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10.5px">🔄 ارسالِ کاملِ همه</button>
         </div>
-        <div style="overflow-x:auto;margin-bottom:8px">
+        <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">
             <thead><tr>
               <th>پارت‌نامبر</th><th>تعداد</th><th>فیِ خرید (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
