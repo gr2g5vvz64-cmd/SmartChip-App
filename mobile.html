@@ -4135,49 +4135,6 @@ function getMorningDataM(){
   };
 }
 // ══ ماشین حساب قیمت‌دهی ══
-let pcSelectedPart = null;
-function searchPcPart(val){
-  const dd = document.getElementById('pcPartAC');
-  if(!val || val.trim().length < 2){ dd.style.display='none'; return; }
-  dd.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:var(--muted)">در حال جستجو...</div>';
-  dd.style.display = 'block';
-  clearTimeout(window._pcPartTimer);
-  window._pcPartTimer = setTimeout(async()=>{
-    const matches = await liveSearchParts(val);
-    if(!matches.length){ dd.style.display='none'; return; }
-    dd.innerHTML = matches.map(n =>
-      `<div onclick="pickPcPart('${n.replace(/'/g,"\\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;">${n}</div>`
-    ).join('');
-    dd.style.display = 'block';
-  }, 250);
-}
-async function pickPcPart(name){
-  document.getElementById('pcPartInput').value = name;
-  document.getElementById('pcPartAC').style.display = 'none';
-  document.getElementById('pcPartName').textContent = name;
-  // دریافت وزن — اول از Django (سریع‌تر و همیشه به‌روز)، اگه نشد از گوگل‌شیت
-  let res = null;
-  try{
-    const djRes = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/weight/?name='+encodeURIComponent(name));
-    if(djRes && djRes.found) res = djRes;
-  }catch(e){}
-  if(!res) res = await sheetCall('getItemWeight', { name });
-  if(res && res.weightUnit !== undefined){
-    document.getElementById('pcWeightUnit').textContent = res.weightUnit ? fn(res.weightUnit) + ' گرم' : '—';
-    document.getElementById('pcWeightPack').textContent = res.weightPack ? fn(res.weightPack) + ' گرم' : '—';
-    pcSelectedPart = res;
-  } else {
-    document.getElementById('pcWeightUnit').textContent = '—';
-    document.getElementById('pcWeightPack').textContent = '—';
-    pcSelectedPart = null;
-  }
-  document.getElementById('pcPartInfo').style.display = 'block';
-  pcCalc();
-}
-document.addEventListener('click', e => {
-  if(!e.target.closest('#pcPartAC') && e.target.id !== 'pcPartInput')
-    document.getElementById('pcPartAC').style.display = 'none';
-});
 
 function openShipTrackingSheet(){
   if(isConnected && !cachedShipments.length) loadSummary().then(renderMobileShipments);
