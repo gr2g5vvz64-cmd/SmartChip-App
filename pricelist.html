@@ -413,7 +413,7 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
   <div class="cart-body">
     <div class="cart-summary" id="cartSummary" style="display:none">
       <div class="sum-card"><div class="sum-lbl">تعداد اقلام</div><div class="sum-val" id="s_items">0</div><div class="sum-unit">قلم</div></div>
-      <div class="sum-card"><div class="sum-lbl">جمع کل فروش</div><div class="sum-val" id="s_total">—</div><div class="sum-unit">ریال</div></div>
+      <div class="sum-card"><div class="sum-lbl">جمع کل فروش</div><div class="sum-val" id="s_total">—</div><div class="sum-unit" id="s_totalUnit">ریال</div></div>
     </div>
     <div class="cart-table-wrap"><div id="cartContent"></div></div>
   </div>
@@ -862,7 +862,12 @@ function calc(){
   else tot.style.display='none';
   document.getElementById('r_partName').textContent=sel?sel.part:'';
 
-  lastCalc={part:sel?sel.part:'',qty,buyCur,buyPrice:buy,buyIRR,supPct,supProfit,supTotal,supFromSC,supFromSCAmount,supFromSCTotal,shipMode,shipRate:sr,shipPP,scPct,scProfit,scTotal,base,final,totalPrice:final*qty,cartonKg,wKg:wKg||0,activeGrp};
+  // ⚠️ (۱۴۰۵/۰۷/۰۲) فیکسِ باگِ واقعیِ گزارش‌شده: قبلاً dispMode/safeCny
+  // فقط برایِ *نمایشِ لحظه‌ای* رویِ فرمِ ماشین‌حساب استفاده می‌شد و هیچ‌جا
+  // ذخیره نمی‌شد — پس وقتی آیتم به سبد اضافه می‌شد، سبد همیشه فقط ریال
+  // نشون می‌داد، حتی اگه لحظه‌ی محاسبه رویِ «یوانی» بودید. حالا با خودِ
+  // آیتم ذخیره می‌شه تا سبد بدونه با چه ارزی باید نمایش بده.
+  lastCalc={part:sel?sel.part:'',qty,buyCur,buyPrice:buy,buyIRR,supPct,supProfit,supTotal,supFromSC,supFromSCAmount,supFromSCTotal,shipMode,shipRate:sr,shipPP,scPct,scProfit,scTotal,base,final,totalPrice:final*qty,cartonKg,wKg:wKg||0,activeGrp,dispMode,safeCny};
 }
 
 function setCur(c){
@@ -940,37 +945,53 @@ function renderCart(){
     return;
   }
   summary.style.display='grid';
+  // ⚠️ (۱۴۰۵/۰۷/۰۲) فیکسِ باگِ واقعیِ گزارش‌شده: هر آیتم با ارزِ خودش
+  // (یوانی/ریالی) نمایش داده می‌شه، نه همیشه ریال. اگه همه‌ی آیتم‌هایِ
+  // سبد یوانی باشن، جمعِ کل هم یوانی نشون داده می‌شه؛ وگرنه (مخلوط یا
+  // همه ریالی) جمعِ کل ریالی می‌مونه.
+  const allYuan = cart.length>0 && cart.every(it=>it.dispMode==='yuan' && it.safeCny>0);
   let totalSale=0;
-  cart.forEach(it=>totalSale+=(it.totalPrice||0));
+  cart.forEach(it=>{
+    const isY = it.dispMode==='yuan' && it.safeCny>0;
+    // فقط وقتی *همه‌ی* آیتم‌ها یوانی‌ان، جمع به یوان حساب می‌شه (هر
+    // آیتم با نرخِ ایمنِ خودش)؛ وگرنه (سبدِ مخلوط) باید همیشه رویِ
+    // مقدارِ خامِ ریالی جمع بزنیم — جمع‌کردنِ یه عددِ یوانی با یه عددِ
+    // ریالی مستقیماً یه جمعِ بی‌معنی و واحد-ناهمگون می‌سازه.
+    totalSale += allYuan && isY ? (it.totalPrice||0)/it.safeCny : (it.totalPrice||0);
+  });
   document.getElementById('s_items').textContent=cart.length;
-  document.getElementById('s_total').textContent=fmt(totalSale);
+  document.getElementById('s_total').textContent=fmt(totalSale, allYuan?2:0);
+  document.getElementById('s_totalUnit').textContent=allYuan?'یوان':'ریال';
 
-  const trows=cart.map((it,i)=>`
+  const trows=cart.map((it,i)=>{
+    const isY = it.dispMode==='yuan' && it.safeCny>0;
+    const money=(rialVal)=> isY ? fmt((rialVal||0)/it.safeCny,2)+' ¥' : fmt(rialVal||0)+'﷼';
+    return `
     <tr>
       <td style="color:var(--sub);font-size:10px">${i+1}</td>
       <td class="part" title="${it.part}">${it.part||'—'}</td>
       <td class="num">${fmt(it.qty)}</td>
       <td class="num">${it.buyCur==='CNY'?'¥':'$'}${fmt(it.buyPrice,2)}</td>
-      <td class="num">${fmt(it.buyIRR)}﷼</td>
+      <td class="num">${money(it.buyIRR)}</td>
       <td class="num" style="color:var(--blue)">${it.supPct}٪</td>
       <td class="num">${it.shipMode||'—'}</td>
-      <td class="num">${fmt(it.shipPP)}﷼</td>
+      <td class="num">${money(it.shipPP)}</td>
       <td class="num" style="color:var(--gold)">${it.scPct}٪</td>
-      <td class="fp">${fmt(it.final)}﷼</td>
-      <td class="tp">${fmt(it.totalPrice)}﷼</td>
+      <td class="fp">${money(it.final)}</td>
+      <td class="tp">${money(it.totalPrice)}</td>
       <td><button class="del-btn" onclick="deleteItem(${i})">✕</button></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   container.innerHTML=`<table>
     <thead><tr>
-      <th>#</th><th>پارت نامبر</th><th>تعداد</th><th>خرید</th><th>خرید ﷼</th>
+      <th>#</th><th>پارت نامبر</th><th>تعداد</th><th>خرید</th><th>هزینهٔ خرید</th>
       <th>سود ت.</th><th>نوع حمل</th><th>حمل/عدد</th><th>SC٪</th>
       <th>قیمت/عدد</th><th>جمع کل</th><th></th>
     </tr></thead>
     <tbody>${trows}</tbody>
     <tfoot><tr class="foot-row">
       <td colspan="10" class="foot-lbl">جمع کل پیش‌فاکتور</td>
-      <td class="tp" style="font-size:13px">${fmt(totalSale)}﷼</td>
+      <td class="tp" style="font-size:13px">${allYuan ? fmt(totalSale,2)+' ¥' : fmt(totalSale)+' ﷼'}</td>
       <td></td>
     </tr></tfoot>
   </table>`;
