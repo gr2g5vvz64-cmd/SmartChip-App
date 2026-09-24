@@ -991,9 +991,9 @@ async function renderDashboard(main){
 }
 
 // ---------- CUSTOMERS LIST ----------
-async function renderCustomersList(main){
+async function renderCustomersList(main, cachedSummary){
   const basis = state.settings.rateBasis;
-  const g = await apiGetSummary(basis);
+  const g = cachedSummary || await apiGetSummary(basis);
   if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
   const filteredCustomers = g.customers.filter(c=>matchesSearch([
     c.name, c.balanceYuan, c.balanceRial, c.unlinkedRial, c.openOrderId?'باز':'تسویه',
@@ -1028,7 +1028,7 @@ async function renderCustomersList(main){
   wireRateBasisToggle(main, ()=>renderCustomersList(main));
   main.querySelector('#customersListSearchInput').addEventListener('input', (e)=>{
     customersListSearchQuery = e.target.value;
-    renderCustomersList(main);
+    renderCustomersList(main, g);
   });
   main.querySelectorAll('[data-open-customer]').forEach(tr=>tr.addEventListener('click', ()=>{
     currentCustomer = tr.dataset.openCustomer;
@@ -1037,9 +1037,9 @@ async function renderCustomersList(main){
 }
 
 // ---------- CUSTOMER LEDGER (دقیقاً به‌سبک عکس اکسل کاربر) ----------
-async function renderCustomerLedger(main){
+async function renderCustomerLedger(main, cachedData){
   const basis = state.settings.rateBasis;
-  const data = await apiGetCustomerLedger(currentCustomer, basis);
+  const data = cachedData || await apiGetCustomerLedger(currentCustomer, basis);
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: مانده‌ی ریالیِ *واقعی* — فقط از
   // اعدادِ مطمئن (پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگینِ نهایی‌شون
@@ -1209,11 +1209,11 @@ async function renderCustomerLedger(main){
   }));
   main.querySelector('#customerOrdersSearchInput').addEventListener('input', (e)=>{
     customerOrdersSearchQuery = e.target.value;
-    renderCustomerLedger(main);
+    renderCustomerLedger(main, data);
   });
   main.querySelector('#customerEventsSearchInput').addEventListener('input', (e)=>{
     customerEventsSearchQuery = e.target.value;
-    renderCustomerLedger(main);
+    renderCustomerLedger(main, data);
   });
   main.querySelector('#exportCustomerEventsBtn').addEventListener('click', ()=>{
     const rows = [['تاریخ','شرح','بدهکار ریالی','بستانکار ریالی','مانده ریالی','بدهکار یوانی','بستانکار یوانی','مانده یوانی','نرخِ حواله','نرخِ روزِ واریز','نرخِ پیشنهادی']];
@@ -1433,8 +1433,8 @@ function showHistoryModal(record){
   backdrop.querySelector('#closeHistoryBtn').addEventListener('click',()=>backdrop.remove());
 }
 
-async function renderPayments(main){
-  await loadAll();
+async function renderPayments(main, skipLoad){
+  if(!skipLoad) await loadAll();
   let filtered = sortByDateDesc(state.payments);
   if(paymentsSearchQuery.trim()){
     const q = paymentsSearchQuery.trim();
@@ -1493,7 +1493,7 @@ async function renderPayments(main){
   `;
   main.querySelector('#paymentsSearchInput').addEventListener('input', (e)=>{
     paymentsSearchQuery = e.target.value;
-    renderPayments(main);
+    renderPayments(main, true);
   });
   main.querySelector('#exportPaymentsBtn').addEventListener('click', ()=>{
     const rows = [['تاریخ','مشتری','حساب','مبلغ ریالی','نرخ روز واریز','تخصیص دستی','توضیح']];
@@ -1710,8 +1710,8 @@ function openIncomeModal(existing){
 
 // ---------- INCOMES (درآمدهای مشتریان — با قابلیتِ ویرایش/حذف، هم‌الگو با پرداخت‌ها) ----------
 let incomesSearchQuery = '';
-async function renderIncomes(main){
-  await loadAll();
+async function renderIncomes(main, skipLoad){
+  if(!skipLoad) await loadAll();
   let filtered = sortByDateDesc(state.incomes);
   if(incomesSearchQuery.trim()){
     const q = incomesSearchQuery.trim();
@@ -1758,7 +1758,7 @@ async function renderIncomes(main){
   main.querySelector('#addIncomeGlobalBtn').addEventListener('click', ()=>openIncomeModal());
   main.querySelector('#incomesSearchInput').addEventListener('input', (e)=>{
     incomesSearchQuery = e.target.value;
-    renderIncomes(main);
+    renderIncomes(main, true);
   });
   main.querySelectorAll('[data-edit-income]').forEach(b=>b.addEventListener('click', ()=>{
     const inc = state.incomes.find(x=>x.id==b.dataset.editIncome);
@@ -1774,8 +1774,8 @@ async function renderIncomes(main){
 
 // ---------- HAWALES (ترکیبی — چند حساب در یک حواله) ----------
 let hawalesSearchQuery = '';
-async function renderHawales(main){
-  await loadAll();
+async function renderHawales(main, skipLoad){
+  if(!skipLoad) await loadAll();
   let filtered = sortByDateDesc(state.hawales);
   if(hawalesSearchQuery.trim()){
     const q = hawalesSearchQuery.trim();
@@ -1842,7 +1842,7 @@ async function renderHawales(main){
   `;
   main.querySelector('#hawalesSearchInput').addEventListener('input', (e)=>{
     hawalesSearchQuery = e.target.value;
-    renderHawales(main);
+    renderHawales(main, true);
   });
   main.querySelector('#exportHawalesBtn').addEventListener('click', ()=>{
     const rows = [['تاریخ','تأمین‌کننده','مبلغ کل ریالی','نرخ حواله','یوان خریداری‌شده','توضیح']];
@@ -2109,9 +2109,9 @@ async function renderSupplier(main){
   currentSupplier ? renderSupplierLedger(main) : renderSuppliersList(main);
 }
 
-async function renderSuppliersList(main){
+async function renderSuppliersList(main, cachedSummary){
   const basis = state.settings.rateBasis;
-  const g = await apiGetSummary(basis);
+  const g = cachedSummary || await apiGetSummary(basis);
   if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
   const filteredSuppliers = g.suppliers.filter(s=>matchesSearch([
     s.name, s.yuanBought, s.expenseYuan, s.yuanBalance, s.unpaidFreightRial,
@@ -2141,7 +2141,7 @@ async function renderSuppliersList(main){
   `;
   main.querySelector('#suppliersListSearchInput').addEventListener('input', (e)=>{
     suppliersListSearchQuery = e.target.value;
-    renderSuppliersList(main);
+    renderSuppliersList(main, g);
   });
   main.querySelectorAll('[data-open-supplier]').forEach(tr=>tr.addEventListener('click', ()=>{
     currentSupplier = tr.dataset.openSupplier;
@@ -2158,10 +2158,10 @@ async function apiGetAccountLedger(accountId){
   catch(err){ return null; }
 }
 
-async function renderSupplierLedger(main){
-  await loadAll();
+async function renderSupplierLedger(main, skipLoad, cachedData){
+  if(!skipLoad) await loadAll();
   const sName = currentSupplier;
-  const data = await apiGetSupplierLedger(sName);
+  const data = cachedData || await apiGetSupplierLedger(sName);
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سؤالِ کاربر: تقارن با سمتِ مشتری — همون مانده‌ی
   // ریالیِ واقعی (فقط اعدادِ مطمئن) + مانده‌ی یوانی، از آخرین رویدادِ دفتر
@@ -2374,7 +2374,7 @@ async function renderSupplierLedger(main){
             <td class="num">${e.yuan_credit!==null && e.yuan_credit!==undefined ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : '—'}</td>
-            <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span>${e.type==='yuan_adjustment' ? ` <button class="icon-btn" data-del-yuan-adj="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
+            <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span>${e.type==='yuan_adjustment' ? ` <button class="icon-btn" data-edit-yuan-adj="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-yuan-adj="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
           </tr>`).join('')}
         </tbody>
         ${filteredSupplierEvents.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
@@ -2392,6 +2392,11 @@ async function renderSupplierLedger(main){
   main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; renderMain(); });
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
   main.querySelector('#addYuanAdjBtn').addEventListener('click', ()=>openYuanAdjustmentModal(sName));
+  main.querySelectorAll('[data-edit-yuan-adj]').forEach(b=>b.addEventListener('click', ()=>{
+    const ev = filteredSupplierEvents.find(x=>x.id==b.dataset.editYuanAdj) || data.events.find(x=>x.id==b.dataset.editYuanAdj);
+    if(!ev){ showToast('این تعدیل پیدا نشد'); return; }
+    openYuanAdjustmentModal(sName, ev);
+  }));
   main.querySelectorAll('[data-del-yuan-adj]').forEach(b=>b.addEventListener('click', async ()=>{
     if(!confirm('⚠️ مطمئنید می‌خواید این تعدیلِ یوانی را حذف کنید؟')) return;
     const ok = await apiDelete('supplier-yuan-adjustments', b.dataset.delYuanAdj);
@@ -2402,26 +2407,26 @@ async function renderSupplierLedger(main){
   main.querySelector('#syncPartsBtnLast100').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
   main.querySelector('#supplierInvoicesSearchInput').addEventListener('input', (e)=>{
     supplierInvoicesSearchQuery = e.target.value;
-    renderSupplierLedger(main);
+    renderSupplierLedger(main, true, data);
   });
   main.querySelector('#supplierHawaleStatusSearchInput').addEventListener('input', (e)=>{
     supplierHawaleStatusSearchQuery = e.target.value;
-    renderSupplierLedger(main);
+    renderSupplierLedger(main, true, data);
   });
   main.querySelector('#supplierEventsSearchInput').addEventListener('input', (e)=>{
     supplierEventsSearchQuery = e.target.value;
-    renderSupplierLedger(main);
+    renderSupplierLedger(main, true, data);
   });
   main.querySelectorAll('[data-filter-doc]').forEach(b=>b.addEventListener('click', ()=>{
     supplierEventsSearchQuery = b.dataset.filterDoc;
-    renderSupplierLedger(main);
+    renderSupplierLedger(main, true, data);
   }));
   main.querySelectorAll('[data-edit-doc]').forEach(b=>b.addEventListener('click', ()=>{
     openExpenseDocEditModal(b.dataset.editDoc, sName);
   }));
   main.querySelector('#supplierExpSearchInput').addEventListener('input', (e)=>{
     supplierExpenseSearchQuery = e.target.value;
-    renderSupplierLedger(main);
+    renderSupplierLedger(main, true, data);
   });
   main.querySelector('#exportExpensesBtn').addEventListener('click', ()=>{
     const rows = [['تاریخ','پارت‌نامبر','شماره سند','تعداد','فیِ واحد (یوان)','خرید کالا','جابجایی جنس','کارمزد حواله','جمع یوانی','هزینه حمل ریالی','وضعیت حمل','توضیح']];
@@ -2432,7 +2437,16 @@ async function renderSupplierLedger(main){
     const e = state.expenses.find(x=>x.id==b.dataset.editExp);
     const st = data.invoiceStatus.find(x=>x.id==b.dataset.editExp);
     if(st && st.isLocked && !confirm('⚠️ این فاکتورِ خرید قفل شده (تو هلو ثبت شده). ویرایش ممکنه با نرخِ حسابداریِ ثبت‌شده ناهماهنگ بشه. مطمئنید؟')) return;
-    openExpenseModal(e);
+    // ⚠️ (۱۴۰۵/۰۷/۰۲) فیکسِ باگِ واقعیِ گزارش‌شده: اگه این آیتم بخشی از
+    // یه سندِ چندآیتمی باشه، ویرایشِ تک‌ردیفی کافی نیست و باعثِ اختلال
+    // تویِ ادامه‌ی کار می‌شه — باید کلِ سند (همه‌ی آیتم‌هاش) با هم برای
+    // ویرایش باز بشه، دقیقاً همون مودالی که از «✏️ ویرایشِ کاملِ سند» باز می‌شه.
+    const docSiblings = e.doc_number ? state.expenses.filter(x=>x.supplier_name===sName && x.doc_number===e.doc_number) : [];
+    if(e.doc_number && docSiblings.length > 1){
+      openExpenseDocEditModal(e.doc_number, sName);
+    } else {
+      openExpenseModal(e);
+    }
   }));
   main.querySelectorAll('[data-del-exp]').forEach(b=>b.addEventListener('click', async ()=>{
     const st = data.invoiceStatus.find(x=>x.id==b.dataset.delExp);
@@ -2637,7 +2651,7 @@ function openExpenseModalSingle(existing, presetSupplier){
       if(useExisting) supplierName = similar;
     }
 
-    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee, freight_rial:freight, freight_paid:freightPaid, note,
+    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:roundYuan(goods), shipping_yuan:roundYuan(shipping), transfer_fee_yuan:roundYuan(transferFee), freight_rial:freight, freight_paid:freightPaid, note,
       quantity: qtyStr?parseFloat(qtyStr):null, unit_price_yuan: unitPriceStr?parseFloat(unitPriceStr):null};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
@@ -2668,11 +2682,20 @@ function openExpenseModalSingle(existing, presetSupplier){
 // آیتم) یکجا مدیریت کرد. این تابع دقیقاً همینو اضافه می‌کنه — بارگذاریِ
 // همه‌ی آیتم‌هایِ یه doc_number، امکانِ افزودن/حذف/ویرایش، و رعایتِ
 // درستِ create/update/delete موقعِ ذخیره.
+// ⚠️ (۱۴۰۵/۰۷/۰۱) طبق درخواستِ صریحِ کاربر: فیلدهایِ یوانیِ مدل فقط
+// ۴ رقمِ اعشار قبول می‌کنن؛ این تابع هر عددی که به سرور می‌فرستیم رو
+// همیشه به ۴ رقم گرد می‌کنه تا هیچ‌وقت خطایِ ۴۰۰ (Bad Request) به
+// خاطرِ اعشارِ بیش‌ازحد رخ نده.
+function roundYuan(n){
+  const num = Number(n);
+  if(isNaN(num)) return 0;
+  return Math.round(num*10000)/10000;
+}
 function openExpenseDocEditModal(docNumber, supplierName){
   const existingItems = state.expenses.filter(e=>e.supplier_name===supplierName && e.doc_number===docNumber);
   let rows = existingItems.map(e=>({
-    id:e.id, partNumber:e.part_number||'', qty:e.quantity!=null?String(e.quantity):'', unitPrice:e.unit_price_yuan!=null?String(e.unit_price_yuan):'',
-    shipping:String(e.shipping_yuan||0), transferFee:String(e.transfer_fee_yuan||0), note:e.note||'',
+    id:e.id, partNumber:e.part_number||'', qty:e.quantity!=null?String(e.quantity):'',
+    goods:String(e.goods_yuan||0), shipping:String(e.shipping_yuan||0), transferFee:String(e.transfer_fee_yuan||0), note:e.note||'',
   }));
   const originalIds = new Set(existingItems.map(e=>e.id));
   const backdrop = document.createElement('div');
@@ -2685,8 +2708,8 @@ function openExpenseDocEditModal(docNumber, supplierName){
           <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="پارت‌نامبر..." style="width:100%;font-size:13px">
           <div data-part-results="${i}" style="position:relative;z-index:50"></div>
         </td>
-        <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد" style="width:100%"></td>
-        <td style="min-width:80px"><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}" placeholder="فیِ خرید" style="width:100%"></td>
+        <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد (یادداشتی)" style="width:100%"></td>
+        <td style="min-width:90px"><input data-f="goods" data-row-i="${i}" type="text" class="num" value="${r.goods}" placeholder="خریدِ کالا" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}" style="width:100%"></td>
         <td style="min-width:100px"><input data-f="note" data-row-i="${i}" type="text" value="${r.note}" placeholder="اضافات" style="width:100%"></td>
@@ -2702,7 +2725,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
         <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">
             <thead><tr>
-              <th>پارت‌نامبر</th><th>تعداد</th><th>فیِ خرید (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
+              <th>پارت‌نامبر</th><th>تعداد (یادداشتی)</th><th>خریدِ کالا (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
             </tr></thead>
             <tbody id="rowsContainer">${rowsHtml()}</tbody>
           </table>
@@ -2726,15 +2749,15 @@ function openExpenseDocEditModal(docNumber, supplierName){
       rows.splice(+b.dataset.removeRow, 1); draw();
     }));
     backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
-      rows.push({id:null, partNumber:'', qty:'', unitPrice:'', shipping:'0', transferFee:'0', note:''}); draw();
+      rows.push({id:null, partNumber:'', qty:'', goods:'0', shipping:'0', transferFee:'0', note:''}); draw();
     });
     backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
   }
 
   async function onSave(){
     const validRows = rows.filter(r=>{
-      const qty = parseFloat(r.qty)||0, up = parseFloat(r.unitPrice)||0, sh = parseFloat(r.shipping)||0, tf = parseFloat(r.transferFee)||0;
-      return r.partNumber.trim() && (qty*up + sh + tf) > 0;
+      const goods = parseFloat(r.goods)||0, sh = parseFloat(r.shipping)||0, tf = parseFloat(r.transferFee)||0;
+      return r.partNumber.trim() && (goods + sh + tf) > 0;
     });
     if(validRows.length===0){ showToast('حداقل یک آیتمِ معتبر لازم است'); return; }
 
@@ -2744,12 +2767,11 @@ function openExpenseDocEditModal(docNumber, supplierName){
     let okCount = 0;
     for(const id of toDelete) await apiDelete('expenses', id);
     for(const r of validRows){
-      const qty = parseFloat(r.qty)||null, up = parseFloat(r.unitPrice)||null;
-      const goods = (qty && up) ? qty*up : 0;
+      const qty = parseFloat(r.qty)||null;
       const body = {
         supplier_name:supplierName, part_number:r.partNumber.trim(), doc_number:docNumber,
-        goods_yuan:goods, shipping_yuan:parseFloat(r.shipping)||0, transfer_fee_yuan:parseFloat(r.transferFee)||0,
-        note:r.note.trim(), quantity:qty, unit_price_yuan:up,
+        goods_yuan:roundYuan(r.goods), shipping_yuan:roundYuan(r.shipping), transfer_fee_yuan:roundYuan(r.transferFee),
+        note:r.note.trim(), quantity:qty, unit_price_yuan:null,
       };
       if(r.id){
         const d = await apiUpdate('expenses', r.id, body);
@@ -2774,7 +2796,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
 function openExpenseModalMultiRow(presetSupplier){
   const today = todayShamsi();
   const knownSuppliers = getKnownSupplierNames();
-  let rows = [{partNumber:'', qty:'', unitPrice:'', shipping:'0', transferFee:'0', note:''}];
+  let rows = [{partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:''}];
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
 
@@ -2785,8 +2807,8 @@ function openExpenseModalMultiRow(presetSupplier){
           <input data-f="partNumber" data-row-i="${i}" type="text" value="${r.partNumber}" placeholder="پارت‌نامبر..." style="width:100%;font-size:13px">
           <div data-part-results="${i}" style="position:relative;z-index:50"></div>
         </td>
-        <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد" style="width:100%"></td>
-        <td style="min-width:80px"><input data-f="unitPrice" data-row-i="${i}" type="text" class="num" value="${r.unitPrice}" placeholder="فیِ خرید" style="width:100%"></td>
+        <td style="min-width:70px"><input data-f="qty" data-row-i="${i}" type="text" class="num" value="${r.qty}" placeholder="تعداد (یادداشتی)" style="width:100%"></td>
+        <td style="min-width:90px"><input data-f="goods" data-row-i="${i}" type="text" class="num" value="${r.goods}" placeholder="خریدِ کالا" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}" style="width:100%"></td>
         <td style="min-width:100px"><input data-f="note" data-row-i="${i}" type="text" value="${r.note}" placeholder="اضافات" style="width:100%"></td>
@@ -2810,7 +2832,7 @@ function openExpenseModalMultiRow(presetSupplier){
         <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">
             <thead><tr>
-              <th>پارت‌نامبر</th><th>تعداد</th><th>فیِ خرید (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
+              <th>پارت‌نامبر</th><th>تعداد (یادداشتی)</th><th>خریدِ کالا (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
             </tr></thead>
             <tbody id="rowsContainer">${rowsHtml()}</tbody>
           </table>
@@ -2840,7 +2862,7 @@ function openExpenseModalMultiRow(presetSupplier){
       rows.splice(+b.dataset.removeRow, 1); draw();
     }));
     backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
-      rows.push({partNumber:'', qty:'', unitPrice:'', shipping:'0', transferFee:'0', note:''}); draw();
+      rows.push({partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:''}); draw();
     });
     backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
   }
@@ -2857,8 +2879,8 @@ function openExpenseModalMultiRow(presetSupplier){
     }
 
     const validRows = rows.filter(r=>{
-      const qty = parseFloat(r.qty)||0, up = parseFloat(r.unitPrice)||0, sh = parseFloat(r.shipping)||0, tf = parseFloat(r.transferFee)||0;
-      return r.partNumber.trim() && (qty*up + sh + tf) > 0;
+      const goods = parseFloat(r.goods)||0, sh = parseFloat(r.shipping)||0, tf = parseFloat(r.transferFee)||0;
+      return r.partNumber.trim() && (goods + sh + tf) > 0;
     });
     if(validRows.length===0){ showToast('حداقل یک آیتمِ معتبر (پارت‌نامبر + مبلغِ مثبت) لازم است'); return; }
 
@@ -2866,14 +2888,12 @@ function openExpenseModalMultiRow(presetSupplier){
     const docNumber = `${date}-${Date.now().toString().slice(-6)}`;
     let okCount = 0;
     for(const r of validRows){
-      const qty = parseFloat(r.qty)||null, up = parseFloat(r.unitPrice)||null;
-      const goods = (qty && up) ? qty*up : 0;
-      const shipping = parseFloat(r.shipping)||0, transferFee = parseFloat(r.transferFee)||0;
+      const qty = parseFloat(r.qty)||null;
       const body = {
         supplier_name:supplierName, part_number:r.partNumber.trim(), date,
-        goods_yuan:goods, shipping_yuan:shipping, transfer_fee_yuan:transferFee,
+        goods_yuan:roundYuan(r.goods), shipping_yuan:roundYuan(r.shipping), transfer_fee_yuan:roundYuan(r.transferFee),
         freight_rial:null, freight_paid:false, note:r.note.trim(),
-        quantity:qty, unit_price_yuan:up, doc_number:docNumber,
+        quantity:qty, unit_price_yuan:null, doc_number:docNumber,
       };
       const d = await apiCreate('expenses', body);
       if(d) okCount++;
@@ -2889,10 +2909,10 @@ function openExpenseModalMultiRow(presetSupplier){
 }
 
 // ---------- ACCOUNTS (چندگانه — هر شخص می‌تواند چند حساب داشته باشد) ----------
-async function renderAccounts(main){
-  await loadAll();
+async function renderAccounts(main, skipLoad, cachedSummary){
+  if(!skipLoad) await loadAll();
   const basis = state.settings.rateBasis;
-  const g = await apiGetSummary(basis);
+  const g = cachedSummary || await apiGetSummary(basis);
   const balanceMap = {};
   if(g) g.accounts.forEach(a=>{ balanceMap[a.name] = a; }); // نگاشت با نام چون g.accounts فقط id نداره؛ فالبک با محاسبه دستی زیر
   const filteredAccounts = state.accounts.filter(a=>{
@@ -2984,7 +3004,7 @@ async function renderAccounts(main){
   }));
   main.querySelector('#accountsSearchInput').addEventListener('input', (e)=>{
     accountsSearchQuery = e.target.value;
-    renderAccounts(main);
+    renderAccounts(main, true, g);
   });
   main.querySelectorAll('[data-edit-acc]').forEach(b=>b.addEventListener('click',()=>{
     const a = state.accounts.find(x=>x.id==b.dataset.editAcc);
@@ -3176,9 +3196,9 @@ function openTransferModal(existing){
 // ⚠️ (۱۴۰۵/۰۶/۲۳) طبق درخواستِ صریحِ کاربر: دفترِ کاملِ حسابداریِ خودِ
 // حساب — عیناً هم‌الگو با دفترِ مشتری/تأمین‌کننده، ولی چون حساب فقط
 // ریالیه (بدونِ یوان)، ساده‌تره: تاریخ، شرح، بدهکار، بستانکار، مانده.
-async function renderAccountLedger(main){
-  await loadAll();
-  const data = await apiGetAccountLedger(currentAccount);
+async function renderAccountLedger(main, skipLoad, cachedData){
+  if(!skipLoad) await loadAll();
+  const data = cachedData || await apiGetAccountLedger(currentAccount);
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاریِ دفترِ حساب</p>'; return; }
   let events = data.events;
   if(accountLedgerSearchQuery.trim()){
@@ -3225,7 +3245,7 @@ async function renderAccountLedger(main){
   main.querySelector('#backAccountBtn').addEventListener('click', ()=>{ currentAccount=null; renderMain(); });
   main.querySelector('#accountLedgerSearchInput').addEventListener('input', (e)=>{
     accountLedgerSearchQuery = e.target.value;
-    renderAccountLedger(main);
+    renderAccountLedger(main, true, data);
   });
   main.querySelectorAll('[data-edit-ledger-payment]').forEach(b=>b.addEventListener('click', ()=>{
     openPaymentModal(state.payments.find(x=>x.id==b.dataset.editLedgerPayment));
@@ -3266,8 +3286,8 @@ async function renderAccountLedger(main){
 // سرمایه‌ای» — کاملاً موازی و بی‌اثر رو محاسباتِ اصلی؛ فقط برایِ شفافیت
 // که «الان چقدر از پولِ خودم، بدونِ برگشت، بیرونه».
 let capitalAdvancesSearchQuery = '';
-async function renderCapitalAdvances(main){
-  await loadAll();
+async function renderCapitalAdvances(main, skipLoad){
+  if(!skipLoad) await loadAll();
   let filtered = sortByDateDesc(state.capitalAdvances);
   if(capitalAdvancesSearchQuery.trim()){
     filtered = filtered.filter(a=>matchesSearch([a.date, a.customer_name, a.rate_at_advance, a.rial_amount, a.remainingRial], capitalAdvancesSearchQuery));
@@ -3313,7 +3333,7 @@ async function renderCapitalAdvances(main){
   `;
   main.querySelector('#capAdvSearchInput').addEventListener('input', (e)=>{
     capitalAdvancesSearchQuery = e.target.value;
-    renderCapitalAdvances(main);
+    renderCapitalAdvances(main, true);
   });
   main.querySelectorAll('[data-show-settlements]').forEach(b=>b.addEventListener('click', ()=>{
     const adv = state.capitalAdvances.find(x=>x.id==b.dataset.showSettlements);
@@ -3394,27 +3414,30 @@ function openCapitalAdvanceModal(existing){
 // ⚠️ (۱۴۰۵/۰۶/۲۶) طبق درخواستِ صریحِ کاربر: تعدیلِ مستقیمِ یوانیِ
 // تأمین‌کننده — بدونِ هیچ ریال/نرخ/حساب، فقط مستقیم بدهکارتر یا
 // بستانکارتر می‌کنه، به تشخیصِ خودِ کاربر.
-function openYuanAdjustmentModal(supplierName){
+// ⚠️ (۱۴۰۵/۰۷/۰۲) طبق درخواستِ صریحِ کاربر: امکانِ ویرایشِ تعدیلِ
+// موجود هم اضافه شد — existing (اختیاری) رکوردِ فعلی رو می‌ده.
+function openYuanAdjustmentModal(supplierName, existing){
+  const isEdit = !!existing;
   const today = todayShamsi();
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
   backdrop.innerHTML = `
     <div class="modal">
-      <h3>تعدیلِ مستقیمِ یوانی — ${supplierName}</h3>
+      <h3>${isEdit?'ویرایشِ تعدیلِ یوانی':'تعدیلِ مستقیمِ یوانی'} — ${supplierName}</h3>
       <p class="page-desc">این فقط رو مانده‌ی یوانیِ همینِ تأمین‌کننده اثر می‌ذاره — هیچ ریال، نرخ، حساب، یا مشتری‌ای درگیر نمی‌شه.</p>
       <div class="field" style="margin-bottom:10px"><label>نوع</label>
         <select id="yuanAdjType">
-          <option value="debit">بدهکار — طلبِ ما از تأمین‌کننده زیاد بشه</option>
-          <option value="credit">بستانکار — طلبِ ما از تأمین‌کننده کم بشه</option>
+          <option value="debit" ${isEdit&&existing.adjustmentType==='debit'?'selected':''}>بدهکار — طلبِ ما از تأمین‌کننده زیاد بشه</option>
+          <option value="credit" ${isEdit&&existing.adjustmentType==='credit'?'selected':''}>بستانکار — طلبِ ما از تأمین‌کننده کم بشه</option>
         </select>
       </div>
       <div class="form-row">
-        <div class="field"><label>تاریخ (شمسی)</label><input id="yuanAdjDate" type="text" value="${today}" placeholder="1405-06-26"></div>
-        <div class="field"><label>مبلغ (یوان)</label><input id="yuanAdjAmount" type="text" class="num" placeholder="مثلاً 500"></div>
+        <div class="field"><label>تاریخ (شمسی)</label><input id="yuanAdjDate" type="text" value="${isEdit?existing.date:today}" placeholder="1405-06-26"></div>
+        <div class="field"><label>مبلغ (یوان)</label><input id="yuanAdjAmount" type="text" class="num" value="${isEdit?existing.yuanAmount:''}" placeholder="مثلاً 500"></div>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>توضیح کوتاه (اختیاری)</label><input id="yuanAdjNote" type="text"></div>
+      <div class="field" style="margin-bottom:10px"><label>توضیح کوتاه (اختیاری)</label><input id="yuanAdjNote" type="text" value="${isEdit?(existing.note||''):''}"></div>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="saveYuanAdjBtn">ثبتِ تعدیل</button>
+        <button class="btn btn-primary" id="saveYuanAdjBtn">${isEdit?'ذخیره‌ی تغییرات':'ثبتِ تعدیل'}</button>
         <button class="btn btn-ghost" id="cancelYuanAdjBtn">انصراف</button>
       </div>
     </div>`;
@@ -3427,10 +3450,12 @@ function openYuanAdjustmentModal(supplierName){
     const adjustmentType = backdrop.querySelector('#yuanAdjType').value;
     const note = backdrop.querySelector('#yuanAdjNote').value.trim();
     if(!date || !yuanAmount || yuanAmount<=0){ showToast('تاریخ و مبلغِ مثبت را وارد کنید'); return; }
-    const body = {supplier_name:supplierName, date, adjustment_type:adjustmentType, yuan_amount:yuanAmount, note};
-    const d = await apiCreate('supplier-yuan-adjustments', body);
+    const body = {supplier_name:supplierName, date, adjustment_type:adjustmentType, yuan_amount:roundYuan(yuanAmount), note};
+    const d = isEdit
+      ? await apiUpdate('supplier-yuan-adjustments', existing.id, body)
+      : await apiCreate('supplier-yuan-adjustments', body);
     if(!d) return;
-    showToast('✅ تعدیل ثبت شد');
+    showToast(isEdit ? '✅ تعدیل به‌روزرسانی شد' : '✅ تعدیل ثبت شد');
     backdrop.remove();
     renderMain();
   });
