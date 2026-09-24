@@ -423,11 +423,22 @@ let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], sett
 // می‌تونه ۳۰-۶۰ ثانیه طول بکشه. یعنی این retry هیچ‌وقت به‌اندازه‌ی کافی
 // صبر نمی‌کرد و شکستِ واقعی رو نشون می‌داد، درصورتی‌که چند ثانیه‌ی
 // دیگه صبر کافی بود. الان تا ۸ بار تلاش می‌کنه (جمعاً حدودِ ۹۰ ثانیه).
-async function fetchWithRetry(url, options, retries=8, delayMs=2000){
+// ⚠️ (۱۴۰۵/۰۷/۰۲) فیکسِ باگِ واقعیِ گزارش‌شده: قبلاً هیچ سقفِ زمانی‌ای
+// رویِ خودِ fetch نبود. اگه ISP به‌جایِ ردِّ صریح، بسته‌ها رو بی‌صدا دور
+// بریزه (رایج‌ترین روشِ مسدودسازی)، مرورگر می‌مونه منتظرِ جوابی که
+// هیچ‌وقت نمیاد — رویِ هرکدوم از ۸ تلاش، شاید دقیقه‌ها. حالا هر تلاش
+// حداکثر ۱۲ ثانیه مهلت داره؛ اگه جواب نیومد، همون تلاش لغو و بلافاصله
+// تلاشِ بعدی شروع می‌شه — دیگه چرخِ بارگذاری برایِ همیشه نمی‌مونه.
+async function fetchWithRetry(url, options, retries=8, delayMs=2000, timeoutMs=12000){
   for(let i=0; i<retries; i++){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), timeoutMs);
     try{
-      return await fetch(url, options);
+      const res = await fetch(url, {...options, signal:controller.signal});
+      clearTimeout(timer);
+      return res;
     }catch(err){
+      clearTimeout(timer);
       if(i === retries-1) throw err;
       if(i === 1) showToast('⏳ سرور در حالِ بیدارشدنه، لطفاً صبر کنید...');
       await new Promise(r=>setTimeout(r, delayMs*(i+1)));
