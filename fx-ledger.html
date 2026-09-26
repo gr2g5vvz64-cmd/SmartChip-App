@@ -41,6 +41,7 @@
     --yuan-soft:#f5e6d3;
     --danger:#dc2626;
     --danger-soft:#fbdddb;
+    --ok:#15803d;
     --accent:#0e7d6b;
     --card:#c3dbf3;
     --radius:12px;
@@ -111,6 +112,7 @@
   .tag.danger{ background:var(--danger-soft); color:var(--danger); }
   .tag.neutral{ background:var(--paper); color:var(--ink-soft); }
 
+  .empty{ text-align:center; color:var(--ink-faint); padding:14px; font-size:12.5px; }
   .section-title{ font-size:14.5px; font-weight:700; margin:28px 0 10px; display:flex; align-items:center; justify-content:space-between; }
 
   table{ width:100%; border-collapse:collapse; font-size:13px; }
@@ -192,6 +194,39 @@
   .status-chip{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; }
   .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
   .status-chip.open{ background:var(--yuan-soft); color:var(--yuan); }
+  /* (۱۴۰۵/۰۷/۰۳) کیتِ نمودارِ داخلی */
+  .fxc-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11px; color:var(--ink-soft); margin-top:6px }
+  .fxc-legend i,.fxc-dlegend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-left:5px; vertical-align:middle }
+  .fxc-empty{ text-align:center; color:var(--ink-soft); font-size:12px; padding:18px }
+  .fxc-note{ font-size:10.5px; color:var(--ink-soft); margin-top:4px }
+  .fxc-hbars{ display:flex; flex-direction:column; gap:7px }
+  .fxc-hrow{ display:flex; align-items:center; gap:8px }
+  .fxc-hlabel{ flex:0 0 118px; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .fxc-htrack{ flex:1; position:relative; display:flex; flex-direction:column; gap:3px; min-width:0 }
+  .fxc-hbar-line{ display:flex; align-items:center; gap:6px; min-width:0 }
+  .fxc-hbar{ height:14px; border-radius:3px; flex:0 0 auto }
+  .fxc-stack{ height:16px; display:flex; border-radius:3px; overflow:hidden; flex:0 0 auto }
+  .fxc-hval{ font-size:10.5px; color:var(--ink-soft); white-space:nowrap }
+  .fxc-marker{ position:absolute; top:-3px; bottom:-3px; width:0; border-right:2px dashed var(--ink); opacity:.55; z-index:1; }
+  .fxc-scroll{ overflow-x:auto; direction:ltr }
+  .fxc-grid{ stroke:var(--border); stroke-width:1; opacity:.6 }
+  .fxc-zero{ stroke:var(--ink); stroke-width:1; opacity:.5 }
+  .fxc-axis{ font-size:10px; fill:var(--ink-soft); font-family:inherit }
+  .fxc-dc{ font-size:15px; font-weight:800; fill:var(--ink); font-family:inherit }
+  .fxc-donut{ display:flex; align-items:center; gap:14px; flex-wrap:wrap }
+  .fxc-dlegend{ display:flex; flex-direction:column; gap:6px; font-size:11.5px; flex:1; min-width:170px }
+  .fxc-dlegend div{ display:flex; align-items:center; gap:6px }
+  .fxc-dlegend span{ flex:1 } .fxc-dlegend b{ font-weight:700 } .fxc-dlegend em{ font-style:normal; color:var(--ink-soft); min-width:34px; text-align:left }
+  .fxc-funnel{ display:flex; flex-direction:column; gap:8px; align-items:center }
+  .fxc-fstage{ width:100%; display:flex; flex-direction:column; align-items:center; gap:2px }
+  .fxc-fbar{ height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px }
+  .fxc-flabel{ font-size:11px; color:var(--ink-soft) } .fxc-flabel em{ font-style:normal; font-weight:700 }
+  .fxc-card{ border-radius:12px; padding:14px; margin-bottom:14px }
+  .fxc-card h4{ margin:0 0 10px; font-size:13px }
+  .fxc-grid2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px }
+  .fxc-card{ background:var(--card); border:1px solid var(--border) }
+  /* ستون‌هایِ گرید اجازه‌ی کوچک‌شدن داشته باشن تا جدول‌ها داخلِ خودشون اسکرول بخورن، نه کلِ صفحه */
+  .grid > *, .fxc-grid2 > *{ min-width:0 }
 </style>
 </head>
 <body>
@@ -777,6 +812,7 @@ async function loadAll(){
 // ── Rendering ──
 const NAV_STRUCTURE = [
   {type:'item', id:'dashboard', label:'داشبورد'},
+  {type:'item', id:'management', label:'📊 تحلیلِ مدیریتی'},
   {type:'group', id:'group-customer', label:'مشتری', children:[
     {id:'customers', label:'مشتریان (دفتر)'},
     {id:'payments', label:'پرداخت‌های مشتریان'},
@@ -865,6 +901,7 @@ async function renderMain(){
   const main = document.getElementById('main');
   main.innerHTML = '<div class="load-screen" style="height:200px">در حال بارگذاری…</div>';
   if(currentTab === 'dashboard') return renderDashboard(main);
+  if(currentTab === 'management') return renderManagement(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
   if(currentTab === 'payments') return renderPayments(main);
   if(currentTab === 'incomes') return renderIncomes(main);
@@ -1002,6 +1039,407 @@ async function renderDashboard(main){
 }
 
 // ---------- CUSTOMERS LIST ----------
+// ═══════════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۰۳) طبق درخواستِ صریحِ کاربر: صفحه‌ی «تحلیلِ مدیریتی» —
+// سودآوری (سفارش/مشتری/ماه) + مطالبات و نقدینگی. داده از اندپوینتِ
+// فقط-خواندنیِ management/ میاد؛ لینکِ خرید به فاکتور از همینجا هم ممکنه.
+// ═══════════════════════════════════════════════════════════════════
+// ═══ (۱۴۰۵/۰۷/۰۳) کیتِ نمودارِ داخلی — SVG/HTML خالص، بدونِ کتابخانه‌ی بیرونی
+// (تا بدونِ اینترنتِ آزاد هم بارگذاری بشه). طبق درخواستِ کاربر برایِ BI.
+function fxc_esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fxc_legend(items){
+  return `<div class="fxc-legend">${items.map(i=>`<span><i style="background:${i.color}"></i>${fxc_esc(i.label)}</span>`).join('')}</div>`;
+}
+// ردیف‌هایِ میله‌ایِ افقی — هر ردیف می‌تونه چند میله داشته باشه؛ marker = خطِ میانگین
+function fxc_hbars(rows, opt){
+  opt = opt||{}; const f = opt.fmt||(v=>v);
+  if(!rows.length) return `<div class="fxc-empty">${opt.empty||'داده‌ای نیست'}</div>`;
+  const all = rows.flatMap(r=>r.values.map(x=>Math.abs(x.v||0)));
+  const max = opt.max || Math.max(1, ...all, opt.marker?Math.abs(opt.marker.value):0);
+  const mk = opt.marker ? `<div class="fxc-marker" style="right:${Math.min(78,Math.abs(opt.marker.value)/max*78)}%" title="${fxc_esc(opt.marker.label)}"></div>` : '';
+  return `<div class="fxc-hbars">${rows.map(r=>`<div class="fxc-hrow">
+      <div class="fxc-hlabel" title="${fxc_esc(r.label)}">${fxc_esc(r.label)}</div>
+      <div class="fxc-htrack">${mk}${r.values.map(x=>`<div class="fxc-hbar-line"><div class="fxc-hbar" style="width:${Math.max(x.v?1.2:0, Math.abs(x.v||0)/max*78)}%;background:${(x.v||0)<0?(opt.negColor||'#dc2626'):x.color}" title="${fxc_esc((x.name?x.name+': ':'')+f(x.v))}"></div><span class="fxc-hval">${f(x.v)}</span></div>`).join('')}</div>
+    </div>`).join('')}</div>${opt.marker?`<div class="fxc-note">┃ ${fxc_esc(opt.marker.label)}</div>`:''}`;
+}
+// میله‌ی افقیِ انباشته (مثلاً سنِ مطالبات) — طولِ کل متناسب با بزرگ‌ترین جمع
+function fxc_stacked(rows, parts, opt){
+  opt = opt||{}; const f = opt.fmt||(v=>v);
+  if(!rows.length) return `<div class="fxc-empty">${opt.empty||'داده‌ای نیست'}</div>`;
+  const max = Math.max(1, ...rows.map(r=>r.values.reduce((a,b)=>a+(b||0),0)));
+  return `<div class="fxc-hbars">${rows.map(r=>{ const tot=r.values.reduce((a,b)=>a+(b||0),0); return `<div class="fxc-hrow">
+      <div class="fxc-hlabel" title="${fxc_esc(r.label)}">${fxc_esc(r.label)}</div>
+      <div class="fxc-htrack"><div class="fxc-hbar-line"><div class="fxc-stack" style="width:${tot/max*78}%">${r.values.map((v,i)=>v?`<div style="flex:${v};background:${parts[i].color}" title="${fxc_esc(parts[i].label+': '+f(v))}"></div>`:'').join('')}</div><span class="fxc-hval">${f(tot)}</span></div></div>
+    </div>`; }).join('')}</div>${fxc_legend(parts)}`;
+}
+// نمودارِ خطی (چند سری) — محورِ y از صفر یا کمینه‌ی منفی
+function fxc_line(cats, series, opt){
+  opt = opt||{}; const f = opt.fmt||(v=>v);
+  if(!cats.length) return `<div class="fxc-empty">${opt.empty||'داده‌ای نیست'}</div>`;
+  const vals = series.flatMap(s=>s.values.filter(v=>v!=null));
+  let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+  if(opt.zeroBase===false && vals.length){ const a=Math.min(...vals), b=Math.max(...vals), pad=(b-a)*0.08 || Math.abs(b)*0.05 || 1; lo=a-pad; hi=b+pad; }
+  if(hi===lo) hi = lo+1;
+  const padL=58, padR=14, padT=12, H=170, step=Math.max(46, Math.min(90, 560/cats.length));
+  const W = padL + padR + step*(cats.length-1) + 20;
+  const X = i => padL + 10 + i*step, Y = v => padT + (hi-v)/(hi-lo)*H;
+  const grid = [0,1,2,3,4].map(k=>{ const v=lo+(hi-lo)*k/4; return `<line x1="${padL}" x2="${W-padR}" y1="${Y(v)}" y2="${Y(v)}" class="fxc-grid"/><text x="${padL-6}" y="${Y(v)+3}" text-anchor="end" class="fxc-axis">${fxc_esc(f(v))}</text>`; }).join('');
+  const zero = lo<0 ? `<line x1="${padL}" x2="${W-padR}" y1="${Y(0)}" y2="${Y(0)}" class="fxc-zero"/>` : '';
+  const lines = series.map(s=>{
+    const pts = s.values.map((v,i)=>v==null?null:[X(i),Y(v),v,i]).filter(Boolean);
+    const path = pts.map((p,j)=>(j?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    return `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round" ${s.dash?'stroke-dasharray="5 4"':''}/>` +
+      pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="${s.color}"><title>${fxc_esc(s.name+' — '+cats[p[3]]+': '+f(p[2]))}</title></circle>`).join('');
+  }).join('');
+  const xl = cats.map((c,i)=>`<text x="${X(i)}" y="${padT+H+16}" text-anchor="middle" class="fxc-axis">${fxc_esc(c)}</text>`).join('');
+  return `<div class="fxc-scroll"><svg viewBox="0 0 ${W} ${padT+H+26}" width="100%" preserveAspectRatio="xMidYMid meet" style="direction:ltr;display:block;min-width:${Math.min(W,420)}px">${grid}${zero}${lines}${xl}</svg></div>${fxc_legend(series.map(s=>({label:s.name,color:s.color})))}`;
+}
+// دونات — درصد و مقدارِ هر بخش در راهنما
+function fxc_donut(items, opt){
+  opt = opt||{}; const f = opt.fmt||(v=>v);
+  const data = items.filter(i=>i.value>0); const tot = data.reduce((a,b)=>a+b.value,0);
+  if(!tot) return `<div class="fxc-empty">${opt.empty||'داده‌ای نیست'}</div>`;
+  const r=58, C=2*Math.PI*r; let off=0;
+  const arcs = data.map(i=>{ const len=i.value/tot*C; const s=`<circle r="${r}" cx="80" cy="80" fill="none" stroke="${i.color}" stroke-width="24" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"><title>${fxc_esc(i.label+': '+f(i.value))}</title></circle>`; off+=len; return s; }).join('');
+  return `<div class="fxc-donut"><svg viewBox="0 0 160 160" width="150" height="150">${arcs}
+      <text x="80" y="${opt.centerSub?76:84}" text-anchor="middle" class="fxc-dc">${fxc_esc(opt.center!=null?opt.center:f(tot))}</text>
+      ${opt.centerSub?`<text x="80" y="95" text-anchor="middle" class="fxc-axis">${fxc_esc(opt.centerSub)}</text>`:''}</svg>
+    <div class="fxc-dlegend">${data.map(i=>`<div><i style="background:${i.color}"></i><span>${fxc_esc(i.label)}</span><b>${fxc_esc(f(i.value))}</b><em>${Math.round(i.value/tot*100)}٪</em></div>`).join('')}</div></div>`;
+}
+// قیف — هر مرحله با درصد نسبت به مرحله‌ی اول
+function fxc_funnel(stages, opt){
+  opt = opt||{}; const f = opt.fmt||(v=>v);
+  const first = Math.max(1, stages[0] ? stages[0].value : 1);
+  return `<div class="fxc-funnel">${stages.map(s=>`<div class="fxc-fstage"><div class="fxc-fbar" style="width:${Math.max(8, s.value/first*100)}%;background:${s.color}"><span>${fxc_esc(f(s.value))}</span></div>
+    <div class="fxc-flabel">${fxc_esc(s.label)} <em>${Math.round(s.value/first*100)}٪</em></div></div>`).join('')}</div>`;
+}
+
+function fa2enDigits(s){ return String(s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
+
+// ═══ (۱۴۰۵/۰۷/۰۳) طبق درخواستِ صریحِ کاربر: ریسکِ ارزی، سرعتِ پرداختِ مشتری،
+// و حجمِ خرید در طولِ زمان (مشتریان + تأمین‌کنندگان) — بخش‌هایِ ۳ تا ۵ ═══
+const MGMT_PALETTE = ['#b45309','#0e7d6b','#2563eb','#9333ea','#dc2626'];
+function mgmtLast12Months(){
+  const [y,m] = todayShamsi().split('-').map(Number);
+  const out=[]; for(let i=11;i>=0;i--){ let yy=y, mm=m-i; while(mm<1){ mm+=12; yy--; } out.push(`${yy}-${String(mm).padStart(2,'0')}`); }
+  return out;
+}
+function mgmtMonthKey(dateStr){
+  const [yy,mm] = fa2enDigits(String(dateStr||'')).replace(/\//g,'-').split('-');
+  return (yy && mm) ? `${yy}-${String(+mm).padStart(2,'0')}` : null;
+}
+function mgmtStat(label, value, hint, color){
+  return `<div class="card stat-card"><div class="stat-label">${label}</div><div class="stat-value num" style="color:${color||''}">${value}</div>${hint?`<div class="stat-hint">${hint}</div>`:''}</div>`;
+}
+function mgmtRiskHtml(d){
+  const R = d.fxRisk, S = d.paymentSpeed, P = d.profit;
+  if(!R || !S) return `<div class="section-title">۳) ریسکِ ارزی</div><div class="card"><div class="empty">این بخش به نسخه‌ی جدیدِ بک‌اند نیاز داره — فایلِ views.py رو آپلود کنید.</div></div>`;
+  const months = mgmtLast12Months(), cats = months.map(k=>mgmtMonthLabel(k).replace(/ \d{4}$/,''));
+  const ltr = x => `<span dir="ltr" style="unicode-bidi:isolate">${x}</span>`;
+  const fR = v => ltr(fmt(v,0))+' ریال', fY = v => ltr(fmt(v,0)+' ¥'), fY2 = v => ltr(fmt(v,1)+' ¥');
+  const isPay = R.basis === 'payment';
+  const rt = Object.fromEntries((R.rateTrend||[]).map(r=>[r.month,r]));
+  const rateLine = fxc_line(cats, [
+    {name:'نرخِ روزِ واریزِ مشتری', color:'#2563eb', values:months.map(k=>rt[k]?rt[k].paymentRate:null)},
+    {name:'نرخِ حواله', color:'var(--yuan)', values:months.map(k=>rt[k]?rt[k].hawaleRate:null)},
+  ], {fmt:v=>fmt(v,0), zeroBase:false, empty:'هنوز نرخی ثبت نشده'});
+  const fm = Object.fromEntries((R.monthly||[]).map(r=>[r.month,r]));
+  const diffLine = fxc_line(cats, [
+    {name:'اثرِ تفاوتِ نرخ (یوان)', color:'var(--ok)', values:months.map(k=>fm[k]?fm[k].diffYuan:null)},
+  ], {fmt:v=>fmt(v,0)+' ¥', empty:'هنوز واریزی به حواله‌ای وصل نشده'});
+  const custDiff = fxc_hbars((R.customers||[]).slice().sort((a,b)=>Math.abs(b.diffYuan)-Math.abs(a.diffYuan)).slice(0,10)
+      .sort((a,b)=>b.diffYuan-a.diffYuan).map(c=>({label:c.name, values:[{v:c.diffYuan, color:'var(--ok)', name:'اثرِ نرخ'}]})),
+    {fmt:v=>fmt(v,1)+' ¥', negColor:'var(--danger)', empty:'هنوز واریزی به حواله‌ای وصل نشده'});
+
+  // سرعتِ پرداخت
+  const spColor = v => v==null ? '#94a3b8' : v<=15 ? '#16a34a' : v<=45 ? '#f59e0b' : '#dc2626';
+  const spFmt = v => v<0 ? `${fmt(Math.abs(v),0)} روز پیش‌پرداخت` : `${fmt(v,0)} روز`;
+  const speedRows = S.rows.filter(r=>r.weightedDays!=null);
+  const speedChart = fxc_hbars(speedRows.map(r=>({label:r.name, values:[{v:r.weightedDays, color:spColor(r.weightedDays), name:'میانگینِ روزِ پرداخت'}]})),
+    {fmt:spFmt, negColor:'#16a34a', marker: S.companyWeightedDays!=null ? {value:S.companyWeightedDays, label:'میانگینِ کلِ مشتریان: '+spFmt(S.companyWeightedDays)} : null,
+     empty:'هنوز پرداختی به فاکتوری تخصیص داده نشده'});
+
+  // حجمِ خریدِ مشتریان در طولِ زمان
+  const cm = {};
+  P.orders.forEach(o=>{ const k=mgmtMonthKey(o.date); if(!k || !months.includes(k)) return; (cm[o.customerName]=cm[o.customerName]||{})[k]=((cm[o.customerName]||{})[k]||0)+o.saleYuan; });
+  const custTot = Object.entries(cm).map(([n,m])=>({name:n, months:m, total:Object.values(m).reduce((a,b)=>a+b,0)})).sort((a,b)=>b.total-a.total);
+  const custLine = fxc_line(cats, custTot.slice(0,5).map((c,i)=>({name:c.name, color:MGMT_PALETTE[i], values:months.map(k=>c.months[k]||0)})),
+    {fmt:v=>fmt(v,0)+' ¥', empty:'در ۱۲ ماهِ اخیر فروشی ثبت نشده'});
+  const heatMax = Math.max(1, ...custTot.flatMap(c=>Object.values(c.months)));
+  const heat = custTot.slice(0,15);
+  const heatTable = heat.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>مشتری</th>${cats.slice().reverse().map(c=>`<th style="font-size:10.5px">${c}</th>`).join('')}<th>جمع</th></tr></thead>
+      <tbody>${heat.map(c=>`<tr><td style="white-space:nowrap">${c.name}</td>${months.slice().reverse().map(k=>{ const v=c.months[k]||0; const a=v?(0.15+0.75*v/heatMax):0;
+        return `<td class="num" style="font-size:11px;background:${v?`rgba(180,83,9,${a.toFixed(2)})`:'transparent'};color:${a>0.55?'#fff':''}" title="${c.name} — ${mgmtMonthLabel(k)}: ${fmt(v,0)} ¥">${v?fmt(v,0):'·'}</td>`; }).join('')}<td class="num" style="font-weight:700">${fmt(c.total,0)}</td></tr>`).join('')}</tbody>
+    </table></div><p class="page-desc">هر خانه = فروشِ یوانیِ اون ماه (فاکتور + پیش‌فاکتور)؛ هرچه پررنگ‌تر، بیشتر. ۱۵ مشتریِ پرحجمِ ۱۲ ماهِ اخیر. ماه‌ها هم‌جهت با نمودارها: قدیمی‌ترین در چپ.</p>` : '';
+
+  // حجمِ خرید از تأمین‌کنندگان
+  const sm = (d.supplierMonthly||[]).map(s=>({...s, last12: months.map(k=>s.months[k]||0)})).filter(s=>s.last12.some(v=>v));
+  const supLine = fxc_line(cats, sm.slice(0,5).map((s,i)=>({name:s.name, color:MGMT_PALETTE[i], values:s.last12})),
+    {fmt:v=>fmt(v,0)+' ¥', empty:'در ۱۲ ماهِ اخیر خریدی ثبت نشده'});
+
+  return `
+    <div class="section-title">۳) ریسکِ ارزی</div>
+    <div style="background:#EEF4FB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px">
+      💱 «اثرِ تفاوتِ نرخ» = یوانی که با حواله واقعاً خریده شد، منهایِ یوانی که به نرخِ روزِ واریز به حسابِ مشتری منظور شد. مثبت یعنی حواله ارزان‌تر از نرخِ روزِ واریز انجام شد.
+      ${isPay ? '<b>مبنایِ فعلی «نرخِ روزِ واریز» است؛ پس این عدد سود یا زیانِ خودِ شرکت است.</b>'
+              : '<b>مبنایِ فعلی «نرخِ روزِ حواله» است؛ مشتری به نرخِ حواله حساب می‌شود و این اثر به حسابِ او می‌رود، نه شرکت.</b> عدد فقط برایِ دیدنِ اندازه‌ی نوسان است.'}
+    </div>
+    <div class="grid grid-4">
+      ${mgmtStat(isPay?'سود/زیانِ ارزیِ شرکت':'اثرِ نوسانِ نرخ (به حسابِ مشتری)', fY2(R.diffYuan), `معادلِ ${fR(R.diffRial)} · از ${fR(R.linkedRial)} واریزِ حواله‌شده`, R.diffYuan<0?'var(--danger)':'var(--ok)')}
+      ${mgmtStat('میانگینِ فاصله‌ی واریز تا حواله', R.avgWaitDays==null?'—':fmt(R.avgWaitDays,0)+' روز', 'هرچه کوتاه‌تر، ریسکِ نوسان کمتر')}
+      ${mgmtStat('ریالِ در معرضِ نوسان', fmtRial(R.exposureRial), R.exposureOldestDays!=null?`واریزیِ حواله‌نشده · قدیمی‌ترین: ${fmt(R.exposureOldestDays,0)} روز`:'واریزیِ حواله‌نشده', R.exposureRial>0?'var(--yuan)':'')}
+      ${mgmtStat('اگر نرخ ۵٪ بالا برود', R.exposureLossYuanAt5==null?'—':fY2(-R.exposureLossYuanAt5), R.exposureYuanNow==null?'نرخِ روز در تنظیمات خالی است':`قدرتِ خریدِ فعلیِ این ریال: ${fY(R.exposureYuanNow)}`, R.exposureLossYuanAt5>0?'var(--danger)':'')}
+    </div>
+    <div class="fxc-grid2" style="margin:14px 0 16px">
+      <div class="fxc-card"><h4>📉 روندِ نرخ: واریزِ مشتری در برابرِ حواله (میانگینِ وزنیِ ماهانه)</h4>${rateLine}</div>
+      <div class="fxc-card"><h4>💱 اثرِ تفاوتِ نرخ به تفکیکِ ماهِ حواله</h4>${diffLine}</div>
+      <div class="fxc-card"><h4>👥 اثرِ تفاوتِ نرخ به تفکیکِ مشتری</h4>${custDiff}</div>
+    </div>
+
+    <div class="section-title">۴) سرعتِ پرداختِ مشتریان</div>
+    <p class="page-desc">میانگینِ وزنیِ فاصله‌ی تاریخِ فاکتور تا تاریخِ واریز (به ترتیبِ FIFO، وزن‌دار با مبلغ). عددِ منفی یعنی مشتری پیش از فاکتور پرداخت کرده.<br>رنگ‌ها: <bdi>🟢 تا ۱۵ روز</bdi>، <bdi>🟡 از ۱۶ تا ۴۵ روز</bdi>، <bdi>🔴 بیش از ۴۵ روز</bdi></p>
+    <div class="fxc-card" style="margin-bottom:12px"><h4>⏱️ میانگینِ روزِ پرداختِ هر مشتری</h4>${speedChart}</div>
+    <div style="margin-bottom:16px"><div class="table-wrap"><table>
+        <thead><tr><th>مشتری</th><th>میانگینِ روزِ پرداخت</th><th>تسویه‌شده</th><th>روز تا تسویه‌ی کامل</th><th>ماندهٔ باز</th><th>قدیمی‌ترین باز</th></tr></thead>
+        <tbody>${S.rows.map(r=>`<tr><td>${r.name}</td>
+          <td class="num" style="font-weight:700;color:${spColor(r.weightedDays)}">${r.weightedDays==null?'—':spFmt(r.weightedDays)}</td>
+          <td class="num">${fmt(r.settledOrders,0)} از ${fmt(r.orders,0)}</td>
+          <td class="num">${r.avgSettleDays==null?'—':fmt(r.avgSettleDays,0)+' روز'}</td>
+          <td class="num">${r.openYuan?mgmtY(r.openYuan):'—'}</td>
+          <td class="num" style="color:${r.oldestOpenDays>60?'var(--danger)':''}">${r.oldestOpenDays==null?'—':fmt(r.oldestOpenDays,0)+' روز'}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">داده‌ای نیست</td></tr>'}</tbody>
+      </table></div></div>
+
+    <div class="section-title">۵) حجمِ خرید در طولِ زمان</div>
+    <div class="fxc-grid2" style="margin-bottom:12px">
+      <div class="fxc-card"><h4>🛒 خریدِ ۵ مشتریِ اصلی (۱۲ ماهِ اخیر)</h4>${custLine}</div>
+      <div class="fxc-card"><h4>🏭 خریدِ ما از هر تأمین‌کننده (۱۲ ماهِ اخیر)</h4>${supLine}</div>
+    </div>
+    ${heatTable}
+  `;
+}
+
+let mgmtCache = null;
+let mgmtLinkFilter = '';
+async function apiGetManagement(basis){
+  try{ const r = await fetchWithRetry(FX_API+'management/?basis='+encodeURIComponent(basis)); return r.ok ? r.json() : null; }
+  catch(err){ return null; }
+}
+function mgmtMonthLabel(k){
+  const [y,m] = String(k).split('-').map(Number);
+  return (JALALI_MONTH_NAMES[m-1]||k) + ' ' + y;
+}
+function mgmtY(n){ return (n==null) ? '—' : fmtBoldInt(fmt(n,2)) + ' ¥'; }
+function mgmtPct(n){ return (n==null) ? '—' : fmt(n,1) + '٪'; }
+function mgmtChart(monthly){
+  const rows = monthly.slice(-12);
+  if(!rows.length) return '<div class="empty">هنوز داده‌ای برایِ نمودار نیست</div>';
+  const max = Math.max(1, ...rows.map(r=>Math.max(r.saleYuan, r.costYuan)));
+  const W = 60, H = 170, pad = 24, width = rows.length*W + 20;
+  const bars = rows.map((r,i)=>{
+    const x = 10 + i*W, hs = r.saleYuan/max*H, hc = r.costYuan/max*H;
+    return `<g>
+      <rect x="${x+8}" y="${pad+H-hs}" width="18" height="${hs}" rx="3" fill="var(--yuan)"><title>فروش: ${fmt(r.saleYuan,2)} ¥</title></rect>
+      <rect x="${x+28}" y="${pad+H-hc}" width="18" height="${hc}" rx="3" fill="var(--rial)" opacity=".85"><title>خرید: ${fmt(r.costYuan,2)} ¥</title></rect>
+      <text x="${x+27}" y="${pad+H+16}" text-anchor="middle" font-size="10" fill="var(--ink-soft)">${mgmtMonthLabel(r.month)}</text>
+    </g>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${width} ${H+pad+26}" width="100%" preserveAspectRatio="xMidYMid meet" style="direction:ltr;display:block;max-height:${H+pad+26}px">
+    <line x1="4" y1="${pad+H}" x2="${width-4}" y2="${pad+H}" stroke="var(--border)"/>${bars}</svg></div>
+    <div style="display:flex;gap:14px;font-size:11.5px;color:var(--ink-soft);margin-top:4px">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--yuan);border-radius:2px"></span> فروش (فاکتور + پیش‌فاکتور)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--rial);border-radius:2px"></span> خرید + هزینه‌ها</span>
+    </div>`;
+}
+
+async function renderManagement(main, cachedData){
+  const basis = state.settings.rateBasis;
+  if(!cachedData) main.innerHTML = '<div class="page-head"><h1 class="page-title">📊 تحلیلِ مدیریتی</h1><p class="page-desc">⏳ در حالِ محاسبه...</p></div>';
+  const d = cachedData || await apiGetManagement(basis);
+  if(!d){ main.innerHTML = '<div class="page-head"><h1 class="page-title">📊 تحلیلِ مدیریتی</h1><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>'; return; }
+  mgmtCache = d;
+  const P = d.profit, L = d.liquidity;
+  const mon = P.monthly;
+  const thisM = mon.length ? mon[mon.length-1] : null;
+  const prevM = mon.length>1 ? mon[mon.length-2] : null;
+  const chg = (thisM && prevM && prevM.saleYuan) ? ((thisM.saleYuan-prevM.saleYuan)/prevM.saleYuan*100) : null;
+  const over60 = (L.agingTotals.b61_90||0) + (L.agingTotals.b90p||0);
+  const linkedPct = P.totalOrders ? (P.linkedOrders/P.totalOrders*100) : 0;
+  const lossOrders = P.orders.filter(o=>o.profitYuan!=null && o.profitYuan<0);
+  const q = mgmtLinkFilter.trim();
+  const linkRows = d.unlinkedExpenses.filter(e=>!q || matchesSearch([e.date,e.supplierName,e.partNumber,e.docNumber,e.totalYuan], q));
+  // ── داده‌ی نمودارها (۱۴۰۵/۰۷/۰۳) ──
+  const last12 = mon.slice(-12);
+  const cats12 = last12.map(m=>mgmtMonthLabel(m.month).replace(/ \d{4}$/,''));
+  const lp = {};   // سودِ سفارش‌هایِ لینک‌شده به تفکیکِ ماهِ فاکتور
+  P.orders.filter(o=>o.profitYuan!=null).forEach(o=>{
+    const [yy,mm] = fa2enDigits(String(o.date)).replace(/\//g,'-').split('-');
+    const k = `${yy}-${String(+mm).padStart(2,'0')}`;
+    lp[k] = lp[k]||{p:0,s:0}; lp[k].p += o.profitYuan; lp[k].s += o.saleYuan;
+  });
+  const fY = v => fmt(v,0)+' ¥';
+  const profitLine = fxc_line(cats12, [
+    {name:'فروش − خرید (تقریبی)', color:'#94a3b8', dash:true, values:last12.map(m=>m.grossYuan)},
+    {name:'سودِ سفارش‌هایِ لینک‌شده', color:'var(--ok)', values:last12.map(m=>lp[m.month]?lp[m.month].p:null)},
+  ], {fmt:fY});
+  const marginLine = fxc_line(cats12, [
+    {name:'حاشیه‌ی سودِ سفارش‌هایِ لینک‌شده', color:'var(--yuan)', values:last12.map(m=>lp[m.month]&&lp[m.month].s?lp[m.month].p/lp[m.month].s*100:null)},
+  ], {fmt:v=>fmt(v,0)+'٪', empty:'هنوز سفارشِ لینک‌شده‌ای نیست'});
+  const custProfit = fxc_hbars(P.customers.filter(c=>c.linkedOrders).sort((a,b)=>Math.abs(b.profitYuan)-Math.abs(a.profitYuan)).slice(0,10)
+      .sort((a,b)=>b.profitYuan-a.profitYuan).map(c=>({label:c.name, values:[{v:c.profitYuan, color:'var(--ok)', name:'سود'}]})),
+    {fmt:fY, negColor:'var(--danger)', empty:'هنوز خریدی به فاکتورِ مشتری لینک نشده'});
+  const agingParts = [{label:'۰–۳۰ روز',color:'#60a5fa'},{label:'۳۱–۶۰',color:'#f59e0b'},{label:'۶۱–۹۰',color:'#ea580c'},{label:'بیش از ۹۰',color:'#dc2626'}];
+  const agingChart = fxc_stacked(L.aging.slice(0,10).map(a=>({label:a.name, values:[a.b0_30,a.b31_60,a.b61_90,a.b90p]})), agingParts, {fmt:fY, empty:'هیچ مطالبه‌ی بازی نیست ✅'});
+  const rate = d.currentRate;
+  const liqDonut = fxc_donut([
+    {label:'سرمایه‌ی شرکت در بانک', value:Math.max(0,L.companyCapitalRial), color:'var(--ok)'},
+    {label:'واریزیِ مشتری (حواله‌نشده)', value:Math.max(0,L.unlinkedRial), color:'#2563eb'},
+    ...(rate ? [{label:'یوانِ دستِ تأمین‌کننده (به ریال)', value:Math.max(0,L.supplierYuanTotal*rate), color:'var(--yuan)'}] : []),
+    ...(rate ? [{label:'مطالباتِ باز از مشتری (به ریال)', value:Math.max(0,(L.agingTotals.total||0)*rate), color:'#dc2626'}] : []),
+  ], {fmt:v=>fmt(v/1e6,0)+' م.ر', center:'نقدینگی', centerSub:'میلیون ریال'});
+
+  main.innerHTML = `
+    <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <h1 class="page-title">📊 تحلیلِ مدیریتی</h1>
+        <p class="page-desc">سودآوری، مطالبات و نقدینگی — همه‌ی مبالغِ سود به یوان؛ هزینه‌ی حملِ ریالی ${d.freightIncluded?`با نرخِ روزِ تنظیم‌شده (${fmt(d.currentRate,0)}) به یوان تبدیل و لحاظ شده`:'<b style="color:var(--danger)">لحاظ نشده — نرخِ روز در تنظیمات خالیه</b>'}</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="mgmtRefreshBtn">🔄 به‌روزرسانی</button>
+    </div>
+
+    ${P.linkedOrders < P.totalOrders ? `
+    <div style="background:#EEF4FB;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12.5px">
+      🔗 فقط <b>${fmt(P.linkedOrders,0)} از ${fmt(P.totalOrders,0)}</b> سفارش (${fmt(linkedPct,0)}٪) خریدِ لینک‌شده دارن — سودِ سفارش/مشتری فقط برایِ همین‌ها دقیقه.
+      خریدهایِ قبلی رو از جدولِ «لینکِ خرید به فاکتور» پایینِ همین صفحه وصل کنید؛ خریدِ انباری رو خالی بذارید.
+    </div>` : ''}
+
+    <div class="section-title">شاخص‌هایِ کلیدی</div>
+    <div class="grid grid-4">
+      <div class="card stat-card"><div class="stat-label">فروشِ ${thisM?mgmtMonthLabel(thisM.month):'این ماه'}</div><div class="stat-value yuan num">${mgmtY(thisM?thisM.saleYuan:0)}</div>
+        <div class="stat-hint">${chg==null?'—':`${chg>=0?'▲':'▼'} ${fmt(Math.abs(chg),1)}٪ نسبت به ${mgmtMonthLabel(prevM.month)}`}</div></div>
+      <div class="card stat-card"><div class="stat-label">سودِ سفارش‌هایِ لینک‌شده</div><div class="stat-value yuan num" style="color:${P.linkedProfitYuan<0?'var(--danger)':''}">${mgmtY(P.linkedProfitYuan)}</div>
+        <div class="stat-hint">حاشیه‌ی میانگین: ${mgmtPct(P.linkedMarginPct)}${lossOrders.length?` · <span style="color:var(--danger)">${fmt(lossOrders.length,0)} سفارشِ زیان‌ده</span>`:''}</div></div>
+      <div class="card stat-card"><div class="stat-label">مطالباتِ بیش از ۶۰ روز</div><div class="stat-value yuan num" style="color:${over60>0?'var(--danger)':''}">${mgmtY(over60)}</div>
+        <div class="stat-hint">از کلِ مطالباتِ باز: ${mgmtY(L.agingTotals.total)}</div></div>
+      <div class="card stat-card"><div class="stat-label">ریالِ واریزیِ هنوز حواله‌نشده</div><div class="stat-value rial num">${fmtRial(L.unlinkedRial)}</div>
+        <div class="stat-hint">مانده‌ی کلِ بانک‌ها: ${fmtRial(L.totalBankRial)}</div></div>
+    </div>
+
+    <div class="section-title">۱) سودآوری</div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:700;margin-bottom:8px">روندِ ماهانه‌ی فروش و خرید (۱۲ ماهِ اخیر)</div>
+      ${mgmtChart(mon)}
+    </div>
+    <div class="table-wrap" style="margin-bottom:6px"><table>
+      <thead><tr><th>ماه</th><th>فروش</th><th>فاکتور</th><th>پیش‌فاکتور</th><th>خرید + هزینه</th><th>خریدِ انباری</th><th>فروش − خرید</th></tr></thead>
+      <tbody>${mon.slice().reverse().map(m=>`<tr>
+        <td>${mgmtMonthLabel(m.month)}</td><td class="num">${mgmtY(m.saleYuan)}</td><td class="num">${mgmtY(m.invoiceYuan)}</td><td class="num">${mgmtY(m.proformaYuan)}</td>
+        <td class="num">${mgmtY(m.costYuan)}</td><td class="num">${mgmtY(m.stockCostYuan)}</td>
+        <td class="num" style="font-weight:700;color:${m.grossYuan<0?'var(--danger)':'var(--ok)'}">${mgmtY(m.grossYuan)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">داده‌ای نیست</td></tr>'}</tbody>
+    </table></div>
+    <p class="page-desc" style="margin-bottom:16px">⚠️ «فروش − خرید»ِ ماهانه تقریبیه: خریدِ یه سفارش ممکنه تویِ ماهِ دیگه‌ای ثبت شده باشه. عددِ دقیق، سودِ سفارش‌هایِ لینک‌شده‌ست.</p>
+    <div class="fxc-grid2" style="margin-bottom:16px">
+      <div class="fxc-card"><h4>📈 روندِ سودِ ماهانه</h4>${profitLine}</div>
+      <div class="fxc-card"><h4>📊 حاشیه‌ی سود در طولِ زمان</h4>${marginLine}</div>
+      <div class="fxc-card"><h4>🏆 سود به تفکیکِ مشتری (۱۰ موردِ اثرگذار)</h4>${custProfit}</div>
+    </div>
+
+    <div class="grid grid-2" style="align-items:start;margin-bottom:16px">
+      <div>
+        <div style="font-weight:700;margin-bottom:6px">سود به تفکیکِ مشتری</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>مشتری</th><th>کلِ فروش</th><th>فروشِ لینک‌شده</th><th>سود</th><th>حاشیه</th></tr></thead>
+          <tbody>${P.customers.map(c=>`<tr><td>${c.name}</td><td class="num">${mgmtY(c.saleYuan)}</td>
+            <td class="num">${c.linkedOrders?mgmtY(c.linkedSaleYuan):'<span style="color:var(--ink-faint)">بدونِ لینک</span>'}</td>
+            <td class="num" style="font-weight:700;color:${c.profitYuan<0?'var(--danger)':''}">${c.linkedOrders?mgmtY(c.profitYuan):'—'}</td>
+            <td class="num">${mgmtPct(c.marginPct)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">داده‌ای نیست</td></tr>'}</tbody>
+        </table></div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:6px">سودِ هر سفارش (فقط سفارش‌هایِ دارایِ خریدِ لینک‌شده)</div>
+        <div class="table-wrap" style="max-height:420px;overflow-y:auto"><table>
+          <thead><tr><th>مشتری</th><th>تاریخ</th><th>نوع</th><th>فروش</th><th>هزینه</th><th>سود</th><th>حاشیه</th></tr></thead>
+          <tbody>${P.orders.filter(o=>o.profitYuan!=null).sort((a,b)=>a.profitYuan-b.profitYuan).map(o=>`<tr>
+            <td>${o.customerName}</td><td>${o.date}</td><td>${o.type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoiceNo?' '+o.invoiceNo:''}</td>
+            <td class="num">${mgmtY(o.saleYuan)}</td><td class="num" title="خرید: ${fmt(o.costYuan,2)} ¥ + حمل: ${fmt(o.freightYuan,2)} ¥">${mgmtY(o.costYuan+o.freightYuan)}</td>
+            <td class="num" style="font-weight:700;color:${o.profitYuan<0?'var(--danger)':'var(--ok)'}">${mgmtY(o.profitYuan)}</td><td class="num">${mgmtPct(o.marginPct)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">هنوز هیچ خریدی به فاکتورِ مشتری لینک نشده</td></tr>'}</tbody>
+        </table></div>
+        <p class="page-desc">مرتب از کم‌سودترین به پرسودترین — سفارش‌هایِ زیان‌ده بالا قرار می‌گیرن.</p>
+      </div>
+    </div>
+
+    <div class="section-title">۲) مطالبات و نقدینگی</div>
+    <div class="grid grid-4">
+      <div class="card stat-card"><div class="stat-label">یوانِ مانده دستِ تأمین‌کننده‌ها</div><div class="stat-value yuan num">${mgmtY(L.supplierYuanTotal)}</div>
+        <div class="stat-hint">${L.suppliers.map(s=>`${s.name}: ${fmt(s.yuanBalance,2)} ¥`).join(' · ')||'—'}</div></div>
+      <div class="card stat-card"><div class="stat-label">سرمایه‌ی خودِ شرکت در بانک‌ها</div><div class="stat-value rial num">${fmtRial(L.companyCapitalRial)}</div>
+        <div class="stat-hint">مانده‌ی بانک منهایِ واریزیِ لینک‌نشده‌ی مشتری</div></div>
+      <div class="card stat-card"><div class="stat-label">حملِ پرداخت‌نشده</div><div class="stat-value rial num">${fmtRial(L.unpaidFreightRial)}</div></div>
+      <div class="card stat-card"><div class="stat-label">پیش‌پرداختِ سرمایه‌ایِ تسویه‌نشده</div><div class="stat-value rial num">${fmtRial(L.capitalAdvancesOpenRial)}</div>
+        <div class="stat-hint">${fmt(L.capitalAdvances.length,0)} مورد باز</div></div>
+    </div>
+
+    <div class="fxc-grid2" style="margin-top:14px">
+      <div class="fxc-card"><h4>⏳ سنِ مطالبات به تفکیکِ مشتری</h4>${agingChart}</div>
+      <div class="fxc-card"><h4>💧 ترکیبِ نقدینگی</h4>${liqDonut}${rate?'':'<div class="fxc-note">یوان و مطالبات به‌خاطرِ خالی‌بودنِ نرخِ روز در تنظیمات لحاظ نشدن.</div>'}</div>
+    </div>
+    <div style="font-weight:700;margin:14px 0 6px">سنِ مطالباتِ باز (یوان، به‌ترتیبِ FIFO — بر مبنایِ تاریخِ فاکتور)</div>
+    <div class="table-wrap" style="margin-bottom:14px"><table>
+      <thead><tr><th>مشتری</th><th>۰–۳۰ روز</th><th>۳۱–۶۰ روز</th><th>۶۱–۹۰ روز</th><th>بیش از ۹۰ روز</th><th>جمع</th><th>قدیمی‌ترین</th></tr></thead>
+      <tbody>${L.aging.map(a=>`<tr>
+        <td><a href="#" data-goto-customer="${a.name}">${a.name}</a></td>
+        <td class="num">${a.b0_30?mgmtY(a.b0_30):'—'}</td><td class="num">${a.b31_60?mgmtY(a.b31_60):'—'}</td>
+        <td class="num" style="color:${a.b61_90?'#b45309':''}">${a.b61_90?mgmtY(a.b61_90):'—'}</td>
+        <td class="num" style="font-weight:700;color:${a.b90p?'var(--danger)':''}">${a.b90p?mgmtY(a.b90p):'—'}</td>
+        <td class="num" style="font-weight:700">${mgmtY(a.total)}</td><td class="num">${fmt(a.oldestDays,0)} روز</td></tr>`).join('') || '<tr><td colspan="7" class="empty">هیچ مطالبه‌ی بازی نیست ✅</td></tr>'}</tbody>
+      ${L.aging.length?`<tfoot><tr style="font-weight:800"><td>جمع</td><td class="num">${mgmtY(L.agingTotals.b0_30)}</td><td class="num">${mgmtY(L.agingTotals.b31_60)}</td><td class="num">${mgmtY(L.agingTotals.b61_90)}</td><td class="num">${mgmtY(L.agingTotals.b90p)}</td><td class="num">${mgmtY(L.agingTotals.total)}</td><td></td></tr></tfoot>`:''}
+    </table></div>
+
+    ${L.capitalAdvances.length?`
+    <div style="font-weight:700;margin:14px 0 6px">پیش‌پرداخت‌هایِ سرمایه‌ایِ باز</div>
+    <div class="table-wrap" style="margin-bottom:14px"><table>
+      <thead><tr><th>مشتری</th><th>تاریخ</th><th>ماندهٔ تسویه‌نشده</th></tr></thead>
+      <tbody>${L.capitalAdvances.map(a=>`<tr><td>${a.customerName}</td><td>${a.date}</td><td class="num">${fmtRial(a.openRial)}</td></tr>`).join('')}</tbody>
+    </table></div>`:''}
+
+    ${mgmtRiskHtml(d)}
+
+    <div class="section-title">🔗 لینکِ خرید به فاکتورِ مشتری</div>
+    <p class="page-desc">${fmt(d.unlinkedExpensesCount,0)} خرید هنوز به هیچ فاکتوری وصل نیستن. اگه خریدی برایِ سفارشِ مشخصی بوده، فاکتورش رو انتخاب و ذخیره کنید؛ خریدِ انباری رو همین‌طور خالی بذارید.</p>
+    <div class="toolbar" style="margin-bottom:8px"><div></div><input id="mgmtLinkSearch" type="text" placeholder="🔍 جستجو (تاریخ، تأمین‌کننده، پارت‌نامبر...)" value="${mgmtLinkFilter}" style="min-width:240px"></div>
+    <div class="table-wrap" style="max-height:460px;overflow-y:auto"><table>
+      <thead><tr><th>تاریخ</th><th>تأمین‌کننده</th><th>پارت‌نامبر</th><th>سند</th><th>مبلغ</th><th>فاکتورِ مشتری</th><th></th></tr></thead>
+      <tbody>${linkRows.map(e=>`<tr>
+        <td>${e.date}</td><td>${e.supplierName}</td><td>${e.partNumber||'—'}</td><td style="font-size:11px">${e.docNumber||'—'}</td><td class="num">${mgmtY(e.totalYuan)}</td>
+        <td style="min-width:240px"><select data-link-select="${e.id}" style="width:100%;font-size:12px">${orderOptionsHtml(null)}</select></td>
+        <td><button class="btn btn-primary btn-sm" data-link-save="${e.id}">ذخیره</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">موردی نیست ✅</td></tr>'}</tbody>
+    </table></div>
+  `;
+
+  // نمودارهایِ خطی رویِ موبایل از آخرین ماه (سمتِ راست) نمایش داده بشن
+  main.querySelectorAll('.fxc-scroll').forEach(s=>{ s.scrollLeft = s.scrollWidth; });
+  main.querySelector('#mgmtRefreshBtn').addEventListener('click', async ()=>{ await loadAll(); renderManagement(main); });
+  main.querySelector('#mgmtLinkSearch').addEventListener('input', (e)=>{
+    mgmtLinkFilter = e.target.value;
+    renderManagement(main, mgmtCache);
+    const inp = main.querySelector('#mgmtLinkSearch'); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+  });
+  main.querySelectorAll('[data-goto-customer]').forEach(a=>a.addEventListener('click', (ev)=>{
+    ev.preventDefault(); currentTab='customers'; currentCustomer=a.dataset.gotoCustomer; render();
+  }));
+  main.querySelectorAll('[data-link-save]').forEach(b=>b.addEventListener('click', async ()=>{
+    const id = b.dataset.linkSave;
+    const val = main.querySelector(`[data-link-select="${id}"]`).value;
+    if(!val){ showToast('یه فاکتور انتخاب کنید — یا اگه خریدِ انباریه، همین‌طور خالی بمونه'); return; }
+    b.disabled = true; b.textContent = '⏳';
+    const ok = await apiUpdate('expenses', id, {order: +val});
+    if(!ok){ b.disabled = false; b.textContent = 'ذخیره'; return; }
+    showToast('✅ خرید به فاکتور لینک شد');
+    await loadAll();
+    renderManagement(main);
+  }));
+}
+
 async function renderCustomersList(main, cachedSummary){
   const basis = state.settings.rateBasis;
   const g = cachedSummary || await apiGetSummary(basis);
@@ -2538,6 +2976,20 @@ function openExpenseModal(existing, presetSupplier){
 }
 
 // ⚠️ فرمِ کاملِ تک‌ردیفیِ قدیمی — فقط برایِ ویرایش، عیناً دست‌نخورده
+// ⚠️ (۱۴۰۵/۰۷/۰۳) طبق تصمیمِ کاربر برایِ داشبوردِ سودآوری: هر خرید
+// «اختیاری» به یه فاکتور/پیش‌فاکتورِ مشتری لینک می‌شه. خالی = خریدِ
+// انباری/مخلوط (به فاکتورِ خاصی ربط نداره). بدونِ این لینک، سودِ هر
+// سفارش قابلِ‌محاسبه نیست.
+function orderOptionsHtml(selectedId){
+  const sel = selectedId==null ? '' : String(selectedId);
+  const sorted = [...state.orders].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  return `<option value="">— انباری / بدونِ فاکتورِ مشخص —</option>` + sorted.map(o=>{
+    const kind = o.order_type==='invoice' ? 'فاکتور' : 'پیش‌فاکتور';
+    const label = `${o.customer_name} — ${kind}${o.invoice_no?(' '+o.invoice_no):''} — ${o.date} — ${fmt(o.yuan_amount,2)} ¥`;
+    return `<option value="${o.id}" ${String(o.id)===sel?'selected':''}>${label}</option>`;
+  }).join('');
+}
+
 function openExpenseModalSingle(existing, presetSupplier){
   const today = todayShamsi();
   const isEdit = !!existing;
@@ -2592,6 +3044,9 @@ function openExpenseModalSingle(existing, presetSupplier){
         <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:22px">
           <input type="checkbox" id="eFreightPaid" ${existing && existing.freight_paid ? 'checked' : ''}> <label for="eFreightPaid" style="margin:0">هزینه‌ی حمل پرداخت شده</label>
         </div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>فاکتور/پیش‌فاکتورِ مشتریِ مرتبط (اختیاری — برایِ محاسبه‌ی سود)</label>
+        <select id="eOrder">${orderOptionsHtml(existing ? existing.order : null)}</select>
       </div>
       <div class="field"><label>توضیح (اختیاری)</label><input id="eNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
@@ -2663,7 +3118,8 @@ function openExpenseModalSingle(existing, presetSupplier){
     }
 
     const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:roundYuan(goods), shipping_yuan:roundYuan(shipping), transfer_fee_yuan:roundYuan(transferFee), freight_rial:freight, freight_paid:freightPaid, note,
-      quantity: qtyStr?parseFloat(qtyStr):null, unit_price_yuan: unitPriceStr?parseFloat(unitPriceStr):null};
+      quantity: qtyStr?parseFloat(qtyStr):null, unit_price_yuan: unitPriceStr?parseFloat(unitPriceStr):null,
+      order: backdrop.querySelector('#eOrder').value ? +backdrop.querySelector('#eOrder').value : null};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
     if(!d) return;
 
@@ -2707,6 +3163,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
   let rows = existingItems.map(e=>({
     id:e.id, partNumber:e.part_number||'', qty:e.quantity!=null?String(e.quantity):'',
     goods:String(e.goods_yuan||0), shipping:String(e.shipping_yuan||0), transferFee:String(e.transfer_fee_yuan||0), note:e.note||'',
+    orderId:e.order!=null?String(e.order):'',
   }));
   const originalIds = new Set(existingItems.map(e=>e.id));
   const backdrop = document.createElement('div');
@@ -2724,6 +3181,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
         <td style="min-width:80px"><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}" style="width:100%"></td>
         <td style="min-width:100px"><input data-f="note" data-row-i="${i}" type="text" value="${r.note}" placeholder="اضافات" style="width:100%"></td>
+        <td style="min-width:180px"><select data-f="orderId" data-row-i="${i}" style="width:100%;font-size:12px">${orderOptionsHtml(r.orderId)}</select></td>
         <td style="width:30px"><button type="button" class="icon-btn" data-remove-row="${i}">✕ حذف</button></td>
       </tr>`).join('');
   }
@@ -2736,7 +3194,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
         <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">
             <thead><tr>
-              <th>پارت‌نامبر</th><th>تعداد (یادداشتی)</th><th>خریدِ کالا (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
+              <th>پارت‌نامبر</th><th>تعداد (یادداشتی)</th><th>خریدِ کالا (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th>فاکتورِ مشتری (اختیاری)</th><th></th>
             </tr></thead>
             <tbody id="rowsContainer">${rowsHtml()}</tbody>
           </table>
@@ -2748,10 +3206,10 @@ function openExpenseDocEditModal(docNumber, supplierName){
         </div>
       </div>`;
     backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
-    backdrop.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('input', ()=>{
+    backdrop.querySelectorAll('[data-f]').forEach(inp=>['input','change'].forEach(ev=>inp.addEventListener(ev, ()=>{
       const i = +inp.dataset.rowI; const f = inp.dataset.f;
       rows[i][f] = inp.value;
-    }));
+    })));
     backdrop.querySelectorAll('[data-row-i][data-f="partNumber"]').forEach(inp=>{
       wirePartNumberAutocomplete(inp, backdrop.querySelector(`[data-part-results="${inp.dataset.rowI}"]`));
     });
@@ -2760,7 +3218,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
       rows.splice(+b.dataset.removeRow, 1); draw();
     }));
     backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
-      rows.push({id:null, partNumber:'', qty:'', goods:'0', shipping:'0', transferFee:'0', note:''}); draw();
+      rows.push({id:null, partNumber:'', qty:'', goods:'0', shipping:'0', transferFee:'0', note:'', orderId:''}); draw();
     });
     backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
   }
@@ -2783,6 +3241,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
         supplier_name:supplierName, part_number:r.partNumber.trim(), doc_number:docNumber,
         goods_yuan:roundYuan(r.goods), shipping_yuan:roundYuan(r.shipping), transfer_fee_yuan:roundYuan(r.transferFee),
         note:r.note.trim(), quantity:qty, unit_price_yuan:null,
+        order: r.orderId ? +r.orderId : null,
       };
       if(r.id){
         const d = await apiUpdate('expenses', r.id, body);
@@ -2807,7 +3266,7 @@ function openExpenseDocEditModal(docNumber, supplierName){
 function openExpenseModalMultiRow(presetSupplier){
   const today = todayShamsi();
   const knownSuppliers = getKnownSupplierNames();
-  let rows = [{partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:''}];
+  let rows = [{partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:'', orderId:''}];
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
 
@@ -2823,6 +3282,7 @@ function openExpenseModalMultiRow(presetSupplier){
         <td style="min-width:80px"><input data-f="shipping" data-row-i="${i}" type="text" class="num" value="${r.shipping}" style="width:100%"></td>
         <td style="min-width:80px"><input data-f="transferFee" data-row-i="${i}" type="text" class="num" value="${r.transferFee}" style="width:100%"></td>
         <td style="min-width:100px"><input data-f="note" data-row-i="${i}" type="text" value="${r.note}" placeholder="اضافات" style="width:100%"></td>
+        <td style="min-width:180px"><select data-f="orderId" data-row-i="${i}" style="width:100%;font-size:12px">${orderOptionsHtml(r.orderId)}</select></td>
         <td style="width:30px">${rows.length>1?`<button type="button" class="icon-btn" data-remove-row="${i}">✕</button>`:''}</td>
       </tr>`).join('');
   }
@@ -2843,7 +3303,7 @@ function openExpenseModalMultiRow(presetSupplier){
         <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">
             <thead><tr>
-              <th>پارت‌نامبر</th><th>تعداد (یادداشتی)</th><th>خریدِ کالا (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th></th>
+              <th>پارت‌نامبر</th><th>تعداد (یادداشتی)</th><th>خریدِ کالا (یوان)</th><th>جابجاییِ کالا (یوان)</th><th>جابجاییِ حواله (یوان)</th><th>اضافات</th><th>فاکتورِ مشتری (اختیاری)</th><th></th>
             </tr></thead>
             <tbody id="rowsContainer">${rowsHtml()}</tbody>
           </table>
@@ -2862,10 +3322,10 @@ function openExpenseModalMultiRow(presetSupplier){
     const syncBtnLast100 = backdrop.querySelector('#syncPartsBtnLast100InModal');
     if(syncBtnLast100) syncBtnLast100.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
 
-    backdrop.querySelectorAll('[data-f]').forEach(inp=>inp.addEventListener('input', ()=>{
+    backdrop.querySelectorAll('[data-f]').forEach(inp=>['input','change'].forEach(ev=>inp.addEventListener(ev, ()=>{
       const i = +inp.dataset.rowI; const f = inp.dataset.f;
       rows[i][f] = inp.value;
-    }));
+    })));
     backdrop.querySelectorAll('[data-row-i][data-f="partNumber"]').forEach(inp=>{
       wirePartNumberAutocomplete(inp, backdrop.querySelector(`[data-part-results="${inp.dataset.rowI}"]`));
     });
@@ -2873,7 +3333,7 @@ function openExpenseModalMultiRow(presetSupplier){
       rows.splice(+b.dataset.removeRow, 1); draw();
     }));
     backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
-      rows.push({partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:''}); draw();
+      rows.push({partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:'', orderId: rows.length?rows[rows.length-1].orderId:''}); draw();
     });
     backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
   }
@@ -2905,6 +3365,7 @@ function openExpenseModalMultiRow(presetSupplier){
         goods_yuan:roundYuan(r.goods), shipping_yuan:roundYuan(r.shipping), transfer_fee_yuan:roundYuan(r.transferFee),
         freight_rial:null, freight_paid:false, note:r.note.trim(),
         quantity:qty, unit_price_yuan:null, doc_number:docNumber,
+        order: r.orderId ? +r.orderId : null,
       };
       const d = await apiCreate('expenses', body);
       if(d) okCount++;
