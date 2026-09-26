@@ -1219,7 +1219,7 @@ async function init(){
     ['یادآوری‌هایِ دوره‌ای', async()=>{ recurringReminders = (await fetchRecurringRemindersFromDjango()) || []; }],
   ];
   // بخش‌هایی که بدونِ اون‌ها صفحه معنی نداره؛ بقیه اگه دیر برسن، صفحه باز می‌شه و به‌محضِ رسیدن اضافه می‌شن
-  const CRITICAL = new Set(['لیدها','مشتریان','سرنخ‌ها','درخواست‌ها','کارمندان','مشتری‌هایِ فعال']);
+  const CRITICAL = new Set(['لیدها','مشتریان','سرنخ‌ها','درخواست‌ها']);
   let done = 0, opened = false, lateTimer = null; const failed = [];
   const bar = document.getElementById('crmLoadingBar'), fill = document.getElementById('crmLoadingFill');
   if(bar) bar.style.display = 'block';
@@ -1246,13 +1246,26 @@ async function init(){
     }catch(e){ console.error('خطای به‌روزرسانی بعد از رسیدنِ داده‌ی دیرکرد:', e); }
     lateBanner();
   }, 300); };
-  const runs = tasks.map(t=>(async()=>{
-    try{ await t[1](); }catch(e){ failed.push(t[0]); console.error('خطای بارگذاری «'+t[0]+'»:', e); }
+  // ⚠️ (۱۴۰۵/۰۷/۰۵) سقفِ هم‌زمانی = ۴: سرورِ رایگانِ Render توانِ کمی داره و ۱۵ درخواستِ هم‌زمان
+  // صفش می‌کنه؛ اون‌وقت ساعتِ ۱۲ثانیه‌ایِ درخواست‌هایِ تهِ صف زودتر از جواب تموم می‌شه، دوباره تلاش
+  // می‌کنن و بار رو بیشتر می‌کنن. اول بخش‌هایِ اصلی، بعد بقیه. هر بخش هم سقفِ ۳۰ ثانیه داره تا هیچ
+  // درخواستِ گیرکرده‌ای صفحه رو قفل نکنه.
+  const withCap = (p, ms) => Promise.race([p, new Promise((_, rej)=>setTimeout(()=>rej(new Error('بیش از '+(ms/1000)+' ثانیه طول کشید')), ms))]);
+  const order = [...tasks.filter(t=>CRITICAL.has(t[0])), ...tasks.filter(t=>!CRITICAL.has(t[0]))];
+  const settled = new Map(); order.forEach(t=>{ let res; const pr = new Promise(r=>res=r); settled.set(t, {pr, res}); });
+  const runOne = async t=>{
+    try{ await withCap(t[1](), 30000); }catch(e){ failed.push(t[0]); console.error('خطای بارگذاری «'+t[0]+'»:', e); }
     t.done = true; done++;
     if(opened){ if(t[0]==='یادآوری‌هایِ دوره‌ای' && recurringReminders.length) nextRecId=Math.max(...recurringReminders.map(r=>Number(String(r.id).replace(/\D/g,''))||0))+1; refreshAfterLate(); }
     else tick();
-  })());
-  await Promise.all(tasks.map((t,i)=>CRITICAL.has(t[0]) ? runs[i] : null));
+    settled.get(t).res();
+  };
+  let next = 0;
+  const worker = async()=>{ while(next < order.length){ const t = order[next++]; await runOne(t); } };
+  for(let i=0; i<4; i++) worker();
+  const runs = order.map(t=>settled.get(t).pr);
+  // صبر برایِ بخش‌هایِ اصلی (حداکثر ۴۵ ثانیه — بعدش صفحه به‌هرحال باز می‌شه و بقیه در پس‌زمینه می‌رسن)
+  await Promise.race([Promise.all(order.filter(t=>CRITICAL.has(t[0])).map(t=>settled.get(t).pr)), new Promise(r=>setTimeout(r, 45000))]);
   // بقیه حداکثر ۵ ثانیه‌ی دیگه صبر؛ بعد صفحه باز می‌شه و دیرکردها در پس‌زمینه می‌رسن
   await Promise.race([Promise.all(runs), new Promise(r=>setTimeout(r, 5000))]);
   opened = true;
