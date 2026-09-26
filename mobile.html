@@ -2836,11 +2836,30 @@ async function reliableAddLead(data){
   }
   return res;
 }
-function isLeapS(y){const base=y>=0?y-474:y-473;const jy=((base%2820)+2820)%2820+474;return(((jy*682)-110)%2816)<682;}
+// ⚠️ (۱۴۰۵/۰۷/۰۴) فیکسِ تقویم: الگوریتمِ قبلی (چرخه‌ی ۲۸۲۰ساله) با تقویمِ رسمی در بعضی سال‌ها یک روز فرق داشت
+// (مثلاً ۱۴۰۴ رو کبیسه می‌دونست و اسفندِ ۱۴۰۵ رو ۳۰ روزه). الان الگوریتمِ رسمی (جدولِ «شکست‌ها»، همونِ کتابخونه‌ی
+// jalaali و jdatetimeِ بک‌اند). خروجی‌ها با همون قراردادِ قبلی‌ان، پس بقیه‌ی کد دست نمی‌خوره.
+function _jdiv(a,b){return ~~(a/b);} function _jmod(a,b){return a-~~(a/b)*b;}
+function _jalCal(jy){
+  // ⚠️ جدول داخلِ تابع (نه const سراسری): اگه اسکریپت قبل از رسیدن به این خط به خطا بخوره، تابعِ hoist‌شده باز هم کار می‌کنه
+  const _JB=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+  let gy=jy+621,leapJ=-14,jp=_JB[0],jm,jump=0,leap,leapG,march,n,i;
+  for(i=1;i<_JB.length;i++){jm=_JB[i];jump=jm-jp;if(jy<jm)break;leapJ=leapJ+_jdiv(jump,33)*8+_jdiv(_jmod(jump,33),4);jp=jm;}
+  n=jy-jp;leapJ=leapJ+_jdiv(n,33)*8+_jdiv(_jmod(n,33)+3,4);if(_jmod(jump,33)===4&&jump-n===4)leapJ+=1;
+  leapG=_jdiv(gy,4)-_jdiv((_jdiv(gy,100)+1)*3,4)-150;march=20+leapJ-leapG;
+  if(jump-n<6)n=n-jump+_jdiv(jump+4,33)*33;leap=_jmod(_jmod(n+1,33)-1,4);if(leap===-1)leap=4;return{leap,gy,march};}
+function _g2dn(gy,gm,gd){let d=_jdiv((gy+_jdiv(gm-8,6)+100100)*1461,4)+_jdiv(153*_jmod(gm+9,12)+2,5)+gd-34840408;return d-_jdiv(_jdiv(gy+100100+_jdiv(gm-8,6),100)*3,4)+752;}
+function _dn2g(jdn){let j=4*jdn+139361631;j=j+_jdiv(_jdiv(4*jdn+183187720,146097)*3,4)*4-3908;const i=_jdiv(_jmod(j,1461),4)*5+308;const gd=_jdiv(_jmod(i,153),5)+1;const gm=_jmod(_jdiv(i,153),12)+1;return{gy:_jdiv(j,1461)-100100+_jdiv(8-gm,6),gm,gd};}
+function _j2dn(jy,jm,jd){const r=_jalCal(jy);return _g2dn(r.gy,3,r.march)+(jm-1)*31-_jdiv(jm,7)*(jm-7)+jd-1;}
+function _dn2j(jdn){const g=_dn2g(jdn);let jy=g.gy-621;const r=_jalCal(jy);let k=jdn-_g2dn(g.gy,3,r.march),jm,jd;
+  if(k>=0){if(k<=185){jm=1+_jdiv(k,31);jd=_jmod(k,31)+1;return{y:jy,m:jm,d:jd};}k-=186;}
+  else{jy-=1;k+=179;if(r.leap===1)k+=1;}
+  jm=7+_jdiv(k,30);jd=_jmod(k,30)+1;return{y:jy,m:jm,d:jd};}
+function isLeapS(y){return _jalCal(y).leap===0;}
 function sDim(y,m){if(m<12)return m<=6?31:30;return isLeapS(y)?30:29;}
-function sToJD(y,m,d){const base=y>=0?y-474:y-473;const jy=((base%2820)+2820)%2820+474;const dbm=(m<=7?(m-1)*31:(m-1)*30+6);return d+dbm+Math.floor((jy*682-110)/2816)+(jy-1)*365+Math.floor(base/2820)*1029983+1948320;}
+function sToJD(y,m,d){return _j2dn(y,m,d);}
 function gToJD(y,m,d){return 367*y-Math.floor(7*(y+Math.floor((m+9)/12))/4)-Math.floor(3*(Math.floor((y+(m-9)/7)/100)+1)/4)+Math.floor(275*m/9)+d+1721029;}
-function jdToS(jd){const j=Math.floor(jd)+0.5;const dep=j-sToJD(475,1,1);const cyc=Math.floor(dep/1029983);const cr=dep%1029983;let yc=cr===1029982?2820:Math.floor((2134*Math.floor(cr/366)+2816*(cr%366)+2815)/1028522)+Math.floor(cr/366)+1;let year=yc+2820*cyc+474;if(year<=0)year--;const yd=j-sToJD(year,1,1)+1;let month=yd<=186?Math.ceil(yd/31):Math.ceil((yd-6)/30);let day=Math.floor(j-sToJD(year,month,1)+1);if(day<1){month--;if(month<1){month=12;year--;}day=Math.floor(j-sToJD(year,month,1)+1);}return{y:year,m:month,d:day};}
+function jdToS(jd){return _dn2j(Math.floor(jd+0.5));}
 function sDow(y,m,d){return(Math.floor(sToJD(y,m,d)+1.5)%7+1)%7;}
 const SMONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 
