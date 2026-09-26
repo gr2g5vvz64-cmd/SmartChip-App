@@ -1652,9 +1652,8 @@ async function biSaveTargets(c){
   const msg = c.querySelector('#crmBiTgtMsg'), Y = biYear();
   const m = crmBiF.mon.size ? Math.max(...[...crmBiF.mon].map(Number)) : (Y===jdToS(biTodayJD()).y ? jdToS(biTodayJD()).m : 12);
   const items = [...c.querySelectorAll('#crmBiTgtTable tr[data-tgt-name]')].map(tr=>({staff_name: tr.getAttribute('data-tgt-name'),
-    calls_target: fa2en(tr.querySelector('[data-tgt=calls]').value.trim()).replace(/[,٬]/g,''),
-    sale_target_yuan: fa2en(tr.querySelector('[data-tgt=sale]').value.trim()).replace(/[,٬]/g,'')}));
-  const bad = items.find(it=>[it.calls_target, it.sale_target_yuan].some(v=>v!=='' && !(Number(v)>=0)));
+    calls_target: fa2en(tr.querySelector('[data-tgt=calls]').value.trim()).replace(/[,٬]/g,''), sale_target_yuan: ''}));
+  const bad = items.find(it=>it.calls_target!=='' && !(Number(it.calls_target)>=0));
   if(bad){ if(msg){ msg.style.color='var(--red)'; msg.textContent = `⚠️ عددِ نامعتبر برایِ ${bad.staff_name}`; } return; }
   if(msg){ msg.style.color='var(--muted)'; msg.textContent = '⏳ در حالِ ذخیره...'; }
   try{
@@ -1673,7 +1672,7 @@ async function biCopyPrevTargets(c){
   const prev = (crmBiTgt[py].ok && crmBiTgt[py].byMonth[pm]) || {};
   let n = 0;
   c.querySelectorAll('#crmBiTgtTable tr[data-tgt-name]').forEach(tr=>{ const x = prev[tr.getAttribute('data-tgt-name')]; if(!x) return;
-    tr.querySelector('[data-tgt=calls]').value = x.calls!=null ? x.calls : ''; tr.querySelector('[data-tgt=sale]').value = x.sale!=null ? x.sale : ''; n++; });
+    tr.querySelector('[data-tgt=calls]').value = x.calls!=null ? x.calls : ''; n++; });
   const msg = c.querySelector('#crmBiTgtMsg');
   if(msg){ msg.style.color = n ? 'var(--green)' : 'var(--yellow)'; msg.textContent = n ? `هدفِ ${SMONTHS[pm-1]} برایِ ${fn(n)} کارشناس کپی شد — «ذخیره» رو بزنید` : `برایِ ${SMONTHS[pm-1]} هدفی ثبت نشده بود`; }
 }
@@ -1710,7 +1709,8 @@ function biApplyClick(dim, val, additive){
 }
 function biRemove(dim, val){ crmBiF[dim].delete(val); if(dim==='cat') biDropCatSubs(val); if(dim==='mon') crmBiF.day.clear(); renderCrmBi(); }
 function biFaDigits(n){ return String(n).replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]); }
-function biIsoToSh(iso){ if(!iso) return null; const d=new Date(iso); return isNaN(d) ? null : jdToS(gToJD(d.getFullYear(), d.getMonth()+1, d.getDate())); }
+const _biIsoCache = new Map();
+function biIsoToSh(iso){ if(!iso) return null; let v = _biIsoCache.get(iso); if(v===undefined){ const d=new Date(iso); v = isNaN(d) ? null : jdToS(gToJD(d.getFullYear(), d.getMonth()+1, d.getDate())); if(_biIsoCache.size>50000) _biIsoCache.clear(); _biIsoCache.set(iso, v); } return v; }
 // تاریخِ شمسی (دفترِ ارزی «1405-07-03»، سرنخ‌ها «1405/07/03»)
 function biShParse(str){
   const t = fa2en(String(str||''));
@@ -1729,11 +1729,11 @@ function biTimePass(sh, skip, P){
 // با انتخابِ یک معیار، ستون‌هایِ ماه و روز، نقشه، صنف و سهمِ کارشناس‌ها همه با همون معیار نشون داده می‌شن.
 let crmBiMetric = 'calls';
 let crmBiCatView = 'auto';           // auto | donut | tree
-let crmBiFetchedAt = null;
 const crmBiSearch = {contact:'', buyers:''};
+const crmBiShowAll = {contact:false, abandoned:false};
+const BI_ROWS_CAP = {contact:100, abandoned:50};
 const BI_METRICS = {
   calls:{label:'تماس', icon:'📞', unit:'تماس', hint:'تماس و فعالیتِ ثبت‌شده'},
-  sale: {label:'فروشِ یوانی', icon:'💰', unit:'¥', hint:'فاکتور + پیش‌فاکتور'},
   cust: {label:'مشتری و سرنخِ درگیر', icon:'👥', unit:'مورد', hint:'تعدادِ کسانی که باهاشون تماس گرفته شده'},
   won:  {label:'قراردادِ موفق', icon:'🏆', unit:'موفق', hint:'فرصت‌هایِ بسته‌شده با نتیجه‌ی موفق'},
 };
@@ -2018,6 +2018,7 @@ function wireCrmBiFilters(c){
     if(t.closest('[data-bi-clear]')){ biClearAll(); renderCrmBi(); return; }
     if(t.closest('[data-bi-multi]')){ crmBiMulti = !crmBiMulti; renderCrmBi(); return; }
     if(t.closest('[data-bi-open]')){ const bar=document.getElementById('crmBiFilterBar'); if(bar) bar.scrollIntoView({behavior:'smooth', block:'start'}); return; }
+    const sa = t.closest('[data-bi-showall]'); if(sa){ crmBiShowAll[sa.getAttribute('data-bi-showall')] = true; renderCrmBi(); return; }
     const tv = t.closest('[data-bi-tgt-view]'); if(tv){ crmBiTgtView = tv.getAttribute('data-bi-tgt-view'); renderCrmBi(); return; }
     if(t.closest('[data-bi-tgt-edit]')){ crmBiTgtEdit = true; renderCrmBi(); return; }
     if(t.closest('[data-bi-tgt-cancel]')){ crmBiTgtEdit = false; renderCrmBi(); return; }
@@ -2035,9 +2036,8 @@ function wireCrmBiFilters(c){
   };
 }
 
-const FX_MGMT_URL_CRM = 'https://smartchip-backend.onrender.com/api/ledger/management/?basis=hawale';
-let crmBiFx = null;
-function biNorm(s){ return String(s||'').replace(/[\u200c\u200e\u200f]/g,'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\s+/g,' ').trim().toLowerCase(); }
+const _biNormCache = new Map();
+function biNorm(s){ const k = String(s||''); let v = _biNormCache.get(k); if(v===undefined){ v = k.replace(/[\u200c\u200e\u200f]/g,'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\s+/g,' ').trim().toLowerCase(); if(_biNormCache.size>50000) _biNormCache.clear(); _biNormCache.set(k, v); } return v; }
 function biTodayJD(){ const n=new Date(); return gToJD(n.getFullYear(), n.getMonth()+1, n.getDate()); }
 function biDaysAgoShamsi(str){
   const p = fa2en(String(str||'')).split(/[-\/]/).map(Number);
@@ -2051,13 +2051,8 @@ function biEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp
 
 async function renderCrmBi(forceReload){
   const c = document.getElementById('crmBiView');
-  if(!crmBiFx || forceReload){
-    c.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">⏳ در حالِ گرفتنِ اطلاعاتِ مالی از دفترِ ارزی...</div>`;
-    crmBiFx = await fetchJsonWithRetry(FX_MGMT_URL_CRM, 20000);
-    crmBiFetchedAt = new Date();
-  }
   if(!crmBiTgt[biYear()]) crmBiTgt[biYear()] = await biLoadTargets(biYear());
-  const fx = crmBiFx, F = crmBiF, Y = biYear(), nowSh = jdToS(biTodayJD()), M = crmBiMetric, MT = BI_METRICS[M];
+  const F = crmBiF, Y = biYear(), nowSh = jdToS(biTodayJD()), M = crmBiMetric, MT = BI_METRICS[M];
   const tIso = (iso, skip) => biTimePass(biIsoToSh(iso), skip);   // تاریخِ میلادیِ CRM
   const periodLabel = biPeriodLabel();
 
@@ -2087,30 +2082,6 @@ async function renderCrmBi(forceReload){
     return topVote(k) || BI_NO_REP;
   };
 
-  // ── پول (دفترِ ارزی) — هر مشتری؛ فروشِ دوره بر اساسِ تاریخِ فاکتور ──
-  const fxCust = {}, fxOrders = [];
-  const unmatched = new Set();
-  let preStartOrders = 0;
-  if(fx && fx.profit){
-    fx.profit.orders.forEach(o=>{
-      const k=biNorm(o.customerName), sh=biShParse(o.date);
-      const f=fxCust[k]=fxCust[k]||{name:o.customerName, sale:0, saleAll:0, profit:0, linkedSale:0, lastOrder:null, recv:0, recvOld:0};
-      // ⚠️ فاکتورِ با تاریخِ آینده «امروز» حساب می‌شه
-      const agoRaw=biDaysAgoShamsi(o.date); const ago = agoRaw==null ? null : Math.max(0, agoRaw);
-      f.saleAll+=o.saleYuan;
-      if(ago!=null && (f.lastOrder==null || ago<f.lastOrder)) f.lastOrder=ago;
-      if(sh && sh.y<BI_START_YEAR) preStartOrders++;
-      if(biTimePass(sh)){ f.sale+=o.saleYuan; if(o.profitYuan!=null){ f.profit+=o.profitYuan; f.linkedSale+=o.saleYuan; } }
-      fxOrders.push({k, name:o.customerName, sh, sale:o.saleYuan});
-      if(!cmByNorm[k] && !repVotes[k] && lastContact[k]==null) unmatched.add(o.customerName);
-    });
-    (fx.liquidity.aging||[]).forEach(a=>{
-      const k=biNorm(a.name);
-      const f=fxCust[k]=fxCust[k]||{name:a.name, sale:0, saleAll:0, profit:0, linkedSale:0, lastOrder:null, recv:0, recvOld:0};
-      f.recv=a.total; f.recvOld=(a.b61_90||0)+(a.b90p||0);
-    });
-  }
-
   // ── رکوردها: مشتریِ جذب‌شده = فعال، سرنخِ در حالِ جذب = غیرفعال ──
   const canon = {}; (typeof PROSPECT_CATEGORIES!=='undefined' ? PROSPECT_CATEGORIES : []).forEach(x=>{ canon[biNorm(x)] = x; });
   // منبعِ جذب از کارتِ سرنخ (مشتری‌ای که از سرنخ جذب شده، منبعش رو از همون سرنخ می‌گیره)
@@ -2125,8 +2096,8 @@ async function renderCrmBi(forceReload){
   (customerMaster||[]).forEach(cm=>{ const k=biNorm(cm.name); if(k) recByKey[k]=mkRec(k,cm.name,'active',repOf(k),cm.province,cm.category,cm.subcat,cm.mobile); });
   (prospects||[]).forEach(p=>{ const k=biNorm(p.name); if(!k || recByKey[k]) return;
     recByKey[k]=mkRec(k,p.name,'inactive',(p.assigneeName||'').trim() || topVote(k) || BI_NO_REP, p.province, p.category, p.subcat, p.phone1||p.phone2); });
-  // مشتری‌ای که فقط در تماس‌ها یا دفترِ ارزی هست (نه در فهرستِ مشتریان/سرنخ‌ها)
-  const recOf = (k, name) => recByKey[k] || (recByKey[k] = {key:k, name:name||k, pseudo:true, kind:(fxCust[k]&&fxCust[k].saleAll>0)?'active':'inactive',
+  // مشتری‌ای که فقط در تماس‌ها هست (نه در فهرستِ مشتریان/سرنخ‌ها)
+  const recOf = (k, name) => recByKey[k] || (recByKey[k] = {key:k, name:name||k, pseudo:true, kind:'inactive',
     rep:repOf(k), provRaw:'', prov:null, phone:'', src:pSrc[k]||'__none', catKey:'__none', catLabel:CAT_NONE, subKey:'__none', subLabel:SUB_NONE});
 
   // ── فهرستِ واحدِ تماس‌ها ──
@@ -2160,14 +2131,12 @@ async function renderCrmBi(forceReload){
 
   // ── دامنه‌ی دوره: فقط کسانی که در دوره‌ی انتخاب‌شده تماس/فعالیت داشتن ──
   const touched = new Set(contacts.filter(ct=>ct.k && biTimePass(ct.sh)).map(ct=>ct.k));
-  Object.entries(fxCust).forEach(([k,f])=>recOf(k, f.name));
   const allRecs = Object.values(recByKey);
   // مقدارِ معیار برایِ هر مشتری/سرنخ در دوره؛ دامنه‌ی نقشه، صنف، وضعیت و کارشناس = کسانی که مقدارشون بیش از صفره
   const callsByK = {}, wonByK = {};
   contacts.forEach(ct=>{ if(ct.k && biTimePass(ct.sh)) callsByK[ct.k]=(callsByK[ct.k]||0)+1; });
   entries.forEach(x=>{ const e=x.entry, k=biNorm(x.customer); if(k && e.completed && tIso(e.closedDate||e.date)) wonByK[k]=(wonByK[k]||0)+1; });
-  allRecs.forEach(r=>{ r._v = M==='calls' ? (callsByK[r.key]||0) : M==='won' ? (wonByK[r.key]||0)
-    : M==='sale' ? Math.max(0, (fxCust[r.key]||{}).sale||0) : (touched.has(r.key)?1:0); });
+  allRecs.forEach(r=>{ r._v = M==='calls' ? (callsByK[r.key]||0) : M==='won' ? (wonByK[r.key]||0) : (touched.has(r.key)?1:0); });
   const periodRecs = allRecs.filter(r=>r._v>0);
   const touchedCount = allRecs.filter(r=>touched.has(r.key)).length;
   const listedRecs = allRecs.filter(r=>!r.pseudo);
@@ -2175,7 +2144,7 @@ async function renderCrmBi(forceReload){
 
   // ── امتیازِ هر کارشناس (همه‌ی فیلترها به‌جز کارشناس → مقایسه با بقیه حفظ می‌شه) ──
   const reps = {};
-  const R = name => reps[name] = reps[name] || {name, calls:0, won:0, lost:0, cycle:[], overdue:0, customers:new Set(), sale:0, profit:0, profitLinked:0, recv:0, recvOld:0};
+  const R = name => reps[name] = reps[name] || {name, calls:0, won:0, lost:0, cycle:[], overdue:0, customers:new Set()};
   contacts.forEach(ct=>{ if(!ctPass(ct,'rep')) return; const r=R(ctRep(ct)); r.calls++; if(ct.k) r.customers.add(ct.k); });
   entries.forEach(x=>{
     if(!entryDims(x,'rep')) return;
@@ -2187,30 +2156,15 @@ async function renderCrmBi(forceReload){
     }
     const sla = getSalesResponseSla(e); if(sla && sla.overdue) r.overdue++;   // وضعیتِ «الان»
   });
-  Object.entries(fxCust).forEach(([k,f])=>{
-    if(!custPass(k,f.name,'rep')) return;
-    const r=R(recOf(k,f.name).rep);
-    r.sale+=f.sale; r.profit+=f.profit; r.profitLinked+=f.linkedSale; r.recv+=f.recv; r.recvOld+=f.recvOld;
-  });
-  const repRows = Object.values(reps).filter(r=>r.calls||r.won||r.lost||r.sale||r.recv||r.overdue)
-    .sort((a,b)=>b.sale-a.sale || b.calls-a.calls || b.won-a.won);
+  const repRows = Object.values(reps).filter(r=>r.calls||r.won||r.lost||r.overdue)
+    .sort((a,b)=>b.calls-a.calls || b.won-a.won);
   const teamRows = repRows.filter(r=>selRep(r.name));
   const teamWon = teamRows.reduce((s,r)=>s+r.won,0), teamLost = teamRows.reduce((s,r)=>s+r.lost,0);
   const teamCalls = teamRows.reduce((s,r)=>s+r.calls,0), teamOverdue = teamRows.reduce((s,r)=>s+r.overdue,0);
 
   // ── با همه‌ی فیلترها ──
-  const fxF = Object.entries(fxCust).filter(([k,f])=>custPass(k,f.name));
-  let saleTotal=0, profitTotal=0, linkedSaleTotal=0, recvTotal=0, recvOldTotal=0;
-  fxF.forEach(([k,f])=>{ saleTotal+=f.sale; profitTotal+=f.profit; linkedSaleTotal+=f.linkedSale; recvTotal+=f.recv; recvOldTotal+=f.recvOld; });
   const lostReasons = {};
   entries.forEach(x=>{ const e=x.entry; if(e.canceled && entryDims(x) && tIso(e.closedDate || e.date)){ const why=(e.cancelReason||'بدونِ دلیلِ ثبت‌شده').trim(); lostReasons[why]=(lostReasons[why]||0)+1; } });
-  // مشتریانِ خریدار = کسانی که در دوره‌ی انتخاب‌شده فاکتور داشتن؛ سلامت = وضعیتِ امروز (فاصله از آخرین تماس)
-  const buyers = fxF.filter(([k,f])=>f.sale>0).map(([k,f])=>({ ...f, rep:recOf(k,f.name).rep, contact:lastContact[k]==null?null:lastContact[k] }));
-  const health = b => b.contact==null ? {i:'⚪',t:'بدونِ تماسِ ثبت‌شده',o:3} : b.contact<=30 ? {i:'🟢',t:'در ارتباط',o:0} : b.contact<=60 ? {i:'🟡',t:'کم‌رنگ',o:1} : {i:'🔴',t:'در خطرِ ریزش',o:2};
-  buyers.sort((a,b)=>(health(b).o>=2)-(health(a).o>=2) || b.sale-a.sale);
-  const atRisk = buyers.filter(b=>health(b).o>=2);
-  const unmatchedF = [...unmatched].filter(n=>{ const k=biNorm(n); return custPass(k, n) && fxCust[k] && fxCust[k].sale>0; });
-
   // ── رکوردها برایِ نقشه، صنف و نوارِ فیلتر (فقط تماس‌گرفته‌شده‌هایِ دوره) ──
   const fullRecs = periodRecs.filter(r=>passDims(r,r.rep));
   const mapRecs  = periodRecs.filter(r=>passDims(r,r.rep,'prov'));
@@ -2249,10 +2203,9 @@ async function renderCrmBi(forceReload){
   contacts.forEach(ct=>{ if(!ctDims(ct)) return; bump(ct.sh, 'calls', 1);
     if(ct.k){ if(biTimePass(ct.sh,'mon')) mStat[ct.sh.m].cs.add(ct.k);
       if(oneMonth && biTimePass(ct.sh,'day') && ct.sh.d>=1 && ct.sh.d<=dimLen) dStat[ct.sh.d].cs.add(ct.k); } });
-  const mv = st => M==='calls' ? st.calls : M==='sale' ? st.sale : M==='won' ? st.won : st.cs.size;
+  const mv = st => M==='calls' ? st.calls : M==='won' ? st.won : st.cs.size;
   entries.forEach(x=>{ const e=x.entry; if((e.completed||e.canceled) && entryDims(x)) bump(biIsoToSh(e.closedDate||e.date), e.completed?'won':'lost', 1); });
-  fxOrders.forEach(o=>{ if(custPass(o.k, o.name)) bump(o.sh, 'sale', o.sale); });
-  const tipOf = (lbl, st) => `${lbl}: ${fn(st.calls)} تماس با ${fn(st.cs.size)} مشتری/سرنخ · ${fn(st.won)} موفق · ${fn(st.lost)} ناموفق${fx?` · فروش ${biY(st.sale)}`:''}`;
+  const tipOf = (lbl, st) => `${lbl}: ${fn(st.calls)} تماس با ${fn(st.cs.size)} مشتری/سرنخ · ${fn(st.won)} موفق · ${fn(st.lost)} ناموفق`;
   const isFutureM = m => Y>nowSh.y || (Y===nowSh.y && m>nowSh.m);
   const monthItems = SMONTHS.map((nm,i)=>({val:String(i+1), n:mv(mStat[i+1]), future:isFutureM(i+1),
     label:`<span class="bi-mfull">${nm}</span><span class="bi-mshort">${biFaDigits(i+1)}</span>`, tip:tipOf(`${nm} ${biFaDigits(Y)}`, mStat[i+1])}));
@@ -2270,16 +2223,14 @@ async function renderCrmBi(forceReload){
         <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px">کلیک رویِ روز = فقط همون روز در کلِ صفحه؛ Ctrl + کلیک = چند روز. جمعه‌ها قرمز.</div>
         ${biTimeBarsHtml(dayItems, 'day', {h:90, bw:18, gap:2, nf:9, lf:9, numCls:'bi-dnum'})}
       </div>` : F.mon.size>1 ? `<div style="font-size:10.5px;color:var(--muted);margin-top:8px">نمودارِ روزانه وقتی باز می‌شه که فقط یک ماه انتخاب شده باشه.</div>` : ''}
-      <div style="font-size:10.5px;color:var(--muted);margin-top:10px">در ${biEsc(periodLabel)} در کلِ شرکت (بدونِ فیلترهایِ دیگه) با <b style="color:var(--text)">${fn(touchedCount)}</b> مشتری/سرنخ تماس گرفته شده${noContactInPeriod?`؛ ${fn(noContactInPeriod)} مشتری/سرنخِ ثبت‌شده در این دوره تماسی نداشتن و در نقشه، صنف و شمارش‌ها نیستن`:''}.${preStartOrders?` <span style="color:var(--yellow)">${fn(preStartOrders)} فاکتورِ دفترِ ارزی تاریخِ پیش از ${biFaDigits(BI_START_YEAR)} ${preStartOrders===1?'داره و در این صفحه نیست':'دارن و در این صفحه نیستن'}.</span>`:''}</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:10px">در ${biEsc(periodLabel)} در کلِ شرکت (بدونِ فیلترهایِ دیگه) با <b style="color:var(--text)">${fn(touchedCount)}</b> مشتری/سرنخ تماس گرفته شده${noContactInPeriod?`؛ ${fn(noContactInPeriod)} مشتری/سرنخِ ثبت‌شده در این دوره تماسی نداشتن و در نقشه، صنف و شمارش‌ها نیستن`:''}.</div>
     </div>`;
 
-  const finNote = onlyInactive ? 'سرنخ‌ها هنوز خریدی ندارن — فیلترِ «غیرفعال» فعاله' : null;
   // ── مقایسه با دوره‌ی قبل و سهم از کلِ شرکت ──
   const totalsFor = (P, useDims) => {
     const tp = sh => biTimePass(sh, null, P), cs = new Set(); let calls=0, won=0, sale=0;
     contacts.forEach(ct=>{ if(tp(ct.sh) && (!useDims || ctDims(ct))){ calls++; if(ct.k) cs.add(ct.k); } });
     entries.forEach(x=>{ const e=x.entry; if(e.completed && tp(biIsoToSh(e.closedDate||e.date)) && (!useDims || entryDims(x))) won++; });
-    fxOrders.forEach(o=>{ if(tp(o.sh) && (!useDims || custPass(o.k, o.name))) sale+=o.sale; });
     return {calls, sale, cust:cs.size, won};
   };
   const curP = {y:Y, mon:F.mon, day:F.day};
@@ -2291,31 +2242,23 @@ async function renderCrmBi(forceReload){
     return `<div style="font-size:10.5px;margin-top:3px"><span dir="ltr" style="unicode-bidi:isolate;font-weight:700;color:${Math.round(d)===0?'var(--muted)':up?'var(--green)':'var(--red)'}">${up?'▲':'▼'} ${fn(Math.abs(Math.round(d)))}٪</span> <span style="color:var(--muted)">نسبت به ${biEsc(lbl)}</span></div>`;
   };
   const noPrev = Y===BI_START_YEAR && !F.mon.size ? `مقایسه با سالِ قبل از ${biFaDigits(BI_START_YEAR+1)} فعال می‌شه` : `دوره‌ی قبل پیش از شروعِ کار (${biFaDigits(BI_START_YEAR)})‌ست`;
-  const fmtM = (k, v) => k==='sale' ? biY(v) : fn(v);
+  const fmtM = (k, v) => fn(v);
   const metricCards = Object.entries(BI_METRICS).map(([k, m])=>{
     const on = k===M, v = cur[k], all = whole[k];
-    const naSale = k==='sale' && (!fx || finNote);
+    const naSale = false;
     return `<div class="dash-section" data-bi-metric="${k}" title="نمایشِ همه‌ی نمودارها با معیارِ «${m.label}»" style="margin:0;padding:12px;cursor:pointer;border:2px solid ${on?'var(--accent)':'transparent'};${on?'box-shadow:0 0 0 3px rgba(245,158,11,.12);':''}">
       <div style="display:flex;justify-content:space-between;gap:6px;font-size:11px;color:var(--muted)"><span>${m.icon} ${m.label}</span>${on?'<span style="color:var(--accent);font-weight:700">● معیارِ نمودارها</span>':''}</div>
       <div style="font-size:19px;font-weight:800;margin:5px 0 2px;color:${k==='sale'?'var(--accent)':'var(--text)'}">${naSale?'—':fmtM(k, v)}</div>
-      ${naSale ? `<div style="font-size:10.5px;color:var(--muted)">${finNote||'اطلاعاتِ مالی در دسترس نیست'}</div>` : (prevs.length ? prevs.map(p=>deltaLine(v, p.t[k], p.label)).join('') : `<div style="font-size:10.5px;color:var(--muted);margin-top:3px">${noPrev}</div>`)}
+      ${naSale ? '' : (prevs.length ? prevs.map(p=>deltaLine(v, p.t[k], p.label)).join('') : `<div style="font-size:10.5px;color:var(--muted);margin-top:3px">${noPrev}</div>`)}
       ${!naSale && dimCount ? `<div style="font-size:10.5px;margin-top:3px;color:var(--muted)">سهم از کلِ شرکت: <b style="color:var(--text)">${all?fn(Math.round(v/all*100)):'—'}٪</b></div>` : ''}
     </div>`; }).join('');
-  const updStamp = crmBiFetchedAt ? (()=>{ const s=biIsoToSh(crmBiFetchedAt.toISOString()), d=crmBiFetchedAt; return `${biFaDigits(s.d)} ${SMONTHS[s.m-1]} ${biFaDigits(s.y)} · ساعت ${fn(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}`; })() : '—';
   // ── سهمِ کارشناس‌ها (مستطیلی) با معیارِ انتخاب‌شده ──
   const repColor = {}; repChips.forEach((r,i)=>{ repColor[r.name] = r.name===BI_NO_REP ? CAT_GREY : CAT_PALETTE[i % CAT_PALETTE.length]; });
-  const repMetric = r => M==='calls' ? r.calls : M==='sale' ? Math.max(0,r.sale) : M==='won' ? r.won : r.customers.size;
-  const repTree = (M==='sale' && finNote) ? `<div class="bic-empty">${finNote}</div>`
-    : biTreemapHtml(repRows.map(r=>({val:r.name, label:r.name, n:repMetric(r), color:repColor[r.name]||CAT_GREY})), F.rep, it=>biAttr('rep', it.val), 240);
+  const repMetric = r => M==='calls' ? r.calls : M==='won' ? r.won : r.customers.size;
+  const repTree = biTreemapHtml(repRows.map(r=>({val:r.name, label:r.name, n:repMetric(r), color:repColor[r.name]||CAT_GREY})), F.rep, it=>biAttr('rep', it.val), 240);
   // ── نمودارها ──
   const fnY = v => biY(v);
   const repRowAttr = r=>biAttr('rep', r.label);
-  const salesChart = fx ? (finNote ? `<div class="bic-empty">${finNote}</div>` : bic_hbars(repRows.filter(r=>r.sale||r.profitLinked).map(r=>({label:r.name, dim:F.rep.size&&!F.rep.has(r.name), hl:F.rep.has(r.name), values:[
-      {v:r.sale, color:'var(--accent)', name:'فروش'},
-      ...(r.profitLinked ? [{v:r.profit, color:'var(--green)', name:'سود'}] : []),
-    ]})), {fmt:fnY, negColor:'var(--red)', rowAttr:repRowAttr, empty:'با فیلترهایِ فعلی فروشی نیست'})
-    + bic_legend([{label:'فروش',color:'var(--accent)'},{label:'سود (سفارش‌هایِ لینک‌شده)',color:'var(--green)'}]))
-    : '<div class="bic-empty">اطلاعاتِ مالی در دسترس نیست</div>';
   const teamConv = teamWon+teamLost ? teamWon/(teamWon+teamLost)*100 : null;
   const convChart = bic_hbars(repRows.filter(r=>r.won+r.lost).map(r=>({label:r.name, dim:F.rep.size&&!F.rep.has(r.name), hl:F.rep.has(r.name), values:[{v:r.won/(r.won+r.lost)*100, color:'var(--blue)', name:'نرخِ تبدیل'}]})),
     {fmt:v=>biPct(v), max:100, rowAttr:repRowAttr, marker: teamConv!=null ? {value:teamConv, label:(F.rep.size?'میانگینِ انتخاب‌شده‌ها: ':'میانگینِ تیم: ')+biPct(teamConv)} : null, empty:'با فیلترهایِ فعلی فرصتی بسته نشده'});
@@ -2326,13 +2269,6 @@ async function renderCrmBi(forceReload){
     {label:'تعیین‌تکلیف‌شده (موفق یا ناموفق)', value:teamWon+teamLost, color:'#8b5cf6'},
     {label:'موفق', value:teamWon, color:'#22c55e'},
   ], {fmt:v=>fn(v)});
-  const hc = {g:0,y:0,r:0,n:0}; buyers.forEach(b=>{ const o=health(b).o; hc[['g','y','r','n'][o]]++; });
-  const healthChart = finNote ? `<div class="bic-empty">${finNote}</div>` : bic_donut([
-    {label:'🟢 در ارتباط (تا ۳۰ روز)', value:hc.g, color:'#22c55e'},
-    {label:'🟡 کم‌رنگ (۳۱ تا ۶۰)', value:hc.y, color:'#f59e0b'},
-    {label:'🔴 در خطرِ ریزش (۶۰+)', value:hc.r, color:'#ef4444'},
-    {label:'⚪ بدونِ تماسِ ثبت‌شده', value:hc.n, color:'#64748b'},
-  ], {fmt:v=>fn(v), center:fn(buyers.length), centerSub:'مشتریِ خریدار', empty:fx?'با فیلترهایِ فعلی مشتریِ خریداری نیست':'اطلاعاتِ مالی در دسترس نیست'});
   const lostTotal = Object.values(lostReasons).reduce((a,b)=>a+b,0);
   const lostChart = bic_hbars(Object.entries(lostReasons).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([why,n])=>({label:why, values:[{v:n, color:'var(--red)', name:'تعداد'}]})),
     {fmt:v=>fn(v)+(lostTotal?' ('+biPct(v/lostTotal*100)+')':''), empty:'موردِ ناموفقی نیست'});
@@ -2363,7 +2299,7 @@ async function renderCrmBi(forceReload){
   const stV = {active:0, inactive:0}, stN = {active:0, inactive:0};
   periodRecs.filter(r=>passDims(r,r.rep,'status')).forEach(r=>{ stV[r.kind]+=r._v; stN[r.kind]++; });
   const stTot = stV.active+stV.inactive;
-  const statusCard = (M==='sale' && finNote) ? `<div class="bic-empty">${finNote}</div>` : `<div style="display:flex;gap:8px">${['active','inactive'].map(k=>{
+  const statusCard = `<div style="display:flex;gap:8px">${['active','inactive'].map(k=>{
       const on = F.status.has(k), off = F.status.size && !on, pct = stTot ? Math.round(stV[k]/stTot*100) : 0;
       return `<div ${biAttr('status',k)} style="flex:1;cursor:pointer;border-radius:10px;padding:12px;border:2px solid ${on?'var(--accent)':'var(--border)'};background:${k==='active'?'rgba(34,197,94,.10)':'rgba(249,115,22,.10)'};opacity:${off?.4:1}">
         <div style="font-size:11.5px;font-weight:700">${k==='active'?'🟢 فعال — مشتریِ جذب‌شده':'🟠 غیرفعال — سرنخِ در حالِ جذب'}</div>
@@ -2411,10 +2347,9 @@ async function renderCrmBi(forceReload){
     const r = recOf(k, p.name); if(!passDims(r, r.rep, 'src')) return;
     if(!biTimePass(biShParse(p.createdDate))) return;
     const s = S_(r.src); s.created++;
-    if(p.status==='acquired' || (customerMaster||[]).some(cm=>biNorm(cm.name)===k)) s.acquired++;
+    if(p.status==='acquired' || cmByNorm[k]) s.acquired++;
   });
-  Object.entries(fxCust).forEach(([k,f])=>{ const r=recOf(k,f.name); if(f.sale>0 && passDims(r,r.rep,'src')){ const s=S_(r.src); s.sale+=f.sale; s.customers++; } });
-  const srcList = Object.values(srcRows).sort((a,b)=>(a.key==='__none')-(b.key==='__none') || b.created-a.created || b.sale-a.sale);
+  const srcList = Object.values(srcRows).sort((a,b)=>(a.key==='__none')-(b.key==='__none') || b.created-a.created || b.acquired-a.acquired);
   const srcCreatedTotal = srcList.reduce((a,s)=>a+s.created,0), srcNone = (srcRows.__none||{created:0}).created;
   const srcMax = Math.max(1, ...srcList.map(s=>s.created));
 
@@ -2427,7 +2362,6 @@ async function renderCrmBi(forceReload){
     const out = {};
     const O = n => out[n] = out[n] || {calls:0, sale:0};
     contacts.forEach(ct=>{ if(biTimePass(ct.sh, null, P)) O(ctRep(ct)).calls++; });
-    fxOrders.forEach(o=>{ if(biTimePass(o.sh, null, P)) O(recOf(o.k, o.name).rep).sale += o.sale; });
     return out;
   };
   const daysSet = n => new Set(Array.from({length:n}, (_,i)=>String(i+1)));
@@ -2466,8 +2400,8 @@ async function renderCrmBi(forceReload){
       const fc = v => el>0 && el<len ? v/el*len : v;
       return {name, t, a, p:{calls:p.calls*prevScale, sale:p.sale*prevScale}, fc:{calls:fc(a.calls), sale:fc(a.sale)}};
     };
-    tgtRows = [...names].filter(n=>selRep(n)).map(row).filter(r=>r.t.has.calls || r.t.has.sale || r.a.calls || r.a.sale)
-      .sort((a,b)=>(b.t.has.calls||b.t.has.sale)-(a.t.has.calls||a.t.has.sale) || b.a.sale-a.a.sale || b.a.calls-a.a.calls);
+    tgtRows = [...names].filter(n=>selRep(n)).map(row).filter(r=>r.t.has.calls || r.a.calls)
+      .sort((a,b)=>b.t.has.calls-a.t.has.calls || b.a.calls-a.a.calls);
     const lbl = isQ ? `فصلِ ${['بهار','تابستان','پاییز','زمستان'][q-1]} ${biFaDigits(tgtY)} (${qMonths.map(m=>SMONTHS[m-1]).join('، ')})` : `${SMONTHS[tgtM-1]} ${biFaDigits(tgtY)}`;
     tgtHead = `${lbl} · ${el>=len ? 'تمام‌شده' : el ? `${fn(el)} از ${fn(len)} روز گذشته (${fn(Math.round(el/len*100))}٪)` : 'هنوز شروع نشده'}`;
     tgtNote = prevLbl ? `مقایسه با ${prevLbl}` : `دوره‌ی قبل پیش از شروعِ کار (${biFaDigits(BI_START_YEAR)})‌ست`;
@@ -2503,10 +2437,9 @@ async function renderCrmBi(forceReload){
     const editNames = [...new Set([...repChips.map(r=>r.name), ...Object.keys(TG.byMonth[tgtM]||{})])].filter(n=>n!==BI_NO_REP).sort((a,b)=>a.localeCompare(b,'fa'));
     const cellSt = 'width:100%;margin:0;padding:4px 8px;font-size:12px;height:auto';
     tgtBody = `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">هدفِ <b style="color:var(--text)">${SMONTHS[tgtM-1]} ${biFaDigits(tgtY)}</b> برایِ هر کارشناس. خالی = بدونِ هدف. برایِ ماهِ دیگه، اول اون ماه رو از نمودارِ ماه‌ها انتخاب کنید.</div>
-      <div style="overflow-x:auto"><table class="crm-table" id="crmBiTgtTable"><thead><tr><th>کارشناس</th><th>هدفِ تعدادِ تماس</th><th>هدفِ فروش (¥)</th></tr></thead><tbody>
+      <div style="overflow-x:auto"><table class="crm-table" id="crmBiTgtTable"><thead><tr><th>کارشناس</th><th>هدفِ تعدادِ تماس در ماه</th></tr></thead><tbody>
       ${editNames.map(n=>{ const x = tgtOf(tgtM, n) || {}; return `<tr data-tgt-name="${biEsc(n)}"><td style="font-weight:700">${biEsc(n)}</td>
-        <td><input class="form-control" data-tgt="calls" inputmode="numeric" value="${x.calls!=null?x.calls:''}" style="${cellSt}"></td>
-        <td><input class="form-control" data-tgt="sale" inputmode="decimal" value="${x.sale!=null?x.sale:''}" style="${cellSt}"></td></tr>`; }).join('')}
+        <td><input class="form-control" data-tgt="calls" inputmode="numeric" value="${x.calls!=null?x.calls:''}" style="${cellSt}"></td></tr>`; }).join('')}
       </tbody></table></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center">
         <button class="btn btn-primary" data-bi-tgt-save style="padding:5px 14px;font-size:12px">💾 ذخیره</button>
@@ -2521,7 +2454,7 @@ async function renderCrmBi(forceReload){
     tgtRows.forEach(r=>{ ['calls','sale'].forEach(k=>{ if(!r.t.has[k]) return; const e = k==='calls'?'eCalls':'eSale';
       sumRow.t[k]+=r.t[k]; sumRow.t[e]+=r.t[e]; sumRow.a[k]+=r.a[k]; sumRow.p[k]+=r.p[k]; sumRow.fc[k]+=r.fc[k]; sumRow.t.has[k]=true; }); });
     const box = (r, team) => `<div ${team?'':biAttr('rep', r.name)} style="border:1px solid ${!team && F.rep.has(r.name)?'var(--accent)':'var(--border)'};border-radius:10px;padding:10px 12px;${team?'background:rgba(59,130,246,.07);':'cursor:pointer;'}">
-      <div style="font-weight:800;font-size:12.5px">${team?'👥':'👤'} ${biEsc(r.name)}</div>${tgtBar('calls', r)}${tgtBar('sale', r)}</div>`;
+      <div style="font-weight:800;font-size:12.5px">${team?'👥':'👤'} ${biEsc(r.name)}</div>${tgtBar('calls', r)}</div>`;
     tgtBody = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px">${tgtRows.length>1?box(sumRow,true):''}${tgtRows.map(r=>box(r,false)).join('')}</div>
       <div style="font-size:10.5px;color:var(--muted);margin-top:8px">خطِ عمودی رویِ هر نوار = جایی که باید تا امروز می‌رسید. هدف برایِ کلِ کارِ هر کارشناسه، پس فیلترهایِ استان، صنف و وضعیت رویِ این کارت اعمال نمی‌شن (فقط کارشناس). ${tgtNote}.${crmBiTgtView==='quarter'?' هدفِ فصل = جمعِ هدف‌هایِ ماهانه‌ی همون فصل.':''}</div>`;
   }
@@ -2540,12 +2473,11 @@ async function renderCrmBi(forceReload){
   const sumLines = [];
   const P0 = prevs[0];
   if(P0){
-    const labels = {calls:['📞','تماس‌ها'], sale:['💰','فروش'], cust:['👥','تعدادِ مشتری/سرنخِ درگیر'], won:['🏆','قراردادهایِ موفق']};
+    const labels = {calls:['📞','تماس‌ها'], cust:['👥','تعدادِ مشتری/سرنخِ درگیر'], won:['🏆','قراردادهایِ موفق']};
     Object.keys(labels).forEach(k=>{
-      if(k==='sale' && (!fx || finNote)) return;
-      const a = cur[k], b = P0.t[k]; if(!b || (k!=='sale' && b<3)) return;
+      const a = cur[k], b = P0.t[k]; if(!b || b<3) return;
       const d = Math.round((a-b)/b*100); if(Math.abs(d)<20) return;
-      sumLines.push(`${labels[k][0]} ${labels[k][1]} نسبت به ${P0.label} <b style="color:${d>0?'var(--green)':'var(--red)'}">${fn(Math.abs(d))}٪ ${d>0?'بیشتر':'کمتر'}</b> شده (${k==='sale'?biY(a):fn(a)} در برابرِ ${k==='sale'?biY(b):fn(b)}).`);
+      sumLines.push(`${labels[k][0]} ${labels[k][1]} نسبت به ${P0.label} <b style="color:${d>0?'var(--green)':'var(--red)'}">${fn(Math.abs(d))}٪ ${d>0?'بیشتر':'کمتر'}</b> شده (${fn(a)} در برابرِ ${fn(b)}).`);
     });
     // تغییرِ تماس‌هایِ هر کارشناس
     const perRep = P => { const o={}; contacts.forEach(ct=>{ if(biTimePass(ct.sh,null,P) && ctDims(ct,'rep')){ const n=ctRep(ct); o[n]=(o[n]||0)+1; } }); return o; };
@@ -2557,17 +2489,14 @@ async function renderCrmBi(forceReload){
   }
   const topRep = repRows.filter(r=>r.name!==BI_NO_REP).map(r=>({n:r.name, v:repMetric(r)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v)[0];
   const repTot = repRows.reduce((a,r)=>a+repMetric(r),0);
-  if(topRep && !F.rep.size && repTot && !(M==='sale' && finNote)) sumLines.push(`🥇 بیشترین ${MT.label}: <b>${biEsc(topRep.n)}</b> با ${biMFmtU(topRep.v)} (${fn(Math.round(topRep.v/repTot*100))}٪ از کل).`);
+  if(topRep && !F.rep.size && repTot) sumLines.push(`🥇 بیشترین ${MT.label}: <b>${biEsc(topRep.n)}</b> با ${biMFmtU(topRep.v)} (${fn(Math.round(topRep.v/repTot*100))}٪ از کل).`);
   const provSum = {}; mapRecs.forEach(r=>{ if(r.prov) provSum[r.prov]=(provSum[r.prov]||0)+r._v; });
   const topProv = Object.entries(provSum).sort((a,b)=>b[1]-a[1])[0];
   if(topProv && !F.prov.size) sumLines.push(`📍 بیشترین ${MT.label} در استانِ <b>${biEsc(topProv[0])}</b>: ${biMFmtU(topProv[1])}.`);
   if(TG && TG.ok && tgtRows.length && tgtRows.el>0 && tgtRows.el<tgtRows.len){
     const behind = tgtRows.filter(r=>r.t.has.calls && r.t.eCalls>0 && r.a.calls < r.t.eCalls*0.85).map(r=>r.name);
-    const behindS = tgtRows.filter(r=>r.t.has.sale && r.t.eSale>0 && r.a.sale < r.t.eSale*0.85).map(r=>r.name);
     if(behind.length) sumLines.push(`🎯 از برنامه‌ی تماسِ ${crmBiTgtView==='quarter'?'این فصل':SMONTHS[tgtM-1]} عقب‌ان: <b>${behind.map(biEsc).join('، ')}</b>.`);
-    if(behindS.length) sumLines.push(`🎯 از برنامه‌ی فروشِ ${crmBiTgtView==='quarter'?'این فصل':SMONTHS[tgtM-1]} عقب‌ان: <b>${behindS.map(biEsc).join('، ')}</b>.`);
   }
-  if(atRisk.length && !finNote) sumLines.push(`⚠️ ${fn(atRisk.length)} خریدارِ این دوره بیش از ۶۰ روزه تماس نداشتن: ${atRisk.slice(0,3).map(b=>biEsc(b.name)).join('، ')}${atRisk.length>3?' و …':''}.`);
   if(abandoned.length) sumLines.push(`⏳ ${fn(abandoned.length)} سرنخِ رزروشده رها شده یا مهلتش داره تموم می‌شه${abandoned.filter(x=>x.left!=null&&x.left<=BI_DEADLINE_WARN).length?` (${fn(abandoned.filter(x=>x.left!=null&&x.left<=BI_DEADLINE_WARN).length)} مورد تا ۳ روزِ دیگه)`:''}.`);
   const worstCmp = cmpRows.filter(C=>C.rep!==BI_NO_REP && C.n>=3 && C.score<80)[0];
   if(worstCmp) sumLines.push(`🧩 اطلاعاتِ مشتری‌هایِ <b>${biEsc(worstCmp.rep)}</b> فقط ${fn(worstCmp.score)}٪ کامله (${fn(worstCmp.bad.length)} مشتری/سرنخِ ناقص).`);
@@ -2581,25 +2510,24 @@ async function renderCrmBi(forceReload){
 
   const srcCard = `<div class="bic-card" id="crmBiSource" style="margin-bottom:16px">
     <h4 style="margin:0 0 4px">🧭 منبعِ جذب — ${biEsc(periodLabel)}</h4>
-    <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">«ثبت‌شده» = سرنخ‌هایی که در این دوره ثبت شدن؛ «جذب‌شده» = چندتا از همون‌ها تا امروز مشتری شدن؛ «فروش» = فروشِ این دوره به مشتری‌هایی که از این منبع اومدن. کلیک رویِ ردیف = فیلترِ کلِ صفحه.${srcCreatedTotal && srcNone ? ` <span style="color:var(--yellow)">${fn(srcNone)} از ${fn(srcCreatedTotal)} سرنخ منبعِ ثبت‌شده ندارن.</span>` : ''}</div>
-    ${srcList.length ? `<div style="overflow-x:auto"><table class="crm-table"><thead><tr><th>منبع</th><th style="min-width:120px">ثبت‌شده</th><th>جذب‌شده</th><th>نرخِ تبدیل</th><th>فروش</th></tr></thead><tbody>
+    <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">«ثبت‌شده» = سرنخ‌هایی که در این دوره ثبت شدن؛ «جذب‌شده» = چندتا از همون‌ها تا امروز مشتری شدن؛ کلیک رویِ ردیف = فیلترِ کلِ صفحه.${srcCreatedTotal && srcNone ? ` <span style="color:var(--yellow)">${fn(srcNone)} از ${fn(srcCreatedTotal)} سرنخ منبعِ ثبت‌شده ندارن.</span>` : ''}</div>
+    ${srcList.length ? `<div style="overflow-x:auto"><table class="crm-table"><thead><tr><th>منبع</th><th style="min-width:120px">ثبت‌شده</th><th>جذب‌شده</th><th>نرخِ تبدیل</th></tr></thead><tbody>
       ${srcList.map(s=>`<tr ${biAttr('src', s.key)} style="cursor:pointer;${F.src.size ? (F.src.has(s.key)?'background:rgba(59,130,246,.12);':'opacity:.4;') : ''}">
         <td style="font-weight:700">${biEsc(srcLabel(s.key))}</td>
         <td><div style="display:flex;align-items:center;gap:6px"><div style="height:8px;border-radius:4px;background:#3b82f6;width:${Math.round(s.created/srcMax*80)}px"></div>${fn(s.created)}</div></td>
-        <td>${fn(s.acquired)}</td><td style="font-weight:700">${s.created?fn(Math.round(s.acquired/s.created*100))+'٪':'—'}</td>
-        <td>${fx&&s.sale?biY(s.sale):'—'}</td></tr>`).join('')}
+        <td>${fn(s.acquired)}</td><td style="font-weight:700">${s.created?fn(Math.round(s.acquired/s.created*100))+'٪':'—'}</td></tr>`).join('')}
     </tbody></table></div>` : `<div class="bic-empty">با فیلترهایِ فعلی در این دوره سرنخی ثبت نشده</div>`}
   </div>`;
 
   const abandonedCard = `<div class="tbl-wrap" id="crmBiAbandoned">
     <div class="tbl-hdr"><div class="sec-title">⏳ سرنخ‌هایِ رهاشده (${fn(abandoned.length)})</div><div style="font-size:10.5px;color:var(--muted)">وضعیتِ امروز: رزروشده و ${fn(BI_IDLE_DAYS)} روز یا بیشتر بدونِ تماس، یا ${fn(BI_DEADLINE_WARN)} روز یا کمتر تا پایانِ رزرو</div></div>
     <div style="max-height:360px;overflow-y:auto"><table class="crm-table"><thead><tr><th>سرنخ</th><th>کارشناس</th><th>استان</th><th>آخرین تماس</th><th>مهلتِ رزرو</th></tr></thead><tbody>
-    ${abandoned.map(x=>`<tr><td style="font-weight:700">${biEsc(x.p.name)}</td>
+    ${(crmBiShowAll.abandoned ? abandoned : abandoned.slice(0, BI_ROWS_CAP.abandoned)).map(x=>`<tr><td style="font-weight:700">${biEsc(x.p.name)}</td>
       <td ${biAttr('rep', x.r.rep)} style="cursor:pointer;text-decoration:underline dotted">${biEsc(x.r.rep)}</td>
       <td>${biEsc(x.r.prov||x.r.provRaw||'—')}</td>
       <td style="color:${x.idle!=null&&x.idle>=BI_IDLE_DAYS?'var(--red)':''}">${x.idle==null?'—':x.none?`بدونِ تماس از شروعِ رزرو (${fn(x.idle)} روز)`:`${fn(x.idle)} روز پیش`}</td>
       <td style="color:${x.left!=null&&x.left<=BI_DEADLINE_WARN?'var(--red)':''};font-weight:${x.left!=null&&x.left<=BI_DEADLINE_WARN?700:400}">${x.left==null?'—':x.left<0?`${fn(-x.left)} روز گذشته`:x.left===0?'امروز تموم می‌شه':`${fn(x.left)} روز مونده`}</td></tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--muted)">سرنخِ رهاشده‌ای نیست ✅</td></tr>`}
-    </tbody></table></div></div>`;
+    </tbody></table></div>${!crmBiShowAll.abandoned && abandoned.length > BI_ROWS_CAP.abandoned ? `<div style="text-align:center;margin-top:8px"><button class="btn" data-bi-showall="abandoned" style="padding:4px 14px;font-size:11.5px">نمایشِ همه‌ی ${fn(abandoned.length)} مورد</button></div>` : ''}</div>`;
 
   const oneRep = F.rep.size===1 ? [...F.rep][0] : null;
   const cmpSel = oneRep && cmp[oneRep];
@@ -2612,20 +2540,17 @@ async function renderCrmBi(forceReload){
       ${['prov','cat','sub','phone'].map(f=>`<td style="color:${C[f]?'var(--red)':'var(--muted)'}">${C[f]?fn(C[f]):'—'}</td>`).join('')}</tr>`; }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--muted)">با فیلترهایِ فعلی موردی نیست</td></tr>`}
     </tbody></table>
     ${cmpSel && cmpSel.bad.length ? `<div style="margin-top:10px;font-size:11.5px"><b>موارِد ناقصِ ${biEsc(oneRep)} (${fn(cmpSel.bad.length)}):</b>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${cmpSel.bad.map(b=>`<span style="font-size:11px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:3px 10px">${biEsc(b.r.name)} <span style="color:var(--muted)">(${b.r.kind==='active'?'فعال':'غیرفعال'}) — بدونِ ${b.miss.map(m=>MISS_L[m]).join('، ')}</span></span>`).join('')}</div></div>`
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${cmpSel.bad.slice(0, 80).map(b=>`<span style="font-size:11px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:3px 10px">${biEsc(b.r.name)} <span style="color:var(--muted)">(${b.r.kind==='active'?'فعال':'غیرفعال'}) — بدونِ ${b.miss.map(m=>MISS_L[m]).join('، ')}</span></span>`).join('')}${cmpSel.bad.length>80?`<span style="font-size:11px;color:var(--muted)">… و ${fn(cmpSel.bad.length-80)} موردِ دیگه</span>`:''}</div></div>`
       : `<div style="font-size:10.5px;color:var(--muted);margin-top:8px">با انتخابِ یک کارشناس، فهرستِ مشتری‌ها و سرنخ‌هایِ ناقصش همین‌جا نشون داده می‌شه تا کامل‌شون کنه.</div>`}
   </div>`;
 
 
   c.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div class="sec-title" style="margin:0">💹 تحلیلِ مدیریتی — فروش، سود و عملکردِ تیم</div>
+      <div class="sec-title" style="margin:0">💹 تحلیلِ مدیریتی — عملکردِ تیم و مشتریان</div>
       <div style="display:flex;gap:6px;align-items:center">
-        <span style="font-size:10.5px;color:var(--muted)" title="اطلاعاتِ CRM زنده‌ست؛ اطلاعاتِ مالی لحظه‌ی بازشدنِ صفحه یا زدنِ 🔄 از دفترِ ارزی گرفته می‌شه">🕒 آخرین به‌روزرسانیِ مالی: ${updStamp}</span>
-        <button class="btn" id="crmBiReload" style="padding:6px 10px" title="گرفتنِ دوباره‌ی اطلاعاتِ مالی">🔄</button>
       </div>
     </div>
-    ${!fx ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px;margin-bottom:12px;font-size:11.5px">⚠️ اطلاعاتِ مالی از دفترِ ارزی دریافت نشد — فقط آمارِ فعالیتِ CRM نمایش داده می‌شه. دکمه‌ی 🔄 رو بزنید.</div>`:''}
     ${biFilterBarHtml(shown, yearHtml, periodLabel)}
     <div style="font-size:11.5px;font-weight:700;margin:0 0 6px">📊 ${biEsc(periodLabel)} — رویِ هر کارت بزنید تا همه‌ی نمودارهایِ صفحه با همون معیار نشون داده بشن</div>
     <div id="crmBiMetrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:14px">${metricCards}</div>
@@ -2633,23 +2558,18 @@ async function renderCrmBi(forceReload){
     ${timeCard}
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:16px">
-      ${card('سودِ سفارش‌هایِ لینک‌شده', fx&&!finNote?biY(profitTotal):'—', finNote ? 'سرنخ‌ها هنوز خریدی ندارن' : linkedSaleTotal?`حاشیه: ${biPct(profitTotal/linkedSaleTotal*100)}`:((fx&&fx.profit.linkedOrders)?'در این دوره سفارشِ لینک‌شده‌ای نیست':'هنوز خریدی به فاکتور لینک نشده'), profitTotal<0?'var(--red)':'var(--green)')}
       ${card(F.rep.size?'نرخِ تبدیلِ انتخاب‌شده‌ها':'نرخِ تبدیلِ تیم', biPct(teamWon+teamLost ? teamWon/(teamWon+teamLost)*100 : null), `${fn(teamWon)} موفق · ${fn(teamLost)} ناموفق`)}
       ${card('پاسخِ معوقِ فروش (الان)', fn(teamOverdue), 'بیش از ۲۴ ساعت بدونِ پیگیری', teamOverdue?'var(--red)':'')}
-      ${card('مطالباتِ بیش از ۶۰ روز (الان)', fx&&!finNote?biY(recvOldTotal):'—', fx&&!finNote?`از ${biY(recvTotal)} مطالبه‌ی باز`:'', recvOldTotal>0?'var(--red)':'')}
-      ${card('خریدارِ دوره در خطرِ ریزش', fn(atRisk.length), 'بیش از ۶۰ روز بدونِ تماس', atRisk.length?'var(--yellow)':'')}
     </div>
 
     <div class="bic-grid2" style="margin-bottom:16px">
       <div class="bic-card"><h4>👥 سهمِ کارشناس‌ها — ${MT.icon} ${MT.label} · ${periodLabel}</h4>${repTree}</div>
       <div class="bic-card"><h4>🔘 فعال و غیرفعال — ${MT.icon} ${MT.label} · ${periodLabel}</h4>${statusCard}<div style="font-size:10.5px;color:var(--muted);margin-top:8px">کلیک = فیلترِ کلِ صفحه</div></div>
       <div class="bic-card"><h4>📞 تماس‌هایِ هر کارشناس — ${periodLabel}</h4>${callsChart}</div>
-      <div class="bic-card"><h4>💰 فروش و سودِ هر کارشناس — ${periodLabel}</h4>${salesChart}</div>
       <div class="bic-card"><h4>🎯 نرخِ تبدیلِ هر کارشناس — ${periodLabel}</h4>${convChart}</div>
       <div class="bic-card"><h4>🔻 قیفِ فروش — ${periodLabel}</h4>${funnelChart}</div>
       <div class="bic-card"><h4>📈 روندِ تماس و نتیجه (${trendTitle})</h4>${trendChart}</div>
       <div class="bic-card"><h4>❌ دلایلِ ازدست‌رفتنِ فرصت‌ها — ${periodLabel}</h4>${lostChart}</div>
-      <div class="bic-card"><h4>❤️ سلامتِ خریدارانِ ${periodLabel}</h4>${healthChart}</div>
     </div>
     ${targetCard}
     ${renderCategoryDrillCard(catL1, catL2, fullRecs, unit, unitPl)}
@@ -2662,64 +2582,46 @@ async function renderCrmBi(forceReload){
       <div class="tbl-hdr" style="flex-wrap:wrap;gap:8px"><div class="sec-title">📋 با کیا تماس گرفته شده — ${periodLabel} (${fn(contactedRows.length)})</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:10.5px;color:var(--muted)">کلیک رویِ وضعیت، کارشناس، استان یا صنف = فیلتر</span><input class="form-control" data-bi-search="contact" placeholder="🔍 جستجو: نام، کارشناس، استان، صنف…" style="width:auto;min-width:200px;margin:0;padding:4px 10px;font-size:11.5px;height:auto"></div></div>
       <div style="max-height:420px;overflow-y:auto">
       <table class="crm-table">
-        <thead><tr><th>مشتری / سرنخ</th><th>وضعیت</th><th>کارشناس</th><th>استان</th><th>صنف</th><th>زیرصنف</th><th>تعدادِ تماس</th><th>فروشِ دوره</th></tr></thead>
-        <tbody data-bi-search-body="contact">${contactedRows.map(({r,n})=>`<tr data-bi-txt="${biEsc(biNorm([r.name,r.rep,r.prov||r.provRaw,r.catLabel,r.subKey!=='__none'?r.subLabel:''].join(' ')))}">
+        <thead><tr><th>مشتری / سرنخ</th><th>وضعیت</th><th>کارشناس</th><th>استان</th><th>صنف</th><th>زیرصنف</th><th>تعدادِ تماس</th></tr></thead>
+        <tbody data-bi-search-body="contact">${(crmBiShowAll.contact ? contactedRows : contactedRows.slice(0, BI_ROWS_CAP.contact)).map(({r,n})=>`<tr data-bi-txt="${biEsc(biNorm([r.name,r.rep,r.prov||r.provRaw,r.catLabel,r.subKey!=='__none'?r.subLabel:''].join(' ')))}">
           <td style="font-weight:700">${biEsc(r.name)}</td>
           <td ${biAttr('status',r.kind)} style="cursor:pointer">${r.kind==='active'?'🟢 فعال':'🟠 غیرفعال'}</td>
           <td ${biAttr('rep',r.rep)} style="cursor:pointer;text-decoration:underline dotted">${biEsc(r.rep)}</td>
           <td ${r.prov?biAttr('prov',r.prov)+' style="cursor:pointer;text-decoration:underline dotted"':'style="color:var(--muted)"'}>${biEsc(r.prov||r.provRaw||'—')}</td>
           <td ${biAttr('cat',r.catKey)} style="cursor:pointer;text-decoration:underline dotted">${biEsc(r.catLabel)}</td>
           <td ${r.subKey!=='__none'?biAttr('sub',r.catKey+'|'+r.subKey)+' style="cursor:pointer;text-decoration:underline dotted"':'style="color:var(--muted)"'}>${r.subKey!=='__none'?biEsc(r.subLabel):'—'}</td>
-          <td style="font-weight:700">${fn(n)}</td><td>${fx && fxCust[r.key] && fxCust[r.key].sale ? biY(fxCust[r.key].sale) : '—'}</td></tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">با فیلترهایِ فعلی در این دوره تماسی ثبت نشده</td></tr>`}</tbody>
+          <td style="font-weight:700">${fn(n)}</td></tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--muted)">با فیلترهایِ فعلی در این دوره تماسی ثبت نشده</td></tr>`}</tbody>
       </table></div>
+      ${!crmBiShowAll.contact && contactedRows.length > BI_ROWS_CAP.contact ? `<div style="text-align:center;margin-top:8px"><button class="btn" data-bi-showall="contact" style="padding:4px 14px;font-size:11.5px">نمایشِ همه‌ی ${fn(contactedRows.length)} مورد (الان ${fn(BI_ROWS_CAP.contact)} موردِ پرتماس‌تر)</button></div>` : ''}
     </div>
 
     <div class="tbl-wrap">
       <div class="tbl-hdr"><div class="sec-title">🏅 کارنامه‌ی کارشناسان — ${periodLabel}</div><div style="font-size:10.5px;color:var(--muted)">کلیک رویِ ردیف = فیلترِ کارشناس</div></div>
       <table class="crm-table">
-        <thead><tr><th>کارشناس</th><th>تماس</th><th>مشتریِ درگیر</th><th>موفق</th><th>ناموفق</th><th>نرخِ تبدیل</th><th>میانگینِ روزِ بستن</th><th>پاسخِ معوق (الان)</th><th>فروش</th><th>سود</th><th>مطالباتِ باز (الان)</th><th>بیش از ۶۰ روز</th></tr></thead>
+        <thead><tr><th>کارشناس</th><th>تماس</th><th>مشتریِ درگیر</th><th>موفق</th><th>ناموفق</th><th>نرخِ تبدیل</th><th>میانگینِ روزِ بستن</th><th>پاسخِ معوق (الان)</th></tr></thead>
         <tbody>${repRows.map(r=>`<tr ${biAttr('rep',r.name)} style="cursor:pointer;${dimRow(r.name)}">
           <td style="font-weight:700">${biEsc(r.name)}</td><td>${fn(r.calls)}</td><td>${fn(r.customers.size)}</td>
           <td style="color:var(--green)">${fn(r.won)}</td><td style="color:var(--red)">${fn(r.lost)}</td>
           <td style="font-weight:700">${biPct(r.won+r.lost ? r.won/(r.won+r.lost)*100 : null)}</td>
           <td>${r.cycle.length?fn(Math.round(r.cycle.reduce((a,b)=>a+b,0)/r.cycle.length))+' روز':'—'}</td>
           <td style="color:${r.overdue?'var(--red)':''}">${fn(r.overdue)}</td>
-          <td>${fx?biY(r.sale):'—'}</td>
-          <td style="color:${r.profit<0?'var(--red)':''}">${fx&&r.profitLinked?biY(r.profit):'—'}</td>
-          <td>${fx?biY(r.recv):'—'}</td><td style="color:${r.recvOld?'var(--red)':''};font-weight:${r.recvOld?700:400}">${fx&&r.recvOld?biY(r.recvOld):'—'}</td>
-        </tr>`).join('') || `<tr><td colspan="12" style="text-align:center;color:var(--muted)">با فیلترهایِ فعلی داده‌ای نیست</td></tr>`}</tbody>
+        </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">با فیلترهایِ فعلی داده‌ای نیست</td></tr>`}</tbody>
       </table>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:8px">«تماس» = هر تماس یا فعالیتِ ثبت‌شده در جدولِ CRM و رویِ سرنخ‌ها (به‌جز یادداشتِ آزاد). همه‌ی آمار — تماس، موفق و ناموفق، فروش، سود و مطالبات — بر اساسِ «کارشناسِ مسئولِ مشتری» تقسیم شده، نه کسی که تماس رو ثبت کرده؛ اگه برایِ مشتری کارشناس تعیین نشده، کارشناسی که بیشترین پیگیری رو براش داشته. ستون‌هایِ «الان» وضعیتِ امروزن و به دوره بستگی ندارن. سود فقط برایِ سفارش‌هایی حساب می‌شه که خریدشون در دفترِ ارزی به فاکتور لینک شده.${F.rep.size?' کارشناس‌هایِ انتخاب‌نشده کم‌رنگ نمایش داده می‌شن تا مقایسه حفظ بشه.':''}</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:8px">«تماس» = هر تماس یا فعالیتِ ثبت‌شده در جدولِ CRM و رویِ سرنخ‌ها (به‌جز یادداشتِ آزاد). همه‌ی آمار — تماس، موفق و ناموفق — بر اساسِ «کارشناسِ مسئولِ مشتری» تقسیم شده، نه کسی که تماس رو ثبت کرده؛ اگه برایِ مشتری کارشناس تعیین نشده، کارشناسی که بیشترین پیگیری رو براش داشته. ستون‌هایِ «الان» وضعیتِ امروزن و به دوره بستگی ندارن.${F.rep.size?' کارشناس‌هایِ انتخاب‌نشده کم‌رنگ نمایش داده می‌شن تا مقایسه حفظ بشه.':''}</div>
     </div>
-
-    <div class="tbl-wrap">
-      <div class="tbl-hdr" style="flex-wrap:wrap;gap:8px"><div class="sec-title">❤️ سلامتِ خریدارانِ ${periodLabel} (${fn(buyers.length)})</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:10.5px;color:var(--muted)">وضعیتِ امروز: 🟢 تا ۳۰ روز · 🟡 ۳۱ تا ۶۰ · 🔴 بیش از ۶۰ روز از آخرین تماس</span><input class="form-control" data-bi-search="buyers" placeholder="🔍 جستجو: نام، کارشناس، استان، صنف…" style="width:auto;min-width:200px;margin:0;padding:4px 10px;font-size:11.5px;height:auto"></div></div>
-      <div style="max-height:460px;overflow-y:auto">
-      <table class="crm-table">
-        <thead><tr><th></th><th>مشتری</th><th>کارشناس</th><th>کلِ خرید</th><th>خریدِ ${periodLabel}</th><th>سود</th><th>آخرین تماس</th><th>آخرین سفارش</th><th>مطالبه‌ی باز</th></tr></thead>
-        <tbody data-bi-search-body="buyers">${buyers.map(b=>{ const h=health(b); return `<tr data-bi-txt="${biEsc(biNorm(b.name+' '+b.rep))}">
-          <td title="${h.t}">${h.i}</td><td style="font-weight:700">${biEsc(b.name)}</td><td ${biAttr('rep',b.rep)} style="cursor:pointer;text-decoration:underline dotted" title="فیلترِ این کارشناس">${biEsc(b.rep)}</td>
-          <td>${biY(b.saleAll)}</td><td>${b.sale?biY(b.sale):'—'}</td><td>${b.linkedSale?biY(b.profit):'—'}</td>
-          <td>${b.contact==null?'—':b.contact===0?'امروز':fn(b.contact)+' روز پیش'}</td><td>${b.lastOrder==null?'—':b.lastOrder===0?'امروز':fn(b.lastOrder)+' روز پیش'}</td>
-          <td style="color:${b.recvOld?'var(--red)':''}">${b.recv?biY(b.recv):'—'}</td></tr>`; }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">${finNote || (fx?'با فیلترهایِ فعلی در این دوره خریداری نیست':'اطلاعاتِ مالی در دسترس نیست')}</td></tr>`}</tbody>
-      </table></div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
-      <div class="tbl-wrap">
-        <div class="tbl-hdr"><div class="sec-title">🔗 مشتری‌هایِ دفترِ ارزی که در CRM پیدا نشدن</div></div>
-        <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">فروشِ این‌ها به هیچ کارشناسی نسبت داده نمی‌شه (زیرِ «${BI_NO_REP}» می‌آن). معمولاً اسم در دو سیستم کمی فرق داره — یکی‌شون رو اصلاح کنید تا یکسان بشن.</div>
-        <table class="crm-table"><tbody>${unmatchedF.map(n=>`<tr><td>${biEsc(n)}</td></tr>`).join('') || `<tr><td style="text-align:center;color:var(--muted)">${unmatched.size?'با فیلترهایِ فعلی در این دوره موردی نیست':'همه‌ی مشتری‌ها تطبیق داده شدن ✅'}</td></tr>`}</tbody></table>
-      </div>
-    </div>`;
+  </div>`;
 
   c.querySelectorAll('.bic-scroll').forEach(s=>{ s.scrollLeft = s.scrollWidth; });
   wireCrmBiFilters(c);
-  c.querySelector('#crmBiReload').addEventListener('click', ev=>{ ev.stopPropagation(); renderCrmBi(true); });
   c.querySelectorAll('[data-bi-search]').forEach(inp=>{
     const key = inp.getAttribute('data-bi-search'), body = c.querySelector(`[data-bi-search-body="${key}"]`);
     inp.value = crmBiSearch[key] || '';
-    const apply = ()=>{ crmBiSearch[key] = inp.value; const q = biNorm(inp.value);
+    const apply = ()=>{ crmBiSearch[key] = inp.value;
+      if(inp.value && crmBiShowAll[key]===false && body.querySelector('tr[data-bi-txt]') && c.querySelector(`[data-bi-showall="${key}"]`)){
+        crmBiShowAll[key] = true; const pos = inp.selectionStart;
+        renderCrmBi().then(()=>{ const n = c.querySelector(`[data-bi-search="${key}"]`); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } });
+        return;
+      } const q = biNorm(inp.value);
       body.querySelectorAll('tr[data-bi-txt]').forEach(tr=>{ tr.style.display = !q || tr.getAttribute('data-bi-txt').includes(q) ? '' : 'none'; }); };
     inp.addEventListener('input', apply); apply();
   });
