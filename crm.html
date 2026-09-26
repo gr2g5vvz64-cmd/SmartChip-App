@@ -353,6 +353,9 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 <div id="crmLoadingState" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:13px;">
   <div style="font-size:32px;">⏳</div>
   <div>در حال بارگذاری اطلاعات CRM...</div>
+  <div id="crmLoadingStep" style="font-size:12px;min-height:18px"></div>
+  <div id="crmLoadingBar" style="width:220px;height:6px;border-radius:3px;background:rgba(148,163,184,.2);overflow:hidden;display:none"><div id="crmLoadingFill" style="height:100%;width:0;background:var(--accent);transition:width .25s"></div></div>
+  <div id="crmLoadingHint" style="font-size:11px;max-width:320px;text-align:center;line-height:1.8;display:none"></div>
 </div>
 
 <!-- ساختار اصلی اپ — سایدبار + محتوا، عیناً مثل ERP -->
@@ -1129,9 +1132,19 @@ function submitEmailForm(){
   document.getElementById('emailFormContent').style.display='none';
   if(_emailFormResolve) _emailFormResolve(val);
 }
+function crmLoadStep(text, hint){
+  const a=document.getElementById('crmLoadingStep'), b=document.getElementById('crmLoadingHint');
+  if(a && text!=null) a.textContent=text;
+  if(b){ if(hint){ b.innerHTML=hint; b.style.display='block'; } else if(hint===null){ b.style.display='none'; } }
+}
 async function getCurrentUserInfoFromDjangoOrSheet(email){
+  // ⚠️ (۱۴۰۵/۰۷/۰۴) سقفِ ۶۰ ثانیه: سرورِ Render بعد از مدتی بی‌کاری خاموش می‌شه و اولین درخواست تا حدودِ یک دقیقه طول می‌کشه
+  crmLoadStep('در حالِ بررسیِ کاربر...');
+  const slow = setTimeout(()=>crmLoadStep(null, '⏳ سرور بعد از مدتی بی‌کاری خاموش می‌شه و روشن شدنش تا یک دقیقه طول می‌کشه — لطفاً صبر کنید.<br>اگه بیشتر طول کشید، فیلترشکن رو بررسی کنید.'), 8000);
+  const ctl = new AbortController(), cut = setTimeout(()=>ctl.abort(), 60000);
   try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/', {signal: ctl.signal});
+    clearTimeout(slow); clearTimeout(cut); crmLoadStep(null, null);
     if(res.status===404){
       return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
     }
@@ -1141,6 +1154,8 @@ async function getCurrentUserInfoFromDjangoOrSheet(email){
       return { email, name:d.name||'', role:d.role||'', isStaff:true };
     }
   }catch(e){ /* مشکل شبکه — به fallback گوگل‌شیت برمی‌گردیم */ }
+  clearTimeout(slow); clearTimeout(cut);
+  crmLoadStep('سرور جواب نداد — امتحانِ مسیرِ پشتیبان...', null);
   return await sheetCall('getCurrentUserInfo', { email });
 }
 async function init(){
@@ -1164,85 +1179,88 @@ async function init(){
   currentUser=userInfo;
   document.getElementById('userChipText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
   loadCalendarHolidays(); // تقویم/تعطیلات از Django — برای محاسبه‌ی SLA لازمه
-  // درخواست‌های موازی — یادآوری‌ها هم اضافه شدند
-  try{
-    const djangoRes = await fetchWarehouseAndOutboundFromDjangoCRM();
-    if(djangoRes.items && djangoRes.packings){
-      cachedWarehouseItems = djangoRes.items;
-      cachedOutboundPackings = djangoRes.packings;
-    } else {
-      // Django در دسترس نبود — fallback به گوگل‌شیت (روش قدیمی)
-      const [whRes, pkRes] = await Promise.all([
-        sheetCall('getWarehouseItems'),
-        sheetCall('getOutboundPackings')
-      ]);
-      cachedWarehouseItems=(whRes&&whRes.items)||[];
-      cachedOutboundPackings=(pkRes&&pkRes.packings)||[];
-    }
-  }catch(e){ console.error('خطای بارگذاری انبار/پکینگ:', e); }
-  // چک‌ها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۲۳ مهاجرت)
-  try{
-    const [djangoChqRec, djangoPaidChq] = await Promise.all([
-      fetchChequesReceivedFromDjango(), fetchPaidChequesFromDjango()
-    ]);
-    chequesReceived = djangoChqRec || [];
-    paidCheques = djangoPaidChq || [];
-  }catch(e){ console.error('خطای بارگذاری چک‌ها:', e); }
-  // محموله‌ها — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۲۰ مهاجرت)
-  try{
-    const djangoShipments = await fetchShipmentsFromDjango();
-    shipments = djangoShipments || [];
-  }catch(e){ console.error('خطای بارگذاری محموله‌ها:', e); }
-  // درخواست‌های فروش — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۱۶ مهاجرت)
-  try{
-    const djangoRequests = await fetchRequestsFromDjango();
-    cachedRequests = djangoRequests || [];
-  }catch(e){ console.error('خطای بارگذاری درخواست‌ها:', e); }
-  // بازخوردها — برای نمایش وضعیت ستون جدید «بازخورد» تو جدول اصلی
-  try{
-    const djangoFeedback = await fetchDeliveryFeedbackFromDjangoM();
-    cachedDeliveryFeedback = djangoFeedback || [];
-  }catch(e){ console.error('خطای بارگذاری بازخوردها:', e); }
-  try{
-    const sugRes = await fetch('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/');
-    cachedSuggestions = sugRes.ok ? await sugRes.json() : [];
-  }catch(e){ console.error('خطای بارگذاری پیشنهادها:', e); }
-  try{
-    const djangoLeads = await fetchLeadsFromDjango();
-    leads = djangoLeads || [];
-    console.log('✅ لیدها بارگذاری شد:', leads.length, 'مورد');
-  }catch(e){ console.error('❌ خطای بارگذاری لیدها:', e); }
-  // مشتریان — دیگر از گوگل‌شیت نمی‌آید، از بک‌اند واقعی Django می‌آید (مرحله ۳ مهاجرت)
-  try{
-    const djangoCustomers = await fetchCustomersFromDjango();
-    customerMaster = djangoCustomers || [];
-  }catch(e){ console.error('خطای بارگذاری مشتریان:', e); }
-  // وصول مطالبات — دیگر از گوگل‌شیت نمی‌آید، از بک‌اند واقعی Django می‌آید
-  try{
-    const djangoDebtCases = await fetchDebtCasesFromDjango();
-    debtCases = djangoDebtCases || [];
-  }catch(e){ console.error('خطای بارگذاری وصول مطالبات:', e); }
-  // جذب مشتری — سیستم مستقل مشتریان بالقوه
-  try{
-    const djangoProspects = await fetchProspectsFromDjango();
-    prospects = djangoProspects || [];
-    updateProspectsBadge();
-    updateProspNavVisibility();
-    updateApprovalsBadge();
-    updateMgmtBadge();
-    const activeNames = await fetchActiveCustomerNamesFromDjango();
-    if(activeNames) activeCustomerNames = activeNames;
-    const staffL = await fetchStaffListFromDjango();
-    if(staffL) staffListForAssignment = staffL;
-  }catch(e){ console.error('خطای بارگذاری مشتریان بالقوه:', e); }
-  // یادآوری آزاد/دوره‌ای — دیگر از گوگل‌شیت نمی‌آیند، از Django می‌آیند (مرحله ۷ مهاجرت)
-  try{
-    const [djangoFreeRem, djangoRecurring] = await Promise.all([
-      fetchFreeRemindersFromDjango(), fetchRecurringRemindersFromDjango()
-    ]);
-    freeReminders = djangoFreeRem || [];
-    recurringReminders = djangoRecurring || [];
-  }catch(e){ console.error('خطای بارگذاری یادآوری‌ها:', e); }
+  // ⚠️ (۱۴۰۵/۰۷/۰۴) طبق شکایتِ کاربر از کندیِ بارگذاری: قبلاً این ۱۴ درخواست یکی‌یکی و پشتِ سرِ هم
+  // اجرا می‌شدن (هر کدوم تا ۲×۱۲ ثانیه)، پس زمانِ کل = جمعِ همه. الان همه با هم شروع می‌شن و زمانِ کل
+  // = کُندترین درخواست. هر بخش مستقل خطاش رو می‌گیره تا خرابیِ یکی بقیه رو معطل نکنه.
+  const tasks = [
+    ['انبار و پکینگ', async()=>{
+      const djangoRes = await fetchWarehouseAndOutboundFromDjangoCRM();
+      if(djangoRes.items && djangoRes.packings){
+        cachedWarehouseItems = djangoRes.items;
+        cachedOutboundPackings = djangoRes.packings;
+      } else {
+        // Django در دسترس نبود — fallback به گوگل‌شیت (روش قدیمی)
+        const [whRes, pkRes] = await Promise.all([ sheetCall('getWarehouseItems'), sheetCall('getOutboundPackings') ]);
+        cachedWarehouseItems=(whRes&&whRes.items)||[];
+        cachedOutboundPackings=(pkRes&&pkRes.packings)||[];
+      }
+    }],
+    // چک‌ها — از Django (مرحله ۲۳ مهاجرت)
+    ['چک‌هایِ دریافتی', async()=>{ chequesReceived = (await fetchChequesReceivedFromDjango()) || []; }],
+    ['چک‌هایِ پرداختی', async()=>{ paidCheques = (await fetchPaidChequesFromDjango()) || []; }],
+    // محموله‌ها — از Django (مرحله ۲۰ مهاجرت)
+    ['محموله‌ها', async()=>{ shipments = (await fetchShipmentsFromDjango()) || []; }],
+    // درخواست‌های فروش — از Django (مرحله ۱۶ مهاجرت)
+    ['درخواست‌ها', async()=>{ cachedRequests = (await fetchRequestsFromDjango()) || []; }],
+    // بازخوردها — برای ستونِ «بازخورد» تو جدولِ اصلی
+    ['بازخوردها', async()=>{ cachedDeliveryFeedback = (await fetchDeliveryFeedbackFromDjangoM()) || []; }],
+    ['پیشنهادها', async()=>{ const d = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/'); cachedSuggestions = d || []; }],
+    ['لیدها', async()=>{ leads = (await fetchLeadsFromDjango()) || []; console.log('✅ لیدها بارگذاری شد:', leads.length, 'مورد'); }],
+    // مشتریان — از Django (مرحله ۳ مهاجرت)
+    ['مشتریان', async()=>{ customerMaster = (await fetchCustomersFromDjango()) || []; }],
+    // وصول مطالبات — از Django
+    ['وصولِ مطالبات', async()=>{ debtCases = (await fetchDebtCasesFromDjango()) || []; }],
+    // جذب مشتری — سیستم مستقل مشتریان بالقوه
+    ['سرنخ‌ها', async()=>{ prospects = (await fetchProspectsFromDjango()) || []; }],
+    ['مشتری‌هایِ فعال', async()=>{ const a = await fetchActiveCustomerNamesFromDjango(); if(a) activeCustomerNames = a; }],
+    ['کارمندان', async()=>{ const l = await fetchStaffListFromDjango(); if(l) staffListForAssignment = l; }],
+    // یادآوری آزاد/دوره‌ای — از Django (مرحله ۷ مهاجرت)
+    ['یادآوری‌ها', async()=>{ freeReminders = (await fetchFreeRemindersFromDjango()) || []; }],
+    ['یادآوری‌هایِ دوره‌ای', async()=>{ recurringReminders = (await fetchRecurringRemindersFromDjango()) || []; }],
+  ];
+  // بخش‌هایی که بدونِ اون‌ها صفحه معنی نداره؛ بقیه اگه دیر برسن، صفحه باز می‌شه و به‌محضِ رسیدن اضافه می‌شن
+  const CRITICAL = new Set(['لیدها','مشتریان','سرنخ‌ها','درخواست‌ها','کارمندان','مشتری‌هایِ فعال']);
+  let done = 0, opened = false, lateTimer = null; const failed = [];
+  const bar = document.getElementById('crmLoadingBar'), fill = document.getElementById('crmLoadingFill');
+  if(bar) bar.style.display = 'block';
+  const tick = ()=>{ crmLoadStep(`${fn(done)} از ${fn(tasks.length)} بخش رسید`); if(fill) fill.style.width = (done/tasks.length*100)+'%'; };
+  tick();
+  const slowHint = setTimeout(()=>{ const left = tasks.filter(t=>!t.done).map(t=>t[0]);
+    if(left.length) crmLoadStep(null, `⏳ منتظرِ: ${left.join('، ')}<br>اگه خیلی طول کشید، فیلترشکن و اینترنت رو بررسی کنید.`); }, 10000);
+  const lateBanner = ()=>{
+    let el = document.getElementById('crmLateBanner');
+    const left = tasks.filter(t=>!t.done).map(t=>t[0]);
+    if(!left.length){ if(el) el.remove(); return; }
+    if(!el){ el = document.createElement('div'); el.id = 'crmLateBanner';
+      el.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;background:rgba(245,158,11,.95);color:#000;font-size:11.5px;padding:7px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.3);max-width:320px;line-height:1.7';
+      document.body.appendChild(el); }
+    el.textContent = `⏳ هنوز در راه: ${left.join('، ')} — به‌محضِ رسیدن نمایش داده می‌شن`;
+  };
+  // وقتی بخشی بعد از بازشدنِ صفحه رسید: نمایِ فعلی دوباره ساخته می‌شه
+  const refreshAfterLate = ()=>{ clearTimeout(lateTimer); lateTimer = setTimeout(()=>{
+    try{
+      updateMorningBadge(); renderToolbar(); renderPulseBar(); renderKanban();
+      updateProspectsBadge(); updateProspNavVisibility(); updateApprovalsBadge(); updateMgmtBadge();
+      const act = document.querySelector('[id^="tabBtn"].active');
+      if(act){ const t = act.id.slice(6); showCrmTab(t.charAt(0).toLowerCase()+t.slice(1)); }
+    }catch(e){ console.error('خطای به‌روزرسانی بعد از رسیدنِ داده‌ی دیرکرد:', e); }
+    lateBanner();
+  }, 300); };
+  const runs = tasks.map(t=>(async()=>{
+    try{ await t[1](); }catch(e){ failed.push(t[0]); console.error('خطای بارگذاری «'+t[0]+'»:', e); }
+    t.done = true; done++;
+    if(opened){ if(t[0]==='یادآوری‌هایِ دوره‌ای' && recurringReminders.length) nextRecId=Math.max(...recurringReminders.map(r=>Number(String(r.id).replace(/\D/g,''))||0))+1; refreshAfterLate(); }
+    else tick();
+  })());
+  await Promise.all(tasks.map((t,i)=>CRITICAL.has(t[0]) ? runs[i] : null));
+  // بقیه حداکثر ۵ ثانیه‌ی دیگه صبر؛ بعد صفحه باز می‌شه و دیرکردها در پس‌زمینه می‌رسن
+  await Promise.race([Promise.all(runs), new Promise(r=>setTimeout(r, 5000))]);
+  opened = true;
+  setTimeout(lateBanner, 0);
+  clearTimeout(slowHint); crmLoadStep(null, null);
+  if(failed.length) console.warn('این بخش‌ها بارگذاری نشدن:', failed.join('، '));
+  try{ updateProspectsBadge(); updateProspNavVisibility(); updateApprovalsBadge(); updateMgmtBadge(); }
+  catch(e){ console.error('خطای به‌روزرسانیِ نشان‌ها:', e); }
   // شماره‌ی بعدی ID یادآوری دوره‌ای
   if(recurringReminders.length) nextRecId=Math.max(...recurringReminders.map(r=>Number(String(r.id).replace(/\D/g,''))||0))+1;
   // ⚠️ فیکس مهم (۱۴۰۵/۰۶/۰۷): isConnected اینجا صریحاً true می‌شه — چون همه‌ی بلوک‌های بالا
