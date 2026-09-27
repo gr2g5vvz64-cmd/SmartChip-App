@@ -764,9 +764,15 @@ document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('cli
 }
 refreshData().then(renderMain);
 
-// ⚠️ (۱۴۰۵/۰۷/۰۹) طبقِ تصمیمِ کاربر: PWA کاملاً برداشته شد — منشأِ چند خرابیِ واقعیِ اخیر بود.
-// اگه قبلاً رویِ این مرورگر نصب شده باشه، فایلِ sw.js (که رویِ سرور با یک نسخه‌ی خودکارحذف‌کننده
-// جایگزین شده) دفعه‌یِ بعد که این صفحه باز بشه، خودش رو کاملاً از مرورگر پاک می‌کنه.
+// ⚠️ (۱۴۰۵/۰۷/۱۱) طبقِ درخواستِ صریحِ کاربر: PWA فقط برایِ همین صفحه (یادآوری‌ها) دوباره
+// فعال شد — نه برایِ CRM/ERP/دفترِ ارزی/بقیه. فایلِ سرویس‌ورکر هم اسمِ جدا داره
+// (sw-reminders.js، نه sw.js) و هم با scope صریح ثبت می‌شه، تا مطمئن باشیم هیچ‌وقت
+// رویِ بقیه‌ی صفحه‌ها (حتی اگه هم‌زمان در تبِ دیگه‌ای باز باشن) کنترل نمی‌گیره.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw-reminders.js', {scope: './reminders.html'}).catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
