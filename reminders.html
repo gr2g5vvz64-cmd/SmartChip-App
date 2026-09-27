@@ -495,6 +495,7 @@ function renderCalendar(main){
         <span>📅 عددِ کوچیک = تاریخِ میلادی</span>
       </div>
     </div>
+    <div id="calDayDetail"></div>
     <div class="card">
       <div class="card-title">تعطیلاتِ این ماه</div>
       ${monthHolidays.length ? monthHolidays.map(h=>{
@@ -503,7 +504,6 @@ function renderCalendar(main){
         return `<div class="hol-row"><span>${flags} ${labels}</span><span style="color:var(--ink-soft)">${fn(calMonth)}/${fn(h.d)}</span></div>`;
       }).join('') : '<div class="empty">این ماه تعطیلی ندارد ✅</div>'}
     </div>
-    <div id="calDayDetail"></div>
   `;
   main.querySelector('#calPrev').addEventListener('click', ()=>{ calMonth--; if(calMonth<1){calMonth=12;calYear--;} renderMain(); });
   main.querySelector('#calNext').addEventListener('click', ()=>{ calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderMain(); });
