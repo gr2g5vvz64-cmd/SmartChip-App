@@ -1,82 +1,36 @@
-// ⚠️ (۱۴۰۵/۰۶/۱۸) سرویس‌ورکرِ مشترکِ همه‌ی اپ‌های اسمارت‌چیپ (CRM, ERP,
-// Price List, دفتر ارزی, مدیریت کارمندان).
+// ⚠️ (۱۴۰۵/۰۷/۰۹) طبقِ تصمیمِ صریحِ کاربر: PWA (قابلیتِ نصب) کاملاً از همه‌ی
+// برنامه‌های اسمارت‌چیپ برداشته شد — چون منشأِ چند خرابیِ واقعیِ «صفحه اصلاً
+// بالا نمیاد» بود (نسخه‌ی قبلی، اگه شبکه لحظه‌ای قطع می‌شد و کشی هم نبود،
+// به‌جایِ نمایشِ خطایِ عادی، کلِ صفحه رو با ERR_CONNECTION_RESET می‌شکوند).
 //
-// ⚠️⚠️ فیکسِ باگِ حیاتی: نسخه‌ی قبلی هیچ چکی برای «هم‌مبدأ بودن»
-// (same-origin) نداشت — یعنی داشت درخواست‌های API به بک‌اند
-// (smartchip-backend.onrender.com، که یه دامنه‌ی کاملاً جداست) رو هم
-// می‌گرفت و سعی می‌کرد کش/مدیریت‌شون کنه. وقتی fetch به یه سرویسِ
-// cross-origin از داخلِ سرویس‌ورکر با مشکل مواجه می‌شد (مثلاً سردیِ
-// اولیه‌ی رندر، یا هر پیچیدگیِ شبکه‌ای)، سرویس‌ورکر نمی‌تونست Response
-// معتبری برگردونه (خطای «Failed to convert value to 'Response'») و
-// کلِ درخواست به‌جای یه خطای عادیِ شبکه، کاملاً می‌شکست. همچنین باعثِ
-// تداخل با preloadِ فونت هم می‌شد.
+// این فایل دیگه چیزی رو کش نمی‌کنه یا مدیریت نمی‌کنه. تنها کارش اینه که
+// خودش رو از هر مرورگری که قبلاً نسخه‌ی قدیمی رو نصب کرده، کاملاً پاک کنه.
+// مرورگرها خودشون این فایل رو روی هر بازدید چک می‌کنن، پس نیازی به هیچ
+// کارِ دستیِ کاربر نیست — همین که این نسخه جایگزینِ نسخه‌ی قبلی بشه، خودش
+// اجرا و فعال می‌شه.
 //
-// فیکس: سرویس‌ورکر فقط رو درخواست‌های **هم‌مبدأ** (خودِ فایل‌های
-// استاتیکِ سایت) دخالت می‌کنه. هر درخواستِ cross-origin (API، فونت،
-// هر چیزِ دیگه‌ای از دامنه‌ی دیگه) رو کاملاً دست‌نخورده و بدونِ دخالت
-// به مرورگر می‌سپاریم.
-//
-// وقتی یه نسخه‌ی جدیدِ این فایل (sw.js) دیپلوی بشه، عددِ CACHE_VERSION
-// رو دستی عوض کنید تا کشِ قدیمی پاک بشه.
-const CACHE_VERSION = 'smartchip-v3';
+// این فایل رو مدتی (چند هفته) روی سرور نگه دارید تا مطمئن بشیم همه‌ی
+// مرورگرهایی که نسخه‌ی قدیمی رو داشتن، فرصتِ پاک‌شدن پیدا کردن؛ بعدش
+// می‌شه کلاً حذفش کرد.
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))
-      )
-    )
-  );
-  self.clients.claim();
-});
+  event.waitUntil((async () => {
+    // پاک‌کردنِ هر چیزی که نسخه‌های قبلی کش کرده بودن
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
+    // خودِ سرویس‌ورکر رو غیرفعال کن
+    await self.registration.unregister();
 
-  const url = new URL(req.url);
-
-  // ⚠️ مهم‌ترین خط: اگه درخواست مالِ دامنه‌ی دیگه‌ایه (API بک‌اند، فونتِ
-  // گوگل، هرچیزِ دیگه)، اصلاً دخالت نکن — بذار مرورگر خودش عادی مدیریت کنه.
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-
-  const isStaticAsset = /\.(png|jpg|jpeg|svg|ico|woff2?)$/.test(url.pathname);
-
-  if (isStaticAsset) {
-    // فایل‌های استاتیکِ خودِ سایت (آیکون‌ها) به‌ندرت عوض می‌شن — cache-first
-    event.respondWith(
-      caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_VERSION).then((c) => c.put(req, clone));
-        return res;
-      }))
-    );
-  } else {
-    // صفحاتِ HTML/JSِ خودِ سایت — network-first، تا همیشه نسخه‌ی تازه بیاد
-    // ⚠️ (۱۴۰۵/۰۷/۰۹) فیکسِ باگِ واقعیِ دیگه: وقتی fetch شکست می‌خورد و هیچ نسخه‌ی
-    // کش‌شده‌ای هم موجود نبود (مثلاً بارِ اولِ باز کردنِ یه صفحه، یا بعدِ آپدیتِ فایل)،
-    // caches.match(req) مقدارِ undefined برمی‌گردوند و respondWith با undefined صدا زده
-    // می‌شد — که خطایِ «Failed to convert value to 'Response'» می‌داد و کلِ صفحه، به‌جایِ
-    // یه خطایِ شبکه‌یِ عادی، با ERR_CONNECTION_RESET کاملاً می‌شکست. الان اگه کشی نباشه،
-    // خطایِ اصلیِ شبکه دوباره throw می‌شه تا مرورگر خودش رفتارِ عادیِ «اتصال برقرار نشد»
-    // رو نشون بده، نه یک کرشِ گنگِ سرویس‌ورکری.
-    event.respondWith(
-      fetch(req).then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_VERSION).then((c) => c.put(req, clone));
-        return res;
-      }).catch(async (err) => {
-        const cached = await caches.match(req);
-        if (cached) return cached;
-        throw err;
-      })
-    );
-  }
+    // هر تبِ بازی که این صفحه توش بازه رو یک‌بار رفرش کن تا از زیرِ
+    // کنترلِ سرویس‌ورکر کاملاً خارج بشه
+    const allClients = await self.clients.matchAll({ type: 'window' });
+    for (const client of allClients) {
+      client.navigate(client.url);
+    }
+  })());
 });
