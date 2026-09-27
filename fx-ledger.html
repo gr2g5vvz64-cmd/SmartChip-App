@@ -445,7 +445,8 @@ function showToast(msg){
 }
 
 // ── API ──
-let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], settings:{rateBasis:'hawale', currentRate:null} };
+let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], incomes:[], transfers:[], capitalAdvances:[], adjustments:[], settings:{rateBasis:'hawale', currentRate:null} };
+let dataReady = false;   // ⚠️ تا این true نشه، تبِ فعلی محتوایِ واقعی نشون نمی‌ده — فقط پوسته
 
 // ⚠️ (۱۴۰۵/۰۶/۲۲) طبق گزارشِ کاربر: وقتی سرورِ رایگانِ رندر تازه داره
 // بیدار می‌شه (بعدِ خواب)، بعضی از اولین درخواست‌ها با خطای شبکه‌ی
@@ -464,7 +465,7 @@ let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], sett
 // هیچ‌وقت نمیاد — رویِ هرکدوم از ۸ تلاش، شاید دقیقه‌ها. حالا هر تلاش
 // حداکثر ۱۲ ثانیه مهلت داره؛ اگه جواب نیومد، همون تلاش لغو و بلافاصله
 // تلاشِ بعدی شروع می‌شه — دیگه چرخِ بارگذاری برایِ همیشه نمی‌مونه.
-async function fetchWithRetry(url, options, retries=8, delayMs=2000, timeoutMs=12000){
+async function fetchWithRetry(url, options, retries=2, delayMs=2000, timeoutMs=20000){
   for(let i=0; i<retries; i++){
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(), timeoutMs);
@@ -787,19 +788,14 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  // ⚠️ (۱۴۰۵/۰۷/۰۷) طبقِ خواسته‌ی صریحِ کاربر: بدونِ نوارِ پیشرفت و شمارشِ ثانیه. همه‌ی بخش‌ها
-  // هم‌زمان گرفته می‌شن (نه پشتِ‌سرِهم)، پس اگه سرور در دسترس نباشه ظرفِ چند ثانیه معلوم می‌شه،
-  // نه بعدِ جمعِ retryِ ۹ بخشِ جداگانه. اگه چیزی نرسه، بازم عددهایِ ناقص نشون داده نمی‌شه
-  // (خطرِ مالیه)، ولی پیام کوتاهه، نه یک پاراگراف توضیح.
+  // ⚠️ (۱۴۰۵/۰۷/۰۸) طبقِ خواسته‌ی صریحِ کاربر: دقیقاً مثلِ CRM/ERP — منتظرِ این تابع نمی‌مونیم تا
+  // پوسته رو نشون بدیم (اون تویِ boot جداست). این تابع فقط دیتا رو در پس‌زمینه میاره؛ اگه بخشی
+  // نیومد، toastِ کوتاه می‌ده و دیتایِ قبلی (یا خالی، بارِ اول) رو نگه می‌داره — کلِ برنامه رو
+  // هیچ‌وقت پشتِ یک صفحه‌ی خطا قایم نمی‌کنه.
   const parts = [
     ['accounts','حساب‌ها'], ['orders','فاکتورها'], ['hawales','حواله‌ها'], ['payments','واریزی‌ها'], ['expenses','خریدها'],
     ['customer-incomes','درآمدها'], ['account-transfers','جابجایی‌ها'], ['capital-advances','پیش‌پرداخت‌ها'], ['account-adjustments','تعدیل‌ها'],
   ];
-  const root = document.getElementById('root');
-  const initial = !root.querySelector('.app');
-  if(initial) root.innerHTML = `<div class="load-screen">در حال بارگذاری…</div>`;
-  // ⚠️ تنظیمات هم تویِ همون دسته‌ی هم‌زمان می‌ره و با همون سقفِ کوتاه — قبلاً apiGetSettings()
-  // جدا و با retryِ پیش‌فرض (تا ۸ تلاشِ فزاینده، در بدترین حالت ~۵۶ ثانیه) صدا زده می‌شد.
   const jobs = [...parts.map(([ep])=>fetchWithRetry(FX_API+ep+'/', undefined, 2, 2000, 20000).then(r=>{
       if(!r.ok) throw new Error('HTTP '+r.status); return r.json();
     })),
@@ -808,33 +804,21 @@ async function loadAll(){
   const results = allResults.slice(0, parts.length);
   const settingsRes = allResults[parts.length].status==='fulfilled' ? allResults[parts.length].value : {};
   const data = {}, failed = [];
+  const keep = {accounts:'accounts', orders:'orders', hawales:'hawales', payments:'payments', expenses:'expenses', 'customer-incomes':'incomes',
+    'account-transfers':'transfers', 'capital-advances':'capitalAdvances', 'account-adjustments':'adjustments'};
   parts.forEach(([ep, label], i)=>{
     if(results[i].status==='fulfilled') data[ep] = results[i].value;
-    else { failed.push(label); data[ep] = []; console.error('بارگذاریِ «'+label+'» ناموفق:', results[i].reason); }
+    else { failed.push(label); data[ep] = (state && state[keep[ep]]) || []; console.error('بارگذاریِ «'+label+'» ناموفق:', results[i].reason); }
   });
+  if(failed.length) showToast('⚠️ این بخش‌ها نیومد: '+failed.join('، ')+' — چند ثانیه‌ی دیگه دوباره امتحان می‌شه یا صفحه رو رفرش کنید');
   const prevSettings = (state && state.settings) || null;
-  if(failed.length){
-    if(!initial){
-      showToast('⚠️ به‌روزرسانیِ «'+failed.join('، ')+'» ناموفق بود — اطلاعاتِ قبلی نمایش داده می‌شه؛ صفحه رو رفرش کنید');
-      const keep = {accounts:'accounts', orders:'orders', hawales:'hawales', payments:'payments', expenses:'expenses', 'customer-incomes':'incomes',
-        'account-transfers':'transfers', 'capital-advances':'capitalAdvances', 'account-adjustments':'adjustments'};
-      parts.forEach(([ep, label])=>{ if(failed.includes(label) && state && state[keep[ep]]) data[ep] = state[keep[ep]]; });
-    } else {
-      const allFailed = failed.length===parts.length;
-      root.innerHTML = `<div class="load-screen" style="flex-direction:column;gap:10px;text-align:center;padding:20px">
-        <div style="font-size:26px">⚠️</div>
-        <div style="font-weight:700">${allFailed ? 'ارتباط با سرور برقرار نشد' : 'این بخش‌ها نیامد: '+failed.join('، ')}</div>
-        <button onclick="location.reload()" style="padding:7px 20px;border-radius:10px;border:none;background:var(--accent,#f59e0b);font-weight:700;cursor:pointer;font-family:inherit">🔄 تلاشِ دوباره</button>
-      </div>`;
-      return false;
-    }
-  }
   state = {
     accounts: data['accounts'], orders: data['orders'], hawales: data['hawales'], payments: data['payments'], expenses: data['expenses'],
     incomes: data['customer-incomes'], transfers: data['account-transfers'], capitalAdvances: data['capital-advances'], adjustments: data['account-adjustments'],
     settings: (settingsRes && settingsRes.rate_basis) ? { rateBasis: settingsRes.rate_basis, currentRate: settingsRes.current_rate ? Number(settingsRes.current_rate) : null }
       : (prevSettings || { rateBasis: 'hawale', currentRate: null }),
   };
+  dataReady = true;
   return true;
 }
 
@@ -929,6 +913,7 @@ function render(){
 async function renderMain(){
   const main = document.getElementById('main');
   main.innerHTML = '<div class="load-screen" style="height:200px">در حال بارگذاری…</div>';
+  if(!dataReady) return;   // ⚠️ (۱۴۰۵/۰۷/۰۸) پوسته همین الان دیده می‌شه؛ محتوا وقتی داده رسید
   if(currentTab === 'dashboard') return renderDashboard(main);
   if(currentTab === 'management') return renderManagement(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
@@ -3963,8 +3948,10 @@ function openYuanAdjustmentModal(supplierName, existing){
 }
 
 // ---- Boot ----
-(async function(){
-  if(await loadAll()) render();
+(function(){
+  render();                                     // پوسته/منو/تب‌ها همین الان، بدونِ صبر
+  loadAll().then(()=>render());                 // دیتا وقتی رسید، بی‌سروصدا جایگزین می‌شه
+  setInterval(()=>{ if(!dataReady) loadAll().then(()=>render()); }, 15000);  // اگه بارِ اول نرسید، هر ۱۵ ثانیه دوباره
 })();
 </script>
 <script>
