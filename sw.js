@@ -18,7 +18,7 @@
 //
 // وقتی یه نسخه‌ی جدیدِ این فایل (sw.js) دیپلوی بشه، عددِ CACHE_VERSION
 // رو دستی عوض کنید تا کشِ قدیمی پاک بشه.
-const CACHE_VERSION = 'smartchip-v2';
+const CACHE_VERSION = 'smartchip-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -60,12 +60,23 @@ self.addEventListener('fetch', (event) => {
     );
   } else {
     // صفحاتِ HTML/JSِ خودِ سایت — network-first، تا همیشه نسخه‌ی تازه بیاد
+    // ⚠️ (۱۴۰۵/۰۷/۰۹) فیکسِ باگِ واقعیِ دیگه: وقتی fetch شکست می‌خورد و هیچ نسخه‌ی
+    // کش‌شده‌ای هم موجود نبود (مثلاً بارِ اولِ باز کردنِ یه صفحه، یا بعدِ آپدیتِ فایل)،
+    // caches.match(req) مقدارِ undefined برمی‌گردوند و respondWith با undefined صدا زده
+    // می‌شد — که خطایِ «Failed to convert value to 'Response'» می‌داد و کلِ صفحه، به‌جایِ
+    // یه خطایِ شبکه‌یِ عادی، با ERR_CONNECTION_RESET کاملاً می‌شکست. الان اگه کشی نباشه،
+    // خطایِ اصلیِ شبکه دوباره throw می‌شه تا مرورگر خودش رفتارِ عادیِ «اتصال برقرار نشد»
+    // رو نشون بده، نه یک کرشِ گنگِ سرویس‌ورکری.
     event.respondWith(
       fetch(req).then((res) => {
         const clone = res.clone();
         caches.open(CACHE_VERSION).then((c) => c.put(req, clone));
         return res;
-      }).catch(() => caches.match(req))
+      }).catch(async (err) => {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        throw err;
+      })
     );
   }
 });
