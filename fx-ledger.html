@@ -787,28 +787,64 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
 }
 
 async function loadAll(){
-  // ⚠️ (۱۴۰۵/۰۷/۰۱) فیکسِ ریشه‌ایِ باگِ واقعیِ گزارش‌شده: سرورِ Render
-  // فقط یه worker داره (WEB_CONCURRENCY=1، sync). قبلاً این ۱۰ درخواست
-  // با Promise.all *هم‌زمان* فرستاده می‌شدن — چون سرور فقط می‌تونه
-  // یکی‌یکی جواب بده، ۹ تایِ دیگه تو صف می‌موندن و قبلِ نوبتشون
-  // تایم‌اوت می‌شدن (ERR_CONNECTION_TIMED_OUT رویِ *همه‌شون* هم‌زمان).
-  // الان پشتِ‌سرِهم (یکی‌یکی) فرستاده می‌شن — کندتر، ولی هیچ‌وقت سرورِ
-  // تک‌کاره رو overload نمی‌کنه.
-  const accounts = await apiList('accounts');
-  const orders = await apiList('orders');
-  const hawales = await apiList('hawales');
-  const payments = await apiList('payments');
-  const expenses = await apiList('expenses');
-  const incomes = await apiList('customer-incomes');
-  const transfers = await apiList('account-transfers');
-  const capitalAdvances = await apiList('capital-advances');
-  const adjustments = await apiList('account-adjustments');
+  // ⚠️ (۱۴۰۵/۰۷/۰۶) سرورِ Render فقط یه worker داره (sync)، پس درخواست‌ها همچنان پشتِ‌سرِهم
+  // فرستاده می‌شن — ولی برخلافِ نسخه‌ی قبلی: (۱) پیشرفت نشون داده می‌شه، (۲) هر بخش حداکثر
+  // ۳۰ ثانیه (نه تا ۸×۱۲=۹۶ ثانیه) صبر می‌کنه، (۳) اگه چیزی نرسید، به‌جایِ نمایشِ عددهایِ ناقص
+  // یا گیرکردنِ ابدی، پیامِ روشن + دکمه‌ی «تلاشِ دوباره» می‌ده.
+  const parts = [
+    ['accounts','حساب‌ها'], ['orders','فاکتورها'], ['hawales','حواله‌ها'], ['payments','واریزی‌ها'], ['expenses','خریدها'],
+    ['customer-incomes','درآمدها'], ['account-transfers','جابجایی‌ها'], ['capital-advances','پیش‌پرداخت‌ها'], ['account-adjustments','تعدیل‌ها'],
+  ];
+  const root = document.getElementById('root');
+  const initial = !root.querySelector('.app');
+  const t0 = Date.now(); let cur = '', step = 0;
+  const paint = ()=>{ if(!initial) return; root.innerHTML = `<div class="load-screen" style="flex-direction:column;gap:10px">
+      <div>در حال بارگذاری… (${step} از ${parts.length+1})</div>
+      <div style="width:220px;height:6px;border-radius:3px;background:rgba(148,163,184,.25);overflow:hidden"><div style="height:100%;width:${Math.round(step/(parts.length+1)*100)}%;background:var(--accent,#f59e0b)"></div></div>
+      <div style="font-size:12px;opacity:.8">${cur ? 'در حالِ گرفتنِ «'+cur+'» · '+Math.round((Date.now()-t0)/1000)+' ثانیه' : ''}</div>
+      ${Date.now()-t0 > 15000 ? '<div style="font-size:11.5px;opacity:.75;max-width:320px;text-align:center;line-height:1.8">سرور بعد از مدتی بی‌کاری خاموش می‌شه و روشن شدنش تا یک دقیقه طول می‌کشه. اگه بیشتر شد، فیلترشکن و اینترنت رو بررسی کنید.</div>' : ''}
+    </div>`; };
+  const timer = setInterval(paint, 1000);
+  const data = {}, failed = [];
+  for(const [ep, label] of parts){
+    cur = label; paint();
+    try{
+      const r = await fetchWithRetry(FX_API+ep+'/', undefined, 3, 3000, 30000);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      data[ep] = await r.json();
+    }catch(err){ failed.push(label); data[ep] = []; console.error('بارگذاریِ «'+label+'» ناموفق:', err); }
+    step++;
+  }
+  cur = 'تنظیمات'; paint();
   const settings = await apiGetSettings();
+  step++; clearInterval(timer);
+  const prevSettings = (state && state.settings) || null;
+  if(failed.length){
+    if(!initial){
+      // به‌روزرسانیِ بعد از ثبت/ویرایش: داده‌هایِ قبلی حفظ می‌شن، صفحه خالی نمی‌شه
+      showToast('⚠️ به‌روزرسانیِ «'+failed.join('، ')+'» ناموفق بود — اطلاعاتِ قبلی نمایش داده می‌شه؛ صفحه رو رفرش کنید');
+      const keep = {accounts:'accounts', orders:'orders', hawales:'hawales', payments:'payments', expenses:'expenses', 'customer-incomes':'incomes',
+        'account-transfers':'transfers', 'capital-advances':'capitalAdvances', 'account-adjustments':'adjustments'};
+      parts.forEach(([ep, label])=>{ if(failed.includes(label) && state && state[keep[ep]]) data[ep] = state[keep[ep]]; });
+    } else {
+      root.innerHTML = `<div class="load-screen" style="flex-direction:column;gap:12px;text-align:center;padding:20px">
+        <div style="font-size:30px">⚠️</div>
+        <div style="font-weight:700">این بخش‌ها از سرور نرسیدن: ${failed.join('، ')}</div>
+        <div style="font-size:12px;opacity:.8;max-width:360px;line-height:1.9">برایِ اینکه عددهایِ ناقص و اشتباه نشون داده نشه، دفتر باز نشد. چند ثانیه‌ی دیگه دوباره امتحان کنید؛ اگه باز هم نشد، فیلترشکن و اینترنت رو بررسی کنید.</div>
+        <button onclick="location.reload()" style="padding:8px 22px;border-radius:10px;border:none;background:var(--accent,#f59e0b);font-weight:700;cursor:pointer;font-family:inherit">🔄 تلاشِ دوباره</button>
+      </div>`;
+      return false;
+    }
+  }
   state = {
-    accounts, orders, hawales, payments, expenses, incomes, transfers, capitalAdvances, adjustments,
-    settings: { rateBasis: settings.rate_basis || 'hawale', currentRate: settings.current_rate ? Number(settings.current_rate) : null },
+    accounts: data['accounts'], orders: data['orders'], hawales: data['hawales'], payments: data['payments'], expenses: data['expenses'],
+    incomes: data['customer-incomes'], transfers: data['account-transfers'], capitalAdvances: data['capital-advances'], adjustments: data['account-adjustments'],
+    settings: (settings && settings.rate_basis) ? { rateBasis: settings.rate_basis, currentRate: settings.current_rate ? Number(settings.current_rate) : null }
+      : (prevSettings || { rateBasis: 'hawale', currentRate: null }),
   };
+  return true;
 }
+
 // ── Rendering ──
 const NAV_STRUCTURE = [
   {type:'item', id:'dashboard', label:'داشبورد'},
@@ -3935,8 +3971,7 @@ function openYuanAdjustmentModal(supplierName, existing){
 
 // ---- Boot ----
 (async function(){
-  await loadAll();
-  render();
+  if(await loadAll()) render();
 })();
 </script>
 <script>
