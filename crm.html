@@ -1632,7 +1632,45 @@ function resolveProvince(s){ const k=provKey(s); return k ? (PROV_INDEX[k]||null
 // ← روز (نمودارِ ستونیِ روزهایِ همون ماه). مبنایِ صفحه «تماس»ه: هر مشتری/سرنخی که در دوره‌ی انتخاب‌شده
 // تماس یا فعالیتی داشته (جدولِ CRM + فعالیت‌هایِ ثبت‌شده رویِ سرنخ‌ها) در نقشه، صنف، وضعیت و کارشناس شمرده می‌شه.
 const BI_START_YEAR = 1405;
-const crmBiF = {rep:new Set(), status:new Set(), prov:new Set(), cat:new Set(), sub:new Set(), src:new Set(), mon:new Set(), day:new Set()};
+const crmBiF = {rep:new Set(), status:new Set(), prov:new Set(), cat:new Set(), sub:new Set(), src:new Set(), cust:new Set(), part:new Set(), brand:new Set(), mon:new Set(), day:new Set()};
+let crmBiNames = {};                 // کلیدِ مشتری → نام (برایِ برچسبِ فیلترِ «مشتری»)
+// ⚠️ (۱۴۰۵/۰۷/۰۵) قطعه و برند از «درخواست‌هایِ مشتری» در CRM (بازار + خارج). برند جایی ثبت نمی‌شه، پس از رویِ
+// پیشوندِ پارت‌نامبر تشخیص داده می‌شه؛ اگه اسمِ برند در متن نوشته شده باشه، همون اولویت داره. ناشناخته‌ها جدا شمرده می‌شن.
+const BI_BRAND_UNKNOWN = 'ناشناخته';
+const BI_BRAND_WORDS = [['SIMCOM','SIMCom'],['ESPRESSIF','Espressif'],['MICROCHIP','Microchip'],['ATMEL','Microchip'],['STMICRO','ST'],['TEXAS','TI'],
+  ['INFINEON','Infineon'],['NXP','NXP'],['ONSEMI','onsemi'],['QUECTEL','Quectel'],['NORDIC','Nordic'],['WINBOND','Winbond'],['VISHAY','Vishay'],['MURATA','Murata'],
+  ['SAMSUNG','Samsung'],['YAGEO','Yageo'],['NUVOTON','Nuvoton'],['RENESAS','Renesas'],['ROHM','ROHM'],['TOSHIBA','Toshiba'],['MACRONIX','Macronix'],['GIGADEVICE','GigaDevice']];
+const BI_BRAND_RULES = [
+  [/^(STM32|STM8|STM|L78|L79|VIPER|LIS3|LSM|LPS|VL53|ST[0-9])/,'ST'], [/^(ESP32|ESP8266|ESP-|ESP[0-9])/,'Espressif'], [/^(SIM[0-9]|A76[0-9]{2})/,'SIMCom'],
+  [/^(ATMEGA|ATTINY|ATSAM|ATXMEGA|AT89|AT24|AT25|PIC[0-9]|DSPIC|MCP[0-9]|24LC|25LC|93LC|LAN[0-9]|KSZ)/,'Microchip'],
+  [/^(TPS|TLV|TL0|TL4|TL7|LM|OPA|INA|SN74|SN65|CD4|UCC|DRV|BQ|MSP430|CC1|CC2|CC3|TMS|ADS[0-9]|DAC[0-9]|LMR|LP[0-9]|ISO[0-9])/,'TI'],
+  [/^(MAX|ADM|AD[0-9]|ADP|ADUM|ADXL|LT[0-9]|LTC|LTM)/,'Analog Devices'], [/^(CH3[0-9]|CH5[0-9]|CH9|CH32)/,'WCH'], [/^GD32/,'GigaDevice'], [/^NRF/,'Nordic'],
+  [/^(IRF|IRL|IR2|IRS|BSS|BTS|BSC|XMC|TLE|IKW|IPP|IPB|IPD|IPW|BAS)/,'Infineon'], [/^(MMBT|2N[0-9]|BC[0-9]|FQP|FQD|FDN|FDS|FDD|NCP|NCV|MC[0-9]|NTD|NUP|MBR|1N4|1N5|MUR)/,'onsemi'],
+  [/^(AO[0-9]|AOD|AON|AOZ)/,'AOS'], [/^AMS[0-9]/,'AMS'], [/^XL[0-9]/,'XLSEMI'], [/^(MP[0-9]|MPQ)/,'MPS'], [/^RT[0-9]/,'Richtek'], [/^(SX12|SX13)/,'Semtech'],
+  [/^W25/,'Winbond'], [/^(MT2[0-9]|MT4[0-9]|MT5[0-9])/,'Micron'], [/^(IS25|IS42|IS62|IS66)/,'ISSI'], [/^(PCF|PCA|LPC|MFRC|TJA|PN5|MK[0-9]|MIMX|S32)/,'NXP'],
+  [/^RP2040/,'Raspberry Pi'], [/^HLK/,'Hi-Link'], [/^FT[0-9]/,'FTDI'], [/^(CP210|EFM32|EFR32|SI[0-9])/,'Silicon Labs'], [/^RTL8/,'Realtek'], [/^HT[0-9]/,'Holtek'],
+  [/^STC[0-9]/,'STC'], [/^(N76|NUC|M03|M48|MS51)/,'Nuvoton'], [/^APM32/,'Geehy'], [/^TP4/,'TOPPOWER'], [/^(EC2[0-9]|EC800|EG9|BG9|M66|L76|L80|MC60|EG25)/,'Quectel'],
+  [/^(R5F|RL78|UPD)/,'Renesas'], [/^(MX25|MX29)/,'Macronix'], [/^(SS[0-9]{2}|SMBJ|SMAJ|P6KE|1.5KE)/,'Vishay'], [/^(GRM|BLM)/,'Murata'], [/^(CL[0-9]{2}|CL05|CL10|CL21)/,'Samsung'], [/^(RC0|CC0[0-9]{3})/,'Yageo']];
+function biPartNorm(s){
+  const t = fa2en(String(s||'')).replace(/[\u200c\u200e\u200f]/g,'').trim().toUpperCase();
+  if(!t) return '';
+  const toks = t.match(/[A-Z0-9][A-Z0-9\-\/\.\+#_]{2,}/g) || [];
+  const pn = toks.find(x=>/[A-Z]/.test(x) && /[0-9]/.test(x)) || toks[0];
+  return (pn || t).slice(0, 40);
+}
+function biBrandOf(raw, part){
+  const u = fa2en(String(raw||'')).toUpperCase();
+  for(const [w, b] of BI_BRAND_WORDS){ if(u.includes(w)) return b; }
+  for(const [re, b] of BI_BRAND_RULES){ if(re.test(part)) return b; }
+  return BI_BRAND_UNKNOWN;
+}
+// تاریخِ درخواست‌ها گاهی شمسی («۱۴۰۵/۷/۳») و گاهی میلادی (ISO) ذخیره شده
+function biAnyToSh(str){
+  if(!str) return null;
+  const sh = biShParse(str);
+  if(sh && sh.y>=1300 && sh.y<1500) return sh;
+  return biIsoToSh(str);
+}
 // ⚠️ (۱۴۰۵/۰۷/۰۴) هدفِ ماهانه‌ی کارشناس‌ها (worklog.SalesTarget) + قاعده‌ی «سرنخِ رهاشده» (همون قاعده‌ی گزارشِ هفتگیِ بله)
 const DJANGO_TARGETS_API = 'https://smartchip-backend.onrender.com/api/worklog/sales-targets/';
 const BI_IDLE_DAYS = 7, BI_DEADLINE_WARN = 3;
@@ -1806,7 +1844,7 @@ function biTimeBarsHtml(items, dim, o){
 function biAttr(dim, val){ return `data-bi-f="${dim}" data-bi-v="${biEsc(val)}"`; }
 
 // ── نقشه‌ی استان‌ها (همه‌ی فیلترها به‌جز استان؛ استان‌هایِ انتخاب‌شده برجسته) ──
-function renderIranMapCard(recs, fullRecs, unit, unitPl){
+function renderIranMapCard(recs, fullRecs, unit, unitPl, mode){
   const F = crmBiF;
   const byProv = {}, unknown = {}; let empty = 0;
   recs.forEach(r=>{
@@ -1833,13 +1871,11 @@ function renderIranMapCard(recs, fullRecs, unit, unitPl){
   const ranking = bic_hbars(Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,n])=>({label:k, key:k, dim:anySel&&!F.prov.has(k), hl:F.prov.has(k), values:[{v:n, color:'#3b82f6', name:BI_METRICS[crmBiMetric].label}]})),
     {fmt:v=>biMFmt(v), rowAttr:r=>biAttr('prov',r.key), empty:`با فیلترهایِ فعلی برایِ هیچ ${unit}ی استان ثبت نشده`});
   const selList = anySel ? fullRecs.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'fa')) : [];
+  if(mode==='tile') return `<svg viewBox="-12 -12 ${IRAN_MAP_W+24} ${IRAN_MAP_H+24}" width="100%" style="display:block;max-height:262px;direction:ltr;flex:1" id="crmIranMap">${shapes.join('')}${badges}</svg>
+    <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);direction:ltr"><span>© OpenStreetMap contributors</span><span style="direction:rtl">${fn(covered)} از ۳۱ استان${empty?` · ${fn(empty)} بدونِ استان`:''}</span></div>`;
   return `<div class="bic-card" style="margin-bottom:16px">
-    <h4 style="margin:0 0 10px">🗺️ ${BI_METRICS[crmBiMetric].icon} ${BI_METRICS[crmBiMetric].label} به تفکیکِ استان — ${unitPl} <span style="font-size:10.5px;color:var(--muted);font-weight:400">· تماس‌گرفته‌شده‌ها در ${biEsc(biPeriodLabel())}</span></h4>
-    <div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start" class="bic-map-grid">
-      <div>
-        <svg viewBox="-12 -12 ${IRAN_MAP_W+24} ${IRAN_MAP_H+24}" width="100%" style="display:block;max-height:520px;direction:ltr" id="crmIranMap">${shapes.join('')}${badges}</svg>
-        <div style="font-size:9.5px;color:var(--muted);text-align:left;direction:ltr">© OpenStreetMap contributors</div>
-      </div>
+    <h4 style="margin:0 0 10px">🗺️ جزئیاتِ استان‌ها — ${BI_METRICS[crmBiMetric].icon} ${BI_METRICS[crmBiMetric].label} · ${unitPl} <span style="font-size:10.5px;color:var(--muted);font-weight:400">· تماس‌گرفته‌شده‌ها در ${biEsc(biPeriodLabel())}</span></h4>
+    <div class="bic-map-grid">
       <div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
           <div class="dash-section" style="margin:0;padding:10px"><div style="font-size:10.5px;color:var(--muted)">استان‌هایِ پوشش‌داده‌شده</div><div style="font-size:18px;font-weight:800">${fn(covered)} <span style="font-size:11px;color:var(--muted)">از ۳۱</span></div></div>
@@ -1980,13 +2016,16 @@ function biFilterBarHtml(shown, yearHtml, periodLabel){
   // فقط با کلیک رویِ خودِ نمودارها فیلتر می‌شن؛ این نوار فقط سال، فیلترهایِ فعال (با ✕)، چندانتخابی و پاک‌کردن رو داره.
   const F = crmBiF, n = biFilterCount();
   const active = [];
-  const lbl = {rep:'👤', status:'🔘', prov:'📍', cat:'🏭', sub:'🔹', src:'🧭', mon:'📆', day:'📅'};
+  const lbl = {rep:'👤', status:'🔘', prov:'📍', cat:'🏭', sub:'🔹', src:'🧭', cust:'🙋', part:'🔩', brand:'🏷️', mon:'📆', day:'📅'};
   F.rep.forEach(v=>active.push(['rep',v,v]));
   F.status.forEach(v=>active.push(['status',v,v==='active'?'فعال':'غیرفعال']));
   F.prov.forEach(v=>active.push(['prov',v,v]));
   F.cat.forEach(v=>active.push(['cat',v, (shown.catLabels[v]||v)]));
   F.sub.forEach(v=>active.push(['sub',v, (shown.subLabels[v]||v.split('|')[1])]));
   F.src.forEach(v=>active.push(['src',v, v==='__none' ? 'منبعِ ثبت‌نشده' : (prospectDiscoveryLabel(v)||v)]));
+  F.cust.forEach(v=>active.push(['cust',v, crmBiNames[v]||v]));
+  F.part.forEach(v=>active.push(['part',v,v]));
+  F.brand.forEach(v=>active.push(['brand',v,v]));
   [...F.mon].sort((a,b)=>a-b).forEach(v=>active.push(['mon',v, SMONTHS[v-1]]));
   [...F.day].sort((a,b)=>a-b).forEach(v=>active.push(['day',v, 'روزِ '+biFaDigits(v)]));
   return `<div id="crmBiFilterBar" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 12px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)">
@@ -2018,6 +2057,16 @@ function wireCrmBiFilters(c){
     if(t.closest('[data-bi-clear]')){ biClearAll(); renderCrmBi(); return; }
     if(t.closest('[data-bi-multi]')){ crmBiMulti = !crmBiMulti; renderCrmBi(); return; }
     if(t.closest('[data-bi-open]')){ const bar=document.getElementById('crmBiFilterBar'); if(bar) bar.scrollIntoView({behavior:'smooth', block:'start'}); return; }
+    const se = t.closest('[data-bi-season]');
+    if(se){
+      const [yy, qq] = se.getAttribute('data-bi-season').split('|').map(Number), ms = [qq*3-2, qq*3-1, qq*3].map(String);
+      const add = ev.ctrlKey || ev.metaKey || crmBiMulti;
+      if(biYear()!==yy){ crmBiYear = yy; crmBiF.mon.clear(); }
+      const allOn = ms.every(m=>crmBiF.mon.has(m));
+      if(add){ ms.forEach(m=> allOn ? crmBiF.mon.delete(m) : crmBiF.mon.add(m)); }
+      else { const only = allOn && crmBiF.mon.size===3; crmBiF.mon.clear(); if(!only) ms.forEach(m=>crmBiF.mon.add(m)); }
+      crmBiF.day.clear(); renderCrmBi(); return;
+    }
     const sa = t.closest('[data-bi-showall]'); if(sa){ crmBiShowAll[sa.getAttribute('data-bi-showall')] = true; renderCrmBi(); return; }
     const tv = t.closest('[data-bi-tgt-view]'); if(tv){ crmBiTgtView = tv.getAttribute('data-bi-tgt-view'); renderCrmBi(); return; }
     if(t.closest('[data-bi-tgt-edit]')){ crmBiTgtEdit = true; renderCrmBi(); return; }
@@ -2106,8 +2155,26 @@ async function renderCrmBi(forceReload){
   pActs.forEach(a=>contacts.push({k:a.k, name:a.name, sh:a.sh, by:a.by}));
   contacts.forEach(ct=>{ if(ct.k) recOf(ct.k, ct.name); });
 
+  // ── درخواست‌هایِ مشتری (برایِ قطعه، برند و شمارشِ درخواست) ──
+  const reqAll = (cachedRequests||[]).filter(q=>q.status!=='canceled').map(q=>{
+    const k = biNorm(q.customer), sh = biAnyToSh(q.createdAt) || biAnyToSh(q.date);
+    const P = q.parts || {};
+    const items = [...(P.marketItems||[]), ...(P.foreignItems||[])].map(it=>{ const part = biPartNorm(it && it.name);
+      return {part, raw:(it&&it.name)||'', brand: biBrandOf(it&&it.name, part), qty: parseFloat(fa2en(String((it&&it.qty)||'')).replace(/[^\d.]/g,''))||0}; }).filter(it=>it.part);
+    if(k) recOf(k, q.customer);
+    return {q, k, name:q.customer, sh, items};
+  });
+  const reqItems = reqAll.filter(x=>x.items.length);
+  // مشتری‌هایی که در دوره‌ی انتخاب‌شده هر قطعه/برند رو درخواست کردن (برایِ فیلترِ کلِ صفحه)
+  const partKeys = {}, brandKeys = {};
+  reqItems.forEach(x=>{ if(!x.k || !biTimePass(x.sh)) return;
+    x.items.forEach(it=>{ (partKeys[it.part] = partKeys[it.part] || new Set()).add(x.k); (brandKeys[it.brand] = brandKeys[it.brand] || new Set()).add(x.k); }); });
+
   // ── منطقِ فیلتر: هر نوع با «و»، گزینه‌هایِ یک نوع با «یا». skip = بُعدی که نادیده گرفته می‌شه ──
   const passDims = (r, rep, skip) => {
+    if(F.cust.size && skip!=='cust' && !F.cust.has(r.key)) return false;
+    if(F.part.size && skip!=='part' && ![...F.part].some(p=>partKeys[p] && partKeys[p].has(r.key))) return false;
+    if(F.brand.size && skip!=='brand' && ![...F.brand].some(b=>brandKeys[b] && brandKeys[b].has(r.key))) return false;
     if(F.rep.size && skip!=='rep' && !F.rep.has(rep)) return false;
     if(F.status.size && skip!=='status' && !F.status.has(r.kind)) return false;
     if(F.prov.size && skip!=='prov' && !F.prov.has(r.prov)) return false;
@@ -2119,7 +2186,7 @@ async function renderCrmBi(forceReload){
     }
     return true;
   };
-  const dimCount = F.rep.size+F.status.size+F.prov.size+F.cat.size+F.sub.size+F.src.size;
+  const dimCount = F.rep.size+F.status.size+F.prov.size+F.cat.size+F.sub.size+F.src.size+F.cust.size+F.part.size+F.brand.size;
   const custPass = (k, name, skip) => { const r=recOf(k,name); return passDims(r, r.rep, skip); };
   // طبقِ تصمیمِ کاربر: تماس‌ها به «کارشناسِ مسئولِ مشتری» تعلق دارن، نه ثبت‌کننده‌ی تماس
   const ctRep = ct => ct.k ? recOf(ct.k, ct.name).rep : (ct.by || BI_NO_REP);
@@ -2132,6 +2199,7 @@ async function renderCrmBi(forceReload){
   // ── دامنه‌ی دوره: فقط کسانی که در دوره‌ی انتخاب‌شده تماس/فعالیت داشتن ──
   const touched = new Set(contacts.filter(ct=>ct.k && biTimePass(ct.sh)).map(ct=>ct.k));
   const allRecs = Object.values(recByKey);
+  crmBiNames = Object.fromEntries(allRecs.map(r=>[r.key, r.name]));
   // مقدارِ معیار برایِ هر مشتری/سرنخ در دوره؛ دامنه‌ی نقشه، صنف، وضعیت و کارشناس = کسانی که مقدارشون بیش از صفره
   const callsByK = {}, wonByK = {};
   contacts.forEach(ct=>{ if(ct.k && biTimePass(ct.sh)) callsByK[ct.k]=(callsByK[ct.k]||0)+1; });
@@ -2217,7 +2285,7 @@ async function renderCrmBi(forceReload){
     <div class="bic-card" id="crmBiTime" style="margin-bottom:16px">
       <h4 style="margin:0 0 4px">📆 ${MT.icon} ${MT.label} در هر ماه — سالِ ${biFaDigits(Y)}</h4>
       <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px">هر ستون = ${MT.hint} با فیلترهایِ فعلی (معیار رو از کارت‌هایِ بالا عوض کنید). کلیک رویِ ماه = فیلترِ کلِ صفحه؛ کلیکِ دوباره = برگشت به کلِ سال.</div>
-      ${biTimeBarsHtml(monthItems, 'mon', {h:120, bw:46, gap:4, nf:11, lf:10.5})}
+      ${biTimeBarsHtml(monthItems, 'mon', {h:120, bw:9999, gap:1, nf:11, lf:10.5})}
       ${oneMonth ? `<div style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--border)">
         <h4 style="margin:0 0 4px">📅 ${MT.label} در روزهایِ ${SMONTHS[oneMonth-1]} ${biFaDigits(Y)} <span style="font-size:10.5px;color:var(--muted);font-weight:400">· ${biFaDigits(dimLen)} روز</span></h4>
         <div style="font-size:10.5px;color:var(--muted);margin-bottom:6px">کلیک رویِ روز = فقط همون روز در کلِ صفحه؛ Ctrl + کلیک = چند روز. جمعه‌ها قرمز.</div>
@@ -2545,6 +2613,125 @@ async function renderCrmBi(forceReload){
   </div>`;
 
 
+  const repTreeTile = biTreemapHtml(repRows.map(r=>({val:r.name, label:r.name, n:repMetric(r), color:repColor[r.name]||CAT_GREY})), F.rep, it=>biAttr('rep', it.val), 262);
+  // ═══ (۱۴۰۵/۰۷/۰۵) داشبوردِ «یک‌نگاه» بالایِ صفحه (الگو: گزارشِ Power BI شرکتِ قبلی) ═══
+  // ── کارت‌هایِ عددیِ بالا: ۳ معیار (قابلِ انتخاب) + نرخِ تبدیل + سرنخِ جدید + درخواست ──
+  const kpiFor = (P, useDims) => {
+    const tp = sh => biTimePass(sh, null, P); let lost = 0, newp = 0, reqn = 0;
+    entries.forEach(x=>{ const e=x.entry; if(e.canceled && tp(biIsoToSh(e.closedDate||e.date)) && (!useDims || entryDims(x))) lost++; });
+    (prospects||[]).forEach(p=>{ const k=biNorm(p.name); if(!k || !tp(biShParse(p.createdDate))) return; if(!useDims || passDims(recOf(k,p.name), recOf(k,p.name).rep)) newp++; });
+    reqAll.forEach(x=>{ if(tp(x.sh) && (!useDims || (x.k ? passDims(recOf(x.k,x.name), recOf(x.k,x.name).rep) : !dimCount))) reqn++; });
+    return {lost, newp, reqn};
+  };
+  const k2 = kpiFor(curP, true), k2w = kpiFor(curP, false), k2p = prevs.map(p=>kpiFor(p.P, true));
+  const convOf = (w, l) => (w+l) ? w/(w+l)*100 : null;
+  const extraCard = (icon, label, val, prevVals, allVal, fmtv) => `<div class="dash-section" style="margin:0;padding:12px">
+      <div style="font-size:11px;color:var(--muted)">${icon} ${label}</div>
+      <div style="font-size:19px;font-weight:800;margin:5px 0 2px">${fmtv(val)}</div>
+      ${prevs.length ? prevs.map((p,i)=>deltaLine(val==null?0:val, prevVals[i]==null?0:prevVals[i], p.label)).join('') : `<div style="font-size:10.5px;color:var(--muted);margin-top:3px">${noPrev}</div>`}
+      ${dimCount && allVal!=null ? `<div style="font-size:10.5px;margin-top:3px;color:var(--muted)">سهم از کلِ شرکت: <b style="color:var(--text)">${allVal?fn(Math.round((val||0)/allVal*100)):'—'}٪</b></div>` : ''}
+    </div>`;
+  const kpiStrip = metricCards
+    + extraCard('🎯', 'نرخِ تبدیل', convOf(cur.won, k2.lost), prevs.map((p,i)=>convOf(p.t.won, k2p[i].lost)), null, v=>biPct(v))
+    + extraCard('🌱', 'سرنخِ جدیدِ ثبت‌شده', k2.newp, k2p.map(x=>x.newp), k2w.newp, v=>fn(v||0))
+    + extraCard('📦', 'درخواستِ مشتری', k2.reqn, k2p.map(x=>x.reqn), k2w.reqn, v=>fn(v||0));
+
+  // ── خانه‌یِ نقشه ──
+  const mapTile = renderIranMapCard(mapRecs, fullRecs, unit, unitPl, 'tile');
+
+  // ── خانه‌یِ صنف (مستطیلی؛ با انتخابِ یک صنفِ دارایِ زیرصنف، زیرصنف‌هاش) ──
+  const CT = buildCatTree(catL1);
+  const oneCat = F.cat.size===1 ? CT.list.find(x=>x.key===[...F.cat][0]) : null;
+  let catTile;
+  if(oneCat && oneCat.hasSubs){
+    const CT2 = buildCatTree(catL2), C = CT2.list.find(x=>x.key===oneCat.key) || oneCat;
+    catTile = `<div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">زیرصنف‌هایِ <b style="color:var(--text)">${biEsc(C.label)}</b> · <span data-bi-back style="cursor:pointer;text-decoration:underline">→ همه‌ی صنف‌ها</span></div>`
+      + biTreemapHtml(C.subList.map(x=>({val:C.key+'|'+x.key, label:x.label, n:x.v, color:x.color})), F.sub, it=>biAttr('sub', it.val), 245);
+  } else {
+    catTile = biTreemapHtml(CT.list.map(x=>({val:x.key, label:x.label, n:x.v, color:x.color})), F.cat, it=>biAttr('cat', it.val), 262);
+  }
+
+  // ── خانه‌یِ مشتری (برترین‌ها با معیارِ انتخاب‌شده + جستجو) ──
+  const custRecs = periodRecs.filter(r=>passDims(r, r.rep, 'cust')).sort((a,b)=>b._v-a._v || String(a.name).localeCompare(String(b.name),'fa')).slice(0, 80);
+  const tileList = (key, rows, max, emptyTxt) => `<input class="form-control" data-bi-search="${key}" placeholder="🔍 جستجو…" style="margin:0 0 6px;padding:3px 9px;font-size:11px;height:auto">
+    <div style="flex:1;overflow-y:auto;max-height:238px"><table style="width:100%;border-collapse:collapse"><tbody data-bi-search-body="${key}">
+    ${rows.map(x=>`<tr data-bi-txt="${biEsc(biNorm(x.label))}" ${x.attr} style="cursor:pointer;${x.dim?'opacity:.35;':''}">
+      <td style="padding:3px 0;font-size:11.5px;max-width:0;width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${x.hl?'font-weight:800;color:var(--accent)':''}" title="${biEsc(x.label)}">${biEsc(x.label)}</td>
+      <td style="padding:3px 6px"><div style="height:10px;border-radius:3px;background:${x.hl?'#f59e0b':'#3b82f6'};width:${Math.max(2, Math.round(x.n/max*100))}%"></div></td>
+      <td style="padding:3px 0;font-size:11px;font-weight:700;white-space:nowrap;text-align:left" title="${biEsc(x.tip||'')}">${x.txt}</td></tr>`).join('') || `<tr><td style="text-align:center;color:var(--muted);font-size:11.5px;padding:30px 0">${emptyTxt}</td></tr>`}
+    </tbody></table></div>`;
+  const custMax = Math.max(1, ...custRecs.map(r=>r._v));
+  const custTile = tileList('tile-cust', custRecs.map(r=>({label:r.name, n:r._v, txt:biMFmt(r._v, true), attr:biAttr('cust', r.key), hl:F.cust.has(r.key), dim:F.cust.size && !F.cust.has(r.key),
+    tip:`${r.kind==='active'?'فعال':'غیرفعال'} · ${r.rep}`})), custMax, 'با فیلترهایِ فعلی موردی نیست');
+
+  // ── خانه‌هایِ قطعه و برند (از درخواست‌هایِ ثبت‌شده در CRM) ──
+  const partAgg = {}, brandAgg = {};
+  reqItems.forEach(x=>{
+    if(!biTimePass(x.sh)) return;
+    const r = x.k ? recOf(x.k, x.name) : null;
+    const okPart = r ? passDims(r, r.rep, 'part') : !dimCount, okBrand = r ? passDims(r, r.rep, 'brand') : !dimCount;
+    const seenP = new Set(), seenB = new Set();
+    x.items.forEach(it=>{
+      if(okPart && !seenP.has(it.part)){ seenP.add(it.part); const a = partAgg[it.part] = partAgg[it.part] || {n:0, qty:0, raw:it.raw}; a.n++; }
+      if(okPart && partAgg[it.part]) partAgg[it.part].qty += it.qty;
+      if(okBrand && !seenB.has(it.brand)){ seenB.add(it.brand); brandAgg[it.brand] = (brandAgg[it.brand]||0) + 1; }
+    });
+  });
+  const partRows = Object.entries(partAgg).sort((a,b)=>b[1].n-a[1].n || b[1].qty-a[1].qty).slice(0, 80);
+  const partMax = Math.max(1, ...partRows.map(([,a])=>a.n));
+  const partTile = tileList('tile-part', partRows.map(([p,a])=>({label:p, n:a.n, txt:fn(a.n), attr:biAttr('part', p), hl:F.part.has(p), dim:F.part.size && !F.part.has(p),
+    tip: a.qty ? `جمعِ تعداد: ${fn(Math.round(a.qty))}` : ''})), partMax, 'در این دوره درخواستی با قطعه ثبت نشده');
+  const brandTot = Object.values(brandAgg).reduce((a,b)=>a+b,0), brandUnknown = brandAgg[BI_BRAND_UNKNOWN]||0;
+  const BRAND_COL = {}; Object.keys(brandAgg).sort().forEach((b,i)=>{ BRAND_COL[b] = b===BI_BRAND_UNKNOWN ? CAT_GREY : CAT_PALETTE[i % CAT_PALETTE.length]; });
+  const brandTile = biTreemapHtml(Object.entries(brandAgg).map(([b,n])=>({val:b, label:b, n, color:BRAND_COL[b]})), F.brand, it=>biAttr('brand', it.val), 232)
+    + `<div style="font-size:10px;color:var(--muted);margin-top:4px">برند از رویِ پارت‌نامبر تشخیص داده می‌شه${brandTot && brandUnknown ? ` · <span style="color:var(--yellow)">${fn(Math.round(brandUnknown/brandTot*100))}٪ ناشناخته</span>` : ''}</div>`;
+
+  // ── خانه‌یِ سال به تفکیکِ فصل ──
+  const SEASONS = [['بهار','#22c55e'],['تابستان','#f59e0b'],['پاییز','#f97316'],['زمستان','#3b82f6']];
+  const years = Array.from({length: biCurYear()-BI_START_YEAR+1}, (_,i)=>BI_START_YEAR+i);
+  const seasonVal = y => {
+    const v = [0,0,0,0], cs = [new Set(),new Set(),new Set(),new Set()], P = {y, mon:new Set(), day:new Set()};
+    if(M==='won') entries.forEach(x=>{ const e=x.entry, sh=biIsoToSh(e.closedDate||e.date); if(e.completed && biTimePass(sh,null,P) && entryDims(x)) v[Math.ceil(sh.m/3)-1]++; });
+    else contacts.forEach(ct=>{ if(!biTimePass(ct.sh,null,P) || !ctDims(ct)) return; const q = Math.ceil(ct.sh.m/3)-1; v[q]++; if(ct.k) cs[q].add(ct.k); });
+    return M==='cust' ? cs.map(s=>s.size) : v;
+  };
+  const sv = years.map(y=>({y, v:seasonVal(y)}));
+  const svMax = Math.max(1, ...sv.map(x=>x.v.reduce((a,b)=>a+b,0)));
+  const selSeason = (y, q) => y===Y && [q*3-2,q*3-1,q*3].every(m=>F.mon.has(String(m)));
+  const seasonTile = `<div style="display:flex;gap:18px;align-items:flex-end;justify-content:center;height:200px;direction:ltr;padding-top:8px">
+    ${sv.map(({y,v})=>{ const tot = v.reduce((a,b)=>a+b,0);
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:74px">
+        <div style="font-size:11px;font-weight:800">${biMFmt(tot, true)}</div>
+        <div style="width:58px;height:${Math.max(4, Math.round(tot/svMax*165))}px;display:flex;flex-direction:column-reverse;border-radius:5px;overflow:hidden;${y===Y?'':'opacity:.55;'}">
+          ${v.map((n,q)=>n ? `<div data-bi-season="${y}|${q+1}" title="${SEASONS[q][0]} ${biFaDigits(y)}: ${biEsc(biMFmtU(n))}" style="flex:${n};background:${SEASONS[q][1]};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9.5px;color:#fff;font-weight:700;${selSeason(y,q+1)?'outline:2px solid #fff;outline-offset:-2px;':''}">${n/tot>0.12?biMFmt(n,true):''}</div>` : '').join('')}
+        </div>
+        <div data-bi-year="${y}" style="font-size:11px;cursor:pointer;${y===Y?'font-weight:800;color:var(--accent)':''}">${biFaDigits(y)}</div>
+      </div>`; }).join('')}
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px">${SEASONS.map(([n,c],q)=>`<span data-bi-season="${Y}|${q+1}" style="cursor:pointer;font-size:10.5px;display:inline-flex;align-items:center;gap:4px;${selSeason(Y,q+1)?'font-weight:800':''}"><span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block"></span>${n}</span>`).join('')}</div>
+  <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">کلیک رویِ هر فصل = فیلترِ همون سه ماه · ${biEsc(MT.label)}</div>`;
+
+  const tile = (title, body, extra) => `<div class="bic-card bi-tile ${extra||''}"><h4>${title}</h4>${body}</div>`;
+  const glance = `<style>
+    .bi-glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+    .bi-tile{display:flex;flex-direction:column;min-height:310px;min-width:0;margin:0!important;padding:10px 12px!important}
+    .bi-tile h4{margin:0 0 6px!important;font-size:12.5px}
+    .bi-span2{grid-column:span 2}
+    .bi-tile #crmBiTime{margin:0!important;border:none!important;padding:0!important;background:none!important;box-shadow:none!important}
+    @media(max-width:1100px){.bi-glance{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:700px){.bi-glance{grid-template-columns:1fr}.bi-span2{grid-column:auto}.bi-tile{min-height:0}}
+  </style>
+  <div class="bi-glance" id="crmBiGlance">
+    ${tile(`🗓️ سال به تفکیکِ فصل <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· ${MT.label}</span>`, seasonTile)}
+    ${tile(`👥 به تفکیکِ کارشناس <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· ${MT.label}</span>`, repTreeTile)}
+    ${tile(`🏷️ به تفکیکِ برند <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· تعدادِ درخواست</span>`, brandTile)}
+    ${tile(`🗺️ به تفکیکِ استان <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· ${MT.label}</span>`, mapTile)}
+    ${tile(`🏭 به تفکیکِ صنف <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· ${MT.label}</span>`, catTile)}
+    ${tile(`🙋 به تفکیکِ مشتری <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· ${MT.label}</span>`, custTile)}
+    <div class="bic-card bi-tile bi-span2">${timeCard}</div>
+    ${tile(`🔩 به تفکیکِ قطعه <span style="font-weight:400;font-size:10.5px;color:var(--muted)">· تعدادِ درخواست</span>`, partTile)}
+  </div>`;
+
   c.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div class="sec-title" style="margin:0">💹 تحلیلِ مدیریتی — عملکردِ تیم و مشتریان</div>
@@ -2552,18 +2739,17 @@ async function renderCrmBi(forceReload){
       </div>
     </div>
     ${biFilterBarHtml(shown, yearHtml, periodLabel)}
-    <div style="font-size:11.5px;font-weight:700;margin:0 0 6px">📊 ${biEsc(periodLabel)} — رویِ هر کارت بزنید تا همه‌ی نمودارهایِ صفحه با همون معیار نشون داده بشن</div>
-    <div id="crmBiMetrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:14px">${metricCards}</div>
+    <div style="font-size:11.5px;font-weight:700;margin:0 0 6px">📊 ${biEsc(periodLabel)} — رویِ کارت‌هایِ تماس، درگیر یا موفق بزنید تا همه‌ی نمودارها با همون معیار نشون داده بشن</div>
+    <div id="crmBiMetrics" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:12px">${kpiStrip}</div>
+    ${glance}
     ${summaryCard}
-    ${timeCard}
+    <div style="font-size:12px;font-weight:800;margin:4px 0 10px;color:var(--muted)">▼ جزئیات</div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:16px">
-      ${card(F.rep.size?'نرخِ تبدیلِ انتخاب‌شده‌ها':'نرخِ تبدیلِ تیم', biPct(teamWon+teamLost ? teamWon/(teamWon+teamLost)*100 : null), `${fn(teamWon)} موفق · ${fn(teamLost)} ناموفق`)}
       ${card('پاسخِ معوقِ فروش (الان)', fn(teamOverdue), 'بیش از ۲۴ ساعت بدونِ پیگیری', teamOverdue?'var(--red)':'')}
     </div>
 
     <div class="bic-grid2" style="margin-bottom:16px">
-      <div class="bic-card"><h4>👥 سهمِ کارشناس‌ها — ${MT.icon} ${MT.label} · ${periodLabel}</h4>${repTree}</div>
       <div class="bic-card"><h4>🔘 فعال و غیرفعال — ${MT.icon} ${MT.label} · ${periodLabel}</h4>${statusCard}<div style="font-size:10.5px;color:var(--muted);margin-top:8px">کلیک = فیلترِ کلِ صفحه</div></div>
       <div class="bic-card"><h4>📞 تماس‌هایِ هر کارشناس — ${periodLabel}</h4>${callsChart}</div>
       <div class="bic-card"><h4>🎯 نرخِ تبدیلِ هر کارشناس — ${periodLabel}</h4>${convChart}</div>
