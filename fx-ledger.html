@@ -243,6 +243,24 @@
 // می‌داد، درحالی‌که بقیه‌ی مسیرهایِ همون سرور سالم بودن. الان به یه
 // اسمِ کاملاً خنثی تغییر کرده.
 const FX_API = 'https://smartchip-backend.onrender.com/api/ledger/';
+// ⚠️ (۱۴۰۵/۰۷/۱۰) دقیقاً همون الگویِ ERP (کلیدِ sc_cache_v2 اونجا): آخرین دیتایِ موفق تویِ
+// حافظه‌ی محلیِ مرورگر ذخیره می‌شه و با هر بازکردنِ صفحه، فوراً (بدونِ صبر برایِ سرور) نشون
+// داده می‌شه؛ سرور در پس‌زمینه، بی‌سروصدا، دیتایِ تازه رو جایگزین می‌کنه. برخلافِ ERP، اینجا
+// همیشه یک نشونه‌ی روشن («⏱ دیتایِ ذخیره‌شده») رویِ صفحه می‌مونه تا معلوم باشه اعداد ممکنه
+// تازه نباشن — چون اینجا پایِ رقم‌هایِ مالیه.
+const FX_CACHE_KEY = 'fx_cache_v1';
+const FX_CACHE_MAX_AGE_MS = 2*60*60*1000;   // ۲ ساعت، دقیقاً مثلِ ERP
+let fxLastSummary = null;   // آخرین summary که موفق کش شده
+function fxSaveCache(){ try{ localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ts: Date.now(), state, summary: fxLastSummary})); }catch(e){ try{ localStorage.removeItem(FX_CACHE_KEY); }catch(e2){} } }
+function fxLoadCache(){
+  try{
+    const raw = localStorage.getItem(FX_CACHE_KEY);
+    if(!raw) return null;
+    const c = JSON.parse(raw);
+    if(!c || !c.state || !c.ts) return null;
+    return c;
+  }catch(e){ return null; }
+}
 const CRM_CUSTOMERS_API = 'https://smartchip-backend.onrender.com/api/customers/customers/';
 
 // ── شمسی: تبدیل و فرمت (بدون کتابخانه‌ی خارجی، همون الگوریتم استانداردِ رایج) ──
@@ -447,6 +465,14 @@ function showToast(msg){
 // ── API ──
 let state = { accounts:[], orders:[], hawales:[], payments:[], expenses:[], incomes:[], transfers:[], capitalAdvances:[], adjustments:[], settings:{rateBasis:'hawale', currentRate:null} };
 let dataReady = false;   // ⚠️ تا این true نشه، تبِ فعلی محتوایِ واقعی نشون نمی‌ده — فقط پوسته
+let fxCacheTs = null;    // زمانِ دیتایِ کش‌شده، اگه الان داریم از کش کار می‌کنیم
+let failedTotal = false; // این‌بار همه‌چیز شکست خورد (نه فقط بعضی‌هاش)
+function fxIsStale(){ return fxCacheTs !== null; }
+function fxCacheAgeLabel(){
+  if(!fxCacheTs) return '';
+  const m = Math.round((Date.now()-fxCacheTs)/60000);
+  return m<1 ? 'همین الان' : m<60 ? m+' دقیقه' : Math.round(m/60)+' ساعت';
+}
 
 // ⚠️ (۱۴۰۵/۰۶/۲۲) طبق گزارشِ کاربر: وقتی سرورِ رایگانِ رندر تازه داره
 // بیدار می‌شه (بعدِ خواب)، بعضی از اولین درخواست‌ها با خطای شبکه‌ی
@@ -810,7 +836,12 @@ async function loadAll(){
     if(results[i].status==='fulfilled') data[ep] = results[i].value;
     else { failed.push(label); data[ep] = (state && state[keep[ep]]) || []; console.error('بارگذاریِ «'+label+'» ناموفق:', results[i].reason); }
   });
-  if(failed.length) showToast('⚠️ این بخش‌ها نیومد: '+failed.join('، ')+' — چند ثانیه‌ی دیگه دوباره امتحان می‌شه یا صفحه رو رفرش کنید');
+  failedTotal = failed.length===parts.length;
+  if(failed.length){
+    const stale = fxIsStale();
+    showToast(stale ? '⏱ اطلاعاتِ ذخیره‌شده نشون داده می‌شه (سرور در دسترس نیست) — به‌محضِ وصل‌شدن به‌روز می‌شه'
+      : '⚠️ این بخش‌ها نیومد: '+failed.join('، ')+' — چند ثانیه‌ی دیگه دوباره امتحان می‌شه یا صفحه رو رفرش کنید');
+  }
   const prevSettings = (state && state.settings) || null;
   state = {
     accounts: data['accounts'], orders: data['orders'], hawales: data['hawales'], payments: data['payments'], expenses: data['expenses'],
@@ -819,6 +850,7 @@ async function loadAll(){
       : (prevSettings || { rateBasis: 'hawale', currentRate: null }),
   };
   dataReady = true;
+  fxSaveCache();
   return true;
 }
 
@@ -884,7 +916,7 @@ function render(){
               </div>`;
           }).join('')}
         </div>
-        <div class="sidebar-foot">✅ داده روی سرور واقعی ذخیره می‌شود</div>
+        <div class="sidebar-foot">${fxIsStale() ? `⏱ اطلاعاتِ ${fxCacheAgeLabel()} پیش (سرور در دسترس نیست)` : '✅ داده روی سرور واقعی ذخیره می‌شود'}</div>
       </div>
       <div class="main" id="main"></div>
     </div>`;
@@ -912,8 +944,10 @@ function render(){
 
 async function renderMain(){
   const main = document.getElementById('main');
-  main.innerHTML = '<div class="load-screen" style="height:200px">در حال بارگذاری…</div>';
-  if(!dataReady) return;   // ⚠️ (۱۴۰۵/۰۷/۰۸) پوسته همین الان دیده می‌شه؛ محتوا وقتی داده رسید
+  if(!dataReady){ main.innerHTML = '<div class="load-screen" style="height:200px">در حال بارگذاری…</div>'; return; }
+  // ⚠️ (۱۴۰۵/۰۷/۱۰) وقتی از قبل چیزی برایِ نشون‌دادن داریم (ولو از کش)، محتوایِ فعلی رو پاک
+  // نمی‌کنیم و صبر می‌کنیم؛ هر تب خودش وقتی دیتایِ تازه رسید main.innerHTML رو عوض می‌کنه —
+  // وگرنه هر تلاشِ خاموشِ پس‌زمینه یک چشمک به «در حال بارگذاری» می‌زد، حتی وقتی صفحه از قبل پر بود.
   if(currentTab === 'dashboard') return renderDashboard(main);
   if(currentTab === 'management') return renderManagement(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
@@ -946,7 +980,9 @@ function wireRateBasisToggle(container, cb){
 // ---------- DASHBOARD ----------
 async function renderDashboard(main){
   const basis = state.settings.rateBasis;
-  const g = await apiGetSummary(basis);
+  let g = await apiGetSummary(basis);
+  if(g){ fxLastSummary = g; fxSaveCache(); }
+  else if(fxLastSummary){ g = fxLastSummary; showToast('⏱ خلاصه‌یِ ذخیره‌شده نشون داده می‌شه — سرور در دسترس نیست'); }
   if(!g){ main.innerHTML = '<div class="page-head"><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>'; return; }
   summaryCache = g;
   main.innerHTML = `
@@ -3949,9 +3985,22 @@ function openYuanAdjustmentModal(supplierName, existing){
 
 // ---- Boot ----
 (function(){
-  render();                                     // پوسته/منو/تب‌ها همین الان، بدونِ صبر
-  loadAll().then(()=>render());                 // دیتا وقتی رسید، بی‌سروصدا جایگزین می‌شه
-  setInterval(()=>{ if(!dataReady) loadAll().then(()=>render()); }, 15000);  // اگه بارِ اول نرسید، هر ۱۵ ثانیه دوباره
+  // ⚠️ (۱۴۰۵/۰۷/۱۰) دقیقاً مثلِ ERP: اگه از قبل یک نسخه‌ی موفق تویِ حافظه‌ی مرورگر باشه (حداکثر
+  // ۲ ساعت پیش)، فوراً همون نشون داده می‌شه — حتی اگه سرور اصلاً در دسترس نباشه.
+  const cached = fxLoadCache();
+  if(cached && (Date.now()-cached.ts) < FX_CACHE_MAX_AGE_MS){
+    state = cached.state;
+    dataReady = true;
+    fxCacheTs = cached.ts;
+    fxLastSummary = cached.summary || null;
+  }
+  render();                                     // پوسته + (اگه کش بود) دیتایِ کش‌شده، همین الان
+  // ⚠️ (۱۴۰۵/۰۷/۱۰) برایِ تلاش‌هایِ پس‌زمینه، renderMain (نه render) صدا زده می‌شه — چون render
+  // کلِ پوسته/منو رو از نو می‌سازه و یک لحظه main رو خالی می‌کنه، حتی وقتی چیزِ خوبی برایِ
+  // نشون‌دادن داشتیم. اولین باری که همه‌چیز موفق بشه (fxCacheTs پاک بشه)، یک render کامل هم
+  // می‌زنیم تا نوشته‌ی «قدیمی»یِ پایینِ منو درست به‌روز بشه.
+  loadAll().then(()=>{ const was = fxCacheTs; if(!failedTotal) fxCacheTs = null; was!==fxCacheTs ? render() : renderMain(); });
+  setInterval(()=>{ loadAll().then(()=>{ const was = fxCacheTs; if(!failedTotal) fxCacheTs = null; was!==fxCacheTs ? render() : renderMain(); }); }, 15000);
 })();
 </script>
 <script>
