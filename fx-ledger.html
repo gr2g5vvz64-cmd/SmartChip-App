@@ -1009,7 +1009,7 @@ async function renderDashboard(main){
       ${g.accounts.map(a=>`<div class="card stat-card">
         <div class="stat-label">${a.name}</div>
         <div class="stat-value rial num">${fmtRial(a.balance)}</div>
-        <div class="stat-hint num">دریافتی: ${fmtRial(a.received)} · حواله‌شده: ${fmtRial(a.sent)}</div>
+        <div class="stat-hint num">دریافتی: ${fmtRial(a.received)} · حواله‌شده: ${fmtRial(a.sent - (a.freightPaidOut||0))}${a.freightPaidOut ? ` · حملِ پرداخت‌شده: ${fmtRial(a.freightPaidOut)}` : ''}</div>
       </div>`).join('')}
     </div>
 
@@ -2834,7 +2834,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
             <td class="num" style="font-weight:700">${fmtYuan(e.totalYuan)}</td>
             <td class="num" style="font-weight:700">${e.runningYuanBalance!=null ? fmtYuan(e.runningYuanBalance) : '—'}</td>
             <td class="num">${e.freight_rial ? fmtRial(e.freight_rial) : '— (بدون حمل)'}</td>
-            <td>${e.freight_rial ? (e.freight_paid ? '<span class="status-chip closed">پرداخت‌شده</span>' : '<span class="status-chip open">در انتظار</span>') : '—'}</td>
+            <td>${e.freight_rial ? (e.freight_paid ? `<span class="status-chip closed">پرداخت‌شده${e.freightAccountName ? ` — ${e.freightAccountName}` : ''}</span>` : '<span class="status-chip open">در انتظار</span>') : '—'}</td>
           </tr>`).join('')}
         </tbody>
         ${expenses.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
@@ -3095,6 +3095,13 @@ function openExpenseModalSingle(existing, presetSupplier){
           <input type="checkbox" id="eFreightPaid" ${existing && existing.freight_paid ? 'checked' : ''}> <label for="eFreightPaid" style="margin:0">هزینه‌ی حمل پرداخت شده</label>
         </div>
       </div>
+      <div class="field" id="eFreightAccountBox" style="margin-bottom:10px;display:${existing && existing.freight_paid ? 'block' : 'none'}">
+        <label>از کدام حساب پرداخت شد؟</label>
+        <select id="eFreightAccount">
+          <option value="">— انتخاب کنید —</option>
+          ${state.accounts.map(a=>`<option value="${a.id}" ${existing && existing.freight_account===a.id ? 'selected' : ''}>${a.displayName}</option>`).join('')}
+        </select>
+      </div>
       <div class="field" style="margin-bottom:10px"><label>فاکتور/پیش‌فاکتورِ مشتریِ مرتبط (اختیاری — برایِ محاسبه‌ی سود)</label>
         <select id="eOrder">${orderOptionsHtml(existing ? existing.order : null)}</select>
       </div>
@@ -3110,6 +3117,10 @@ function openExpenseModalSingle(existing, presetSupplier){
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
   backdrop.querySelector('#syncPartsBtnInModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
   backdrop.querySelector('#syncPartsBtnLast100InModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
+  // ⚠️ (۱۴۰۵/۰۷/۱۲) فیلدِ «از کدام حساب» فقط وقتی معنی داره که هزینه‌ی حمل پرداخت‌شده باشه
+  backdrop.querySelector('#eFreightPaid').addEventListener('change', (e)=>{
+    backdrop.querySelector('#eFreightAccountBox').style.display = e.target.checked ? 'block' : 'none';
+  });
 
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: چند حواله (۲ تا، ۱۰ تا، هرچقدر)
   // می‌تونن به یه فاکتورِ خریدِ خاص لینک بشن — قبلاً فقط یه <select> تکی
@@ -3158,8 +3169,11 @@ function openExpenseModalSingle(existing, presetSupplier){
     const freightStr = backdrop.querySelector('#eFreight').value.replace(/,/g,'').trim();
     const freight = freightStr ? parseFloat(freightStr) : null;
     const freightPaid = backdrop.querySelector('#eFreightPaid').checked;
+    const freightAccountVal = backdrop.querySelector('#eFreightAccount').value;
+    const freightAccount = freightAccountVal ? +freightAccountVal : null;
     const note = backdrop.querySelector('#eNote').value.trim();
     if(!supplierName || !date || (goods===0 && shipping===0 && transferFee===0) || goods<0 || shipping<0 || transferFee<0 || (freight!==null && freight<0)){ showToast('نام تأمین‌کننده، تاریخ، و حداقل یکی از هزینه‌های یوانیِ مثبت را وارد کنید'); return; }
+    if(freightPaid && !freightAccount){ showToast('برایِ هزینه‌ی حملِ پرداخت‌شده، حسابِ پرداخت‌کننده را هم مشخص کنید'); return; }
 
     const similar = findSimilarExistingName(supplierName, getKnownSupplierNames());
     if(similar){
@@ -3167,7 +3181,7 @@ function openExpenseModalSingle(existing, presetSupplier){
       if(useExisting) supplierName = similar;
     }
 
-    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:roundYuan(goods), shipping_yuan:roundYuan(shipping), transfer_fee_yuan:roundYuan(transferFee), freight_rial:freight, freight_paid:freightPaid, note,
+    const body = {supplier_name:supplierName, part_number:partNumber, date, goods_yuan:roundYuan(goods), shipping_yuan:roundYuan(shipping), transfer_fee_yuan:roundYuan(transferFee), freight_rial:freight, freight_paid:freightPaid, freight_account: freightPaid ? freightAccount : null, note,
       quantity: qtyStr?parseFloat(qtyStr):null, unit_price_yuan: unitPriceStr?parseFloat(unitPriceStr):null,
       order: backdrop.querySelector('#eOrder').value ? +backdrop.querySelector('#eOrder').value : null};
     const d = isEdit ? await apiUpdate('expenses', existing.id, body) : await apiCreate('expenses', body);
@@ -3745,6 +3759,7 @@ async function renderAccountLedger(main, skipLoad, cachedData){
             else if(e.type==='adjustment') actions = `<button class="icon-btn" data-edit-ledger-adj="${e.id}">ویرایش</button> <button class="icon-btn" data-del-ledger-adj="${e.id}">حذف</button>`;
             else if(e.type==='transfer_in'||e.type==='transfer_out') actions = `<button class="icon-btn" data-edit-ledger-transfer="${e.id}">ویرایش</button> <button class="icon-btn" data-del-ledger-transfer="${e.id}">حذف</button>`;
             else if(e.type==='contribution') actions = `<button class="icon-btn" data-edit-ledger-contrib="${e.hawaleId}" title="مشارکت فقط از طریقِ فرمِ خودِ حواله قابلِ‌ویرایشه">ویرایش از طریقِ حواله</button>`;
+            else if(e.type==='freight') actions = `<span style="font-size:10.5px;color:var(--ink-soft)">ویرایش از طریقِ فاکتورِ خرید</span>`;
             return `<tr>
             <td class="date-cell">${e.date}</td>
             <td class="col-right">${e.desc}</td>
