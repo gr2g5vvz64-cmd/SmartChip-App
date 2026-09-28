@@ -2799,10 +2799,11 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierInvoicesSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierInvoicesSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
+        <thead><tr><th></th><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
-          ${filteredInvoices.length===0 ? `<tr class="empty-row"><td colspan="10">${supplierInvoicesSearchQuery?'چیزی پیدا نشد':'هنوز هزینه/فاکتورِ خریدی ثبت نشده'}</td></tr>` :
+          ${filteredInvoices.length===0 ? `<tr class="empty-row"><td colspan="11">${supplierInvoicesSearchQuery?'چیزی پیدا نشد':'هنوز هزینه/فاکتورِ خریدی ثبت نشده'}</td></tr>` :
           filteredInvoices.map(o=>`<tr>
+            <td style="white-space:nowrap"><button class="icon-btn" data-edit-exp="${o.id}">✏️ ویرایش</button> <button class="icon-btn" data-del-exp="${o.id}" title="حذف" aria-label="حذف">🗑</button> <button class="icon-btn" data-hist-exp="${o.id}" title="تاریخچه‌ی تغییرات" aria-label="تاریخچه">📜</button></td>
             <td class="date-cell">${o.date}</td>
             <td>${o.partNumber||'—'}</td>
             <td>${o.docGroup||'—'}</td>
@@ -2814,14 +2815,13 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
             <td>${o.isLocked
               ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button>'
               : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
-            <td><button class="icon-btn" data-edit-exp="${o.id}">ویرایش</button> <button class="icon-btn" data-del-exp="${o.id}">حذف</button> <button class="icon-btn" data-hist-exp="${o.id}">📜</button></td>
           </tr>`).join('')}
         </tbody>
         ${data.invoiceStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
-          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td colspan="4" style="text-align:left">جمعِ کل</td>
           <td class="num">${fmtYuan(data.invoiceStatus.reduce((s,o)=>s+Number(o.yuanAmount||0),0))}</td>
           <td class="num">${fmtYuan(data.invoiceStatus.reduce((s,o)=>s+Number(o.remainingYuan||0),0))}</td>
-          <td colspan="4"></td>
+          <td colspan="5"></td>
         </tr></tfoot>` : ''}
       </table>
     </div>
@@ -2876,10 +2876,11 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     </div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>تعداد</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>مانده‌ی تأمین‌کننده بعد از این (یوان)</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
+        <thead><tr><th>عملیات</th><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>تعداد</th><th>خرید کالا</th><th>جابجایی جنس</th><th>کارمزد حواله</th><th>جمع یوانی</th><th>مانده‌ی تأمین‌کننده بعد از این (یوان)</th><th>هزینه‌ی حمل (ریال)</th><th>وضعیت حمل</th></tr></thead>
         <tbody>
-          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="11">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
+          ${expenses.length===0 ? `<tr class="empty-row"><td colspan="12">${supplierExpenseSearchQuery?'چیزی پیدا نشد':'هزینه‌ای ثبت نشده است'}</td></tr>` :
           expenses.map(e=>`<tr>
+            <td style="white-space:nowrap"><button class="icon-btn" data-edit-exp="${e.id}" title="ویرایشِ مبلغ، افزودنِ آیتم به همین فاکتور">✏️ ویرایش</button> <button class="icon-btn" data-freight-exp="${e.id}" title="ثبت یا تغییرِ هزینه‌ی حملِ این خرید">🚚 حمل</button> <button class="icon-btn" data-del-exp="${e.id}" title="حذفِ این آیتم" aria-label="حذف">🗑</button> <button class="icon-btn" data-hist-exp="${e.id}" title="تاریخچه‌ی تغییرات" aria-label="تاریخچه">📜</button></td>
             <td class="date-cell">${e.date}</td>
             <td>${e.part_number||'—'}</td>
             <td>${e.doc_number||'—'}</td>
@@ -2894,7 +2895,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
           </tr>`).join('')}
         </tbody>
         ${expenses.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
-          <td colspan="4" style="text-align:left">جمعِ کل</td>
+          <td colspan="5" style="text-align:left">جمعِ کل</td>
           <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.goods_yuan||0),0))}</td>
           <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.shipping_yuan||0),0))}</td>
           <td class="num">${fmtYuan(expenses.reduce((s,e)=>s+Number(e.transfer_fee_yuan||0),0))}</td>
@@ -3013,6 +3014,12 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       if(!ok) return;
       renderSupplierLedger(main);
     }
+  }));
+  // ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ خواسته‌ی کاربر: هزینه‌ی حمل معمولاً بعد از خرید معلوم می‌شه —
+  // از همین‌جا به هر خریدِ قبلی (یا کلِ سندش) تخصیص داده می‌شه، بدونِ تقسیم بینِ آیتم‌ها.
+  main.querySelectorAll('[data-freight-exp]').forEach(b=>b.addEventListener('click', ()=>{
+    const e = state.expenses.find(x=>x.id==b.dataset.freightExp);
+    if(e) openFreightModal(e, sName);
   }));
   main.querySelectorAll('[data-hist-exp]').forEach(b=>b.addEventListener('click', ()=>{
     showHistoryModal(data.invoiceStatus.find(x=>x.id==b.dataset.histExp) || state.expenses.find(x=>x.id==b.dataset.histExp));
@@ -3164,11 +3171,16 @@ function openExpenseModalSingle(existing, presetSupplier){
       <div class="field"><label>توضیح (اختیاری)</label><input id="eNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="saveExpenseBtn">${isEdit?'ذخیره تغییرات':'ثبت هزینه'}</button>
+        ${isEdit ? `<button class="btn btn-ghost" id="toDocEditBtn" title="این فاکتور چند قلمه‌ست؟ آیتم‌هایِ دیگه‌اش رو همین‌جا اضافه کنید">➕ افزودنِ آیتم به این فاکتور</button>` : ''}
         <button class="btn btn-ghost" id="cancelExpenseBtn">انصراف</button>
       </div>
     </div>`;
   document.body.appendChild(backdrop);
   backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
+  if(isEdit) backdrop.querySelector('#toDocEditBtn').addEventListener('click', ()=>{
+    backdrop.remove();
+    openExpenseDocEditModal(existing.doc_number || null, existing.supplier_name, existing);
+  });
   wireShamsiDatePicker(backdrop.querySelector('#eDate'));
   wirePartNumberAutocomplete(backdrop.querySelector('#ePartNumber'), backdrop.querySelector('#ePartNumberResults'));
   backdrop.querySelector('#syncPartsBtnInModal').addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
@@ -3273,19 +3285,100 @@ function openExpenseModalSingle(existing, presetSupplier){
 // ۴ رقمِ اعشار قبول می‌کنن؛ این تابع هر عددی که به سرور می‌فرستیم رو
 // همیشه به ۴ رقم گرد می‌کنه تا هیچ‌وقت خطایِ ۴۰۰ (Bad Request) به
 // خاطرِ اعشارِ بیش‌ازحد رخ نده.
+// ⚠️ (۱۴۰۵/۰۷/۰۶) «🚚 حمل» — ثبت یا تغییرِ هزینه‌ی حمل برایِ یک خریدِ قبلی. اگه خرید بخشی از یک سندِ
+// چندآیتمی باشه، حمل مالِ کلِ همون فاکتوره و رویِ یک آیتمش می‌شینه (تقسیم نمی‌شه — طبقِ تصمیمِ کاربر:
+// اینجا بهایِ تمام‌شده حساب نمی‌کنیم، فقط مهمه معلوم باشه برایِ این خرید چقدر حمل تخصیص داده شده).
+function openFreightModal(expense, supplierName){
+  const items = expense.doc_number
+    ? state.expenses.filter(e=>e.supplier_name===expense.supplier_name && e.doc_number===expense.doc_number).sort((a,b)=>a.id-b.id)
+    : [expense];
+  const withF = items.filter(e=>Number(e.freight_rial||0)>0);
+  const carrier = withF[0] || items[0];
+  const cur = { rial: withF.reduce((s,e)=>s+Number(e.freight_rial||0),0), paid: withF.length>0 && withF.every(e=>e.freight_paid),
+    account: (withF.find(e=>e.freight_account)||{}).freight_account || null };
+  const totalYuan = items.reduce((s,e)=>s+Number(e.totalYuan!=null?e.totalYuan:(Number(e.goods_yuan||0)+Number(e.shipping_yuan||0)+Number(e.transfer_fee_yuan||0))),0);
+  const parts = items.map(e=>e.part_number).filter(Boolean);
+  const partsTxt = parts.slice(0,4).join('، ') + (parts.length>4 ? ` و ${fmt(parts.length-4,0)} قلمِ دیگه` : '');
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>🚚 هزینه‌ی حملِ این خرید</h3>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.9">
+        <div><b>${expense.supplier_name}</b> — ${expense.date}${expense.doc_number ? ` — سندِ <b>${expense.doc_number}</b>` : ''}</div>
+        <div style="color:var(--ink-soft)">${items.length>1 ? `${fmt(items.length,0)} آیتم: ` : ''}${partsTxt || '—'} — جمع: ${fmtYuan(totalYuan)}</div>
+        ${items.length>1 ? '<div style="color:var(--ink-soft);font-size:11.5px">این هزینه برایِ کلِ این فاکتور ثبت می‌شه (بینِ آیتم‌ها تقسیم نمی‌شه).</div>' : ''}
+      </div>
+      <div class="form-row">
+        <div class="field"><label>مبلغِ حمل (ریال)</label><input id="qfRial" type="text" class="num" value="${cur.rial ? fmt(cur.rial,0) : ''}" placeholder="خالی = حمل ندارد"></div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+          <input type="checkbox" id="qfPaid" ${cur.paid?'checked':''}> <label for="qfPaid" style="margin:0">پرداخت شده</label>
+        </div>
+      </div>
+      <div class="field" id="qfAccBox" style="margin-bottom:10px;display:${cur.paid?'block':'none'}">
+        <label>از کدام حساب پرداخت شد؟</label>
+        <select id="qfAcc"><option value="">— انتخاب کنید —</option>${state.accounts.map(a=>`<option value="${a.id}" ${cur.account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="qfSave">ذخیره</button>
+        <button class="btn btn-ghost" id="qfCancel">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const $ = sel => backdrop.querySelector(sel);
+  $('#qfCancel').addEventListener('click', ()=>backdrop.remove());
+  $('#qfPaid').addEventListener('change', e=>{ $('#qfAccBox').style.display = e.target.checked ? 'block' : 'none'; });
+  $('#qfRial').focus();
+  $('#qfSave').addEventListener('click', async ()=>{
+    const raw = $('#qfRial').value.replace(/,/g,'').trim();
+    const val = raw ? parseFloat(typeof fa2enDigits==='function' ? fa2enDigits(raw) : raw) : null;
+    if(val!==null && (isNaN(val) || val<0)){ showToast('مبلغِ حمل نامعتبره'); return; }
+    const paid = !!(val && $('#qfPaid').checked);
+    const acc = $('#qfAcc').value ? +$('#qfAcc').value : null;
+    if(paid && !acc){ showToast('برایِ هزینه‌ی حملِ پرداخت‌شده، حسابِ پرداخت‌کننده را هم مشخص کنید'); return; }
+    const btn = $('#qfSave'); btn.disabled = true; btn.textContent = '⏳ در حالِ ذخیره…';
+    const d = await apiUpdate('expenses', carrier.id, { freight_rial: val || null, freight_paid: paid, freight_account: paid ? acc : null });
+    if(!d){ btn.disabled = false; btn.textContent = 'ذخیره'; return; }
+    for(const e of withF){ if(e.id!==carrier.id) await apiUpdate('expenses', e.id, { freight_rial: null, freight_paid: false, freight_account: null }); }
+    showToast(val ? '✅ هزینه‌ی حمل ثبت شد' : '✅ هزینه‌ی حمل برداشته شد');
+    backdrop.remove();
+    currentSupplier = supplierName;
+    renderMain();
+  });
+}
+
 function roundYuan(n){
   const num = Number(n);
   if(isNaN(num)) return 0;
   return Math.round(num*10000)/10000;
 }
-function openExpenseDocEditModal(docNumber, supplierName){
-  const existingItems = state.expenses.filter(e=>e.supplier_name===supplierName && e.doc_number===docNumber);
+// ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ خواسته‌ی کاربر: این فرم حالا برایِ هر فاکتورِ خرید باز می‌شه (حتی تک‌آیتمی
+// یا بدونِ شماره‌ی سند — seedExpense)، و شماره‌ی سند، تاریخ و هزینه‌ی حملِ کلِ فاکتور هم داره.
+// حمل تقسیم نمی‌شه: کلِ مبلغ رویِ یک آیتمِ فاکتور می‌شینه (همونی که از قبل حمل داشته، وگرنه اولی).
+function openExpenseDocEditModal(docNumber, supplierName, seedExpense){
+  const existingItems = docNumber
+    ? state.expenses.filter(e=>e.supplier_name===supplierName && e.doc_number===docNumber)
+    : (seedExpense ? [seedExpense] : []);
+  existingItems.sort((a,b)=>a.id-b.id);
   let rows = existingItems.map(e=>({
     id:e.id, partNumber:e.part_number||'', qty:e.quantity!=null?String(e.quantity):'',
     goods:String(e.goods_yuan||0), shipping:String(e.shipping_yuan||0), transferFee:String(e.transfer_fee_yuan||0), note:e.note||'',
-    orderId:e.order!=null?String(e.order):'',
+    orderId:e.order!=null?String(e.order):'', hadFreight: !!Number(e.freight_rial||0),
   }));
   const originalIds = new Set(existingItems.map(e=>e.id));
+  const origDate = existingItems[0] ? existingItems[0].date : todayShamsi();
+  const head = {
+    doc: docNumber || '',
+    docSuggested: docNumber ? '' : ('F-' + String(origDate).replace(/[^0-9]/g,'') + '-' + (existingItems[0] ? existingItems[0].id : '')),
+    date: origDate,
+  };
+  const fItems = existingItems.filter(e=>Number(e.freight_rial||0)>0);
+  const freight = {
+    rial: fItems.length ? String(fItems.reduce((s,e)=>s+Number(e.freight_rial||0),0)) : '',
+    paid: fItems.length>0 && fItems.every(e=>e.freight_paid),
+    account: (fItems.find(e=>e.freight_account) || {}).freight_account || null,
+    dirty: false,
+  };
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
 
@@ -3309,8 +3402,12 @@ function openExpenseDocEditModal(docNumber, supplierName){
   function draw(){
     backdrop.innerHTML = `
       <div class="modal modal-xl">
-        <h3>ویرایشِ کاملِ سند — ${docNumber}</h3>
-        <p class="page-desc">می‌تونید آیتمِ جدید اضافه کنید، آیتمِ موجود رو حذف کنید، یا مقادیرشو تغییر بدید. حذف‌کردنِ یه آیتم از اینجا، اون رکورد رو کاملاً از دفتر پاک می‌کنه.</p>
+        <h3>ویرایشِ فاکتورِ خرید — ${supplierName}${docNumber ? ' — سندِ ' + docNumber : ''}</h3>
+        <p class="page-desc">می‌تونید آیتمِ جدید اضافه کنید، آیتمِ موجود رو حذف کنید، یا مبلغ‌ها رو تغییر بدید. حذف‌کردنِ یه آیتم از اینجا، اون رکورد رو کاملاً از دفتر پاک می‌کنه.</p>
+        <div class="form-row">
+          <div class="field"><label>شماره‌ی سند</label><input id="dDoc" type="text" value="${head.doc}" placeholder="${head.docSuggested ? 'اگه خالی بمونه و آیتم اضافه کنید: ' + head.docSuggested : 'مثلاً شماره‌ی فاکتورِ تأمین‌کننده'}"></div>
+          <div class="field"><label>تاریخ (شمسی) — برایِ همه‌ی آیتم‌ها</label><input id="dDate" type="text" value="${head.date}"></div>
+        </div>
         <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">
             <thead><tr>
@@ -3320,6 +3417,18 @@ function openExpenseDocEditModal(docNumber, supplierName){
           </table>
         </div>
         <button type="button" class="btn btn-ghost" id="addRowBtn" style="margin-bottom:14px">+ افزودنِ آیتمِ جدید به همینِ سند</button>
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:6px">
+          <div class="form-row">
+            <div class="field"><label>🚚 هزینه‌ی حملِ کلِ این فاکتور (ریال، اختیاری)</label><input id="dFreight" type="text" class="num" value="${freight.rial ? fmt(freight.rial,0) : ''}" placeholder="خالی = این فاکتور حمل ندارد"></div>
+            <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+              <input type="checkbox" id="dFreightPaid" ${freight.paid?'checked':''}> <label for="dFreightPaid" style="margin:0">پرداخت شده</label>
+            </div>
+          </div>
+          <div class="field" id="dFreightAccountBox" style="margin-bottom:10px;display:${freight.paid?'block':'none'}">
+            <label>از کدام حساب پرداخت شد؟</label>
+            <select id="dFreightAccount"><option value="">— انتخاب کنید —</option>${state.accounts.map(a=>`<option value="${a.id}" ${freight.account===a.id?'selected':''}>${a.displayName}</option>`).join('')}</select>
+          </div>
+        </div>
         <div class="modal-actions">
           <button class="btn btn-primary" id="saveExpenseBtn">ذخیره‌ی تغییراتِ سند</button>
           <button class="btn btn-ghost" id="cancelExpenseBtn">انصراف</button>
@@ -3338,8 +3447,19 @@ function openExpenseDocEditModal(docNumber, supplierName){
       rows.splice(+b.dataset.removeRow, 1); draw();
     }));
     backdrop.querySelector('#addRowBtn').addEventListener('click', ()=>{
-      rows.push({id:null, partNumber:'', qty:'', goods:'0', shipping:'0', transferFee:'0', note:'', orderId:''}); draw();
+      rows.push({id:null, partNumber:'', qty:'', goods:'0', shipping:'0', transferFee:'0', note:'', orderId:'', hadFreight:false}); draw();
     });
+    // مقدارهایِ سربرگ و حمل بینِ draw()ها حفظ می‌شن (همون درسِ باگِ فرمِ چندردیفی)
+    const dDoc = backdrop.querySelector('#dDoc'), dDate = backdrop.querySelector('#dDate');
+    dDoc.addEventListener('input', ()=>{ head.doc = dDoc.value; });
+    ['input','change'].forEach(ev=>dDate.addEventListener(ev, ()=>{ head.date = dDate.value; }));
+    try{ wireShamsiDatePicker(dDate); }catch(e){}
+    backdrop.querySelector('#dFreight').addEventListener('input', (e)=>{ freight.rial = e.target.value; freight.dirty = true; });
+    backdrop.querySelector('#dFreightPaid').addEventListener('change', (e)=>{
+      freight.paid = e.target.checked; freight.dirty = true;
+      backdrop.querySelector('#dFreightAccountBox').style.display = freight.paid ? 'block' : 'none';
+    });
+    backdrop.querySelector('#dFreightAccount').addEventListener('change', (e)=>{ freight.account = e.target.value ? +e.target.value : null; freight.dirty = true; });
     backdrop.querySelector('#saveExpenseBtn').addEventListener('click', onSave);
   }
 
@@ -3350,25 +3470,50 @@ function openExpenseDocEditModal(docNumber, supplierName){
     });
     if(validRows.length===0){ showToast('حداقل یک آیتمِ معتبر لازم است'); return; }
 
+    const docVal = String(head.doc || (validRows.length>1 ? head.docSuggested : '') || '').trim();
+    if(!docVal && validRows.length>1){ showToast('برایِ فاکتورِ چندآیتمی، شماره‌ی سند لازمه'); return; }
+    const dateVal = String(head.date||'').trim();
+    if(!dateVal){ showToast('تاریخ را وارد کنید'); return; }
+    const dateChanged = dateVal !== origDate;
+    // حمل: فقط اگه کاربر دستش زده باشه فرستاده می‌شه
+    const fStr = String(freight.rial||'').replace(/,/g,'').trim();
+    const fVal = fStr ? parseFloat(fa2enDigits ? fa2enDigits(fStr) : fStr) : null;
+    if(freight.dirty){
+      if(fVal!==null && (isNaN(fVal) || fVal<0)){ showToast('مبلغِ حمل نامعتبره'); return; }
+      if(fVal && freight.paid && !freight.account){ showToast('برایِ هزینه‌ی حملِ پرداخت‌شده، حسابِ پرداخت‌کننده را هم مشخص کنید'); return; }
+    }
+    let carrierIdx = validRows.findIndex(r=>r.hadFreight);
+    if(carrierIdx<0) carrierIdx = 0;
+
     const remainingIds = new Set(validRows.filter(r=>r.id).map(r=>r.id));
     const toDelete = [...originalIds].filter(id=>!remainingIds.has(id));
 
     let okCount = 0;
     for(const id of toDelete) await apiDelete('expenses', id);
-    for(const r of validRows){
+    for(let i=0;i<validRows.length;i++){
+      const r = validRows[i];
       const qty = parseFloat(r.qty)||null;
       const body = {
-        supplier_name:supplierName, part_number:r.partNumber.trim(), doc_number:docNumber,
+        supplier_name:supplierName, part_number:r.partNumber.trim(), doc_number:docVal,
         goods_yuan:roundYuan(r.goods), shipping_yuan:roundYuan(r.shipping), transfer_fee_yuan:roundYuan(r.transferFee),
         note:r.note.trim(), quantity:qty, unit_price_yuan:null,
         order: r.orderId ? +r.orderId : null,
       };
+      if(freight.dirty){
+        if(i===carrierIdx){
+          body.freight_rial = fVal || null; body.freight_paid = !!(fVal && freight.paid);
+          body.freight_account = (fVal && freight.paid) ? freight.account : null;
+        } else if(r.hadFreight){
+          body.freight_rial = null; body.freight_paid = false; body.freight_account = null;
+        }
+      }
       if(r.id){
+        if(dateChanged) body.date = dateVal;
         const d = await apiUpdate('expenses', r.id, body);
         if(d) okCount++;
       } else {
-        const existing0 = existingItems[0];
-        body.date = existing0 ? existing0.date : todayShamsi();
+        body.date = dateVal;
+        if(!freight.dirty){ body.freight_rial = null; body.freight_paid = false; }
         const d = await apiCreate('expenses', body);
         if(d) okCount++;
       }
