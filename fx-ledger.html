@@ -233,6 +233,7 @@ tr.fx-provisional td:first-child{box-shadow:inset -4px 0 0 #E0A100;}
 .fx-prov-chip{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:700;color:#7a4f00;background:#FFE08A;border-radius:6px;padding:1px 7px;white-space:nowrap;}
 .fx-prov-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#FFF3C4;border:1px solid #E0A100;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:#5c3d00;}
 input.fx-prov-input, input[data-f="goods"][value="1"], input[data-f="goods"][value="1.0000"]{background:#FFF3C4 !important;border-color:#E0A100 !important;}
+.fx-doc-filter-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#EEF4FB;border:1px solid var(--accent, #3b6fb6);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -1929,6 +1930,8 @@ let supplierInvoicesSearchQuery = '';
 let supplierHawaleStatusSearchQuery = '';
 let supplierEventsSearchQuery = '';
 let supplierShowProvisionalOnly = false;
+// ⚠️ (۱۴۰۵/۰۷/۰۶) «مشاهده»یِ یک سند: فهرستِ خریدها فقط اقلامِ همون سند رو نشون می‌ده (تطبیقِ دقیقِ شماره‌سند)
+let supplierDocFilter = '';
 // ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ قراردادِ کاربر: «خریدِ کالا (یوان)» = ۱ یعنی خرید ۱۰۰٪ انجام شده ولی
 // قیمتِ واقعی هنوز معلوم نیست — باید متمایز دیده بشه تا بعداً اصلاح بشه.
 document.addEventListener('input', ev=>{
@@ -2766,7 +2769,7 @@ async function renderSuppliersList(main, cachedSummary){
     renderSuppliersList(main, g);
   });
   main.querySelectorAll('[data-open-supplier]').forEach(tr=>tr.addEventListener('click', ()=>{
-    currentSupplier = tr.dataset.openSupplier;
+    currentSupplier = tr.dataset.openSupplier; supplierDocFilter = '';
     renderMain();
   }));
 }
@@ -2816,6 +2819,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   // ⚠️ (۱۴۰۵/۰۷/۰۶) قلم‌هایی که «خریدِ کالا»شون ۱ یوانه = خرید انجام شده ولی قیمت هنوز نهایی نشده
   const provisionalAll = state.expenses.filter(e=>e.supplier_name===sName && fxIsProvisional(e));
   if(supplierShowProvisionalOnly) expenses = expenses.filter(fxIsProvisional);
+  if(supplierDocFilter) expenses = expenses.filter(e=>String(e.doc_number||'')===supplierDocFilter);
 
   // ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: خلاصه‌ی اسنادِ چندآیتمی —
   // فقط اسنادی که واقعاً بیش از یه آیتم دارن نشون داده می‌شن (اسنادِ
@@ -2890,7 +2894,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
               <td class="num" style="color:var(--ok)">${fmtYuan(settledYuan)}</td>
               <td class="num" style="color:${remainingYuan>0.01?'var(--danger)':'var(--ok)'}">${fmtYuan(remainingYuan)}</td>
               <td>
-                <button class="btn btn-ghost btn-sm" data-filter-doc="${doc}">مشاهده</button>
+                <button class="btn ${supplierDocFilter===doc?'btn-primary':'btn-ghost'} btn-sm" data-filter-doc="${doc}">${supplierDocFilter===doc?'✓ در حالِ نمایش':'مشاهده‌ی اقلام'}</button>
                 <button class="btn btn-ghost btn-sm" data-edit-doc="${doc}">✏️ ویرایشِ کاملِ سند</button>
               </td>
             </tr>`;
@@ -2938,6 +2942,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       </table>
     </div>
 
+    <div id="supplierExpensesAnchor" style="scroll-margin-top:16px"></div>
     <div class="toolbar">
       <button class="btn btn-primary" id="addExpenseBtn">+ ثبت فاکتورِ خرید / هزینه</button>
       <div style="display:flex;gap:8px;align-items:center">
@@ -2947,6 +2952,11 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
         <button class="btn btn-ghost btn-sm" id="exportExpensesBtn">📥 خروجی اکسل</button>
       </div>
     </div>
+    ${supplierDocFilter ? `
+    <div class="fx-doc-filter-banner">
+      <span>📄 فقط اقلامِ سندِ <b>${supplierDocFilter}</b> نمایش داده می‌شه — ${fmt(expenses.length,0)} قلم، جمع: <b>${fmtYuan(expenses.reduce((s,e)=>s+Number(e.goods_yuan||0)+Number(e.shipping_yuan||0)+Number(e.transfer_fee_yuan||0),0))}</b></span>
+      <span style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" id="docFilterEditBtn">✏️ ویرایشِ کاملِ سند</button><button class="btn btn-ghost btn-sm" id="docFilterClearBtn">✕ نمایشِ همه‌ی خریدها</button></span>
+    </div>` : ''}
     ${provisionalAll.length || supplierShowProvisionalOnly ? `
     <div class="fx-prov-banner">
       <span>⚠️ <b>${fn(provisionalAll.length)}</b> قلم با قیمتِ موقتِ ۱ یوان ثبت شده — خرید انجام شده ولی قیمتِ واقعی هنوز وارد نشده.</span>
@@ -3023,7 +3033,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       </table>
     </div>
   `;
-  main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; renderMain(); });
+  main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; supplierDocFilter=''; renderMain(); });
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
   main.querySelector('#addYuanAdjBtn').addEventListener('click', ()=>openYuanAdjustmentModal(sName));
   main.querySelectorAll('[data-edit-yuan-adj]').forEach(b=>b.addEventListener('click', ()=>{
@@ -3053,10 +3063,20 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     supplierEventsSearchQuery = e.target.value;
     renderSupplierLedger(main, true, data);
   });
+  // ⚠️ (۱۴۰۵/۰۷/۰۶) قبلاً «مشاهده» فقط جستجویِ «دفترِ کامل» (تهِ صفحه) رو پر می‌کرد — کنارِ دکمه
+  // هیچ تغییری دیده نمی‌شد. حالا فهرستِ خریدها رو به اقلامِ همون سند محدود می‌کنه و صفحه رو می‌بره اونجا.
   main.querySelectorAll('[data-filter-doc]').forEach(b=>b.addEventListener('click', ()=>{
-    supplierEventsSearchQuery = b.dataset.filterDoc;
+    supplierDocFilter = (supplierDocFilter===b.dataset.filterDoc) ? '' : b.dataset.filterDoc;
     renderSupplierLedger(main, true, data);
+    if(supplierDocFilter){
+      const a = main.querySelector('#supplierExpensesAnchor');
+      if(a) a.scrollIntoView({behavior:'smooth', block:'start'});
+    }
   }));
+  const docClr = main.querySelector('#docFilterClearBtn');
+  if(docClr) docClr.addEventListener('click', ()=>{ supplierDocFilter = ''; renderSupplierLedger(main, true, data); });
+  const docEd = main.querySelector('#docFilterEditBtn');
+  if(docEd) docEd.addEventListener('click', ()=>openExpenseDocEditModal(supplierDocFilter, sName));
   main.querySelectorAll('[data-edit-doc]').forEach(b=>b.addEventListener('click', ()=>{
     openExpenseDocEditModal(b.dataset.editDoc, sName);
   }));
