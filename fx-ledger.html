@@ -850,8 +850,20 @@ async function loadAll(){
       : (prevSettings || { rateBasis: 'hawale', currentRate: null }),
   };
   dataReady = true;
+  // ⚠️ (۱۴۰۵/۰۷/۰۶) اثرانگشتِ دیتا: فقط وقتی واقعاً چیزی عوض شده باشه نسخه بالا می‌ره.
+  // صفحه‌ها (به‌خصوص «تحلیلِ مدیریتی») بر اساسِ همین تصمیم می‌گیرن دوباره حساب کنن یا نه.
+  const fp = fxFingerprint(state);
+  fxLastLoadChanged = (fp !== fxDataFp);
+  if(fxLastLoadChanged){ fxDataFp = fp; fxDataVersion++; }
   fxSaveCache();
   return true;
+}
+let fxDataFp = null, fxDataVersion = 0, fxLastLoadChanged = true;
+function fxFingerprint(obj){
+  const str = JSON.stringify(obj);
+  let h1 = 0x811c9dc5, h2 = 5381;
+  for(let i=0;i<str.length;i++){ const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = (Math.imul(h2, 33) + c) | 0; }
+  return str.length + ':' + (h1>>>0).toString(36) + ':' + (h2>>>0).toString(36);
 }
 
 // ── Rendering ──
@@ -1271,6 +1283,10 @@ function mgmtRiskHtml(d){
 
 let mgmtCache = null;
 let mgmtLinkFilter = '';
+// ⚠️ (۱۴۰۵/۰۷/۰۶) «تحلیلِ مدیریتی» فقط وقتی دوباره حساب می‌شه که: دیتا عوض شده باشه، مبنایِ نرخ
+// عوض شده باشه، نیم ساعت از آخرین محاسبه گذشته باشه، یا کاربر خودش «بازخوانی» رو بزنه.
+const MGMT_MAX_AGE_MS = 30*60*1000;
+let mgmtCacheKey = null, mgmtCacheTs = 0, mgmtInflight = null;
 async function apiGetManagement(basis){
   try{ const r = await fetchWithRetry(FX_API+'management/?basis='+encodeURIComponent(basis)); return r.ok ? r.json() : null; }
   catch(err){ return null; }
@@ -1302,11 +1318,48 @@ function mgmtChart(monthly){
     </div>`;
 }
 
-async function renderManagement(main, cachedData){
+async function renderManagement(main, cachedData, opts){
   const basis = state.settings.rateBasis;
-  if(!cachedData) main.innerHTML = '<div class="page-head"><h1 class="page-title">📊 تحلیلِ مدیریتی</h1><p class="page-desc">⏳ در حالِ محاسبه...</p></div>';
-  const d = cachedData || await apiGetManagement(basis);
-  if(!d){ main.innerHTML = '<div class="page-head"><h1 class="page-title">📊 تحلیلِ مدیریتی</h1><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>'; return; }
+  if(!cachedData){
+    const key = fxDataVersion + '|' + basis;
+    const force = !!(opts && opts.force);
+    const fresh = mgmtCache && mgmtCacheKey===key && (Date.now()-mgmtCacheTs) < MGMT_MAX_AGE_MS;
+    if(fresh && !force){
+      if(opts && opts.quiet) return;              // هیچ چیز عوض نشده — صفحه دست نمی‌خوره
+      cachedData = mgmtCache;                      // برگشت به این تب: نتیجه‌ی قبلی، فوری و بی‌محاسبه
+    } else {
+      // اگه نتیجه‌ی قبلی داریم، همون روی صفحه می‌مونه تا نتیجه‌ی تازه برسه (بدونِ «در حالِ محاسبه»)
+      const hasOld = mgmtCache && String(mgmtCacheKey).endsWith('|'+basis);
+      if(hasOld){ if(!(opts && opts.quiet) || !main.querySelector('#mgmtRefreshBtn')) drawManagement(main, mgmtCache, true); else mgmtSetStatus(main, '⏳ در حالِ به‌روزرسانی…'); }
+      else main.innerHTML = '<div class="page-head"><h1 class="page-title">📊 تحلیلِ مدیریتی</h1><p class="page-desc">⏳ در حالِ محاسبه...</p></div>';
+      if(!mgmtInflight || mgmtInflight.key!==key){
+        const job = {key, p: apiGetManagement(basis)};
+        mgmtInflight = job;
+        job.p.finally(()=>{ if(mgmtInflight===job) mgmtInflight = null; });
+      }
+      const d = await mgmtInflight.p;
+      if(!d){
+        if(hasOld) mgmtSetStatus(main, '⚠️ به‌روزرسانی ناموفق بود — نتیجه‌ی قبلی نمایش داده می‌شه');
+        else main.innerHTML = '<div class="page-head"><h1 class="page-title">📊 تحلیلِ مدیریتی</h1><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>';
+        return;
+      }
+      mgmtCacheKey = key; mgmtCacheTs = Date.now();
+      if(currentTab!=='management' || !document.body.contains(main)) { mgmtCache = d; return; } // کاربر رفته صفحه‌ی دیگه
+      cachedData = d;
+    }
+  }
+  drawManagement(main, cachedData, false);
+}
+function mgmtSetStatus(main, txt){
+  const el = main.querySelector('#mgmtStatus'); if(el) el.textContent = txt;
+}
+function mgmtStatusText(updating){
+  if(updating) return '⏳ در حالِ به‌روزرسانی…';
+  if(!mgmtCacheTs) return '';
+  const t = new Date(mgmtCacheTs).toLocaleTimeString('fa-IR',{hour:'2-digit', minute:'2-digit'});
+  return 'آخرین محاسبه: ساعتِ ' + t;
+}
+function drawManagement(main, d, updating){
   mgmtCache = d;
   const P = d.profit, L = d.liquidity;
   const mon = P.monthly;
@@ -1354,7 +1407,10 @@ async function renderManagement(main, cachedData){
         <h1 class="page-title">📊 تحلیلِ مدیریتی</h1>
         <p class="page-desc">سودآوری، مطالبات و نقدینگی — همه‌ی مبالغِ سود به یوان؛ هزینه‌ی حملِ ریالی ${d.freightIncluded?`با نرخِ روزِ تنظیم‌شده (${fmt(d.currentRate,0)}) به یوان تبدیل و لحاظ شده`:'<b style="color:var(--danger)">لحاظ نشده — نرخِ روز در تنظیمات خالیه</b>'}</p>
       </div>
-      <button class="btn btn-ghost btn-sm" id="mgmtRefreshBtn">🔄 به‌روزرسانی</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <button class="btn btn-ghost btn-sm" id="mgmtRefreshBtn">🔄 به‌روزرسانی</button>
+        <span id="mgmtStatus" title="فقط وقتی دوباره حساب می‌شه که اطلاعات تغییر کنه، یا هر نیم ساعت یک‌بار" style="font-size:11px;color:var(--ink-soft);white-space:nowrap">${mgmtStatusText(updating)}</span>
+      </div>
     </div>
 
     ${P.linkedOrders < P.totalOrders ? `
@@ -1468,7 +1524,7 @@ async function renderManagement(main, cachedData){
 
   // نمودارهایِ خطی رویِ موبایل از آخرین ماه (سمتِ راست) نمایش داده بشن
   main.querySelectorAll('.fxc-scroll').forEach(s=>{ s.scrollLeft = s.scrollWidth; });
-  main.querySelector('#mgmtRefreshBtn').addEventListener('click', async ()=>{ await loadAll(); renderManagement(main); });
+  main.querySelector('#mgmtRefreshBtn').addEventListener('click', async ()=>{ mgmtSetStatus(main, '⏳ در حالِ به‌روزرسانی…'); await loadAll(); renderManagement(main, null, {force:true}); });
   main.querySelector('#mgmtLinkSearch').addEventListener('input', (e)=>{
     mgmtLinkFilter = e.target.value;
     renderManagement(main, mgmtCache);
@@ -4048,7 +4104,15 @@ function openYuanAdjustmentModal(supplierName, existing){
   // نشون‌دادن داشتیم. اولین باری که همه‌چیز موفق بشه (fxCacheTs پاک بشه)، یک render کامل هم
   // می‌زنیم تا نوشته‌ی «قدیمی»یِ پایینِ منو درست به‌روز بشه.
   loadAll().then(()=>{ const was = fxCacheTs; if(!failedTotal) fxCacheTs = null; was!==fxCacheTs ? render() : renderMain(); });
-  setInterval(()=>{ loadAll().then(()=>{ const was = fxCacheTs; if(!failedTotal) fxCacheTs = null; was!==fxCacheTs ? render() : renderMain(); }); }, 15000);
+  // ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ خواسته‌ی صریحِ کاربر: بررسیِ پس‌زمینه سرِ جاشه (تا تغییرِ همکارها دیده بشه)،
+  // ولی صفحه فقط وقتی دوباره ساخته می‌شه که دیتا واقعاً عوض شده باشه. قبلاً هر ۱۵ ثانیه کلِ صفحه
+  // از نو ساخته می‌شد و «تحلیلِ مدیریتی» هر بار «در حالِ محاسبه» می‌زد و از صفر حساب می‌کرد.
+  setInterval(()=>{ loadAll().then(()=>{
+    const was = fxCacheTs; if(!failedTotal) fxCacheTs = null;
+    if(was!==fxCacheTs) render();
+    else if(fxLastLoadChanged) renderMain();
+    else if(currentTab==='management') renderManagement(document.getElementById('main'), null, {quiet:true}); // فقط سقفِ ۳۰ دقیقه رو چک می‌کنه
+  }); }, 15000);
 })();
 </script>
 <script>
