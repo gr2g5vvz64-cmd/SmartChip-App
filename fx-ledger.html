@@ -3105,6 +3105,15 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     }
   }));
   main.querySelectorAll('[data-del-exp]').forEach(b=>b.addEventListener('click', async ()=>{
+    const e = state.expenses.find(x=>x.id==b.dataset.delExp);
+    const siblings = (e && e.doc_number) ? state.expenses.filter(x=>x.supplier_name===e.supplier_name && x.doc_number===e.doc_number) : [];
+    if(e && siblings.length > 1){
+      // ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ خواسته‌ی کاربر: قلمی که جزوِ یک سندِ چندقلمیه بی‌خبر حذف نمی‌شه —
+      // اقلامِ همراهش نشون داده می‌شن و انتخاب با کاربره (فقط همین قلم / کلِ سند / انصراف).
+      const done = await confirmDeleteDocItem(e, siblings, data);
+      if(done) renderSupplierLedger(main);
+      return;
+    }
     const st = data.invoiceStatus.find(x=>x.id==b.dataset.delExp);
     const warnMsg = (st && st.isLocked)
       ? '⚠️ این فاکتورِ خرید قفل شده (تو هلو ثبت شده). حذفش ممکنه با حسابداریِ رسمی ناهماهنگ بشه. مطمئنید حذف بشه؟'
@@ -3445,6 +3454,75 @@ function openFreightModal(expense, supplierName){
     backdrop.remove();
     currentSupplier = supplierName;
     renderMain();
+  });
+}
+
+// ⚠️ (۱۴۰۵/۰۷/۰۶) حذفِ یک قلم از سندِ چندقلمی — پنجره‌ی هشدار با فهرستِ اقلامِ همراه.
+// اگه قلمِ حذف‌شونده «حاملِ» هزینه‌ی حملِ کلِ سند باشه، حمل خودکار به قلمِ بعدیِ همون سند منتقل می‌شه
+// تا با حذفِ یک قلم، حملِ کلِ فاکتور گم نشه.
+function confirmDeleteDocItem(e, siblings, data){
+  return new Promise(resolve=>{
+    const items = siblings.slice().sort((a,b)=>a.id-b.id);
+    const others = items.filter(x=>x.id!==e.id);
+    const lockedIds = new Set((data.invoiceStatus||[]).filter(x=>x.isLocked).map(x=>x.id));
+    const anyLocked = items.some(x=>lockedIds.has(x.id));
+    const totalOf = x => Number(x.goods_yuan||0)+Number(x.shipping_yuan||0)+Number(x.transfer_fee_yuan||0);
+    const docTotal = items.reduce((s,x)=>s+totalOf(x),0);
+    const carriesFreight = Number(e.freight_rial||0) > 0;
+    const row = (x, me) => `<tr style="${me?'background:#FDECEC;font-weight:700':''}">
+        <td>${me?'🗑 ':''}${x.part_number||'—'}</td><td class="num">${x.quantity!=null?fmt(x.quantity,2):'—'}</td>
+        <td class="num">${fmtYuan(totalOf(x))}</td><td>${lockedIds.has(x.id)?'🔒':''}${Number(x.freight_rial||0)>0?' 🚚':''}${fxIsProvisional(x)?' ⚠️':''}</td></tr>`;
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal" style="max-width:620px">
+        <h3>⚠️ این قلم تنها نیست</h3>
+        <p style="font-size:13px;line-height:1.9;margin:0 0 10px">
+          «<b>${e.part_number||'این قلم'}</b>» یکی از <b>${fmt(items.length,0)} قلمِ سندِ ${e.doc_number}</b> (${e.date}) است.
+          ${fmt(others.length,0)} قلمِ دیگه به همین سند وصل‌ان:
+        </p>
+        <div class="table-wrap" style="margin-bottom:10px;max-height:240px;overflow:auto">
+          <table><thead><tr><th>پارت‌نامبر</th><th>تعداد</th><th>جمع (یوان)</th><th></th></tr></thead>
+          <tbody>${row(e,true)}${others.map(x=>row(x,false)).join('')}</tbody>
+          <tfoot><tr><td colspan="2" style="text-align:left">جمعِ سند</td><td class="num">${fmtYuan(docTotal)}</td><td></td></tr></tfoot></table>
+        </div>
+        <div style="font-size:12px;line-height:1.9;color:var(--ink-soft);margin-bottom:12px">
+          ${carriesFreight ? `🚚 هزینه‌ی حملِ کلِ این سند (${fmtRial(e.freight_rial)}) رویِ همین قلم ثبت شده — اگه فقط همین قلم حذف بشه، حمل خودکار به قلمِ «${others[0].part_number||'بعدی'}» منتقل می‌شه.<br>` : ''}
+          ${anyLocked ? '🔒 بعضی از اقلامِ این سند قفل شدن (در هلو ثبت شدن) — حذف ممکنه با حسابداریِ رسمی ناهماهنگ بشه.<br>' : ''}
+          ↔️ حذف، جمعِ این سند رو کم می‌کنه و ممکنه نرخِ میانگینِ فاکتورهایِ قفل‌نشده‌ی بعدی (FIFO) رو جابه‌جا کنه.
+        </div>
+        <div class="modal-actions" style="flex-wrap:wrap">
+          <button class="btn btn-ghost" id="ddCancel">انصراف</button>
+          <button class="btn btn-ghost" id="ddEdit">✏️ بازکردنِ کلِ سند</button>
+          <button class="btn btn-primary" id="ddOne" style="background:var(--danger);border-color:var(--danger)">🗑 فقط «${e.part_number||'همین قلم'}» حذف شود</button>
+          <button class="btn btn-ghost" id="ddAll" style="color:var(--danger)">🗑 کلِ سند (${fmt(items.length,0)} قلم) حذف شود</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const $ = sel => backdrop.querySelector(sel);
+    const close = v => { backdrop.remove(); resolve(v); };
+    $('#ddCancel').addEventListener('click', ()=>close(false));
+    $('#ddEdit').addEventListener('click', ()=>{ backdrop.remove(); resolve(false); openExpenseDocEditModal(e.doc_number, e.supplier_name); });
+    const busy = () => backdrop.querySelectorAll('button').forEach(x=>x.disabled=true);
+    $('#ddOne').addEventListener('click', async ()=>{
+      busy();
+      if(carriesFreight){
+        const moved = await apiUpdate('expenses', others[0].id, { freight_rial: e.freight_rial, freight_paid: !!e.freight_paid, freight_account: e.freight_account || null });
+        if(!moved){ showToast('❌ انتقالِ هزینه‌ی حمل ناموفق بود — چیزی حذف نشد'); close(false); return; }
+      }
+      const ok = await apiDelete('expenses', e.id);
+      if(!ok){ close(false); return; }
+      showToast(`✅ «${e.part_number||'قلم'}» حذف شد — ${fmt(others.length,0)} قلمِ دیگه‌ی سندِ ${e.doc_number} سرِ جاشن`);
+      close(true);
+    });
+    $('#ddAll').addEventListener('click', async ()=>{
+      if(!confirm(`هر ${fmt(items.length,0)} قلمِ سندِ ${e.doc_number} حذف شوند؟ این کار برگشت‌پذیر نیست.`)) return;
+      busy();
+      let n = 0;
+      for(const x of items){ if(await apiDelete('expenses', x.id)) n++; }
+      showToast(n===items.length ? `✅ سندِ ${e.doc_number} کامل حذف شد` : `⚠️ ${fmt(n,0)} از ${fmt(items.length,0)} قلم حذف شد — بقیه رو دوباره بررسی کنید`);
+      close(true);
+    });
   });
 }
 
