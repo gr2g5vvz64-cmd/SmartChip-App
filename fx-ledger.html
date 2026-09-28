@@ -3331,6 +3331,10 @@ function openExpenseModalMultiRow(presetSupplier){
   const today = todayShamsi();
   const knownSuppliers = getKnownSupplierNames();
   let rows = [{partNumber:'', qty:'', goods:'', shipping:'0', transferFee:'0', note:'', orderId:''}];
+  const freight = {rial:'', paid:false, account:null};   // ⚠️ (۱۴۰۵/۰۷/۱۳) هزینه‌ی حملِ کلِ سند، نه هر ردیف
+  // ⚠️ (۱۴۰۵/۰۷/۱۳) فیکسِ یه باگِ قدیمی: تأمین‌کننده و تاریخ هم باید بینِ رسم‌هایِ دوباره (با
+  // افزودن/حذفِ ردیف) حفظ بشن، وگرنه هرچی کاربر تایپ کرده بود پاک می‌شد.
+  const head = {supplier: presetSupplier||'', date: today};
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
 
@@ -3356,10 +3360,24 @@ function openExpenseModalMultiRow(presetSupplier){
       <div class="modal modal-xl">
         <h3>ثبتِ سندِ خرید — چند آیتم</h3>
         <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
-          <input id="eSupplier" type="text" list="knownSuppliersList" value="${presetSupplier||''}" placeholder="مثلاً: کلافی">
+          <input id="eSupplier" type="text" list="knownSuppliersList" value="${head.supplier}" placeholder="مثلاً: کلافی">
           <datalist id="knownSuppliersList">${knownSuppliers.map(s=>`<option value="${s}">`).join('')}</datalist>
         </div>
-        <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${today}"></div>
+        <div class="field" style="margin-bottom:10px"><label>تاریخ (شمسی)</label><input id="eDate" type="text" value="${head.date}"></div>
+        <div class="form-row" style="margin-bottom:6px">
+          <div class="field"><label>هزینه‌ی حملِ کلِ این سند (ریال، اختیاری)</label><input id="eFreight" type="text" class="num" value="${freight.rial ? fmt(freight.rial,0) : ''}" placeholder="خالی = این سند حمل ندارد"></div>
+          <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+            <input type="checkbox" id="eFreightPaid" ${freight.paid?'checked':''}> <label for="eFreightPaid" style="margin:0">پرداخت شده</label>
+          </div>
+        </div>
+        <div class="field" id="eFreightAccountBox" style="margin-bottom:10px;display:${freight.paid?'block':'none'}">
+          <label>از کدام حساب پرداخت شد؟</label>
+          <select id="eFreightAccount">
+            <option value="">— انتخاب کنید —</option>
+            ${state.accounts.map(a=>`<option value="${a.id}" ${freight.account===a.id?'selected':''}>${a.displayName}</option>`).join('')}
+          </select>
+        </div>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:8px">هزینه‌ی حمل مالِ کلِ این سنده (نه هر پارت‌نامبر جدا) و رویِ اولین آیتمِ ثبت‌شده نوشته می‌شه؛ تویِ دفترِ تأمین‌کننده به‌عنوانِ هزینه‌ی همینِ سند دیده می‌شه.</div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
           <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10.5px">⚡ فقط جدیدها</button>
           <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10.5px">🔄 ارسالِ کاملِ همه</button>
@@ -3381,10 +3399,18 @@ function openExpenseModalMultiRow(presetSupplier){
       </div>`;
     backdrop.querySelector('#cancelExpenseBtn').addEventListener('click',()=>backdrop.remove());
     wireShamsiDatePicker(backdrop.querySelector('#eDate'));
+    backdrop.querySelector('#eDate').addEventListener('change', (e)=>{ head.date = e.target.value; });
     const syncBtn = backdrop.querySelector('#syncPartsBtnInModal');
     if(syncBtn) syncBtn.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target));
     const syncBtnLast100 = backdrop.querySelector('#syncPartsBtnLast100InModal');
     if(syncBtnLast100) syncBtnLast100.addEventListener('click', (e)=>fxSyncPartsFromSheet(e.target, true));
+    backdrop.querySelector('#eSupplier').addEventListener('input', (e)=>{ head.supplier = e.target.value; });
+    backdrop.querySelector('#eFreight').addEventListener('input', (e)=>{ freight.rial = e.target.value; });
+    backdrop.querySelector('#eFreightPaid').addEventListener('change', (e)=>{
+      freight.paid = e.target.checked;
+      backdrop.querySelector('#eFreightAccountBox').style.display = freight.paid ? 'block' : 'none';
+    });
+    backdrop.querySelector('#eFreightAccount').addEventListener('change', (e)=>{ freight.account = e.target.value ? +e.target.value : null; });
 
     backdrop.querySelectorAll('[data-f]').forEach(inp=>['input','change'].forEach(ev=>inp.addEventListener(ev, ()=>{
       const i = +inp.dataset.rowI; const f = inp.dataset.f;
@@ -3418,16 +3444,23 @@ function openExpenseModalMultiRow(presetSupplier){
       return r.partNumber.trim() && (goods + sh + tf) > 0;
     });
     if(validRows.length===0){ showToast('حداقل یک آیتمِ معتبر (پارت‌نامبر + مبلغِ مثبت) لازم است'); return; }
+    const freightVal = freight.rial ? parseFloat(String(freight.rial).replace(/,/g,'')) : null;
+    if(freightVal!==null && freightVal<0){ showToast('هزینه‌ی حمل نمی‌تواند منفی باشد'); return; }
+    if(freight.paid && !freight.account){ showToast('برایِ هزینه‌ی حملِ پرداخت‌شده، حسابِ پرداخت‌کننده را هم مشخص کنید'); return; }
 
     // ⚠️ شماره‌سندِ مشترک — بر مبنایِ تاریخ+زمانِ ثبت، یکتا برایِ این دسته
     const docNumber = `${date}-${Date.now().toString().slice(-6)}`;
     let okCount = 0;
-    for(const r of validRows){
+    for(const [idx, r] of validRows.entries()){
       const qty = parseFloat(r.qty)||null;
+      // ⚠️ (۱۴۰۵/۰۷/۱۳) هزینه‌ی حملِ کلِ سند فقط رویِ اولین آیتمِ همین دسته نوشته می‌شه —
+      // چون یه هزینه‌ی واحده برایِ کلِ محموله، نه هر پارت‌نامبرِ جدا.
       const body = {
         supplier_name:supplierName, part_number:r.partNumber.trim(), date,
         goods_yuan:roundYuan(r.goods), shipping_yuan:roundYuan(r.shipping), transfer_fee_yuan:roundYuan(r.transferFee),
-        freight_rial:null, freight_paid:false, note:r.note.trim(),
+        freight_rial: idx===0 ? freightVal : null, freight_paid: idx===0 ? freight.paid : false,
+        freight_account: idx===0 && freight.paid ? freight.account : null,
+        note:r.note.trim(),
         quantity:qty, unit_price_yuan:null, doc_number:docNumber,
         order: r.orderId ? +r.orderId : null,
       };

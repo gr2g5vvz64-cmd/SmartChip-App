@@ -126,7 +126,7 @@
   .hol-row:last-child{ border-bottom:none }
 
   .toast{
-    position:fixed; bottom:16px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink);
+    position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink);
     color:var(--paper); padding:9px 18px; border-radius:8px; font-size:12px; opacity:0; pointer-events:none;
     transition:.25s; z-index:400;
   }
@@ -134,35 +134,101 @@
   .modal-backdrop{ position:fixed; inset:0; background:rgba(28,35,51,.5); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px }
   .modal{ background:var(--card); border-radius:12px; padding:20px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto }
   .modal h3{ margin:0 0 14px; font-size:16px; font-weight:800; color:var(--ink) }
+
+  /* ═══ (۱۴۰۵/۰۷/۰۵) طراحیِ جدید — «روزِ من» (تایم‌لاین) + کارتِ «کارِ بعدی» + نوارِ پایین ═══ */
+  body{ padding-bottom:110px }
+  .hd{ display:flex; justify-content:space-between; align-items:center; padding:20px 2px 4px }
+  .hd .hd-l{ display:flex; flex-direction:column }
+  .hd .hd-wd{ font-size:12.5px; color:var(--ink-soft); font-weight:600 }
+  .hd .hd-date{ display:flex; align-items:baseline; gap:8px }
+  .hd .big-day{ font-size:40px; font-weight:900; line-height:1.1 }
+  .hd .month{ font-size:15px; font-weight:800 }
+  .ring{ position:relative; width:62px; height:62px; flex-shrink:0 }
+  .ring span{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:900; line-height:1.1 }
+  .ring small{ font-size:9px; font-weight:600; color:var(--ink-soft) }
+  .quick-row{ display:flex; gap:7px; margin:8px 0 2px }
+  .chip-btn{ border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit }
+  .week{ display:flex; align-items:center; gap:4px; margin:12px 0 4px }
+  .week-arrow{ border:none; background:none; font-size:18px; color:var(--ink-soft); cursor:pointer; padding:4px; font-family:inherit }
+  .week-days{ flex:1; display:grid; grid-template-columns:repeat(7,1fr); gap:4px }
+  .wd{ border:1.5px solid transparent; background:var(--card); border-radius:13px; padding:6px 0 5px; display:flex; flex-direction:column; align-items:center; gap:1px; cursor:pointer; font-family:inherit; color:var(--ink) }
+  .wd .w{ font-size:10.5px; color:var(--ink-soft) } .wd .n{ font-size:15px; font-weight:800 }
+  .wd .d{ width:5px; height:5px; border-radius:50%; background:transparent }
+  .wd.has .d{ background:var(--dot-rem) }
+  .wd.is-today{ border-color:var(--brass) }
+  .wd.sel{ background:var(--ink); color:var(--paper) } .wd.sel .w{ color:var(--paper); opacity:.8 } .wd.sel.has .d{ background:var(--paper) }
+  .wd.fri .n{ color:var(--dot-ir-hol) } .wd.sel.fri .n{ color:var(--paper) }
+  .sec-label{ font-size:12px; font-weight:800; color:var(--ink-soft); margin:16px 2px 7px; display:flex; justify-content:space-between; align-items:center }
+  .next-card{ background:var(--ink); color:var(--paper); border-radius:20px; padding:18px; margin-top:14px; box-shadow:0 6px 18px rgba(15,31,54,.25) }
+  .next-card .nc-top{ display:flex; justify-content:space-between; align-items:center; font-size:12px; opacity:.85 }
+  .next-card .nc-time{ font-size:32px; font-weight:900; color:#8fe3cf; line-height:1.2; margin-top:4px }
+  .next-card .nc-title{ font-size:18px; font-weight:800; margin-top:4px; line-height:1.5 }
+  .next-card .nc-sub{ font-size:12.5px; opacity:.8; margin-top:4px }
+  .next-card .nc-btns{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:14px }
+  .next-card .nc-btns button{ border:1.5px solid rgba(169,200,236,.35); background:transparent; color:var(--paper); border-radius:11px; padding:10px 0; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit }
+  .next-card .nc-btns .nc-done{ grid-column:1/3; background:#8fe3cf; color:var(--ink); border:none; font-size:14.5px; padding:12px 0 }
+  .over-box{ background:var(--brick-soft); border:2px solid var(--brick); border-radius:14px; padding:10px; margin-top:14px }
+  .over-box .ob-head{ display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:800; color:var(--brick); margin-bottom:8px }
+  .over-box .ob-head button{ border:none; background:var(--brick); color:#fff; border-radius:8px; padding:5px 10px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit }
+  .tl-row{ display:flex; gap:9px; margin-bottom:8px }
+  .tl-time{ width:44px; flex-shrink:0; font-size:12.5px; font-weight:800; color:var(--ink-soft); padding-top:13px; text-align:center; font-feature-settings:"tnum" 1 }
+  .tl-time.now{ color:var(--brass) }
+  .r-row{ flex:1; min-width:0; background:#dcebf9; border:2px solid var(--line); border-radius:13px; overflow:hidden }
+  .r-row.is-now{ border-color:var(--brass); box-shadow:0 0 0 2px rgba(14,125,107,.18) }
+  .over-box .r-row{ background:#fff7f5; border-color:#d9a19b; margin-bottom:6px }
+  .r-main{ display:flex; align-items:center; gap:10px; padding:10px 11px; cursor:pointer }
+  .r-check{ width:25px; height:25px; border-radius:50%; border:2.5px solid var(--line); background:transparent; flex-shrink:0; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff }
+  .r-check:hover{ border-color:var(--brass); background:rgba(14,125,107,.12) }
+  .r-check.done{ background:var(--teal); border-color:var(--teal) }
+  .r-icon{ width:25px; height:25px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px }
+  .r-body{ flex:1; min-width:0 }
+  .r-title{ font-size:14px; font-weight:700; line-height:1.5 }
+  .st-done .r-title,.st-cancelled .r-title{ text-decoration:line-through; opacity:.6 }
+  .r-sub{ display:flex; flex-wrap:wrap; gap:5px; margin-top:3px }
+  .r-cust{ font-size:11px; background:var(--card); color:var(--ink); border-radius:6px; padding:1px 7px; font-weight:600 }
+  .r-when{ font-size:11px; color:var(--ink-soft); font-weight:700; white-space:nowrap }
+  .r-now{ font-size:10px; font-weight:900; color:#fff; background:var(--brass); border-radius:6px; padding:2px 7px }
+  .r-more{ display:none; padding:0 11px 11px }
+  .r-row.open .r-more{ display:block }
+  .done-bar{ width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--teal-soft); border:2px solid var(--teal); color:var(--teal); border-radius:12px; padding:10px 14px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; margin-top:14px }
+  .bnav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px; height:66px; background:var(--card); border-top:2.5px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); z-index:150; padding-bottom:env(safe-area-inset-bottom,0) }
+  .bnav button{ border:none; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:11px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
+  .bnav button .bi{ font-size:19px; line-height:1 }
+  .bnav button.active{ color:var(--ink); font-weight:900 }
+  .bnav button.active .bi{ transform:scale(1.12) }
+  .fab{ position:fixed; bottom:80px; left:max(16px, calc(50% - 244px)); width:58px; height:58px; border-radius:18px; background:var(--ink); color:var(--paper); border:none; font-size:30px; line-height:1; cursor:pointer; box-shadow:0 6px 16px rgba(15,31,54,.35); z-index:151; font-family:inherit }
+  .hist-seg{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:4px; margin:14px 0 10px }
+  .hist-seg button{ border:none; background:transparent; border-radius:9px; padding:8px 0; font-size:12.5px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
+  .hist-seg button.active{ background:var(--ink); color:var(--paper); font-weight:800 }
+  .page-title{ font-size:22px; font-weight:900; margin:18px 2px 10px }
 </style>
 </head>
 <body>
-<div class="day-header">
-  <div class="big-day" id="bigDayNum"></div>
-  <div class="day-meta">
-    <div class="month" id="dayMonthYear"></div>
-    <div class="app-name">⏰ یادآوری‌های حمیدرضا</div>
+<!-- ⚠️ (۱۴۰۵/۰۷/۰۵) طبقِ انتخابِ کاربر (طرحِ ۱ + کارتِ «کارِ بعدی» از طرحِ ۲):
+     هدرِ جدید با حلقه‌ی پیشرفت، و تب‌ها به نوارِ پایینِ صفحه رفتن. idهایِ قدیمی
+     (addBtn, quickTomorrowBtn, calSyncBtn, mainTabs, bigDayNum, dayMonthYear) حفظ شدن. -->
+<div class="hd">
+  <div class="hd-l">
+    <div class="hd-wd" id="hdWeekday"></div>
+    <div class="hd-date"><span class="big-day" id="bigDayNum"></span><span class="month" id="dayMonthYear"></span></div>
   </div>
+  <div class="ring" id="progressRing"></div>
 </div>
-
-<div class="seg" id="mainTabs">
-  <button data-tab="today" class="active">امروز/فردا</button>
-  <button data-tab="open">باز</button>
-  <button data-tab="done">تکمیل‌شده</button>
-  <button data-tab="cancelled">کنسل‌شده</button>
-  <button data-tab="archived">بایگانی</button>
-  <button data-tab="calendar">تقویم</button>
-</div>
-
-<div style="display:flex;gap:8px;margin-bottom:14px">
-  <button class="btn btn-primary" id="addBtn" style="flex:2">+ یادآوریِ جدید</button>
-  <button class="btn btn-ghost" id="quickTomorrowBtn" style="flex:1">⚡ کارِ فردا</button>
-  <button class="btn btn-ghost" id="calSyncBtn" style="flex:0 0 auto" title="اتصال به تقویمِ گوشی">📅</button>
+<div class="quick-row">
+  <button class="chip-btn" id="quickTomorrowBtn">⚡ کارِ فردا</button>
+  <button class="chip-btn" id="calSyncBtn" title="اتصال به تقویمِ گوشی">📅 تقویمِ گوشی</button>
 </div>
 
 <div id="main"></div>
 
 <div class="toast" id="toast"></div>
+<button class="fab" id="addBtn" aria-label="یادآوریِ جدید">+</button>
+<nav class="bnav" id="mainTabs">
+  <button data-tab="today" class="active"><span class="bi">☀️</span>روزِ من</button>
+  <button data-tab="open"><span class="bi">📋</span>همه‌ی باز</button>
+  <button data-tab="calendar"><span class="bi">🗓️</span>تقویم</button>
+  <button data-tab="history"><span class="bi">🗄️</span>سابقه</button>
+</nav>
 
 <script>
 // ⚠️ (۱۴۰۵/۰۶/۲۸) طبق تصمیمِ صریحِ کاربر: این PWA دیگه به دیتابیسِ
@@ -319,6 +385,12 @@ async function apiDelete(type, id){
 let allItems = [];
 let currentTab = 'today';
 let listSearchQuery = '';
+// ⚠️ (۱۴۰۵/۰۷/۰۵) وضعیتِ طراحیِ جدید
+let selDay = null;          // روزِ انتخاب‌شده در نوارِ هفته (پیش‌فرض: امروز)
+let weekOffset = 0;         // هفته‌ی جاری = ۰
+let showDoneToday = false;  // باز/بسته بودنِ لیستِ «انجام‌شده‌هایِ امروز»
+let historyFilter = 'done'; // تبِ «سابقه»: done | cancelled | archived
+const WEEKDAY_FULL = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'];
 let calYear, calMonth;
 let selectedCalDate = null;
 {
@@ -328,7 +400,7 @@ let selectedCalDate = null;
 
 function fmtDateHuman(dateStr){
   const [y,m,d] = dateStr.split('-').map(Number);
-  return `${d} ${SMONTHS[m-1]} ${y}`;
+  return fn(`${d} ${SMONTHS[m-1]} ${y}`);
 }
 
 // ⚠️ (۱۴۰۵/۰۶/۲۸) عملیاتِ وضعیت — برایِ «آزاد» و «دوره‌ای» متفاوته،
@@ -385,42 +457,226 @@ async function refreshData(){
   allItems = await loadAllItems();
 }
 
+// ══════ (۱۴۰۵/۰۷/۰۵) طراحیِ جدید: «روزِ من» ══════
+function sStr(o){ return `${o.y}-${String(o.m).padStart(2,'0')}-${String(o.d).padStart(2,'0')}`; }
+function sParse(str){ const [y,m,d]=str.split('-').map(Number); return {y,m,d}; }
+function sJdn(str){ const o=sParse(str); return sToJD(o.y,o.m,o.d); }
+function satIndex(str){ return (sJdn(str)+2)%7; }   // ۰ = شنبه … ۶ = جمعه
+function nowHM(){ const n=new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
+function hmToMin(hm){ const [h,m]=(hm||'0:0').split(':').map(Number); return h*60+(m||0); }
+function escHtml(x){ return String(x==null?'':x).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function sortByTime(a,b){ return (a.time||'99:99').localeCompare(b.time||'99:99'); }
+
+function renderHeaderAndRing(){
+  const today = todayShamsi(); const t = sParse(today);
+  const wdEl = document.getElementById('hdWeekday');
+  if(wdEl) wdEl.textContent = `${WEEKDAY_FULL[satIndex(today)]} · یادآوری‌های حمیدرضا`;
+  document.getElementById('bigDayNum').textContent = fn(t.d);
+  document.getElementById('dayMonthYear').textContent = SMONTHS[t.m-1] + ' ' + fn(t.y);
+  const todays = allItems.filter(r=>r.date===today && (r.status==='open' || r.status==='done'));
+  const done = todays.filter(r=>r.status==='done').length, total = todays.length;
+  const C = 2*Math.PI*25, frac = total ? done/total : 0;
+  const ring = document.getElementById('progressRing');
+  if(ring) ring.innerHTML = `<svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+      <circle cx="31" cy="31" r="25" fill="none" stroke="var(--card)" stroke-width="7"/>
+      <circle cx="31" cy="31" r="25" fill="none" stroke="var(--brass)" stroke-width="7" stroke-linecap="round"
+        stroke-dasharray="${(C*frac).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 31 31)"/></svg>
+      <span>${fn(done)}/${fn(total)}<small>امروز</small></span>`;
+}
+
+// یک ردیفِ یادآوری — با کلیک باز می‌شه و همون دکمه‌هایِ قبلی (تکمیل/کنسل/بایگانی/حذف) رو نشون می‌ده
+function renderRow(item, opts={}){
+  const key = `${item._type}-${item.id}`;
+  let lead;
+  if(item._type==='free' && item.status==='open') lead = `<button class="r-check" data-quick-done="${key}" aria-label="انجام شد"></button>`;
+  else if(item.status==='done') lead = `<span class="r-check done">✓</span>`;
+  else if(item._type==='recurring') lead = `<span class="r-icon" title="دوره‌ای">🔁</span>`;
+  else lead = `<span class="r-icon">•</span>`;
+  const chip = item.status!=='open' && !opts.hideChip ? `<span class="status-chip ${item.status}">${STATUS_LABEL[item.status]}</span>` : '';
+  const when = opts.showDate ? (item.date ? fmtDateHuman(item.date) + (item.time?' · '+fn(item.time):'') : 'بدون تاریخ') : (opts.whenText||'');
+  const actions = statusActions(item).map(a=>`<button class="icon-btn" data-set-status="${key}">${a.label}</button>`).join('');
+  return `<div class="r-row st-${item.status}${opts.isNow?' is-now':''}" data-item-key="${key}">
+    <div class="r-main" data-toggle-row>
+      ${lead}
+      <div class="r-body">
+        <div class="r-title">${escHtml(item.title||'(بدون عنوان)')}${chip}</div>
+        ${(item.customer || item._type==='recurring') ? `<div class="r-sub">${item.customer?`<span class="r-cust">${escHtml(item.customer)}</span>`:''}${item._type==='recurring'?`<span class="tag-recur" style="margin:0">🔁 دوره‌ای</span>`:''}</div>` : ''}
+      </div>
+      ${opts.isNow ? '<span class="r-now">بعدی</span>' : (when ? `<span class="r-when">${when}</span>` : '')}
+    </div>
+    <div class="r-more">
+      ${item.note?`<div class="t-note" style="margin-top:0">${escHtml(item.note)}</div>`:''}
+      <div class="t-actions">${actions}<button class="icon-btn" data-del-key="${key}">🗑️ حذف</button></div>
+    </div>
+  </div>`;
+}
+
+function pickNextItem(list){
+  const nm = hmToMin(nowHM());
+  const timed = list.filter(r=>r.time).sort(sortByTime);
+  const soon = timed.find(r=>hmToMin(r.time) >= nm - 15);
+  return soon || list.find(r=>!r.time) || timed[timed.length-1] || null;
+}
+
+function renderNextCard(item){
+  if(!item) return '';
+  const key = `${item._type}-${item.id}`;
+  let top = 'کارِ بعدیِ تو';
+  if(item.time){
+    const diff = hmToMin(item.time) - hmToMin(nowHM());
+    if(diff > 60) top += ` · ${fn(Math.floor(diff/60))} ساعت و ${fn(diff%60)} دقیقه دیگه`;
+    else if(diff > 0) top += ` · ${fn(diff)} دقیقه دیگه`;
+    else if(diff >= -15) top += ' · همین الان';
+    else top += ' · زمانش گذشته';
+  }
+  const btns = item._type==='free'
+    ? `<button class="nc-done" data-quick-done="${key}">✓ انجام شد</button>
+       <button data-snooze="${key}" data-snooze-kind="hour">⏰ ۱ ساعت بعد</button>
+       <button data-snooze="${key}" data-snooze-kind="tomorrow">↪ فردا</button>`
+    : `<button data-toggle-next style="grid-column:1/3">🔁 یادآوریِ دوره‌ای — جزئیات در لیستِ پایین</button>`;
+  return `<div class="next-card">
+    <div class="nc-top"><span>${top}</span>${item.customer?`<span>👤 ${escHtml(item.customer)}</span>`:''}</div>
+    <div class="nc-time">${item.time ? fn(item.time) : 'امروز'}</div>
+    <div class="nc-title">${escHtml(item.title||'(بدون عنوان)')}</div>
+    ${item.note?`<div class="nc-sub">${escHtml(item.note)}</div>`:''}
+    <div class="nc-btns">${btns}</div>
+  </div>`;
+}
+
+function renderWeekStrip(){
+  const today = todayShamsi();
+  const startJ = sJdn(today) - satIndex(today) + weekOffset*7;
+  const openDates = new Set(allItems.filter(r=>r.status==='open').map(r=>r.date));
+  let cells = '';
+  for(let i=0;i<7;i++){
+    const ds = sStr(jdToS(startJ+i)); const d = sParse(ds).d;
+    const cls = ['wd', ds===selDay?'sel':'', ds===today?'is-today':'', openDates.has(ds)?'has':'', i===6?'fri':''].filter(Boolean).join(' ');
+    cells += `<button class="${cls}" data-pick-day="${ds}"><span class="w">${WEEKDAY_NAMES[i]}</span><span class="n">${fn(d)}</span><span class="d"></span></button>`;
+  }
+  return `<div class="week"><button class="week-arrow" data-week="-1" aria-label="هفته‌ی قبل">›</button><div class="week-days">${cells}</div><button class="week-arrow" data-week="1" aria-label="هفته‌ی بعد">‹</button></div>`;
+}
+
+function renderTimeline(list, nowKey){
+  if(!list.length) return `<div class="empty">برایِ این روز یادآوریِ بازی نیست ✨</div>`;
+  const buckets = [['صبح', r=>r.time && hmToMin(r.time)<720], ['بعدازظهر', r=>r.time && hmToMin(r.time)>=720 && hmToMin(r.time)<1020], ['عصر و شب', r=>r.time && hmToMin(r.time)>=1020], ['بدونِ ساعت', r=>!r.time]];
+  return buckets.map(([label, f])=>{
+    const xs = list.filter(f).sort(sortByTime);
+    if(!xs.length) return '';
+    return `<div class="sec-label">${label}</div>` + xs.map(r=>{
+      const isNow = `${r._type}-${r.id}`===nowKey;
+      return `<div class="tl-row"><div class="tl-time${isNow?' now':''}">${r.time?fn(r.time):'—'}</div>${renderRow(r,{isNow})}</div>`;
+    }).join('');
+  }).join('');
+}
+
+function renderToday(main){
+  const today = todayShamsi();
+  if(!selDay) selDay = today;
+  const isToday = selDay===today;
+  const openOnly = allItems.filter(r=>r.status==='open');
+  const dayOpen = openOnly.filter(r=>r.date===selDay).sort(sortByTime);
+  const overdue = isToday ? openOnly.filter(r=>r.date && r.date<today).sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00'))) : [];
+  const doneDay = allItems.filter(r=>r.date===selDay && r.status==='done');
+  const next = isToday ? pickNextItem(dayOpen) : null;
+  const nextKey = next ? `${next._type}-${next.id}` : null;
+  const freeOver = overdue.filter(r=>r._type==='free');
+  const dayTitle = isToday ? 'برنامه‌ی امروز' : (selDay===tomorrowShamsi() ? 'برنامه‌ی فردا' : `برنامه‌ی ${WEEKDAY_FULL[satIndex(selDay)]} ${fmtDateHuman(selDay)}`);
+  main.innerHTML = `
+    ${renderWeekStrip()}
+    ${renderNextCard(next)}
+    ${overdue.length ? `<div class="over-box"><div class="ob-head"><span>⚠️ عقب‌افتاده (${fn(overdue.length)})</span>${freeOver.length?`<button data-move-overdue>همه به امروز</button>`:''}</div>
+      ${overdue.map(r=>renderRow(r,{whenText:fmtDateHuman(r.date)})).join('')}</div>` : ''}
+    <div class="sec-label" style="font-size:14px;color:var(--ink);margin-top:18px"><span>${dayTitle}</span><span style="font-size:11.5px;color:var(--ink-soft)">${fn(dayOpen.length)} کار</span></div>
+    ${renderTimeline(dayOpen, nextKey)}
+    ${doneDay.length ? `<button class="done-bar" data-toggle-done><span>✓ ${fn(doneDay.length)} کار ${isToday?'امروز':''} انجام شد</span><span>${showDoneToday?'بستن':'نمایش'}</span></button>
+      ${showDoneToday ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:7px">${doneDay.map(r=>renderRow(r,{hideChip:true, whenText:r.time?fn(r.time):''})).join('')}</div>` : ''}` : ''}
+  `;
+}
+
+function renderFlatList(main, statuses, title, extraTop){
+  let filtered = allItems.filter(r=>statuses.includes(r.status))
+    .sort((a,b)=> ((a.date||'9999')+(a.time||'00:00')).localeCompare((b.date||'9999')+(b.time||'00:00')));
+  if(listSearchQuery.trim()){
+    const q = listSearchQuery.trim().toLowerCase();
+    filtered = filtered.filter(r => (r.title||'').toLowerCase().includes(q) || (r.customer||'').toLowerCase().includes(q) || (r.note||'').toLowerCase().includes(q));
+  }
+  main.innerHTML = `
+    <div class="page-title">${title}</div>
+    ${extraTop||''}
+    <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در عنوان، مشتری، توضیح..." value="${escHtml(listSearchQuery)}"></div>
+    <div style="display:flex;flex-direction:column;gap:7px">${filtered.length ? filtered.map(r=>renderRow(r,{showDate:true, hideChip:true})).join('') : '<div class="empty">چیزی نیست</div>'}</div>`;
+  const inp = main.querySelector('#listSearchInput');
+  inp.addEventListener('input', (e)=>{
+    listSearchQuery = e.target.value;
+    const pos = e.target.selectionStart;
+    renderMain();
+    const again = document.getElementById('listSearchInput');
+    if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(_){} }
+  });
+}
+
+function wireNewButtons(main){
+  main.querySelectorAll('[data-toggle-row]').forEach(el=>el.addEventListener('click', (e)=>{
+    if(e.target.closest('button')) return;
+    el.parentElement.classList.toggle('open');
+  }));
+  main.querySelectorAll('[data-quick-done]').forEach(b=>b.addEventListener('click', async (e)=>{
+    e.stopPropagation();
+    const [type, id] = b.dataset.quickDone.split('-');
+    b.disabled = true;
+    const ok = await apiUpdate(type, id, {done:true});
+    if(ok){ showToast('✅ آفرین! انجام شد'); await refreshData(); renderMain(); } else b.disabled = false;
+  }));
+  main.querySelectorAll('[data-snooze]').forEach(b=>b.addEventListener('click', async ()=>{
+    const [type, id] = b.dataset.snooze.split('-');
+    let body;
+    if(b.dataset.snoozeKind==='tomorrow') body = {date: tomorrowShamsi()};
+    else {
+      const t = hmToMin(nowHM()) + 60;
+      if(t >= 24*60){ body = {date: tomorrowShamsi(), time: '09:00'}; }
+      else body = {time: `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`};
+    }
+    const ok = await apiUpdate(type, id, body);
+    if(ok){ showToast(b.dataset.snoozeKind==='tomorrow' ? '↪ رفت برایِ فردا' : '⏰ یک ساعت عقب افتاد'); await refreshData(); renderMain(); }
+  }));
+  const mv = main.querySelector('[data-move-overdue]');
+  if(mv) mv.addEventListener('click', async ()=>{
+    const today = todayShamsi();
+    const list = allItems.filter(r=>r._type==='free' && r.status==='open' && r.date && r.date<today);
+    if(!confirm(`${fn(list.length)} یادآوریِ عقب‌افتاده به امروز منتقل بشه؟`)) return;
+    mv.disabled = true;
+    for(const r of list) await apiUpdate('free', r.id, {date: today});
+    showToast('✅ به امروز منتقل شدن'); await refreshData(); renderMain();
+  });
+  const td = main.querySelector('[data-toggle-done]');
+  if(td) td.addEventListener('click', ()=>{ showDoneToday = !showDoneToday; renderMain(); });
+  const tn = main.querySelector('[data-toggle-next]');
+  if(tn) tn.addEventListener('click', ()=>{ const el = main.querySelector('.r-row.is-now'); if(el){ el.classList.add('open'); el.scrollIntoView({behavior:'smooth', block:'center'}); } });
+  main.querySelectorAll('[data-pick-day]').forEach(b=>b.addEventListener('click', ()=>{ selDay = b.dataset.pickDay; showDoneToday = false; renderMain(); }));
+  main.querySelectorAll('[data-week]').forEach(b=>b.addEventListener('click', ()=>{
+    weekOffset += +b.dataset.week;
+    const today = todayShamsi();
+    selDay = weekOffset===0 ? today : sStr(jdToS(sJdn(today) - satIndex(today) + weekOffset*7));
+    renderMain();
+  }));
+  main.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click', ()=>{ historyFilter = b.dataset.hist; renderMain(); }));
+}
+
 function renderMain(){
   const main = document.getElementById('main');
-  const today = todayShamsi();
-  const tomorrow = tomorrowShamsi();
-
+  renderHeaderAndRing();
   if(currentTab === 'today'){
-    const openOnly = allItems.filter(r=>r.status==='open');
-    // ⚠️ (۱۴۰۵/۰۷/۰۲) فیکسِ باگِ واقعیِ گزارش‌شده: این سه لیست هیچ
-    // مرتب‌سازیِ بر اساسِ ساعت نداشتن (برخلافِ تب‌هایِ باز/تکمیل‌شده
-    // که مرتب می‌شن) — بی‌ساعت‌ها به‌ته لیست می‌رن.
-    const todays = openOnly.filter(r=>r.date===today).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
-    const tomorrows = openOnly.filter(r=>r.date===tomorrow).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
-    const overdue = openOnly.filter(r=>r.date && r.date<today).sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
-    main.innerHTML = `
-      ${overdue.length ? `<div class="card"><div class="card-title warn">⚠️ گذشته و هنوز باز</div>${renderList(overdue)}</div>` : ''}
-      <div class="card"><div class="card-title">امروز</div>${renderList(todays)}</div>
-      <div class="card"><div class="card-title">فردا</div>${renderList(tomorrows)}</div>
-    `;
-  } else if(['open','done','cancelled','archived'].includes(currentTab)){
-    let filtered = allItems.filter(r=>r.status===currentTab)
-      .sort((a,b)=> (a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
-    if(listSearchQuery.trim()){
-      const q = listSearchQuery.trim().toLowerCase();
-      filtered = filtered.filter(r => (r.title||'').toLowerCase().includes(q) || (r.customer||'').toLowerCase().includes(q) || (r.note||'').toLowerCase().includes(q));
-    }
-    main.innerHTML = `
-      <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در عنوان، مشتری، توضیح..." value="${listSearchQuery}"></div>
-      <div class="card">${renderList(filtered)}</div>`;
-    main.querySelector('#listSearchInput').addEventListener('input', (e)=>{
-      listSearchQuery = e.target.value;
-      renderMain();
-    });
+    renderToday(main);
+  } else if(currentTab === 'open'){
+    renderFlatList(main, ['open'], 'همه‌ی یادآوری‌هایِ باز');
+  } else if(currentTab === 'history'){
+    const seg = `<div class="hist-seg">${[['done','✓ تکمیل‌شده'],['cancelled','✕ کنسل‌شده'],['archived','📦 بایگانی']].map(([k,l])=>`<button data-hist="${k}" class="${historyFilter===k?'active':''}">${l}</button>`).join('')}</div>`;
+    renderFlatList(main, [historyFilter], 'سابقه', seg);
   } else if(currentTab === 'calendar'){
     renderCalendar(main);
   }
   wireItemButtons(main);
+  wireNewButtons(main);
 }
 
 function renderCalendar(main){
@@ -755,7 +1011,10 @@ document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('cli
   document.querySelectorAll('#mainTabs button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
   currentTab = b.dataset.tab;
+  listSearchQuery = '';
+  if(currentTab==='today'){ selDay = todayShamsi(); weekOffset = 0; }
   renderMain();
+  window.scrollTo({top:0});
 }));
 {
   const t = todayShamsi().split('-').map(Number);

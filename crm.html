@@ -93,7 +93,7 @@ html[data-theme="light"] {
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;font-weight:450;-webkit-font-smoothing:antialiased;}
 .app{display:flex;height:100vh;overflow:hidden;}
-.sidebar{width:210px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.sidebar{width:250px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
 .sidebar .logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);}
 .sidebar .logo-title{font-size:16px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .sidebar .logo-sub{font-size:9px;color:var(--muted);margin-top:2px;}
@@ -102,6 +102,29 @@ body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);m
 .crm-nav-item:hover{background:var(--card);}
 .crm-nav-item.active{background:linear-gradient(135deg,rgba(240,165,0,.15),rgba(232,99,10,.1));color:var(--accent);border:1px solid rgba(240,165,0,.2);}
 .crm-nav-icon{font-size:15px;width:20px;text-align:center;}
+/* ⚠️ (۱۴۰۵/۰۷/۰۵) نوارِ کناریِ جدید — «کارِ امروزِ من» + بخش‌هایِ همیشه‌باز */
+.crm-today{padding:4px 2px 12px;margin-bottom:8px;border-bottom:1px solid var(--border);}
+.crm-today-hello{font-size:14px;font-weight:800;color:var(--text);}
+.crm-today-date{font-size:11px;color:var(--muted);margin-top:1px;}
+.crm-today-label{font-size:11px;color:var(--muted);font-weight:700;margin:12px 0 7px;}
+.crm-today-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+.crm-tile{display:flex;flex-direction:column;gap:3px;text-align:right;background:var(--card);border:1.5px solid transparent;border-radius:11px;padding:9px 10px;cursor:pointer;color:var(--text);font-family:'Vazirmatn',sans-serif;transition:border-color .15s,transform .1s;}
+.crm-tile:hover{border-color:var(--border);}
+.crm-tile:active{transform:scale(.98);}
+.crm-tile.on{border-color:var(--accent);}
+.crm-tile-label{font-size:10.5px;color:var(--muted);line-height:1.4;}
+.crm-tile-num{font-size:21px;font-weight:800;line-height:1.2;}
+.crm-tile.red{background:rgba(229,83,75,.12);} .crm-tile.red .crm-tile-label{color:#f0a39e;} .crm-tile.red .crm-tile-num{color:#ff9d95;}
+.crm-tile.yellow{background:rgba(240,165,0,.12);} .crm-tile.yellow .crm-tile-label{color:#e8c77a;} .crm-tile.yellow .crm-tile-num{color:var(--accent);}
+.crm-tile.calm .crm-tile-num{color:var(--muted);}
+.crm-nav-sec{margin-top:12px;}
+.crm-nav-sec-title{font-size:10.5px;color:var(--muted);font-weight:700;padding:0 10px 4px;letter-spacing:.2px;}
+.crm-nav-sec-main .crm-nav-sec-title{color:var(--accent);}
+.crm-nav-sec .crm-nav-item{padding:8px 10px;font-size:12.5px;margin-bottom:1px;}
+.crm-nav-chips{display:flex;flex-wrap:wrap;gap:5px;padding:0 4px;}
+.crm-nav-sec .crm-nav-item.crm-nav-chip{width:auto;padding:5px 9px;font-size:11px;border:1px solid var(--border);border-radius:8px;gap:5px;margin:0;}
+.crm-nav-chip .crm-nav-icon{font-size:12px;width:auto;}
+.crm-nav-chip .crm-nav-badge{margin-right:2px;padding:1px 5px;font-size:9.5px;min-width:0;}
 .sidebar-footer{padding:12px;border-top:1px solid var(--border);}
 .crm-nav-badge{margin-right:auto;background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:18px;text-align:center;}
 .crm-main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
@@ -369,105 +392,59 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
       </button>
     </div>
     <div class="crm-nav">
+      <!-- ⚠️ (۱۴۰۵/۰۷/۰۵) طبقِ انتخابِ صریحِ کاربر («پیشنهادِ ۲»): آکاردئون‌ها حذف شدن.
+           بالا «کارِ امروزِ من» با شمارنده‌هایِ واقعی (renderTodayTiles)، زیرش بخش‌هایِ
+           پرکاربرد همیشه‌باز، و بخش‌هایِ کم‌کاربرد به‌صورتِ دکمه‌هایِ کوچیک پایینِ نوار.
+           همه‌ی دکمه‌ها با همون id و onclickِ قبلی حفظ شدن تا منطقِ نقش‌ها/شمارنده‌ها دست‌نخورده بمونه. -->
+      <div class="crm-today">
+        <div class="crm-today-hello" id="crmTodayHello">سلام</div>
+        <div class="crm-today-date" id="crmTodayDate"></div>
+        <div class="crm-today-label">کارِ امروزِ من</div>
+        <div class="crm-today-grid" id="crmTodayTiles"></div>
+      </div>
       <button class="crm-nav-item active" id="tabBtnMorning" onclick="showCrmTab('morning')"><span class="crm-nav-icon">☀️</span><span>صبح امروز</span><span class="crm-nav-badge" id="morningBadge" style="display:none"></span></button>
-
-      <!-- گروه داشبورد — آکاردئونی (۱۴۰۵/۰۶/۱۵: قبلاً «داشبورد من»/«داشبورد مدیریت» اشتباهی زیر جذب مشتری بودن) -->
-      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
-        <button class="crm-nav-item" id="dashGroupToggle" onclick="toggleDashNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">📊</span><span>داشبورد</span></span>
-          <span id="dashGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
-        </button>
-        <div id="dashNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" id="tabBtnProspStats" onclick="showCrmTab('prospStats')" style="font-size:12px;"><span class="crm-nav-icon">📊</span><span>داشبورد من</span></button>
-          <button class="crm-nav-item" id="tabBtnProspMgmtStats" onclick="showCrmTab('prospMgmtStats')" style="font-size:12px;display:none"><span class="crm-nav-icon">📈</span><span>داشبورد مدیریت</span></button>
-          <button class="crm-nav-item" id="tabBtnSalesForecast" onclick="showCrmTab('salesForecast')" style="font-size:12px;display:none"><span class="crm-nav-icon">🔮</span><span>پیش‌بینی فروش</span></button>
-          <button class="crm-nav-item" id="tabBtnCrmBi" onclick="showCrmTab('crmBi')" style="font-size:12px;display:none"><span class="crm-nav-icon">💹</span><span>تحلیلِ مدیریتی</span></button>
-          <button class="crm-nav-item" id="tabBtnDashboard" onclick="showCrmTab('dashboard')" style="font-size:12px;display:none"><span class="crm-nav-icon">📋</span><span>داشبورد سفارش‌ها</span></button>
+      <div class="crm-nav-sec crm-nav-sec-main">
+        <div class="crm-nav-sec-title">جذبِ مشتری</div>
+        <button class="crm-nav-item" id="tabBtnProspQuick" onclick="showCrmTab('prospQuick')" ><span class="crm-nav-icon">📞</span><span>فرم جذب سریع</span></button>
+        <button class="crm-nav-item" id="tabBtnProspCreate" onclick="showCrmTab('prospCreate')" ><span class="crm-nav-icon">🆕</span><span>ساخت مشتری</span></button>
+        <button class="crm-nav-item" id="tabBtnProspTable" onclick="showCrmTab('prospTable')" ><span class="crm-nav-icon">📋</span><span>جدول ثبت</span></button>
+        <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" ><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
+        <button class="crm-nav-item" id="tabBtnProspApprovals" onclick="showCrmTab('prospApprovals')" style="display:none"><span class="crm-nav-icon">✅</span><span>تاییدها</span><span class="crm-nav-badge" id="approvalsBadgeInline" style="display:none"></span></button>
+        <button class="crm-nav-item" id="tabBtnProspMgmt" onclick="showCrmTab('prospMgmt')" style="display:none"><span class="crm-nav-icon">🔔</span><span>تایید مدیریت</span><span class="crm-nav-badge" id="mgmtBadgeInline" style="display:none"></span></button>
+        <button class="crm-nav-item" id="tabBtnProspChangelog" onclick="showCrmTab('prospChangelog')" style="display:none"><span class="crm-nav-icon">📒</span><span>دفتر کل تغییرات</span></button>
+      </div>
+      <div class="crm-nav-sec">
+        <div class="crm-nav-sec-title">سفارشِ مشتری</div>
+        <button class="crm-nav-item" onclick="toggleQuickForm(true)" ><span class="crm-nav-icon">📞</span><span>تماس امروز</span></button>
+        <button class="crm-nav-item" id="tabBtnTable" onclick="showCrmTab('table')" ><span class="crm-nav-icon">📑</span><span>جدول کامل</span></button>
+        <button class="crm-nav-item" id="tabBtnArchive" onclick="showCrmTab('archive')" ><span class="crm-nav-icon">🗄️</span><span>بایگانی</span></button>
+      </div>
+      <div class="crm-nav-sec">
+        <div class="crm-nav-sec-title">یادآوری‌ها</div>
+        <button class="crm-nav-item" id="tabBtnRemTomorrow" onclick="showCrmTab('remTomorrow')" ><span class="crm-nav-icon">📝</span><span>کارهای فردا</span><span class="crm-nav-badge" id="remTomorrowNavBadge" style="display:none"></span></button>
+        <button class="crm-nav-item" id="tabBtnRemRecurring" onclick="showCrmTab('remRecurring')" ><span class="crm-nav-icon">🔁</span><span>یادآوری دوره‌ای</span><span class="crm-nav-badge" id="remRecurringNavBadge" style="display:none"></span></button>
+        <button class="crm-nav-item" id="tabBtnRemFree" onclick="showCrmTab('remFree')" ><span class="crm-nav-icon">🗒️</span><span>یادآوری آزاد</span><span class="crm-nav-badge" id="remFreeNavBadge" style="display:none"></span></button>
+        <button class="crm-nav-item" id="tabBtnRemCalendar" onclick="showCrmTab('remCalendar')" ><span class="crm-nav-icon">🗓️</span><span>اتصال به تقویم</span></button>
+      </div>
+      <div class="crm-nav-sec">
+        <div class="crm-nav-sec-title">گزارش و داشبورد</div>
+        <button class="crm-nav-item" id="tabBtnProspStats" onclick="showCrmTab('prospStats')" ><span class="crm-nav-icon">📊</span><span>داشبورد من</span></button>
+        <button class="crm-nav-item" id="tabBtnProspMgmtStats" onclick="showCrmTab('prospMgmtStats')" style="display:none"><span class="crm-nav-icon">📈</span><span>داشبورد مدیریت</span></button>
+        <button class="crm-nav-item" id="tabBtnSalesForecast" onclick="showCrmTab('salesForecast')" style="display:none"><span class="crm-nav-icon">🔮</span><span>پیش‌بینی فروش</span></button>
+        <button class="crm-nav-item" id="tabBtnCrmBi" onclick="showCrmTab('crmBi')" style="display:none"><span class="crm-nav-icon">💹</span><span>تحلیلِ مدیریتی</span></button>
+        <button class="crm-nav-item" id="tabBtnDashboard" onclick="showCrmTab('dashboard')" style="display:none"><span class="crm-nav-icon">📋</span><span>داشبورد سفارش‌ها</span></button>
+      </div>
+      <div class="crm-nav-sec crm-nav-chips-sec">
+        <div class="crm-nav-sec-title">سایرِ بخش‌ها</div>
+        <div class="crm-nav-chips">
+          <button class="crm-nav-item crm-nav-chip" id="tabBtnDebts" onclick="showCrmTab('debts')" ><span class="crm-nav-icon">💳</span><span>وصول مطالبات</span><span class="crm-nav-badge" id="debtsSubBadge" style="display:none"></span></button>
+          <button class="crm-nav-item crm-nav-chip" id="tabBtnCalendar" onclick="showCrmTab('calendar')"><span class="crm-nav-icon">🗓️</span><span>تقویم</span></button>
+          <button class="crm-nav-item crm-nav-chip" id="tabBtnWaLists" onclick="showCrmTab('waLists')" ><span class="crm-nav-icon">📢</span><span>لیست‌های واتساپ</span></button>
+          <button class="crm-nav-item crm-nav-chip" id="tabBtnBotStatus" onclick="showCrmTab('botStatus')" ><span class="crm-nav-icon">🤖</span><span>وضعیت Bot</span></button>
         </div>
       </div>
-
-      <!-- گروه جذب مشتری — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش.
-           ⚠️ (۱۴۰۵/۰۶/۱۸) طبق دستور صریح کاربر: این گروهِ «اصلیِ» نوار
-           کناریه، پس کادرش با رنگ برجسته (accent) متمایز شده — بقیه‌ی
-           گروه‌ها هم کادر می‌گیرن ولی با رنگ خنثی (border معمولی). -->
-      <div style="margin-top:2px;border:1.5px solid var(--accent);border-radius:10px;padding:2px;background:rgba(240,165,0,.03);">
-        <button class="crm-nav-item" id="prospGroupToggle" onclick="toggleProspNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🎯</span><span style="font-weight:800;">جذب مشتری</span></span>
-          <span style="display:flex;align-items:center;gap:6px;">
-            <span class="crm-nav-badge" id="prospectsBadge" style="display:none"></span>
-            <span id="prospGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
-          </span>
-        </button>
-        <div id="prospNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" id="tabBtnProspCreate" onclick="showCrmTab('prospCreate')" style="font-size:12px;"><span class="crm-nav-icon">🆕</span><span>ساخت مشتری</span></button>
-          <button class="crm-nav-item" id="tabBtnProspQuick" onclick="showCrmTab('prospQuick')" style="font-size:12px;"><span class="crm-nav-icon">📞</span><span>فرم جذب سریع</span></button>
-          <button class="crm-nav-item" id="tabBtnProspTable" onclick="showCrmTab('prospTable')" style="font-size:12px;"><span class="crm-nav-icon">📋</span><span>جدول ثبت</span></button>
-          <button class="crm-nav-item" id="tabBtnProspChangelog" onclick="showCrmTab('prospChangelog')" style="font-size:12px;display:none"><span class="crm-nav-icon">📒</span><span>دفتر کل تغییرات</span></button>
-          <button class="crm-nav-item" id="tabBtnProspApprovals" onclick="showCrmTab('prospApprovals')" style="font-size:12px;display:none"><span class="crm-nav-icon">✅</span><span>تاییدها</span><span class="crm-nav-badge" id="approvalsBadgeInline" style="display:none"></span></button>
-          <button class="crm-nav-item" id="tabBtnProspMgmt" onclick="showCrmTab('prospMgmt')" style="font-size:12px;display:none"><span class="crm-nav-icon">🔔</span><span>تایید مدیریت</span><span class="crm-nav-badge" id="mgmtBadgeInline" style="display:none"></span></button>
-          <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" style="font-size:12px;"><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
-        </div>
-      </div>
-
-      <!-- گروه سفارش مشتری — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) — طبق تصمیم صریح
-           کاربر، خودِ این ۳ صفحه دست‌نخورده موندن، فقط محل قرارگیریشون تو
-           نوار کناری عوض شد -->
-      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
-        <button class="crm-nav-item" id="orderGroupToggle" onclick="toggleOrderNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">📦</span><span>سفارش مشتری</span></span>
-          <span id="orderGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
-        </button>
-        <div id="orderNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" onclick="toggleQuickForm(true)" style="font-size:12px;"><span class="crm-nav-icon">📞</span><span>تماس امروز</span></button>
-          <button class="crm-nav-item" id="tabBtnTable" onclick="showCrmTab('table')" style="font-size:12px;"><span class="crm-nav-icon">📑</span><span>جدول کامل</span></button>
-          <button class="crm-nav-item" id="tabBtnArchive" onclick="showCrmTab('archive')" style="font-size:12px;"><span class="crm-nav-icon">🗄️</span><span>بایگانی</span></button>
-        </div>
-      </div>
-
-      <!-- گروه یادآوری‌ها — آکاردئونی، هر زیرمنو صفحه‌ی جدا و مستقل خودش -->
-      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
-        <button class="crm-nav-item" id="remGroupToggle" onclick="toggleRemNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🔔</span><span>یادآوری‌ها</span></span>
-          <span style="display:flex;align-items:center;gap:6px;">
-            <span class="crm-nav-badge" id="remBadge" style="display:none"></span>
-            <span id="remGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
-          </span>
-        </button>
-        <div id="remNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" id="tabBtnRemTomorrow" onclick="showCrmTab('remTomorrow')" style="font-size:12px;"><span class="crm-nav-icon">📝</span><span>کارهای فردا</span><span class="crm-nav-badge" id="remTomorrowNavBadge" style="display:none"></span></button>
-          <button class="crm-nav-item" id="tabBtnRemRecurring" onclick="showCrmTab('remRecurring')" style="font-size:12px;"><span class="crm-nav-icon">🔁</span><span>یادآوری دوره‌ای</span><span class="crm-nav-badge" id="remRecurringNavBadge" style="display:none"></span></button>
-          <button class="crm-nav-item" id="tabBtnRemFree" onclick="showCrmTab('remFree')" style="font-size:12px;"><span class="crm-nav-icon">🗒️</span><span>یادآوری آزاد</span><span class="crm-nav-badge" id="remFreeNavBadge" style="display:none"></span></button>
-          <button class="crm-nav-item" id="tabBtnRemCalendar" onclick="showCrmTab('remCalendar')" style="font-size:12px;"><span class="crm-nav-icon">🗓️</span><span>اتصال به تقویم</span></button>
-        </div>
-      </div>
-
-      <!-- گروه مالی — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) -->
-      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
-        <button class="crm-nav-item" id="financeGroupToggle" onclick="toggleFinanceNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">💰</span><span>مالی</span></span>
-          <span style="display:flex;align-items:center;gap:6px;">
-            <span class="crm-nav-badge" id="financeGroupBadge" style="display:none"></span>
-            <span id="financeGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
-          </span>
-        </button>
-        <div id="financeNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" id="tabBtnDebts" onclick="showCrmTab('debts')" style="font-size:12px;"><span class="crm-nav-icon">💳</span><span>وصول مطالبات</span><span class="crm-nav-badge" id="debtsSubBadge" style="display:none"></span></button>
-        </div>
-      </div>
-
-      <button class="crm-nav-item" id="tabBtnCalendar" onclick="showCrmTab('calendar')"><span class="crm-nav-icon">🗓️</span><span>تقویم</span></button>
-
-      <!-- گروه ابزار — آکاردئونی (۱۴۰۵/۰۶/۱۵ جدید) -->
-      <div style="margin-top:2px;border:1px solid var(--border);border-radius:10px;padding:2px;">
-        <button class="crm-nav-item" id="toolsGroupToggle" onclick="toggleToolsNavGroup()" style="justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:8px;"><span class="crm-nav-icon">🛠️</span><span>ابزار</span></span>
-          <span id="toolsGroupArrow" style="font-size:11px;color:var(--muted);transition:.2s;">⌄</span>
-        </button>
-        <div id="toolsNavSubItems" style="padding-right:14px;overflow:hidden;max-height:0;transition:max-height .25s ease;">
-          <button class="crm-nav-item" id="tabBtnBotStatus" onclick="showCrmTab('botStatus')" style="font-size:12px;"><span class="crm-nav-icon">🤖</span><span>وضعیت Bot</span></button>
-          <button class="crm-nav-item" id="tabBtnWaLists" onclick="showCrmTab('waLists')" style="font-size:12px;"><span class="crm-nav-icon">📢</span><span>لیست‌های واتساپ</span></button>
-        </div>
-      </div>
+      <!-- شمارنده‌هایِ گروهیِ قدیمی (برایِ سازگاریِ کدِ موجود نگه داشته شدن، دیگه نمایش داده نمی‌شن) -->
+      <span style="display:none"><span id="prospectsBadge"></span><span id="remBadge"></span><span id="financeGroupBadge"></span></span>
     </div>
   </aside>
   <div class="crm-main">
@@ -2875,76 +2852,21 @@ function showCrmTab(tab){
   // مدیریت مخفی می‌موندن و هیچ‌وقت درست نمی‌شدن. الان هر بار تعویض تب هم
   // دوباره چک می‌شه، پس با هر تاخیری تو لود نقش، خودش رو اصلاح می‌کنه.
   updateProspNavVisibility();
-  // اگه یکی از سه زیرمنوی یادآوریه، گروهش تو نوار کناری خودکار باز بمونه
-  if(['remTomorrow','remRecurring','remFree'].includes(tab) && !_remNavOpen) toggleRemNavGroup();
-  if(['prospStats','prospMgmtStats','dashboard','salesForecast'].includes(tab) && !_dashNavOpen) toggleDashNavGroup();
-  if(['table','archive'].includes(tab) && !_orderNavOpen) toggleOrderNavGroup();
-  if(tab==='debts' && !_financeNavOpen) toggleFinanceNavGroup();
-  if(tab==='botStatus' && !_toolsNavOpen) toggleToolsNavGroup();
-  if(tab==='waLists' && !_toolsNavOpen) toggleToolsNavGroup();
-  if(['prospCreate','prospQuick','prospCustomers','prospTable','prospChangelog','prospApprovals','prospMgmt'].includes(tab) && !_prospNavOpen) toggleProspNavGroup();
+  // ⚠️ (۱۴۰۵/۰۷/۰۵) نوارِ کناری دیگه آکاردئونی نیست — همه‌ی بخش‌ها همیشه بازن
+  _crmActiveTab = tab;
   updateRemNavBadges();
 }
-let _prospNavOpen = false;
-function toggleProspNavGroup(){
-  _prospNavOpen = !_prospNavOpen;
-  const box = document.getElementById('prospNavSubItems');
-  const arrow = document.getElementById('prospGroupArrow');
-  if(box) box.style.maxHeight = _prospNavOpen ? '340px' : '0';
-  if(arrow) arrow.textContent = _prospNavOpen ? '⌃' : '⌄';
-  updateProspNavVisibility();
-  updateAllGroupBadges();
-}
-// ⚠️ (۱۴۰۵/۰۶/۱۵) بازآرایی نوار کناری — طبق دستور صریح کاربر: داشبورد،
-// سفارش مشتری، مالی، ابزار هم آکاردئونی شدن. الگوی هرکدوم دقیقاً مثل
-// toggleProspNavGroup/toggleRemNavGroup بالاست.
-let _dashNavOpen = false;
-function toggleDashNavGroup(){
-  _dashNavOpen = !_dashNavOpen;
-  const box = document.getElementById('dashNavSubItems');
-  const arrow = document.getElementById('dashGroupArrow');
-  if(box) box.style.maxHeight = _dashNavOpen ? '210px' : '0';
-  if(arrow) arrow.textContent = _dashNavOpen ? '⌃' : '⌄';
-  updateProspNavVisibility();
-}
-let _orderNavOpen = false;
-function toggleOrderNavGroup(){
-  _orderNavOpen = !_orderNavOpen;
-  const box = document.getElementById('orderNavSubItems');
-  const arrow = document.getElementById('orderGroupArrow');
-  if(box) box.style.maxHeight = _orderNavOpen ? '160px' : '0';
-  if(arrow) arrow.textContent = _orderNavOpen ? '⌃' : '⌄';
-}
-let _financeNavOpen = false;
-function toggleFinanceNavGroup(){
-  _financeNavOpen = !_financeNavOpen;
-  const box = document.getElementById('financeNavSubItems');
-  const arrow = document.getElementById('financeGroupArrow');
-  if(box) box.style.maxHeight = _financeNavOpen ? '80px' : '0';
-  if(arrow) arrow.textContent = _financeNavOpen ? '⌃' : '⌄';
-  updateAllGroupBadges();
-}
-let _toolsNavOpen = false;
-function toggleToolsNavGroup(){
-  _toolsNavOpen = !_toolsNavOpen;
-  const box = document.getElementById('toolsNavSubItems');
-  const arrow = document.getElementById('toolsGroupArrow');
-  if(box) box.style.maxHeight = _toolsNavOpen ? '130px' : '0';
-  if(arrow) arrow.textContent = _toolsNavOpen ? '⌃' : '⌄';
-}
-let _remNavOpen = false;
-function toggleRemNavGroup(){
-  _remNavOpen = !_remNavOpen;
-  const box = document.getElementById('remNavSubItems');
-  const arrow = document.getElementById('remGroupArrow');
-  // ⚠️ (۱۴۰۵/۰۶/۱۸) فیکس باگ واقعی: این عدد قبلاً برای ۳ تا زیرمجموعه
-  // تنظیم شده بود؛ وقتی زیرمجموعه‌ی چهارم («اتصال به تقویم») اضافه شد،
-  // این عدد بزرگ‌تر نشد — یعنی دکمه‌ی چهارم تو کد بود، رندر می‌شد، ولی
-  // چون کانتینر overflow:hidden داشت، از دیدِ کاربر بریده/پنهان می‌موند.
-  if(box) box.style.maxHeight = _remNavOpen ? '220px' : '0';
-  if(arrow) arrow.textContent = _remNavOpen ? '⌃' : '⌄';
-  updateAllGroupBadges();
-}
+// ⚠️ (۱۴۰۵/۰۷/۰۵) آکاردئون‌ها حذف شدن (پیشنهادِ ۲). این متغیرها و توابع فقط برایِ
+// سازگاریِ کدهایِ قدیمی نگه داشته شدن: همه‌ی گروه‌ها «همیشه باز» حساب می‌شن، پس
+// هر زیرمنو شمارنده‌ی خودش رو نشون می‌ده.
+let _prospNavOpen = true, _dashNavOpen = true, _orderNavOpen = true,
+    _financeNavOpen = true, _toolsNavOpen = true, _remNavOpen = true;
+function toggleProspNavGroup(){ updateProspNavVisibility(); updateAllGroupBadges(); }
+function toggleDashNavGroup(){ updateProspNavVisibility(); }
+function toggleOrderNavGroup(){}
+function toggleFinanceNavGroup(){ updateAllGroupBadges(); }
+function toggleToolsNavGroup(){}
+function toggleRemNavGroup(){ updateAllGroupBadges(); }
 // ⚠️ (۱۴۰۵/۰۶/۱۸) قانون سراسری شمارنده — طبق دستور صریح کاربر: وقتی گروه
 // بسته‌ست، رو خودِ گروه باید مجموعِ همه‌ی زیرمجموعه‌های بازش دیده بشه؛ وقتی
 // بازه، خودِ گروه مخفی می‌شه و هر زیرمجموعه شمارنده‌ی خودش رو نشون می‌ده.
@@ -2967,6 +2889,42 @@ function updateAllGroupBadges(){
   syncGroupBadge(_prospNavOpen, 'prospectsBadge', ['approvalsBadgeInline','mgmtBadgeInline']);
   syncGroupBadge(_remNavOpen, 'remBadge', ['remTomorrowNavBadge','remRecurringNavBadge','remFreeNavBadge']);
   syncGroupBadge(_financeNavOpen, 'financeGroupBadge', ['debtsSubBadge']);
+  renderTodayTiles();
+}
+// ⚠️ (۱۴۰۵/۰۷/۰۵) «کارِ امروزِ من» — چهار کاشیِ بالایِ نوار. عددها از همون منطقی میان که
+// شمارنده‌هایِ قبلیِ CRM حساب می‌کردن (بدونِ هیچ محاسبه‌ی جدید یا درخواستِ اضافه به سرور):
+//   فوریِ امروز  ← updateMorningBadge (SLAِ فروشِ گذشته + خریدِ عقب‌افتاده)
+//   کارهایِ فردا ← remTomorrowNavBadge
+//   مشتریانِ رزروِ من ← updateProspectsBadge
+//   منتظرِ تأیید (فقط برایِ کسی که دسترسیِ تأیید داره) یا یادآوریِ دوره‌ایِ سررسید
+let _crmTodayUrgent = 0, _crmMyReserved = 0, _crmMyReservedUrgent = false, _crmActiveTab = 'morning';
+function _crmBadgeNum(id){
+  const el = document.getElementById(id);
+  if(!el || el.style.display==='none') return 0;
+  const n = parseInt(fa2en(el.textContent||'0'),10); return isNaN(n)?0:n;
+}
+function _crmVisible(id){ const el=document.getElementById(id); return !!el && el.style.display!=='none'; }
+function renderTodayTiles(){
+  const box = document.getElementById('crmTodayTiles');
+  if(!box) return;
+  try{
+    const hello = document.getElementById('crmTodayHello');
+    const nm = (typeof currentUser!=='undefined' && currentUser && (currentUser.name||'')).split(' ')[0];
+    if(hello) hello.textContent = nm ? `سلام ${nm}` : 'سلام';
+    const dt = document.getElementById('crmTodayDate');
+    if(dt && !dt.textContent) dt.textContent = new Date().toLocaleDateString('fa-IR',{weekday:'long', day:'numeric', month:'long'});
+  }catch(e){}
+  const canApprove = _crmVisible('tabBtnProspApprovals') || _crmVisible('tabBtnProspMgmt');
+  const approvals = _crmBadgeNum('approvalsBadgeInline') + _crmBadgeNum('mgmtBadgeInline');
+  const tiles = [
+    {tab:'morning', label:'فوریِ امروز', n:_crmTodayUrgent, tone:_crmTodayUrgent?'red':'calm'},
+    {tab:'remTomorrow', label:'کارهایِ فردا', n:_crmBadgeNum('remTomorrowNavBadge'), tone:'plain'},
+    {tab:'prospCustomers', label:'مشتریانِ رزروِ من', n:_crmMyReserved, tone:_crmMyReservedUrgent?'yellow':'plain'},
+    canApprove
+      ? {tab:_crmVisible('tabBtnProspMgmt')?'prospMgmt':'prospApprovals', label:'منتظرِ تأییدِ من', n:approvals, tone:approvals?'yellow':'calm'}
+      : {tab:'remRecurring', label:'یادآوریِ دوره‌ای', n:_crmBadgeNum('remRecurringNavBadge'), tone:'plain'}
+  ];
+  box.innerHTML = tiles.map(t=>`<button type="button" class="crm-tile ${t.tone}${t.tab===_crmActiveTab?' on':''}" onclick="showCrmTab('${t.tab}')"><span class="crm-tile-label">${t.label}</span><span class="crm-tile-num">${fn(t.n)}</span></button>`).join('');
 }
 function updateRemNavBadges(){
   const setB=(id,cnt)=>{const el=document.getElementById(id); if(!el) return; el.textContent=fn(cnt); el.style.display=cnt>0?'inline-block':'none';};
@@ -4180,6 +4138,7 @@ function getMorningData(){
 function updateMorningBadge(){
   const data=getMorningData();
   const urgent=data.salesSlaOverdue.length+data.procOverdue.length;
+  _crmTodayUrgent = urgent; renderTodayTiles();
   const badge=document.getElementById('morningBadge');
   if(badge){ if(urgent>0){badge.textContent=fn(urgent);badge.style.display='inline-block';}else{badge.style.display='none';} }
 }
@@ -5556,6 +5515,8 @@ function updateProspectsBadge(){
   const badge = document.getElementById('prospectsBadge');
   if(badge){
     const urgent = mine.some(p=>{ const d=prospectDaysLeft(p); return d!==null && d<=7; });
+    _crmMyReserved = mine.length; _crmMyReservedUrgent = urgent;
+    renderTodayTiles();
     badge.textContent = fn(mine.length);
     badge.style.display = mine.length ? 'inline-block' : 'none';
     if(urgent) badge.style.background = 'var(--red)';
