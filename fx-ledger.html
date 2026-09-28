@@ -1939,6 +1939,7 @@ document.addEventListener('input', ev=>{
   t.title = v===1 ? '⚠️ قیمتِ موقت — بعداً قیمتِ واقعی رو وارد کنید' : '';
 });
 function fxIsProvisional(e){ return Math.abs(Number(e.goods_yuan) - 1) < 1e-9; }
+function fxIsProvisionalId(id){ const e = state.expenses.find(x=>x.id==id); return !!e && fxIsProvisional(e); }
 // ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ خواسته‌ی کاربر: در «دفترِ کامل» هر سندِ خرید فقط یک رویداد باشه (نه یک ردیف
 // برایِ هر قلم). قلم‌هایِ هم‌سند جمع می‌شن و مانده‌هایِ ریالی/یوانی با همون قاعده‌ی سرور دوباره حساب
 // می‌شن (جمع‌ها عوض نمی‌شن، پس مانده‌ی نهایی دقیقاً همون عددِ سروره). خریدِ بدونِ شماره‌سند تک می‌مونه.
@@ -2872,20 +2873,21 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
         <thead><tr><th></th><th class="col-right">تاریخ</th><th>پارت‌نامبر</th><th>شماره سند</th><th>مبلغِ فاکتور (یوان)</th><th>مانده (یوان)</th><th>وضعیتِ تسویه</th><th>نرخِ میانگینِ وزنی (برای هلو)</th><th>معادلِ ریالیِ حسابداری</th><th>قفل</th><th></th></tr></thead>
         <tbody>
           ${filteredInvoices.length===0 ? `<tr class="empty-row"><td colspan="11">${supplierInvoicesSearchQuery?'چیزی پیدا نشد':'هنوز هزینه/فاکتورِ خریدی ثبت نشده'}</td></tr>` :
-          filteredInvoices.map(o=>`<tr>
+          filteredInvoices.map(o=>{ const prov = fxIsProvisionalId(o.id); return `<tr${prov ? ' class="fx-provisional" title="قیمتِ این قلم هنوز موقت (۱ یوان) است"' : ''}>
             <td style="white-space:nowrap"><button class="icon-btn" data-edit-exp="${o.id}">✏️ ویرایش</button> <button class="icon-btn" data-del-exp="${o.id}" title="حذف" aria-label="حذف">🗑</button> <button class="icon-btn" data-hist-exp="${o.id}" title="تاریخچه‌ی تغییرات" aria-label="تاریخچه">📜</button></td>
             <td class="date-cell">${o.date}</td>
             <td>${o.partNumber||'—'}</td>
             <td>${o.docGroup||'—'}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
-            <td>${o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'}</td>
+            <td>${prov ? '<span class="fx-prov-chip">⚠️ قیمتِ موقت — تسویه قطعی نیست</span>' : (o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>')}</td>
             <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
             <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
             <td>${o.isLocked
-              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button>'
-              : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
-          </tr>`).join('')}
+              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button>' + (prov ? '<div class="fx-prov-chip">⚠️ با قیمتِ موقت قفل شده — باز کنید و اصلاح کنید</div>' : '')
+              : (prov ? '<span style="color:#7a4f00;font-size:11px;font-weight:700">اول قیمتِ واقعی رو وارد کنید</span>'
+                : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>'))}</td>
+          </tr>`; }).join('')}
         </tbody>
         ${data.invoiceStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
           <td colspan="4" style="text-align:left">جمعِ کل</td>
@@ -3102,6 +3104,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     showHistoryModal(data.invoiceStatus.find(x=>x.id==b.dataset.histExp) || state.expenses.find(x=>x.id==b.dataset.histExp));
   }));
   main.querySelectorAll('[data-lock-exp]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(fxIsProvisionalId(b.dataset.lockExp)){ showToast('⚠️ قیمتِ این قلم هنوز موقته (۱ یوان) — اول قیمتِ واقعی رو وارد کنید'); return; }
     if(!confirm('این نرخ رو الان تو هلو ثبت کردید؟ بعد از قفل‌کردن، این عدد دیگه با تغییرِ حواله‌های قدیمی خودکار عوض نمی‌شه.')) return;
     const res = await fetch(FX_API+'expenses/'+b.dataset.lockExp+'/lock/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({today:todayShamsi()})});
     const d = await res.json();
