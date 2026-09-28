@@ -763,7 +763,10 @@ async function sheetCall(action, data={}){
     return json;
   }catch(e){
     clearTimeout(timeoutId);
-    isConnected=false;
+    // ⚠️ (۱۴۰۵/۰۷/۰۶) فیکسِ حیاتی: قبلاً اینجا isConnected=false می‌شد. یعنی هر بار که یک فراخوانیِ
+    // گوگل‌شیت (مثلاً fallbackِ شماره‌ی پیگیری یا انبار) شکست می‌خورد — که از ایران زیاد پیش میاد —
+    // از اون لحظه به بعد همه‌ی ذخیره‌هایِ لید بی‌صدا skip می‌شدن و پیامِ «✅ ثبت شد» هم نشون داده
+    // می‌شد. گوگل‌شیت دیگه ربطی به اتصالِ Django نداره، پس این پرچم اینجا دست نمی‌خوره.
     document.getElementById('syncDot').style.background='var(--red)';
     return null;
   }
@@ -796,10 +799,13 @@ function leadToApiPartial(l){
   return out;
 }
 function leadFromApi(d){
-  return { id:d.id, customer:d.customer||'', phone:d.phone||'', status:d.status||'new',
+  const l = { id:d.id, customer:d.customer||'', phone:d.phone||'', status:d.status||'new',
     note:d.note||'', assignee:d.assignee||'', date:d.date||'', editedAt:d.edited_at||'',
     convertedRequestId:d.converted_request_id||'', trackingCode:d.tracking_code||'',
     history:d.history||[] };
+  // نسخه‌ی پایه برایِ ادغامِ سه‌طرفه (فیلدِ داخلی — به سرور فرستاده نمی‌شه)
+  Object.defineProperty(l, '_histBase', {value: leadHistBase(l.history), writable:true, enumerable:false, configurable:true});
+  return l;
 }
 async function fetchLeadsFromDjango(){
   const data = await fetchJsonWithRetry(DJANGO_LEADS_API);
@@ -933,9 +939,9 @@ async function addFinanceTaskInDjango(data){
 const OFFLINE_QUEUE_KEY_CRM = 'smartchip_offline_queue_crm';
 function getOfflineQueueCRM(){ try{ return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY_CRM) || '[]'); }catch(e){ return []; } }
 function setOfflineQueueCRM(q){ try{ localStorage.setItem(OFFLINE_QUEUE_KEY_CRM, JSON.stringify(q)); }catch(e){} updateDjangoSyncUICRM(); }
-function queueOfflineRequestCRM(url, method, body, label){
+function queueOfflineRequestCRM(url, method, body, label, histBase){
   const q = getOfflineQueueCRM();
-  q.push({qid:'Q-'+Date.now()+'-'+Math.random().toString(36).slice(2,7), url, method, body, label:label||'', ts:new Date().toLocaleString('fa-IR')});
+  q.push({qid:'Q-'+Date.now()+'-'+Math.random().toString(36).slice(2,7), url, method, body, label:label||'', ts:new Date().toLocaleString('fa-IR'), histBase: histBase||null});
   setOfflineQueueCRM(q);
 }
 async function djangoFetchCRM(url, options, label){
@@ -964,7 +970,20 @@ async function trySyncOfflineQueueCRM(){
   let succeeded = 0;
   for(const item of q){
     try{
-      const res = await fetch(item.url, {method:item.method, headers:{'Content-Type':'application/json'}, body:item.body});
+      let body = item.body;
+      // ⚠️ (۱۴۰۵/۰۷/۰۶) تاریخچه‌ی لیدِ در صف هم با نسخه‌ی تازه‌ی سرور ادغام می‌شه، نه بازنویسی
+      const m = item.method==='PATCH' && String(item.url).indexOf(DJANGO_LEADS_API)===0 ? String(item.url).slice(DJANGO_LEADS_API.length).match(/^(\d+)\/$/) : null;
+      if(m){
+        const parsed = JSON.parse(body||'{}');
+        if(parsed.history){
+          const fresh = await fetchLeadFreshCRM(m[1]);
+          if(!fresh) throw new Error('fetch failed');
+          parsed.history = mergeLeadHistory(fresh.history, parsed.history, item.histBase);
+          body = JSON.stringify(parsed);
+          _applyLeadHistoryLocally(m[1], parsed.history);
+        }
+      }
+      const res = await fetch(item.url, {method:item.method, headers:{'Content-Type':'application/json'}, body});
       if(!res.ok) throw new Error('failed');
       succeeded++;
     }catch(e){ remaining.push(item); }
@@ -975,6 +994,21 @@ async function trySyncOfflineQueueCRM(){
 }
 setInterval(trySyncOfflineQueueCRM, 30000);
 window.addEventListener('online', trySyncOfflineQueueCRM);
+// بعد از هر بارگذاری از سرور: تغییراتی که هنوز در صف‌ان رویِ جدول نشون داده بشن (وگرنه تا ارسال
+// نشدن، «غیب» به نظر می‌رسن)
+function overlayQueuedLeadHistoryCRM(){
+  try{
+    getOfflineQueueCRM().forEach(item=>{
+      if(item.method!=='PATCH' || String(item.url).indexOf(DJANGO_LEADS_API)!==0) return;
+      const m = String(item.url).slice(DJANGO_LEADS_API.length).match(/^(\d+)\/$/); if(!m) return;
+      const parsed = JSON.parse(item.body||'{}'); if(!parsed.history) return;
+      const l = leads.find(x=>String(x.id)===m[1]); if(!l) return;
+      const base = l._histBase;
+      l.history = mergeLeadHistory(l.history, parsed.history, item.histBase);
+      l._histBase = base;   // پایه همون نسخه‌ی سرور می‌مونه؛ ردیف‌هایِ صف هنوز «محلی» حساب می‌شن
+    });
+  }catch(e){ console.warn('overlay queue', e); }
+}
 function updateDjangoSyncUICRM(){
   const q = getOfflineQueueCRM();
   const dot = document.getElementById('djangoSyncDotCRM');
@@ -1057,13 +1091,63 @@ async function fetchPaidChequesFromDjango(){
 
 // ذخیره‌ی مطمئن لید — همون منطق قبلی (چک نتیجه، یه‌بار retry، هشدار صریح) رو حفظ کرده،
 // فقط حالا مقصدش Django‌ست نه گوگل‌شیت
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۰۶) ذخیره‌ی امنِ تاریخچه‌ی لید — بعد از گم‌شدنِ یک تماسِ ثبت‌شده.
+// تاریخچه‌ی هر مشتری یک آرایه‌ی کامل‌ـه و قبلاً کلِ آرایه از رویِ نسخه‌ی *محلیِ* مرورگر بازنویسی
+// می‌شد. اگه همکاری (یا تبِ دیگه‌ای) نسخه‌ی قدیمی‌تری داشت و چیزی رو ذخیره می‌کرد، تماس‌هایِ جدیدِ
+// بقیه پاک می‌شد. حالا قبل از هر ذخیره، نسخه‌ی تازه‌ی سرور خونده می‌شه و «ادغامِ سه‌طرفه» انجام می‌شه:
+//   • ردیفی که فقط رویِ سروره (کارِ بقیه) → حفظ می‌شه
+//   • ردیفی که فقط محلیه (کارِ من) → اضافه می‌شه
+//   • ردیفی که هر دو دارن → اگه من تغییرش دادم نسخه‌ی من، وگرنه نسخه‌ی سرور (تغییرِ همکار حفظ می‌شه)
+// هیچ جایِ CRM ردیفِ تاریخچه رو حذف نمی‌کنه، پس این ادغام چیزی رو برنمی‌گردونه که عمداً پاک شده باشه.
+// ═══════════════════════════════════════════════════════════════════════════
+function leadHistKey(h){
+  if(!h || typeof h!=='object') return 'x|'+JSON.stringify(h);
+  const d = String(h.date||'');
+  return d.length>10 ? ('t|'+d+'|'+(h.type||'')) : ('n|'+d+'|'+(h.type||'')+'|'+String(h.note||'').slice(0,80));
+}
+function leadHistBase(history){
+  const m = {}; (history||[]).forEach(h=>{ m[leadHistKey(h)] = JSON.stringify(h); }); return m;
+}
+function mergeLeadHistory(serverHist, localHist, base){
+  base = base || {};
+  const out = (serverHist||[]).slice();
+  const idx = {}; out.forEach((h,i)=>{ idx[leadHistKey(h)] = i; });
+  (localHist||[]).forEach(h=>{
+    const k = leadHistKey(h);
+    if(k in idx){
+      const changedByMe = base[k] === undefined || base[k] !== JSON.stringify(h);
+      if(changedByMe) out[idx[k]] = h;
+    } else { idx[k] = out.length; out.push(h); }
+  });
+  return out;
+}
+async function fetchLeadFreshCRM(id){
+  try{
+    const controller = new AbortController(); const t = setTimeout(()=>controller.abort(), 12000);
+    const res = await fetch(DJANGO_LEADS_API+id+'/?t='+Date.now(), {signal:controller.signal, cache:'no-store'});
+    clearTimeout(t);
+    if(!res.ok) return null;
+    return leadFromApi(await res.json());
+  }catch(e){ return null; }
+}
+function _applyLeadHistoryLocally(id, history){
+  const l = leads.find(x=>String(x.id)===String(id));
+  if(l){ l.history = history; l._histBase = leadHistBase(history); }
+}
 async function reliableUpdateLead(data){
-  if(!isConnected) return {skipped:true};
   if(!data || !data.id) return {error:'no id'};
   const payload = leadToApiPartial(data);
+  const localLead = leads.find(x=>String(x.id)===String(data.id));
+  const base = (localLead && localLead._histBase) || null;
   const attempt = async()=>{
     try{
-      const res = await fetch(DJANGO_LEADS_API+data.id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+      const body = Object.assign({}, payload);
+      if('history' in body){
+        const fresh = await fetchLeadFreshCRM(data.id);
+        if(fresh) body.history = mergeLeadHistory(fresh.history, payload.history, base);
+      }
+      const res = await fetch(DJANGO_LEADS_API+data.id+'/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
       if(!res.ok) return null;
       return leadFromApi(await res.json());
     }catch(e){ return null; }
@@ -1071,14 +1155,14 @@ async function reliableUpdateLead(data){
   let res = await attempt();
   if(!res) res = await attempt();
   if(!res){
-    queueOfflineRequestCRM(DJANGO_LEADS_API+data.id+'/', 'PATCH', JSON.stringify(payload), 'آپدیت لید '+(data.customer||data.id));
-    toast('🟡 اتصال قطع بود — این تغییر در صف ماند و خودکار ارسال می‌شود');
+    queueOfflineRequestCRM(DJANGO_LEADS_API+data.id+'/', 'PATCH', JSON.stringify(payload), 'آپدیت لید '+(data.customer||data.id), base);
+    toast('🟡 اتصال به سرور برقرار نشد — این تغییر در صف ماند و خودکار ارسال می‌شه (صفحه رو نبندید)');
     return {queued:true, ...data};
   }
+  if('history' in payload) _applyLeadHistoryLocally(data.id, res.history);
   return res;
 }
 async function reliableAddLead(data){
-  if(!isConnected) return {skipped:true};
   const payload = leadToApiPartial(data);
   const attempt = async()=>{
     try{
@@ -1201,7 +1285,7 @@ async function init(){
     // بازخوردها — برای ستونِ «بازخورد» تو جدولِ اصلی
     ['بازخوردها', async()=>{ cachedDeliveryFeedback = (await fetchDeliveryFeedbackFromDjangoM()) || []; }],
     ['پیشنهادها', async()=>{ const d = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/'); cachedSuggestions = d || []; }],
-    ['لیدها', async()=>{ leads = (await fetchLeadsFromDjango()) || []; console.log('✅ لیدها بارگذاری شد:', leads.length, 'مورد'); }],
+    ['لیدها', async()=>{ leads = (await fetchLeadsFromDjango()) || []; overlayQueuedLeadHistoryCRM(); console.log('✅ لیدها بارگذاری شد:', leads.length, 'مورد'); }],
     // مشتریان — از Django (مرحله ۳ مهاجرت)
     ['مشتریان', async()=>{ customerMaster = (await fetchCustomersFromDjango()) || []; }],
     // وصول مطالبات — از Django
@@ -3032,7 +3116,7 @@ function updateRemNavBadges(){
 }
 async function loadLeads(){
   const djangoLeads = await fetchLeadsFromDjango();
-  if(djangoLeads) leads = djangoLeads;
+  if(djangoLeads){ leads = djangoLeads; overlayQueuedLeadHistoryCRM(); }
   renderKanban();
 }
 function renderKanban(){
@@ -4998,7 +5082,7 @@ async function refreshCrmData(showFeedback){
     const djangoRequests = await fetchRequestsFromDjango();
     if(djangoRequests) cachedRequests = djangoRequests;
     const djangoLeads = await fetchLeadsFromDjango();
-    if(djangoLeads) leads = djangoLeads;
+    if(djangoLeads){ leads = djangoLeads; overlayQueuedLeadHistoryCRM(); }
     const djangoCustomers = await fetchCustomersFromDjango();
     if(djangoCustomers) customerMaster = djangoCustomers;
     const djangoDebtCases = await fetchDebtCasesFromDjango();
@@ -9115,9 +9199,22 @@ async function submitQuickContact(){
     }catch(e){ console.error('🔴 ثبت پیشنهاد — خطای شبکه:', e); }
   }
 
-  // ذخیره
-  await reliableUpdateLead({id:lead.id, history:lead.history});
-  toast(`✅ تماس با ${customer} ثبت شد`);
+  // ذخیره — ⚠️ (۱۴۰۵/۰۷/۰۶) نتیجه‌ی واقعی چک می‌شه؛ قبلاً حتی وقتی ذخیره انجام نمی‌شد «✅ ثبت شد» می‌اومد
+  const saveRes = await reliableUpdateLead({id:lead.id, customer:lead.customer, history:lead.history});
+  if(saveRes && saveRes.queued){
+    toast(`🟡 تماس با ${customer} رویِ این مرورگر نگه داشته شد و به‌محضِ وصل شدن خودکار به سرور می‌ره — تا اون موقع این صفحه رو نبندید`);
+  } else if(!saveRes || saveRes.error || !saveRes.id){
+    lead.history.pop();
+    toast(`🚨 تماس با ${customer} ذخیره نشد! فرم پاک نشد — دوباره «ثبت» رو بزنید`);
+    return;
+  } else {
+    const onServer = (saveRes.history||[]).some(h=>leadHistKey(h)===leadHistKey(entry));
+    if(!onServer){
+      toast(`🚨 تماس با ${customer} رویِ سرور دیده نشد — فرم پاک نشد، دوباره «ثبت» رو بزنید`);
+      return;
+    }
+    toast(`✅ تماس با ${customer} ثبت شد`);
+  }
 
   // ریست فرم
   document.getElementById('qf_customer').value='';
