@@ -319,6 +319,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 </script>
 </head>
 <body>
+<div id="crmLateBanner" style="display:none;position:fixed;bottom:12px;left:12px;z-index:9999;background:rgba(245,158,11,.95);color:#000;font-size:11.5px;padding:7px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.3);max-width:320px;line-height:1.7"></div>
 
 <!-- ══ نوار هشدار خطای سراسری — تا هر خطای جاوااسکریپت فوری و قابل‌دیدن باشه، نه پنهان ══ -->
 <div id="globalErrorBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;padding:10px 16px;font-size:12px;font-family:'Vazirmatn',sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">
@@ -1205,13 +1206,13 @@ async function init(){
   const slowHint = setTimeout(()=>{ const left = tasks.filter(t=>!t.done).map(t=>t[0]);
     if(left.length) crmLoadStep(null, `⏳ منتظرِ: ${left.join('، ')}<br>اگه خیلی طول کشید، فیلترشکن و اینترنت رو بررسی کنید.`); }, 10000);
   const lateBanner = ()=>{
-    let el = document.getElementById('crmLateBanner');
+    // بنرِ «هنوز در راه» یک المانِ ثابت تویِ HTML ـه (اولِ body)؛ این‌جا فقط نشون/پنهان می‌شه
+    const el = document.getElementById('crmLateBanner');
+    if(!el) return;
     const left = tasks.filter(t=>!t.done).map(t=>t[0]);
-    if(!left.length){ if(el) el.remove(); return; }
-    if(!el){ el = document.createElement('div'); el.id = 'crmLateBanner';
-      el.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;background:rgba(245,158,11,.95);color:#000;font-size:11.5px;padding:7px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.3);max-width:320px;line-height:1.7';
-      document.body.appendChild(el); }
+    if(!left.length){ el.style.display = 'none'; el.textContent = ''; return; }
     el.textContent = `⏳ هنوز در راه: ${left.join('، ')} — به‌محضِ رسیدن نمایش داده می‌شن`;
+    el.style.display = 'block';
   };
   // وقتی بخشی بعد از بازشدنِ صفحه رسید: نمایِ فعلی دوباره ساخته می‌شه
   const refreshAfterLate = ()=>{ clearTimeout(lateTimer); lateTimer = setTimeout(()=>{
