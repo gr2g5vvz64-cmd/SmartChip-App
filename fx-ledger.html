@@ -2832,30 +2832,6 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       <h1 class="page-title">${sName}</h1>
       <p class="page-desc">فاکتورِ خرید (یوانی) = بدهیِ ما به این تأمین‌کننده؛ حواله (ریالی) تسویه‌اش می‌کنه — با همون منطقِ FIFO و نرخِ میانگینِ وزنیِ مشتریان</p>
     </div>
-    ${multiItemDocs.length ? `
-    <div class="card" style="margin-bottom:14px">
-      <div class="section-title">اسنادِ چندآیتمی (خلاصه)</div>
-      <table class="data-table">
-        <thead><tr><th>شماره‌ی سند</th><th>تعدادِ آیتم</th><th>جمعِ یوان</th><th>تسویه‌شده</th><th>مانده</th><th></th></tr></thead>
-        <tbody>
-          ${multiItemDocs.map(([doc, items])=>{
-            const totalYuan = items.reduce((s,e)=>s+e.yuan_debit, 0);
-            const remainingYuan = items.reduce((s,e)=>s+(e.remainingYuan!=null?e.remainingYuan:e.yuan_debit), 0);
-            const settledYuan = totalYuan - remainingYuan;
-            return `<tr>
-              <td>${doc}</td><td class="num">${items.length}</td>
-              <td class="num">${fmtYuan(totalYuan)}</td>
-              <td class="num" style="color:var(--ok)">${fmtYuan(settledYuan)}</td>
-              <td class="num" style="color:${remainingYuan>0.01?'var(--danger)':'var(--ok)'}">${fmtYuan(remainingYuan)}</td>
-              <td>
-                <button class="btn btn-ghost btn-sm" data-filter-doc="${doc}">مشاهده</button>
-                <button class="btn btn-ghost btn-sm" data-edit-doc="${doc}">✏️ ویرایشِ کاملِ سند</button>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>` : ''}
     <div class="toolbar" style="margin-bottom:10px"><div></div><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
@@ -2897,6 +2873,31 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
         </tr></tfoot>` : ''}
       </table>
     </div>
+    <!-- ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ درخواستِ کاربر: خلاصه‌ی اسنادِ چندآیتمی زیرِ «وضعیتِ فاکتورهای خرید» -->
+    ${multiItemDocs.length ? `
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">اسنادِ چندآیتمی (خلاصه)</div>
+      <table class="data-table">
+        <thead><tr><th>شماره‌ی سند</th><th>تعدادِ آیتم</th><th>جمعِ یوان</th><th>تسویه‌شده</th><th>مانده</th><th></th></tr></thead>
+        <tbody>
+          ${multiItemDocs.map(([doc, items])=>{
+            const totalYuan = items.reduce((s,e)=>s+e.yuan_debit, 0);
+            const remainingYuan = items.reduce((s,e)=>s+(e.remainingYuan!=null?e.remainingYuan:e.yuan_debit), 0);
+            const settledYuan = totalYuan - remainingYuan;
+            return `<tr>
+              <td>${doc}</td><td class="num">${items.length}</td>
+              <td class="num">${fmtYuan(totalYuan)}</td>
+              <td class="num" style="color:var(--ok)">${fmtYuan(settledYuan)}</td>
+              <td class="num" style="color:${remainingYuan>0.01?'var(--danger)':'var(--ok)'}">${fmtYuan(remainingYuan)}</td>
+              <td>
+                <button class="btn btn-ghost btn-sm" data-filter-doc="${doc}">مشاهده</button>
+                <button class="btn btn-ghost btn-sm" data-edit-doc="${doc}">✏️ ویرایشِ کاملِ سند</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
 
     <div class="section-title">وضعیتِ حواله‌ها — چقدر رفته، چقدر مونده</div>
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierHawaleStatusSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierHawaleStatusSearchQuery}" style="min-width:200px"></div>
