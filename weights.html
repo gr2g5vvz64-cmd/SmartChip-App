@@ -72,27 +72,33 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 .wrap{flex:1;overflow:auto;background:var(--sheet);position:relative;direction:ltr}  /* شیت از ستونِ A (چپ) شروع می‌شه */
 #emptyBox{direction:rtl}
 table.sheet{border-collapse:separate;border-spacing:0;direction:ltr;font-size:13px;min-width:100%}
-.sheet th,.sheet td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:0;height:30px;white-space:nowrap}
+.sheet{table-layout:fixed}
+.sheet th,.sheet td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:0;height:40px;white-space:nowrap;text-align:center;overflow:hidden}
 .sheet thead th{position:sticky;background:var(--head);color:var(--head-ink);font-weight:600;z-index:3}
 .sheet thead tr.groups th{top:0;height:24px;font-size:11.5px;font-weight:700;color:var(--ink);text-align:center;letter-spacing:.2px}
 .sheet thead tr.letters th{top:24px;height:20px;font-size:11px;font-weight:500;color:#7a8592;text-align:center}
-.sheet thead tr.titles th{top:44px;font-size:12px;padding:0 8px;text-align:center;border-bottom:1.5px solid var(--grid-strong)}
+.sheet thead tr.titles th{top:44px;height:42px;font-size:11.5px;line-height:1.25;padding:2px 4px;text-align:center;border-bottom:1.5px solid var(--grid-strong);white-space:normal;word-break:normal;overflow-wrap:normal;position:sticky}
+.sheet thead tr.titles th .ttl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sheet .rz{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;z-index:6;touch-action:none}
+.sheet .rz:hover,.sheet .rz.drag{background:rgba(26,115,232,.35)}
+body.resizing,body.resizing *{cursor:col-resize!important;user-select:none!important}
 /* ── کادرِ گروه‌ها: G-H · I-K · L-N · O-Q · R-S · T-V ── */
 .sheet .g-end{border-right:2px solid #8793a1!important}
 .sheet thead th.g-alt{background:#e2e7ec}
 .sheet thead tr.groups th.g-cell{border-bottom:1px solid var(--grid-strong)}
 .sheet thead tr.groups th.g-cell small{font-weight:500;color:var(--ink-soft);margin-right:3px}
+.sheet thead tr.groups th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sheet tbody td.g-alt{background:rgba(120,135,150,.045)}
 .sheet tbody tr.ok td.g-alt{background:rgba(30,107,54,.05)}
 .sheet tbody tr.ph td{color:#b3bcc6;font-size:11px}
-.sheet tbody tr.ph td.phcell{background:repeating-linear-gradient(90deg,#f3f5f7 0 120px,#eceff2 120px 240px);text-align:left;padding-left:12px}
+.sheet tbody tr.ph td.phcell{background:repeating-linear-gradient(90deg,#f3f5f7 0 120px,#eceff2 120px 240px)}
 .sheet tbody tr.sp td{border:0!important;padding:0!important;background:transparent!important}   /* ارتفاع از style خودِ ردیف میاد */
 .goto{display:flex;align-items:center;gap:5px;white-space:nowrap}
 .goto input{width:74px;border:1px solid var(--grid-strong);border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;direction:ltr;text-align:center}
-.sheet .rn{position:sticky;left:0;z-index:2;background:var(--head);color:#7a8592;font-size:11px;text-align:center;width:46px;min-width:46px}
+.sheet .rn{position:sticky;left:0;z-index:2;background:var(--head);color:#7a8592;font-size:11px;text-align:center}
 .sheet thead .rn{z-index:5;top:0}
-.sheet .colA{position:sticky;left:46px;z-index:2;background:inherit;width:78px;min-width:78px}
-.sheet .colB{position:sticky;left:124px;z-index:2;background:inherit;width:250px;min-width:250px;border-right:1.5px solid var(--grid-strong)}
+.sheet .colA{position:sticky;left:var(--wRn,40px);z-index:2;background:inherit}
+.sheet .colB{position:sticky;left:calc(var(--wRn,40px) + var(--wA,60px));z-index:2;background:inherit;border-right:2px solid #8793a1!important}
 .sheet thead .colA,.sheet thead .colB{z-index:5;background:var(--head)}
 .sheet tbody tr{background:var(--sheet)}
 .sheet tbody tr:hover{background:#f7f9fb}
@@ -101,11 +107,12 @@ table.sheet{border-collapse:separate;border-spacing:0;direction:ltr;font-size:13
 .sheet tbody tr.ok .rn{background:#bfe3c8;color:var(--green-ink)}
 .sheet tbody tr.fresh{animation:fresh 1.6s ease-out}
 @keyframes fresh{from{background:#fff3b0}}
-.sheet input,.sheet select{width:100%;height:29px;border:0;background:transparent;font:inherit;font-size:13px;color:var(--ink);padding:0 7px;outline:none}
-.sheet td.num{width:88px;min-width:88px}
-.sheet td.num input{text-align:right}
-.sheet td.txt{min-width:130px}
-.sheet td.colB input{font-weight:600}
+.sheet input,.sheet select,.sheet textarea{width:100%;height:39px;border:0;background:transparent;font:inherit;font-size:12.5px;color:var(--ink);padding:0 3px;outline:none;text-align:center}
+.sheet select{text-align-last:center}
+.sheet textarea.pn{display:block;resize:none;overflow:hidden;white-space:normal;word-break:break-word;line-height:1.3;padding:3px 4px;font-weight:600;font-size:12px}
+.sheet textarea.pn:focus{overflow-y:auto}
+.sheet textarea.pn.one{padding-top:11px}   /* پارت‌نامبرِ یک‌خطی وسطِ خانه */
+
 .sheet select{appearance:none;-webkit-appearance:none;cursor:pointer;font-weight:600;color:var(--green-ink)}
 .sheet tr:not(.ok) select{color:#9aa4ae;font-weight:400}
 .sheet td:focus-within{box-shadow:inset 0 0 0 2px var(--focus);background:#fff}
@@ -117,11 +124,11 @@ table.sheet{border-collapse:separate;border-spacing:0;direction:ltr;font-size:13
 .sheet td.queued{background:var(--amber)!important}
 .sheet td.changed-elsewhere{animation:elsewhere 2.4s ease-out}
 @keyframes elsewhere{from{background:#ffd9a8}}
-.sheet td.del{width:34px;min-width:34px;text-align:center}
+.sheet td.del{text-align:center}
 .sheet td.del button{border:0;background:none;color:#b3bcc6;font-size:14px;padding:4px;opacity:0}
 .sheet tr:hover td.del button,.sheet td.del button:focus{opacity:1}
 .sheet td.del button:hover{color:var(--err-ink)}
-body.ro .sheet input,body.ro .sheet select{pointer-events:none}
+body.ro .sheet input,body.ro .sheet select,body.ro .sheet textarea{pointer-events:none}
 body.ro .del,body.ro #addBtn{display:none!important}
 
 /* ── حالت‌هایِ خالی ── */
@@ -147,7 +154,6 @@ body.ro .del,body.ro #addBtn{display:none!important}
 @media (max-width:640px){
   .top{padding:8px 10px}
   .brand h1{font-size:15px}
-  .sheet .colB{width:170px;min-width:170px}
   .foot .keys{display:none}
 }
 </style>
@@ -175,6 +181,7 @@ body.ro .del,body.ro #addBtn{display:none!important}
     <div class="counts" id="counts"></div>
     <div class="actions">
       <button class="btn" id="undoBtn" type="button" disabled title="برگرداندنِ آخرین تغییرِ ذخیره‌شده (Ctrl+Z)">↶ برگرداندن</button>
+      <button class="btn" id="fitBtn" type="button" title="همه‌ی ستون‌ها به اندازه‌ی خودکار (جاشدن در عرضِ صفحه)">↔ اندازه‌ی خودکار</button>
       <button class="btn" id="exportBtn" type="button">⬇ خروجیِ Excel</button>
       <button class="btn primary" id="addBtn" type="button">➕ قطعه‌ی جدید</button>
     </div>
@@ -365,6 +372,9 @@ async function fetchChunk(ci, gen = S.gen){
 // ═══════════════════════════════ نمایش ═══════════════════════════════
 // گروه‌هایِ ستونی دقیقاً مثلِ شیت
 const GROUPS = [
+  {from: 'C', to: 'D', title: 'مشخصات', fa: ''},
+  {from: 'E', to: 'E', title: 'Micro', fa: ''},
+  {from: 'F', to: 'F', title: 'AI', fa: ''},
   {from: 'G', to: 'H', title: 'Unit', fa: 'عدد'},
   {from: 'I', to: 'K', title: 'Pack', fa: 'سینی'},
   {from: 'L', to: 'N', title: 'Tube', fa: 'حلقه'},
@@ -375,20 +385,84 @@ const GROUPS = [
 function colClass(L){
   // g-end: خطِ پررنگِ آخرِ هر گروه (و بعد از F، قبل از شروعِ گروه‌ها) · g-alt: رنگِ ملایمِ یکی‌درمیان
   const cls = [];
-  if (L === 'F') cls.push('g-end');
   GROUPS.forEach((g, i) => { if (L >= g.from && L <= g.to){ if (L === g.to) cls.push('g-end'); if (i % 2 === 1) cls.push('g-alt'); } });
   return cls.join(' ');
 }
+// ═════════ اندازه‌ی ستون‌ها ═════════
+// وزنِ نسبی و حداقلِ هر ستون — به‌طورِ پیش‌فرض کلِ جدول در عرضِ صفحه جا می‌شه
+const COLW_KEY = 'smartchip_weights_colw_v1';
+const W_RN = 40, W_DEL = 26;
+function colSpec(c){
+  const [L, f] = c;
+  if (L === 'A') return {w: 1.0, min: 54};
+  if (L === 'B') return {w: 3.4, min: 130};
+  if (L === 'C') return {w: 1.75, min: 70};
+  if (L === 'D') return {w: 1.7, min: 70};
+  if (L === 'E' || L === 'F') return {w: 1.15, min: 50};
+  return {w: 0.95, min: 42};
+}
+function readColW(){ try{ return JSON.parse(localStorage.getItem(COLW_KEY) || '{}'); }catch(e){ return {}; } }
+function saveColW(m){ try{ localStorage.setItem(COLW_KEY, JSON.stringify(m)); }catch(e){} }
+function computeWidths(){
+  const user = readColW();
+  const avail = Math.max(600, ($('wrap').clientWidth || 1200) - W_RN - W_DEL - 2);
+  let fixed = 0, weight = 0;
+  COLS.forEach((c, i) => { if (user[i]) fixed += user[i]; else weight += colSpec(c).w; });
+  const unit = weight ? Math.max(0, avail - fixed) / weight : 0;
+  return COLS.map((c, i) => user[i] || Math.max(colSpec(c).min, Math.floor(colSpec(c).w * unit)));
+}
+function applyWidths(){
+  const cg = $('sheet').querySelector('colgroup'); if (!cg) return;
+  const w = computeWidths();
+  cg.querySelector('[data-k="rn"]').style.width = W_RN + 'px';
+  cg.querySelector('[data-k="del"]').style.width = W_DEL + 'px';
+  w.forEach((px, i) => { cg.querySelector(`[data-ci="${i}"]`).style.width = px + 'px'; });
+  const total = W_RN + W_DEL + w.reduce((a, b) => a + b, 0);
+  $('sheet').style.width = total + 'px';
+  document.documentElement.style.setProperty('--wRn', W_RN + 'px');
+  document.documentElement.style.setProperty('--wA', w[0] + 'px');
+}
+function wireResize(){
+  let drag = null;
+  $('hTitles').addEventListener('pointerdown', e => {
+    const h = e.target.closest('.rz'); if (!h) return;
+    e.preventDefault();
+    const ci = +h.dataset.ci;
+    const col = $('sheet').querySelector(`col[data-ci="${ci}"]`);
+    drag = {ci, x: e.clientX, w: parseFloat(col.style.width) || col.getBoundingClientRect().width, h};
+    h.classList.add('drag'); document.body.classList.add('resizing');
+    h.setPointerCapture(e.pointerId);
+  });
+  $('hTitles').addEventListener('pointermove', e => {
+    if (!drag) return;
+    const nw = Math.max(36, Math.round(drag.w + (e.clientX - drag.x)));   // جدول چپ‌به‌راسته: کشیدن به راست = پهن‌تر
+    const m = readColW(); m[drag.ci] = nw; saveColW(m); applyWidths();
+  });
+  const end = () => { if (!drag) return; drag.h.classList.remove('drag'); document.body.classList.remove('resizing'); drag = null; };
+  $('hTitles').addEventListener('pointerup', end);
+  $('hTitles').addEventListener('pointercancel', end);
+  $('hTitles').addEventListener('dblclick', e => {
+    const h = e.target.closest('.rz'); if (!h) return;
+    const m = readColW(); delete m[+h.dataset.ci]; saveColW(m); applyWidths();
+    toast('اندازه‌ی این ستون خودکار شد');
+  });
+}
+function resetWidths(){ saveColW({}); applyWidths(); toast('↔ همه‌ی ستون‌ها به اندازه‌ی خودکار برگشتن'); }
+
 function renderHead(){
   const stick = L => L === 'A' ? 'colA' : L === 'B' ? 'colB' : '';
-  let g = '<th class="rn"></th><th class="colA"></th><th class="colB"></th><th colspan="4" class="g-end"></th>';
+  let g = '<th class="rn"></th><th class="colA"></th><th class="colB"></th>';
   GROUPS.forEach((gr, i) => {
     const span = COLS.findIndex(c => c[0] === gr.to) - COLS.findIndex(c => c[0] === gr.from) + 1;
-    g += `<th colspan="${span}" class="g-cell g-end${i % 2 === 1 ? ' g-alt' : ''}">${gr.title} <small><bdi>(${gr.fa})</bdi></small></th>`;
+    g += `<th colspan="${span}" class="g-cell g-end${i % 2 === 1 ? ' g-alt' : ''}">${gr.title}${gr.fa ? ` <small><bdi>(${gr.fa})</bdi></small>` : ''}</th>`;
   });
   $('hGroups').innerHTML = g + '<th class="del"></th>';
   $('hLetters').innerHTML = '<th class="rn"></th>' + COLS.map(c => `<th class="${stick(c[0])} ${colClass(c[0])}">${c[0]}</th>`).join('') + '<th class="del"></th>';
-  $('hTitles').innerHTML = '<th class="rn">#</th>' + COLS.map(c => `<th class="${stick(c[0])} ${colClass(c[0])}">${esc(c[2])}</th>`).join('') + '<th class="del"></th>';
+  $('hTitles').innerHTML = '<th class="rn">#</th>' + COLS.map((c, i) => `<th class="${stick(c[0])} ${colClass(c[0])}"><span class="ttl">${esc(c[2])}</span><span class="rz" data-ci="${i}" title="بکشید تا پهنِ ستون عوض بشه · دابل‌کلیک = اندازه‌ی خودکار"></span></th>`).join('') + '<th class="del"></th>';
+  // colgroup برایِ اندازه‌یِ ستون‌ها
+  const cg = $('sheet').querySelector('colgroup') || $('sheet').insertBefore(document.createElement('colgroup'), $('sheet').firstChild);
+  cg.innerHTML = '<col data-k="rn">' + COLS.map((c, i) => `<col data-ci="${i}">`).join('') + '<col data-k="del">';
+  applyWidths();
 }
 
 function cellHtml(row, c){
@@ -403,6 +477,9 @@ function cellHtml(row, c){
     return `<td class="${cls}${qcls}" data-f="${f}"><select data-f="${f}" aria-label="Verifi">
       <option value=""${!shown ? ' selected' : ''}>—</option>${legacy}
       <option value="verifi"${String(shown).toLowerCase() === 'verifi' ? ' selected' : ''}>verifi</option></select></td>`;
+  }
+  if (f === 'part_number'){
+    return `<td class="${cls}${qcls}" data-f="${f}"><textarea class="pn" data-f="${f}" rows="2" spellcheck="false" autocomplete="off" aria-label="${c[0]} ${esc(c[2])}" title="${esc(shown)}">${esc(shown)}</textarea></td>`;
   }
   return `<td class="${cls}${qcls}" data-f="${f}"><input data-f="${f}" value="${esc(shown)}" ${kind === 'num' ? 'inputmode="decimal"' : ''} spellcheck="false" autocomplete="off" aria-label="${c[0]} ${esc(c[2])}"></td>`;
 }
@@ -432,9 +509,9 @@ function renderWindow(force = false){
 
   // خانه‌ای که الان توش هستید حفظ می‌شه؛ اگه چیزی تایپ کرده بودید، اول ذخیره می‌شه
   const act = document.activeElement; let keep = null;
-  if (act && $('tbody').contains(act) && act.matches('input,select')){
+  if (act && $('tbody').contains(act) && act.matches('input,select,textarea')){
     const tr = act.closest('tr');
-    if (act.tagName === 'INPUT' && act.dataset.orig !== undefined && act.value !== act.dataset.orig) commitCell(act);
+    if (act.tagName !== 'SELECT' && act.dataset.orig !== undefined && act.value !== act.dataset.orig) commitCell(act);
     keep = {id: tr.dataset.id, f: act.dataset.f, s: act.selectionStart, e: act.selectionEnd};
   }
 
@@ -454,11 +531,22 @@ function renderWindow(force = false){
   if (real){ const h = real.getBoundingClientRect().height; if (h && Math.abs(h - S.rowH) > .5){ S.rowH = h; requestAnimationFrame(() => renderWindow(true)); } }
 
   if (keep){
-    const el = document.querySelector(`tr[data-id="${keep.id}"] [data-f="${keep.f}"]:is(input,select)`);
+    const el = document.querySelector(`tr[data-id="${keep.id}"] [data-f="${keep.f}"]:is(input,select,textarea)`);
     if (el){ el.focus({preventScroll: true}); try{ if (keep.s != null) el.setSelectionRange(keep.s, keep.e); }catch(e){} }
   }
+  fitPn();
   renderEmpty();
   renderMeta();
+}
+
+function fitPn(root){
+  // پارت‌نامبرِ کوتاه (یک خط) وسطِ خانه بشینه، بلند (دو خط) از بالا
+  (root ? [root] : $('tbody').querySelectorAll('textarea.pn')).forEach(el => {
+    el.classList.remove('one');
+    const h = el.style.height; el.style.height = '0px';            // ارتفاعِ واقعیِ متن، نه خودِ کادر
+    const need = el.scrollHeight; el.style.height = h;
+    if (need <= 28) el.classList.add('one');
+  });
 }
 
 function ensureChunks(a, b){
@@ -543,7 +631,7 @@ function applyRow(row, force = []){
   const tr = document.querySelector(`tr[data-id="${row.id}"]`); if (!tr) return;
   tr.classList.toggle('ok', isVerified(row.verified));
   for (const f of FIELDS){
-    const el = tr.querySelector(`[data-f="${f}"]:is(input,select)`);
+    const el = tr.querySelector(`[data-f="${f}"]:is(input,select,textarea)`);
     // خانه‌ای که الان توش تایپ می‌کنید دست نمی‌خوره — مگر سرور صریحاً مقدارِ دیگه‌ای برگردونده باشه (force)
     if (el && (document.activeElement !== el || force.includes(f))){
       if (el.tagName === 'SELECT'){ if (![...el.options].some(o => o.value === (row[f] ?? ''))) el.insertAdjacentHTML('beforeend', `<option value="${esc(row[f])}">${esc(row[f])}</option>`); el.value = row[f] ?? ''; }
@@ -645,7 +733,7 @@ async function deleteRow(id){
   }catch(e){ toast('❌ سرور جواب نداد — حذف نشد'); }
 }
 function focusCell(id, field){
-  const el = document.querySelector(`tr[data-id="${id}"] [data-f="${field}"]:is(input,select)`);
+  const el = document.querySelector(`tr[data-id="${id}"] [data-f="${field}"]:is(input,select,textarea)`);
   if (el){ el.focus(); if (el.select) el.select(); el.scrollIntoView({block: 'nearest', inline: 'nearest'}); }
 }
 
@@ -659,9 +747,12 @@ async function undoLast(){
 
 // ═══════════════════════════════ پیستِ چندخانه‌ای ═══════════════════════════════
 function onPaste(e){
-  const el = e.target; if (!el.matches || !el.matches('.sheet input,.sheet select')) return;
+  const el = e.target; if (!el.matches || !el.matches('.sheet input,.sheet select,.sheet textarea')) return;
   const text = (e.clipboardData || window.clipboardData).getData('text');
-  if (!text || (!text.includes('\t') && !/\n./.test(text.trim()))) return;   // پیستِ معمولی در یک خانه
+  if (!text || (!text.includes('\t') && !/\n./.test(text.trim()))){
+    if (el.tagName === 'TEXTAREA' && /[\r\n]/.test(text)){ e.preventDefault(); document.execCommand('insertText', false, text.replace(/[\r\n]+/g, ' ').trim()); }
+    return;                                                                  // پیستِ معمولی در یک خانه
+  }
   e.preventDefault();
   const grid = text.replace(/\r/g, '').replace(/\n$/, '').split('\n').map(l => l.split('\t'));
   const tr0 = el.closest('tr'); const trs = [...$('tbody').children]; const r0 = trs.indexOf(tr0);
@@ -681,7 +772,7 @@ function onPaste(e){
       if (sameVal(f, prev, v)) return;
       if (!perRow.has(id)) perRow.set(id, []);
       perRow.get(id).push({field: f, value: v, prev}); cells++;
-      const input = tr.querySelector(`[data-f="${f}"]:is(input,select)`); if (input){ input.value = v; input.dataset.orig = v; }
+      const input = tr.querySelector(`[data-f="${f}"]:is(input,select,textarea)`); if (input){ input.value = v; input.dataset.orig = v; }
       if (f === 'verified') tr.classList.toggle('ok', v === 'verifi');
     });
   });
@@ -725,7 +816,9 @@ function wire(){
   });
   let raf = 0;
   $('wrap').addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderWindow(); renderMeta(); }); }, {passive: true});
-  window.addEventListener('resize', () => renderWindow(true));
+  window.addEventListener('resize', () => { applyWidths(); renderWindow(true); });
+  wireResize();
+  $('fitBtn').onclick = resetWidths;
   $('exportBtn').onclick = exportXlsx;
   $('undoBtn').onclick = undoLast;
   $('addBarBtn').onclick = () => createPart(S.q);
@@ -739,34 +832,35 @@ function wire(){
   $('errRetry').onclick = () => load({keepScroll: true});
 
   const tb = $('tbody');
-  tb.addEventListener('focusin', e => { const el = e.target; if (el.matches('input,select') && el.dataset.orig === undefined){ const row = S.byId.get(+el.closest('tr').dataset.id); el.dataset.orig = row ? (row[el.dataset.f] ?? '') : el.value; } });
+  tb.addEventListener('focusin', e => { const el = e.target; if (el.matches('input,select,textarea') && el.dataset.orig === undefined){ const row = S.byId.get(+el.closest('tr').dataset.id); el.dataset.orig = row ? (row[el.dataset.f] ?? '') : el.value; } });
   tb.addEventListener('change', e => { if (e.target.matches('select')) commitCell(e.target); });
-  tb.addEventListener('focusout', e => { if (e.target.matches('input')) commitCell(e.target); });
+  tb.addEventListener('focusout', e => { if (e.target.matches('input,textarea')) commitCell(e.target); });
   tb.addEventListener('keydown', e => {
-    const el = e.target; if (!el.matches('input,select')) return;
+    const el = e.target; if (!el.matches('input,select,textarea')) return;
     const td = el.closest('td'), tr = el.closest('tr'); const ci = [...tr.children].indexOf(td);
     const move = (dr) => {
       const next = tr.parentElement.children[[...tr.parentElement.children].indexOf(tr) + dr];
       const cell = next && next.dataset.id ? next.children[ci] : null;
-      const n = cell ? cell.querySelector('input,select') : null;
+      const n = cell ? cell.querySelector('input,select,textarea') : null;
       if (n){ n.focus({preventScroll: true}); if (n.select) n.select(); n.scrollIntoView({block: 'nearest'}); }
     };
-    if (e.key === 'Enter'){ e.preventDefault(); if (el.tagName === 'INPUT') commitCell(el); move(e.shiftKey ? -1 : 1); }
-    else if (e.key === 'ArrowDown' && el.tagName === 'INPUT'){ e.preventDefault(); move(1); }
-    else if (e.key === 'ArrowUp' && el.tagName === 'INPUT'){ e.preventDefault(); move(-1); }
-    else if (e.key === 'Escape' && el.tagName === 'INPUT'){ el.value = el.dataset.orig ?? el.value; el.blur(); }
+    if (e.key === 'Enter'){ e.preventDefault(); if (el.tagName !== 'SELECT') commitCell(el); move(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'ArrowDown' && el.tagName !== 'SELECT'){ e.preventDefault(); move(1); }
+    else if (e.key === 'ArrowUp' && el.tagName !== 'SELECT'){ e.preventDefault(); move(-1); }
+    else if (e.key === 'Escape' && el.tagName !== 'SELECT'){ el.value = el.dataset.orig ?? el.value; el.blur(); }
   });
   tb.addEventListener('paste', onPaste);
+  tb.addEventListener('input', e => { if (e.target.matches('textarea.pn')) fitPn(e.target); });
   tb.addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b) deleteRow(+b.dataset.del); });
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey){
       const a = document.activeElement;
-      const typing = a && a.tagName === 'INPUT' && a.dataset.orig !== undefined && a.value !== a.dataset.orig;
+      const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && a.dataset.orig !== undefined && a.value !== a.dataset.orig;
       if (!typing && a !== $('q')){ e.preventDefault(); undoLast(); }
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){ e.preventDefault(); $('q').focus(); $('q').select(); }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Home' && !(document.activeElement && document.activeElement.tagName === 'INPUT')){ e.preventDefault(); scrollToRow(1); }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'End' && !(document.activeElement && document.activeElement.tagName === 'INPUT')){ e.preventDefault(); scrollToRow(S.total); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Home' && !(document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))){ e.preventDefault(); scrollToRow(1); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'End' && !(document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))){ e.preventDefault(); scrollToRow(S.total); }
   });
   window.addEventListener('online', flushQueue);
   setInterval(flushQueue, 20000);
