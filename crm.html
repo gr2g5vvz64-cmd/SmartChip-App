@@ -474,7 +474,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
         <input id="globalSearchInput" class="form-control" style="font-size:12px;padding:7px 12px;" placeholder="🔎 جستجوی سراسری — مشتری، چک، یادآوری..." oninput="globalSearch(this.value)" onfocus="if(this.value)globalSearch(this.value)"/>
         <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 4px);right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-height:400px;overflow-y:auto;z-index:200;"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="syncItemsToDjangoCRM()" title="همگام‌سازی وزن قطعات از گوگل‌شیت">⚖️ sync</button>
+      <button class="btn btn-ghost btn-sm" onclick="syncItemsToDjangoCRM()" title="وزن‌نامه‌ی قطعات — جستجو، ویرایش و خروجیِ Excel">⚖️ وزن‌نامه</button>
       <button class="btn btn-ghost btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="تغییر بین حالت شب و روز">🌙 حالت روز</button>
     </div>
     <!-- ══ نوار پالس — فقط کارهای همین کارشناس. فقط می‌خونه، هیچ تابع موجودی رو دست نمی‌زنه ══ -->
@@ -1031,20 +1031,10 @@ updateDjangoSyncUICRM();
 // چون جنگو تنها مرجع مشتریانه، این تابع دیگه نه‌تنها لازم نبود بلکه خطرناک
 // بود: می‌تونست داده‌ی تازه‌ای که تو CRM ویرایش شده رو با نسخه‌ی قدیمی گوگل‌شیت
 // بازنویسی کنه.
-async function syncItemsToDjangoCRM(){
-  toast('⏳ در حال خواندن وزن قطعات (ممکنه کمی طول بکشه)...');
-  try{
-    const res = await sheetCall('getAllItemWeights');
-    const items = (res && res.items) || [];
-    if(!items.length){ toast('⚠ چیزی خونده نشد'); return; }
-    toast(`⏳ در حال ارسال ${items.length} پارت (صبر کن)...`);
-    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
-    });
-    const data = await syncRes.json();
-    if(data.ok) toast(`✅ تمام شد — ${data.created} جدید، ${data.updated} آپدیت شد`);
-    else toast('❌ ناموفق بود');
-  }catch(e){ toast('❌ خطا: '+e.message); }
+// ⚠️ (۱۴۰۵/۰۷/۰۶) مرجعِ وزنِ قطعات حالا «⚖️ وزن‌نامه‌ی قطعات» (weights.html) است، نه گوگل‌شیت.
+// همگام‌سازیِ قدیمی حذف شد — اگه می‌موند، یک کلیک همه‌ی ویرایش‌هایِ جدید رو با شیتِ کهنه بازنویسی می‌کرد.
+function syncItemsToDjangoCRM(q){
+  window.open('weights.html'+(q?('?q='+encodeURIComponent(q)):''),'_blank');
 }
 
 // شماره‌ی ترتیبی بعدی مشتری (BDL-06 و مشابه) — اول از Django، اگه نشد از گوگل‌شیت قدیمی
@@ -1134,6 +1124,26 @@ async function fetchLeadFreshCRM(id){
 function _applyLeadHistoryLocally(id, history){
   const l = leads.find(x=>String(x.id)===String(id));
   if(l){ l.history = history; l._histBase = leadHistBase(history); }
+}
+// ⚠️ (۱۴۰۵/۰۷/۰۶) API جدیدِ فعالیت‌ها: هر تماس یک ردیفِ مستقل در سرور (activities_app).
+// «افزودن» به‌جایِ «بازنویسیِ کلِ فهرست» — گم شدن اصلاً ممکن نیست؛ تکرارِ همون درخواست هم ردیفِ تکراری نمی‌سازه.
+// اگه بک‌اند هنوز دیپلوی نشده باشه (404) یا اتصال نباشه، null برمی‌گرده و مسیرِ قدیمی (با ادغام) استفاده می‌شه.
+const DJANGO_ACTIVITIES_API = 'https://smartchip-backend.onrender.com/api/activities/lead-activities/';
+async function appendLeadActivityCRM(leadId, entry){
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      const controller = new AbortController(); const t = setTimeout(()=>controller.abort(), 20000);
+      const res = await fetch(DJANGO_ACTIVITIES_API, {method:'POST', headers:{'Content-Type':'application/json'}, signal:controller.signal,
+        body: JSON.stringify({lead: leadId, data: entry, by: (typeof currentUserName!=='undefined' && currentUserName) || ''})});
+      clearTimeout(t);
+      if(res.status===404) return null;                 // بک‌اندِ جدید هنوز نیومده
+      if(!res.ok) continue;
+      const j = await res.json();
+      if(Array.isArray(j.history)) _applyLeadHistoryLocally(leadId, j.history);
+      return j;
+    }catch(e){ /* تلاشِ بعدی */ }
+  }
+  return null;
 }
 async function reliableUpdateLead(data){
   if(!data || !data.id) return {error:'no id'};
@@ -9199,7 +9209,12 @@ async function submitQuickContact(){
     }catch(e){ console.error('🔴 ثبت پیشنهاد — خطای شبکه:', e); }
   }
 
-  // ذخیره — ⚠️ (۱۴۰۵/۰۷/۰۶) نتیجه‌ی واقعی چک می‌شه؛ قبلاً حتی وقتی ذخیره انجام نمی‌شد «✅ ثبت شد» می‌اومد
+  // ذخیره — ⚠️ (۱۴۰۵/۰۷/۰۶) اول از API جدید («افزودنِ یک ردیف»)، اگه نبود از مسیرِ قدیمی با ادغام.
+  // نتیجه‌ی واقعی چک می‌شه؛ قبلاً حتی وقتی ذخیره انجام نمی‌شد «✅ ثبت شد» می‌اومد.
+  const actRes = await appendLeadActivityCRM(lead.id, entry);
+  if(actRes && Array.isArray(actRes.history) && actRes.history.some(h=>leadHistKey(h)===leadHistKey(entry))){
+    toast(`✅ تماس با ${customer} ثبت شد`);
+  } else {
   const saveRes = await reliableUpdateLead({id:lead.id, customer:lead.customer, history:lead.history});
   if(saveRes && saveRes.queued){
     toast(`🟡 تماس با ${customer} رویِ این مرورگر نگه داشته شد و به‌محضِ وصل شدن خودکار به سرور می‌ره — تا اون موقع این صفحه رو نبندید`);
@@ -9214,6 +9229,7 @@ async function submitQuickContact(){
       return;
     }
     toast(`✅ تماس با ${customer} ثبت شد`);
+  }
   }
 
   // ریست فرم
