@@ -74,10 +74,23 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 table.sheet{border-collapse:separate;border-spacing:0;direction:ltr;font-size:13px;min-width:100%}
 .sheet th,.sheet td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:0;height:30px;white-space:nowrap}
 .sheet thead th{position:sticky;background:var(--head);color:var(--head-ink);font-weight:600;z-index:3}
-.sheet thead tr.letters th{top:0;height:22px;font-size:11px;font-weight:500;color:#7a8592;text-align:center}
-.sheet thead tr.titles th{top:22px;font-size:12px;padding:0 8px;text-align:center;border-bottom:1.5px solid var(--grid-strong)}
+.sheet thead tr.groups th{top:0;height:24px;font-size:11.5px;font-weight:700;color:var(--ink);text-align:center;letter-spacing:.2px}
+.sheet thead tr.letters th{top:24px;height:20px;font-size:11px;font-weight:500;color:#7a8592;text-align:center}
+.sheet thead tr.titles th{top:44px;font-size:12px;padding:0 8px;text-align:center;border-bottom:1.5px solid var(--grid-strong)}
+/* ── کادرِ گروه‌ها: G-H · I-K · L-N · O-Q · R-S · T-V ── */
+.sheet .g-end{border-right:2px solid #8793a1!important}
+.sheet thead th.g-alt{background:#e2e7ec}
+.sheet thead tr.groups th.g-cell{border-bottom:1px solid var(--grid-strong)}
+.sheet thead tr.groups th.g-cell small{font-weight:500;color:var(--ink-soft);margin-right:3px}
+.sheet tbody td.g-alt{background:rgba(120,135,150,.045)}
+.sheet tbody tr.ok td.g-alt{background:rgba(30,107,54,.05)}
+.sheet tbody tr.ph td{color:#b3bcc6;font-size:11px}
+.sheet tbody tr.ph td.phcell{background:repeating-linear-gradient(90deg,#f3f5f7 0 120px,#eceff2 120px 240px);text-align:left;padding-left:12px}
+.sheet tbody tr.sp td{border:0!important;padding:0!important;background:transparent!important}   /* ارتفاع از style خودِ ردیف میاد */
+.goto{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.goto input{width:74px;border:1px solid var(--grid-strong);border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;direction:ltr;text-align:center}
 .sheet .rn{position:sticky;left:0;z-index:2;background:var(--head);color:#7a8592;font-size:11px;text-align:center;width:46px;min-width:46px}
-.sheet thead .rn{z-index:5}
+.sheet thead .rn{z-index:5;top:0}
 .sheet .colA{position:sticky;left:46px;z-index:2;background:inherit;width:78px;min-width:78px}
 .sheet .colB{position:sticky;left:124px;z-index:2;background:inherit;width:250px;min-width:250px;border-right:1.5px solid var(--grid-strong)}
 .sheet thead .colA,.sheet thead .colB{z-index:5;background:var(--head)}
@@ -175,6 +188,7 @@ body.ro .del,body.ro #addBtn{display:none!important}
   <div class="wrap" id="wrap">
     <table class="sheet" id="sheet">
       <thead>
+        <tr class="groups" id="hGroups"></tr>
         <tr class="letters" id="hLetters"></tr>
         <tr class="titles" id="hTitles"></tr>
       </thead>
@@ -187,9 +201,10 @@ body.ro .del,body.ro #addBtn{display:none!important}
     <span id="saveState">—</span>
     <span class="keys"><kbd>Enter</kbd> خانه‌ی پایین · <kbd>Tab</kbd> خانه‌ی بعد · <kbd>Esc</kbd> لغوِ تایپ · پیست از Excel</span>
     <div class="pager">
-      <button class="btn" id="prevBtn" type="button">‹ قبلی</button>
-      <span id="pageInfo"></span>
-      <button class="btn" id="nextBtn" type="button">بعدی ›</button>
+      <button class="btn" id="firstBtn" type="button" title="اولِ جدول (Ctrl+Home)">⤒ اول</button>
+      <span id="posInfo"></span>
+      <label class="goto">برو به ردیف <input id="gotoRow" inputmode="numeric" autocomplete="off" placeholder="#"></label>
+      <button class="btn" id="lastBtn" type="button" title="آخرِ جدول (Ctrl+End)">آخر ⤓</button>
     </div>
   </footer>
 </div>
@@ -200,7 +215,8 @@ body.ro .del,body.ro #addBtn{display:none!important}
 // ═══════════════════════════════ تنظیمات ═══════════════════════════════
 const API_BASE = 'https://smartchip-backend.onrender.com';   // ← بعد از دامنه‌ی جدید فقط همین خط عوض می‌شه
 const SHEET_API = API_BASE + '/api/items/sheet/';
-const PAGE_SIZE = 100;
+const CHUNK = 200;          // هر بار ۲۰۰ ردیف از سرور (فقط وقتی به اون قسمت اسکرول می‌کنید)
+const BUFFER = 25;          // چند ردیف بالا/پایینِ صفحه‌ی دیدنی آماده می‌مونه
 const QUEUE_KEY = 'smartchip_weights_queue_v1';
 const ROLE_CACHE_KEY = 'smartchip_weights_role_v1';
 const ROLE_CACHE_MS = 12 * 3600 * 1000;
@@ -222,8 +238,10 @@ const FIELDS = COLS.map(c => c[1]);
 // ═══════════════════════════════ وضعیت ═══════════════════════════════
 const S = {
   email: '', name: '', canEdit: false,
-  q: '', filter: 'all', page: 1, total: 0, grand: 0, verifiedTotal: 0, exactId: null,
-  rows: [], byId: new Map(), loading: false, reqSeq: 0, ctrl: null,
+  q: '', filter: 'all', total: 0, grand: 0, verifiedTotal: 0, exactId: null,
+  byId: new Map(), loading: false,
+  // جدولِ پیوسته (بدونِ صفحه‌بندی): ردیف‌ها بر اساسِ جایگاه نگه داشته می‌شن و تکه‌تکه از سرور می‌رسن
+  cache: new Map(), chunkState: new Map(), gen: 0, rowH: 31, winA: -1, winB: -1,
   undo: [],               // [{id, field, from, to, part}]
   inflight: 0,
 };
@@ -259,17 +277,30 @@ async function gate(){
     return false;
   }
   S.email = email;
-  let info = null;
-  try{
-    const r = await fetchT(API_BASE + '/api/staff/staff/' + encodeURIComponent(email) + '/', {}, 15000);
-    if (r.status === 404){ $('gate').textContent = 'این ایمیل در لیستِ کارمندان نیست.'; return false; }
-    if (r.ok){
-      const d = await r.json();
-      if (!d.active){ $('gate').textContent = 'دسترسیِ این کاربر غیرفعال شده.'; return false; }
-      info = {name: d.name || '', role: d.role || '', at: Date.now()};
-      try{ localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({email, ...info})); }catch(e){}
+  let info = null, lastProblem = '';
+  // ⚠️ (۱۴۰۵/۰۷/۰۷) سرورِ رایگانِ Render وقتی خوابه (یا وسطِ دیپلوی) تا ~۶۰ ثانیه طول می‌کشه بیدار بشه.
+  // قبلاً بعد از ۱۵ ثانیه تسلیم می‌شد؛ حالا تا ۴ بار (مجموعاً ~۹۰ ثانیه) تلاش می‌کنه و دلیلِ دقیقِ شکست رو می‌گه.
+  for (let attempt = 1; attempt <= 4 && !info; attempt++){
+    $('gate').innerHTML = attempt === 1
+      ? '<span class="spin"></span> در حالِ بررسیِ دسترسی…'
+      : `<span class="spin"></span> سرور در حالِ بیدار شدنه — تلاشِ ${fa(attempt)} از ${fa(4)}…<br><small style="color:var(--ink-soft)">سرورِ رایگان بعد از مدتی بی‌کاری می‌خوابه؛ بیدار شدنش تا یک دقیقه طول می‌کشه.</small>`;
+    try{
+      const r = await fetchT(API_BASE + '/api/staff/staff/' + encodeURIComponent(email) + '/', {cache: 'no-store'}, 22000);
+      if (r.status === 404){ $('gate').textContent = 'این ایمیل در لیستِ کارمندان نیست.'; return false; }
+      if (r.ok){
+        const d = await r.json();
+        if (!d.active){ $('gate').textContent = 'دسترسیِ این کاربر غیرفعال شده.'; return false; }
+        info = {name: d.name || '', role: d.role || '', at: Date.now()};
+        try{ localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({email, ...info})); }catch(e){}
+        break;
+      }
+      lastProblem = 'سرور خطا داد (HTTP ' + r.status + ')' + (r.status >= 500 ? ' — احتمالاً دیپلویِ آخر در Render مشکل داره' : '');
+      if (r.status < 500) break;
+    }catch(e){
+      lastProblem = e.name === 'AbortError' ? 'سرور در مهلتِ تعیین‌شده جواب نداد' : 'اتصال به سرور برقرار نشد (فیلترشکن روشنه؟)';
     }
-  }catch(e){}
+    if (!info && attempt < 4) await new Promise(res => setTimeout(res, 2500));
+  }
   if (!info){
     // سرور خوابه یا شبکه قطعه: آخرین نقشِ تأییدشده (تا ۱۲ ساعت) — کسی بیرون نمی‌مونه
     try{
@@ -278,7 +309,9 @@ async function gate(){
     }catch(e){}
   }
   if (!info){
-    $('gate').innerHTML = 'سرور جواب نداد. <br><button class="btn primary" onclick="location.reload()">دوباره امتحان کن</button>';
+    $('gate').innerHTML = `⚠️ ${esc(lastProblem || 'سرور جواب نداد')}<br>
+      <small style="color:var(--ink-soft);display:block;margin:8px 0 12px;line-height:1.9">اگه تازه push کردید، چند دقیقه صبر کنید تا Render سبز بشه.<br>اگه CRM هم «متصل» نیست، فیلترشکن رو بررسی کنید.</small>
+      <button class="btn primary" onclick="location.reload()">دوباره امتحان کن</button>`;
     return false;
   }
   S.name = info.name; S.canEdit = ADMIN_ROLES.includes(info.role);
@@ -287,40 +320,81 @@ async function gate(){
 
 // ═══════════════════════════════ بارگذاری ═══════════════════════════════
 async function load({keepScroll = false} = {}){
-  const seq = ++S.reqSeq;
-  if (S.ctrl) S.ctrl.abort();
-  S.ctrl = new AbortController();
+  // جستجو/فیلترِ جدید یا بعد از حذف: همه‌چیز از نو، از همون جایی که هستید (keepScroll) یا از اول
+  const gen = ++S.gen;
+  S.cache = new Map(); S.chunkState = new Map(); S.winA = S.winB = -1;
+  const wrap = $('wrap');
+  const startIdx = keepScroll ? Math.max(0, Math.floor(wrap.scrollTop / S.rowH)) : 0;
+  if (!keepScroll) wrap.scrollTop = 0;
   S.loading = true; renderMeta();
-  const p = new URLSearchParams({page: S.page, size: PAGE_SIZE, filter: S.filter});
+  const ok = await fetchChunk(Math.floor(startIdx / CHUNK), gen);
+  if (gen !== S.gen) return;
+  S.loading = false;
+  if (ok) renderWindow(true);
+  renderMeta();
+}
+
+async function fetchChunk(ci, gen = S.gen){
+  if (S.chunkState.get(ci) === 'ok' || S.chunkState.get(ci) === 'loading') return true;
+  S.chunkState.set(ci, 'loading');
+  const p = new URLSearchParams({page: ci + 1, size: CHUNK, filter: S.filter});
   if (S.q) p.set('q', S.q);
   try{
-    const r = await fetchT(SHEET_API + '?' + p, {signal: S.ctrl.signal});
+    const r = await fetchT(SHEET_API + '?' + p);
     const d = await r.json();
-    if (seq !== S.reqSeq) return;                         // جوابِ جستجویِ قدیمی‌تر
+    if (gen !== S.gen) return false;                       // جستجو عوض شده — این جواب دیگه به درد نمی‌خوره
     if (!d.ok) throw new Error(d.error || ('HTTP ' + r.status));
-    S.rows = d.rows; S.total = d.total; S.grand = d.grand_total; S.verifiedTotal = d.verified_total; S.exactId = d.exact_id;
-    S.byId = new Map(S.rows.map(x => [x.id, x]));
+    S.total = d.total; S.grand = d.grand_total; S.verifiedTotal = d.verified_total; S.exactId = d.exact_id;
+    d.rows.forEach((row, i) => {
+      const idx = ci * CHUNK + i;
+      const prev = S.byId.get(row.id);
+      const obj = prev ? Object.assign(prev, row) : row;
+      S.cache.set(idx, obj); S.byId.set(row.id, obj);
+    });
+    S.chunkState.set(ci, 'ok');
     hideErr();
-    renderRows();
-    if (!keepScroll) $('wrap').scrollTop = 0;
+    return true;
   }catch(e){
-    if (seq !== S.reqSeq) return;                         // جستجویِ جدیدتر جایگزینش شد
+    if (gen !== S.gen) return false;
+    S.chunkState.delete(ci);
     showErr('وزن‌نامه بارگذاری نشد — ' + (e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message) + '. اگه فیلترشکن خاموشه، روشنش کنید.');
-  }finally{
-    if (seq === S.reqSeq){ S.loading = false; renderMeta(); }
+    return false;
   }
 }
 
 // ═══════════════════════════════ نمایش ═══════════════════════════════
+// گروه‌هایِ ستونی دقیقاً مثلِ شیت
+const GROUPS = [
+  {from: 'G', to: 'H', title: 'Unit', fa: 'عدد'},
+  {from: 'I', to: 'K', title: 'Pack', fa: 'سینی'},
+  {from: 'L', to: 'N', title: 'Tube', fa: 'حلقه'},
+  {from: 'O', to: 'Q', title: 'Reel', fa: 'ریل'},
+  {from: 'R', to: 'S', title: 'BAG', fa: 'کیسه'},
+  {from: 'T', to: 'V', title: 'BOX', fa: 'جعبه'},
+];
+function colClass(L){
+  // g-end: خطِ پررنگِ آخرِ هر گروه (و بعد از F، قبل از شروعِ گروه‌ها) · g-alt: رنگِ ملایمِ یکی‌درمیان
+  const cls = [];
+  if (L === 'F') cls.push('g-end');
+  GROUPS.forEach((g, i) => { if (L >= g.from && L <= g.to){ if (L === g.to) cls.push('g-end'); if (i % 2 === 1) cls.push('g-alt'); } });
+  return cls.join(' ');
+}
 function renderHead(){
-  $('hLetters').innerHTML = '<th class="rn"></th>' + COLS.map(c => `<th class="${c[0] === 'A' ? 'colA' : c[0] === 'B' ? 'colB' : ''}">${c[0]}</th>`).join('') + '<th class="del"></th>';
-  $('hTitles').innerHTML = '<th class="rn">#</th>' + COLS.map(c => `<th class="${c[0] === 'A' ? 'colA' : c[0] === 'B' ? 'colB' : ''}">${esc(c[2])}</th>`).join('') + '<th class="del"></th>';
+  const stick = L => L === 'A' ? 'colA' : L === 'B' ? 'colB' : '';
+  let g = '<th class="rn"></th><th class="colA"></th><th class="colB"></th><th colspan="4" class="g-end"></th>';
+  GROUPS.forEach((gr, i) => {
+    const span = COLS.findIndex(c => c[0] === gr.to) - COLS.findIndex(c => c[0] === gr.from) + 1;
+    g += `<th colspan="${span}" class="g-cell g-end${i % 2 === 1 ? ' g-alt' : ''}">${gr.title} <small><bdi>(${gr.fa})</bdi></small></th>`;
+  });
+  $('hGroups').innerHTML = g + '<th class="del"></th>';
+  $('hLetters').innerHTML = '<th class="rn"></th>' + COLS.map(c => `<th class="${stick(c[0])} ${colClass(c[0])}">${c[0]}</th>`).join('') + '<th class="del"></th>';
+  $('hTitles').innerHTML = '<th class="rn">#</th>' + COLS.map(c => `<th class="${stick(c[0])} ${colClass(c[0])}">${esc(c[2])}</th>`).join('') + '<th class="del"></th>';
 }
 
 function cellHtml(row, c){
   const [L, f, , kind] = c;
   const v = row[f] ?? '';
-  const cls = L === 'A' ? 'colA' : L === 'B' ? 'colB txt' : kind === 'num' ? 'num' : 'txt';
+  const cls = (L === 'A' ? 'colA' : L === 'B' ? 'colB txt' : kind === 'num' ? 'num' : 'txt') + ' ' + colClass(L);
   const q = queuedValue(row.id, f);
   const shown = q !== undefined ? q : v;
   const qcls = q !== undefined ? ' queued' : '';
@@ -338,35 +412,92 @@ function rowHtml(row, idx){
   return `<tr data-id="${row.id}" class="${ok ? 'ok' : ''}"><td class="rn">${idx}</td>${COLS.map(c => cellHtml(row, c)).join('')}<td class="del"><button type="button" data-del="${row.id}" title="حذفِ این ردیف" aria-label="حذفِ ردیف">🗑</button></td></tr>`;
 }
 
-function renderRows(){
-  const off = (S.page - 1) * PAGE_SIZE;
-  $('tbody').innerHTML = S.rows.map((r, i) => rowHtml(r, off + i + 1)).join('');
-  // حالتِ «پیدا نشد»
-  const eb = $('emptyBox');
-  if (!S.rows.length){
-    if (S.q){
-      eb.innerHTML = `<div class="empty"><div class="big">🔎</div><div>«<span class="q">${esc(S.q)}</span>» در وزن‌نامه نیست.</div>
-        ${S.canEdit ? `<p>اگه قطعه‌ی جدیده، همین الان اضافه‌اش کنید و وزن‌هاش رو بنویسید.</p><button class="btn primary" type="button" id="emptyAdd">➕ افزودنِ «${esc(S.q)}»</button>` : ''}</div>`;
-      const b = $('emptyAdd'); if (b) b.onclick = () => createPart(S.q);
-    } else {
-      eb.innerHTML = `<div class="empty">ردیفی با این فیلتر نیست.</div>`;
-    }
-  } else eb.innerHTML = '';
-  // نوارِ «دقیقاً این شماره نیست» وقتی نتیجه‌هایِ مشابه هست
-  const showAdd = S.canEdit && S.q && S.rows.length && !S.exactId && S.q.length >= 2;
-  $('addBar').classList.toggle('show', !!showAdd);
-  $('addBarQ').textContent = S.q;
+function visibleRange(){
+  const wrap = $('wrap');
+  const headH = $('sheet').tHead ? $('sheet').tHead.offsetHeight : 0;
+  const top = Math.max(0, wrap.scrollTop - headH);
+  const v0 = Math.floor(top / S.rowH);
+  const v1 = Math.ceil((top + wrap.clientHeight) / S.rowH);
+  return [Math.max(0, v0), Math.min(S.total, v1)];
+}
+
+function renderWindow(force = false){
+  const [v0, v1] = visibleRange();
+  // اگه هنوز داخلِ همون محدوده‌ی ساخته‌شده‌ایم، کاری لازم نیست (اسکرولِ روان)
+  const needTop = S.winA > 0 && v0 < S.winA + 5;                 // نزدیکِ لبه‌ی بالایِ محدوده‌ی ساخته‌شده
+  const needBottom = S.winB < S.total && v1 > S.winB - 5;         // نزدیکِ لبه‌ی پایین (یا پرش به جایِ دور)
+  if (!force && S.winA >= 0 && !needTop && !needBottom){ ensureChunks(S.winA, S.winB); return; }
+  const a = Math.max(0, v0 - BUFFER), b = Math.min(S.total, v1 + BUFFER);
+  ensureChunks(a, b);
+
+  // خانه‌ای که الان توش هستید حفظ می‌شه؛ اگه چیزی تایپ کرده بودید، اول ذخیره می‌شه
+  const act = document.activeElement; let keep = null;
+  if (act && $('tbody').contains(act) && act.matches('input,select')){
+    const tr = act.closest('tr');
+    if (act.tagName === 'INPUT' && act.dataset.orig !== undefined && act.value !== act.dataset.orig) commitCell(act);
+    keep = {id: tr.dataset.id, f: act.dataset.f, s: act.selectionStart, e: act.selectionEnd};
+  }
+
+  const parts = [];
+  if (a > 0) parts.push(`<tr class="sp"><td colspan="${COLS.length + 2}" style="height:${a * S.rowH}px"></td></tr>`);
+  for (let i = a; i < b; i++){
+    const row = S.cache.get(i);
+    parts.push(row ? rowHtml(row, i + 1)
+      : `<tr class="ph"><td class="rn">${i + 1}</td><td class="phcell" colspan="${COLS.length + 1}">در حالِ آوردن…</td></tr>`);
+  }
+  if (b < S.total) parts.push(`<tr class="sp"><td colspan="${COLS.length + 2}" style="height:${(S.total - b) * S.rowH}px"></td></tr>`);
+  $('tbody').innerHTML = parts.join('');
+  S.winA = a; S.winB = b;
+
+  // ارتفاعِ واقعیِ ردیف (یک بار) — تا نوارِ اسکرول دقیق باشه
+  const real = $('tbody').querySelector('tr[data-id]');
+  if (real){ const h = real.getBoundingClientRect().height; if (h && Math.abs(h - S.rowH) > .5){ S.rowH = h; requestAnimationFrame(() => renderWindow(true)); } }
+
+  if (keep){
+    const el = document.querySelector(`tr[data-id="${keep.id}"] [data-f="${keep.f}"]:is(input,select)`);
+    if (el){ el.focus({preventScroll: true}); try{ if (keep.s != null) el.setSelectionRange(keep.s, keep.e); }catch(e){} }
+  }
+  renderEmpty();
   renderMeta();
 }
 
+function ensureChunks(a, b){
+  if (b <= a) return;
+  const gen = S.gen;
+  for (let ci = Math.floor(a / CHUNK); ci <= Math.floor((b - 1) / CHUNK); ci++){
+    if (!S.chunkState.has(ci)) fetchChunk(ci, gen).then(ok => { if (ok && gen === S.gen) renderWindow(true); });
+  }
+}
+
+function renderEmpty(){
+  const eb = $('emptyBox');
+  if (!S.total && !S.loading){
+    if (S.q){
+      eb.innerHTML = `<div class="empty"><div class="big">🔎</div><div>«<span class="q">${esc(S.q)}</span>» در وزن‌نامه نیست.</div>
+        ${S.canEdit ? `<p>اگه قطعه‌ی جدیده، همین الان اضافه‌اش کنید و وزن‌هاش رو بنویسید.</p><button class="btn primary" type="button" id="emptyAdd">➕ افزودنِ «${esc(S.q)}»</button>` : ''}</div>`;
+      const btn = $('emptyAdd'); if (btn) btn.onclick = () => createPart(S.q);
+    } else eb.innerHTML = `<div class="empty">ردیفی با این فیلتر نیست.</div>`;
+  } else eb.innerHTML = '';
+  const showAdd = S.canEdit && S.q && S.total && !S.exactId && S.q.length >= 2;
+  $('addBar').classList.toggle('show', !!showAdd);
+  $('addBarQ').textContent = S.q;
+}
+
+function scrollToRow(n){
+  // n از ۱
+  const wrap = $('wrap');
+  const idx = Math.max(0, Math.min(S.total - 1, n - 1));
+  wrap.scrollTop = idx * S.rowH;
+  renderWindow(true);
+}
+
 function renderMeta(){
-  const pages = Math.max(1, Math.ceil(S.total / PAGE_SIZE));
   $('counts').innerHTML = S.q || S.filter !== 'all'
     ? `<b>${fa(S.total)}</b> نتیجه از ${fa(S.grand)} ردیف`
     : `<b>${fa(S.grand)}</b> ردیف · <b>${fa(S.verifiedTotal)}</b> verifi`;
-  $('pageInfo').textContent = S.loading ? '…' : `صفحه‌ی ${fa(S.page)} از ${fa(pages)}`;
-  $('prevBtn').disabled = S.page <= 1 || S.loading;
-  $('nextBtn').disabled = S.page >= pages || S.loading;
+  const [v0, v1] = S.total ? visibleRange() : [0, 0];
+  $('posInfo').textContent = S.loading && !S.total ? '…' : S.total ? `ردیفِ ${fa(v0 + 1)} تا ${fa(Math.max(v0 + 1, v1))} از ${fa(S.total)}` : '';
+  $('firstBtn').disabled = !S.total; $('lastBtn').disabled = !S.total;
   $('qClear').style.display = S.q ? 'block' : 'none';
   $('undoBtn').disabled = !S.undo.length;
   const qn = readQueue().length;
@@ -490,11 +621,11 @@ async function createPart(part){
     const d = await r.json().catch(() => ({}));
     if (r.status === 409 && d.row){
       toast('این قطعه از قبل هست — نشونش دادم');
-      S.q = d.row.part_number; $('q').value = S.q; S.page = 1; await load(); focusCell(d.row.id, 'package'); return;
+      S.q = d.row.part_number; $('q').value = S.q; await load(); focusCell(d.row.id, 'package'); return;
     }
     if (!r.ok || !d.ok){ toast('❌ ' + (d.error || ('افزوده نشد — HTTP ' + r.status)), 4000); return; }
     // ردیفِ جدید رو نشون بده و مستقیم رویِ ستونِ بعدی (Package) برو
-    S.q = d.row.part_number; $('q').value = S.q; S.filter = 'all'; setSeg(); S.page = 1;
+    S.q = d.row.part_number; $('q').value = S.q; S.filter = 'all'; setSeg();
     await load();
     const tr = document.querySelector(`tr[data-id="${d.row.id}"]`); if (tr) tr.classList.add('fresh');
     focusCell(d.row.id, 'package');
@@ -537,7 +668,7 @@ function onPaste(e){
   const c0 = FIELDS.indexOf(el.dataset.f);
   const perRow = new Map(); let cells = 0, skipped = 0;
   grid.forEach((vals, dr) => {
-    const tr = trs[r0 + dr]; if (!tr){ skipped += vals.length; return; }
+    const tr = trs[r0 + dr]; if (!tr || !tr.dataset.id){ skipped += vals.length; return; }
     const id = +tr.dataset.id; const row = S.byId.get(id);
     vals.forEach((raw, dc) => {
       const f = FIELDS[c0 + dc]; if (!f){ skipped++; return; }
@@ -578,15 +709,23 @@ async function exportXlsx(){
 function setSeg(){ document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.f === S.filter)); }
 function wire(){
   let t;
-  $('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { S.q = $('q').value.trim(); S.page = 1; load(); }, 260); });
+  $('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { S.q = $('q').value.trim(); load(); }, 260); });
   $('q').addEventListener('keydown', e => {
-    if (e.key === 'Enter'){ clearTimeout(t); S.q = $('q').value.trim(); S.page = 1; load().then(() => { const first = $('tbody').querySelector('input[data-f="package"]'); if (first && S.rows.length === 1) first.focus(); }); }
-    if (e.key === 'Escape'){ $('q').value = ''; S.q = ''; S.page = 1; load(); }
+    if (e.key === 'Enter'){ clearTimeout(t); S.q = $('q').value.trim(); load().then(() => { const first = $('tbody').querySelector('input[data-f="package"]'); if (first && S.total === 1) first.focus(); }); }
+    if (e.key === 'Escape'){ $('q').value = ''; S.q = ''; load(); }
   });
-  $('qClear').onclick = () => { $('q').value = ''; S.q = ''; S.page = 1; load(); $('q').focus(); };
-  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.filter = b.dataset.f; S.page = 1; setSeg(); load(); });
-  $('prevBtn').onclick = () => { if (S.page > 1){ S.page--; load(); } };
-  $('nextBtn').onclick = () => { S.page++; load(); };
+  $('qClear').onclick = () => { $('q').value = ''; S.q = ''; load(); $('q').focus(); };
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.filter = b.dataset.f; setSeg(); load(); });
+  $('firstBtn').onclick = () => scrollToRow(1);
+  $('lastBtn').onclick = () => scrollToRow(S.total);
+  $('gotoRow').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const n = parseInt(normNum($('gotoRow').value), 10);
+    if (n > 0){ scrollToRow(n); $('gotoRow').blur(); }
+  });
+  let raf = 0;
+  $('wrap').addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderWindow(); renderMeta(); }); }, {passive: true});
+  window.addEventListener('resize', () => renderWindow(true));
   $('exportBtn').onclick = exportXlsx;
   $('undoBtn').onclick = undoLast;
   $('addBarBtn').onclick = () => createPart(S.q);
@@ -606,7 +745,12 @@ function wire(){
   tb.addEventListener('keydown', e => {
     const el = e.target; if (!el.matches('input,select')) return;
     const td = el.closest('td'), tr = el.closest('tr'); const ci = [...tr.children].indexOf(td);
-    const move = (dr) => { const next = tr.parentElement.children[[...tr.parentElement.children].indexOf(tr) + dr]; if (next){ const n = next.children[ci].querySelector('input,select'); if (n){ n.focus(); if (n.select) n.select(); } } };
+    const move = (dr) => {
+      const next = tr.parentElement.children[[...tr.parentElement.children].indexOf(tr) + dr];
+      const cell = next && next.dataset.id ? next.children[ci] : null;
+      const n = cell ? cell.querySelector('input,select') : null;
+      if (n){ n.focus({preventScroll: true}); if (n.select) n.select(); n.scrollIntoView({block: 'nearest'}); }
+    };
     if (e.key === 'Enter'){ e.preventDefault(); if (el.tagName === 'INPUT') commitCell(el); move(e.shiftKey ? -1 : 1); }
     else if (e.key === 'ArrowDown' && el.tagName === 'INPUT'){ e.preventDefault(); move(1); }
     else if (e.key === 'ArrowUp' && el.tagName === 'INPUT'){ e.preventDefault(); move(-1); }
@@ -621,6 +765,8 @@ function wire(){
       if (!typing && a !== $('q')){ e.preventDefault(); undoLast(); }
     }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){ e.preventDefault(); $('q').focus(); $('q').select(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Home' && !(document.activeElement && document.activeElement.tagName === 'INPUT')){ e.preventDefault(); scrollToRow(1); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'End' && !(document.activeElement && document.activeElement.tagName === 'INPUT')){ e.preventDefault(); scrollToRow(S.total); }
   });
   window.addEventListener('online', flushQueue);
   setInterval(flushQueue, 20000);
