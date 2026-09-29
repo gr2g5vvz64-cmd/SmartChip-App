@@ -201,6 +201,22 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
 .dcard .dact input.nm{flex:1 1 220px;border:1px solid var(--grid-strong);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;direction:ltr}
 .dcard .dnote{color:var(--ink-soft);font-size:11.5px}
 .dcard .dnote.warn{color:var(--warn-ink)}
+.rules-box{background:var(--card);border:1px solid var(--grid-strong);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.9}
+.rules-box h3{margin:0 0 6px;font-size:13.5px}
+.rchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.rchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--grid-strong);border-radius:16px;padding:3px 6px 3px 10px;background:var(--sheet);direction:ltr;font-weight:600}
+.rchip span{font-weight:400;color:var(--ink-soft);direction:rtl}
+.rchip button{border:0;background:none;color:var(--muted2);cursor:pointer;font-size:13px}
+.rchip button:hover{color:var(--err-ink)}
+.radd{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.radd input,.radd select{border:1px solid var(--grid-strong);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;background:var(--sheet);color:var(--ink)}
+.radd input{width:130px;direction:ltr;text-align:center}
+.rsug{width:100%;border-collapse:collapse;margin-top:6px}
+.rsug td,.rsug th{border-bottom:1px solid var(--grid);padding:6px;text-align:right;vertical-align:top}
+.rsug th{color:var(--ink-soft);font-weight:600;font-size:11.5px}
+.rsug td.w{direction:ltr;text-align:left;font-weight:700;white-space:nowrap}
+.rsug td.ex{direction:ltr;text-align:left;color:var(--ink-soft);font-size:11.5px}
+.rsug .brand{color:var(--warn-ink);font-size:11px}
 .sim{margin:14px auto 0;max-width:560px;text-align:right;font-size:12.5px}
 .sim b{display:block;margin-bottom:6px;color:var(--ink)}
 .sim a{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--grid);border-radius:6px;margin-bottom:4px;color:var(--ink);text-decoration:none;background:var(--card);direction:ltr}
@@ -282,11 +298,13 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
         <button type="button" data-l="2">احتمالی — بررسی کنید <span id="dupN2"></span></button>
       </div>
       <label class="searchbox dup-q"><span>🔍</span><input id="dupQ" type="text" placeholder="جستجو در تکراری‌ها…" autocomplete="off"></label>
+      <button class="btn" id="dupRulesBtn" type="button" title="کلمه‌هایی که در مقایسه نادیده گرفته بشن یا هم‌معنی‌اند">📖 اصلاحات</button>
       <button class="btn" id="dupUndo" type="button" disabled>↶ برگرداندنِ آخرین ادغام</button>
       <button class="qf-x" id="dupClose" type="button" aria-label="بستن">✕</button>
     </div>
     <div class="dup-help" id="dupHelp"></div>
     <div class="dup-list" id="dupList"></div>
+    <div class="dup-list" id="rulesView" style="display:none"></div>
     <div class="dup-ft">
       <span id="dupInfo"></span>
       <button class="btn" id="dupBulk" type="button">⚡ ادغامِ گروه‌هایِ بدونِ تعارضِ همین صفحه</button>
@@ -902,9 +920,9 @@ function setDupUndos(u){ try{ localStorage.setItem(DUP_UNDO_KEY, JSON.stringify(
 const isEmptyVal = v => v === '' || v == null;
 
 function openDup(){
-  $('dupOv').classList.add('show'); setDupUndos(dupUndos());
+  $('dupOv').classList.add('show'); setDupUndos(dupUndos()); showRules(false);
   $('dupHelp').innerHTML = D.level === 1
-    ? 'این‌ها فقط در <b>فاصله، حروفِ کوچک/بزرگ، پرانتز یا علامت‌هایِ # * @</b> فرق دارن — یعنی یک قطعه‌ان. برایِ هر گروه، ردیفی که باید بمونه رو انتخاب کنید (پیشنهادِ سیستم از قبل انتخاب شده). <b>خانه‌هایِ خالیِ ردیفِ نگه‌دار از بقیه پر می‌شه</b> تا هیچ وزنی از دست نره. خانه‌هایِ <span style="background:var(--cf);padding:0 4px;border-radius:3px">نارنجی</span> یعنی مقدارها با هم فرق دارن — مقدارِ ردیفِ نگه‌دار می‌مونه.'
+    ? 'این‌ها فقط در <b>فاصله، حروفِ کوچک/بزرگ، پرانتز، علامت‌هایِ # * @، ترتیبِ کلمات</b> یا <b>کلمه‌هایِ «📖 اصلاحات»</b> فرق دارن — یعنی یک قطعه‌ان. برایِ هر گروه، ردیفی که باید بمونه رو انتخاب کنید (پیشنهادِ سیستم از قبل انتخاب شده). <b>خانه‌هایِ خالیِ ردیفِ نگه‌دار از بقیه پر می‌شه</b> تا هیچ وزنی از دست نره. خانه‌هایِ <span style="background:var(--cf);padding:0 4px;border-radius:3px">نارنجی</span> یعنی مقدارها با هم فرق دارن — مقدارِ ردیفِ نگه‌دار می‌مونه.'
     : 'این‌ها فقط در <b>خطِ تیره یا ٪</b> هم فرق دارن (مثلاً SOT-23 و SOT23). معمولاً یکی‌اند ولی <b>با دقت نگاه کنید</b> — ادغامِ خودکارِ دسته‌جمعی برایِ این بخش غیرفعاله.';
   $('dupBulk').style.display = D.level === 1 ? '' : 'none';
   dupLoad(true);
@@ -919,6 +937,7 @@ async function dupLoad(reset){
     const r = await fetchT(DUP_API + '?' + p, {}, 60000); const d = await r.json();
     if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
     D.total = d.total_groups;
+    if (d.rules) DUP_RULES = d.rules;
     $(D.level === 1 ? 'dupN1' : 'dupN2').textContent = '(' + fa(d.total_groups) + ')';
     $(D.level === 1 ? 'dupN2' : 'dupN1').textContent = '(' + fa(d.other_level_groups) + ')';
     if (reset) $('dupList').innerHTML = '';
@@ -946,14 +965,20 @@ function dupPreview(g, keepId){
   });
   return {fill, conf};
 }
+let DUP_RULES = {ignore: [], same: {}};
 function hlDiff(name){
   // فقط چیزهایی که تکراری بودن رو می‌سازن پررنگ می‌شن: نشانه‌هایِ # * @ اول/آخر یا تنها، و فاصله‌هایِ اضافه/نامرئی
   // (* داخلِ یک مقدار مثلِ 8*12.5 عادیه و پررنگ نمی‌شه)
   const mark = t => `<code>${esc(t).replace(/ /g, '·').replace(/\u00a0/g, '⍽')}</code>`;
   const re = /(^\s*[#*@]+|[#*@]+\s*$|(?<=\s)[#*@]+(?=\s|$)|\s{2,}|\u00a0+|^\s+|\s+$)/g;
   let out = '', last = 0, m;
-  while ((m = re.exec(name))){ if (!m[0]){ re.lastIndex++; continue; } out += esc(name.slice(last, m.index)) + mark(m[0]); last = m.index + m[0].length; }
-  return out + esc(name.slice(last));
+  const plain = t => {
+    // کلمه‌هایی که در «اصلاحات» نادیده گرفته می‌شن، کم‌رنگ و خط‌خورده
+    if (!DUP_RULES.ignore.length) return esc(t);
+    return t.split(/(\s+)/).map(w => DUP_RULES.ignore.includes(w.toUpperCase()) ? `<s style="opacity:.55" title="در «اصلاحات» نادیده گرفته می‌شه">${esc(w)}</s>` : esc(w)).join('');
+  };
+  while ((m = re.exec(name))){ if (!m[0]){ re.lastIndex++; continue; } out += plain(name.slice(last, m.index)) + mark(m[0]); last = m.index + m[0].length; }
+  return out + plain(name.slice(last));
 }
 function dupCard(g){
   const el = document.createElement('div'); el.className = 'dcard'; el.dataset.key = g.key;
@@ -1026,7 +1051,75 @@ async function dupUndoLast(){
     S.cache = new Map(); S.chunkState = new Map(); dupLoad(true);
   }catch(e){ toast('❌ برگردونده نشد — ' + e.message); }
 }
+// ─── 📖 اصلاحات ───
+const RULES_API = API_BASE + '/api/items/dup-rules/';
+function showRules(on){
+  $('rulesView').style.display = on ? '' : 'none';
+  $('dupList').style.display = on ? 'none' : '';
+  $('dupHelp').style.display = on ? 'none' : '';
+  document.querySelector('.dup-ft').style.display = on ? 'none' : '';
+  $('dupRulesBtn').textContent = on ? '‹ بازگشت به تکراری‌ها' : '📖 اصلاحات';
+  if (on) loadRules();
+}
+async function loadRules(){
+  const v = $('rulesView');
+  v.innerHTML = '<div class="empty"><span class="spin"></span> در حالِ بررسیِ کلمه‌ها در کلِ وزن‌نامه…</div>';
+  try{
+    const r = await fetchT(RULES_API, {}, 60000); const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    const ign = d.rules.filter(x => x.kind === 'ignore'), same = d.rules.filter(x => x.kind === 'same');
+    const have = new Set(d.rules.map(x => x.word));
+    const chip = x => `<span class="rchip">${esc(x.word)}${x.kind === 'same' ? ` <span>= </span>${esc(x.same_as)}` : ''}<button type="button" data-del="${x.id}" title="حذفِ این قاعده" aria-label="حذف">✕</button></span>`;
+    v.innerHTML = `
+      <div class="rules-box">
+        <h3>📖 اصلاحات — کلمه‌هایی که هویتِ قطعه رو عوض نمی‌کنن</h3>
+        این قاعده‌ها فقط رویِ «کی تکراریِ کیه» اثر دارن و <b>اسمِ هیچ پارتی رو عوض نمی‌کنن</b>. ترتیبِ کلمات از قبل مهم نیست.
+        <div><b>نادیده گرفته می‌شن:</b><div class="rchips">${ign.length ? ign.map(chip).join('') : '<span class="dnote">— هنوز هیچ کلمه‌ای —</span>'}</div></div>
+        <div><b>هم‌معنی‌اند:</b><div class="rchips">${same.length ? same.map(chip).join('') : '<span class="dnote">— هنوز هیچ —</span>'}</div></div>
+        <div class="radd">
+          <input id="rWord" placeholder="کلمه (مثلاً SMD)" autocomplete="off">
+          <select id="rKind"><option value="ignore">نادیده گرفته بشه</option><option value="same">هم‌معنیِ این کلمه‌ست ←</option></select>
+          <input id="rSame" placeholder="مثلاً TRR" autocomplete="off" style="display:none">
+          <button class="btn primary" id="rAdd" type="button">افزودن</button>
+        </div>
+      </div>
+      <div class="rules-box">
+        <h3>کلمه‌هایی که در داده‌ی شما «تنها فرقِ» دو پارت‌اند</h3>
+        <span class="dnote">فقط کلمه‌هایی رو اضافه کنید که <b>واقعاً</b> قطعه رو عوض نمی‌کنن (مثلِ SMD). <b>اسمِ برند یا رنگ</b> معمولاً یعنی کالایِ جدا — اضافه نکنید مگه برایِ شما فرقی نداشته باشن.</span>
+        <table class="rsug"><thead><tr><th>کلمه</th><th>تعداد</th><th>مثال (پارت ~ پارت + این کلمه)</th><th></th></tr></thead><tbody>
+          ${d.suggestions.filter(x => !have.has(x.word)).map(x => `<tr><td class="w">${esc(x.word)}</td><td>${fa(x.count)}</td>
+            <td class="ex">${esc(x.example[0])}<br>${esc(x.example[1])}</td>
+            <td><button class="btn" type="button" data-ign="${esc(x.word)}">نادیده بگیر</button></td></tr>`).join('')}
+        </tbody></table>
+      </div>`;
+    $('rKind').onchange = () => { $('rSame').style.display = $('rKind').value === 'same' ? '' : 'none'; };
+    $('rAdd').onclick = () => addRule($('rKind').value, $('rWord').value, $('rSame').value);
+  }catch(e){ v.innerHTML = `<div class="empty">⚠️ ${esc(e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message)}</div>`; }
+}
+async function addRule(kind, word, same_as){
+  word = String(word || '').trim(); if (!word) return;
+  try{
+    const r = await fetchT(RULES_API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, word, same_as, _staff: S.email})});
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    toast(kind === 'ignore' ? `✅ «${d.rule.word}» از این به بعد نادیده گرفته می‌شه` : `✅ «${d.rule.word}» = «${d.rule.same_as}»`);
+    loadRules();
+  }catch(e){ toast('❌ ' + e.message, 4000); }
+}
+async function delRule(id){
+  try{
+    const r = await fetchT(RULES_API + id + '/?staff=' + encodeURIComponent(S.email), {method: 'DELETE'});
+    const d = await r.json(); if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    toast('قاعده حذف شد'); loadRules();
+  }catch(e){ toast('❌ ' + e.message); }
+}
+
 function wireDup(){
+  $('dupRulesBtn').onclick = () => { const on = $('rulesView').style.display === 'none'; showRules(on); if (!on) dupLoad(true); };
+  $('rulesView').addEventListener('click', e => {
+    const d = e.target.closest('[data-del]'); if (d){ delRule(+d.dataset.del); return; }
+    const g = e.target.closest('[data-ign]'); if (g){ addRule('ignore', g.dataset.ign, ''); }
+  });
   $('dupBtn').onclick = openDup;
   $('dupClose').onclick = () => { $('dupOv').classList.remove('show'); load({keepScroll: true}); };
   $('dupOv').addEventListener('keydown', e => { if (e.key === 'Escape') $('dupClose').click(); });
