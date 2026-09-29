@@ -661,77 +661,11 @@ function showPersistentResultModal(title, bodyHtml, isError){
 // آخر»)، حالا `onlyNew=true` دقیقاً چک می‌کنه کدوم پارت‌نامبرهایِ
 // گوگل‌شیت *واقعاً* تو جنگو نیستن (نه فرضِ اینکه «آخرِ لیست»)، و فقط
 // همون‌هارو می‌فرسته — صرفِ‌نظر از تعداد یا موقعیت‌شون تو شیت.
-async function fxSyncPartsFromSheet(btn, onlyNew){
-  if(btn) btn.disabled = true;
-  showToast('⏳ در حال خوندنِ گوگل‌شیت (ممکنه ۱۵ تا ۴۵ ثانیه طول بکشه)...');
-  try{
-    const res = await fxSheetCall('getAllItemWeights');
-    let items = (res && res.items) || [];
-    if(!items.length){
-      showPersistentResultModal(
-        '⚠️ چیزی از گوگل‌شیت خونده نشد',
-        'یا Apps Script بعدِ ۶۰ ثانیه جواب نداد (تایم‌اوت)، یا خودش یه خطا/پاسخِ خالی برگردوند.\n\nپاسخِ خامِ Apps Script:\n' + JSON.stringify(res, null, 2),
-        true
-      );
-      if(btn) btn.disabled=false; return;
-    }
-    const totalReadFromSheet = items.length;
-    if(onlyNew){
-      showToast('⏳ در حال چک‌کردنِ پارت‌نامبرهایِ موجود در جنگو...');
-      let existingSet;
-      try{
-        const existRes = await fetch('https://smartchip-backend.onrender.com/api/items/existing-part-numbers/');
-        const existData = await existRes.json();
-        existingSet = new Set((existData.partNumbers || []).map(p => (p||'').trim().toLowerCase()));
-      }catch(existErr){
-        showPersistentResultModal('❌ نتونستیم لیستِ پارت‌نامبرهایِ موجود رو از سرور بگیریم', 'پیام:\n' + existErr.message, true);
-        if(btn) btn.disabled=false; return;
-      }
-      items = items.filter(it => !existingSet.has(((it.partNumber)||'').trim().toLowerCase()));
-      if(!items.length){
-        showPersistentResultModal('✅ چیزِ جدیدی پیدا نشد', `کلِ ${totalReadFromSheet} پارتِ گوگل‌شیت از قبل تو جنگو هستن — چیزِ جدیدی برای ارسال نبود.`, false);
-        if(btn) btn.disabled=false; return;
-      }
-    }
-
-    const CHUNK_SIZE = 2000;
-    const chunks = [];
-    for(let i=0; i<items.length; i+=CHUNK_SIZE) chunks.push(items.slice(i, i+CHUNK_SIZE));
-
-    let totalCreated = 0, totalUpdated = 0;
-    for(let ci=0; ci<chunks.length; ci++){
-      showToast(chunks.length>1 ? `⏳ ارسالِ دسته‌ی ${ci+1} از ${chunks.length} (${items.length} پارت)...` : `⏳ ارسالِ ${items.length} پارت به سرور...`);
-      const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
-        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items: chunks[ci]}),
-      });
-      const rawText = await syncRes.text();
-      let data;
-      try{ data = JSON.parse(rawText); }
-      catch(parseErr){
-        showPersistentResultModal(
-          `❌ پاسخِ سرور معتبر نبود (دسته‌ی ${ci+1} از ${chunks.length} — وضعیتِ HTTP: ${syncRes.status})`,
-          `تا اینجا: ${totalCreated} جدید، ${totalUpdated} آپدیت‌شده با موفقیت ثبت شد.\n\nمتنِ خامِ پاسخِ همین دسته (ممکنه صفحه‌ی خطایِ سرور باشه):\n\n` + rawText.substring(0, 2000),
-          true
-        );
-        if(btn) btn.disabled=false; return;
-      }
-      if(!data.ok){
-        showPersistentResultModal(
-          `❌ همگام‌سازی در دسته‌ی ${ci+1} از ${chunks.length} ناموفق بود`,
-          `تا اینجا: ${totalCreated} جدید، ${totalUpdated} آپدیت‌شده با موفقیت ثبت شد.\n\nپیامِ خطایِ سرور:\n` + (data.error || JSON.stringify(data, null, 2)),
-          true
-        );
-        if(btn) btn.disabled=false; return;
-      }
-      totalCreated += data.created || 0;
-      totalUpdated += data.updated || 0;
-    }
-    const modeLine = onlyNew ? `حالت: فقط پارت‌هایِ واقعاً جدید (${items.length} تا از کلِ ${totalReadFromSheet} پارتِ گوگل‌شیت)` : `حالت: ارسالِ کاملِ همه (${totalReadFromSheet} پارت)`;
-    showPersistentResultModal('✅ همگام‌سازی تمام شد', `${modeLine}\nتعدادِ ارسال‌شده: ${items.length}${chunks.length>1?`\nدر ${chunks.length} دسته ارسال شد`:''}\nپارتِ جدید: ${totalCreated}\nپارتِ آپدیت‌شده: ${totalUpdated}`, false);
-  }catch(e){
-    showPersistentResultModal('❌ خطایِ اتصال یا اجرا', 'پیام:\n' + e.message + '\n\nStack:\n' + (e.stack||'—'), true);
-  }
-  if(btn) btn.disabled = false;
+// ⚠️ (۱۴۰۵/۰۷/۰۶) مرجعِ وزنِ قطعات حالا «⚖️ وزن‌نامه‌ی قطعات» (weights.html) است، نه گوگل‌شیت.
+// همگام‌سازیِ قدیمی حذف شد — اگه می‌موند، یک کلیک همه‌ی ویرایش‌هایِ جدید رو با شیتِ کهنه بازنویسی می‌کرد.
+function fxSyncPartsFromSheet(btn, onlyNew){
+  // پارت پیدا نشد؟ حالا مستقیم در وزن‌نامه اضافه می‌شه (همون لحظه در جستجویِ اینجا هم دیده می‌شه)
+  window.open('weights.html','_blank');
 }
 async function fxSearchItems(q){
   if(!q || q.trim().length<1) return [];
@@ -2947,8 +2881,8 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       <button class="btn btn-primary" id="addExpenseBtn">+ ثبت فاکتورِ خرید / هزینه</button>
       <div style="display:flex;gap:8px;align-items:center">
         <input id="supplierExpSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierExpenseSearchQuery}" style="min-width:180px">
-        <button class="btn btn-ghost btn-sm" id="syncPartsBtn">🔄 ارسالِ کاملِ همه (کند، فقط بارِ اول)</button>
-        <button class="btn btn-ghost btn-sm" id="syncPartsBtnLast100">⚡ فقط پارت‌هایِ جدید (دقیق و سریع)</button>
+        <button class="btn btn-ghost btn-sm" id="syncPartsBtn">⚖️ افزودن/ویرایش در وزن‌نامه</button>
+        <button class="btn btn-ghost btn-sm" id="syncPartsBtnLast100" style="display:none"></button>
         <button class="btn btn-ghost btn-sm" id="exportExpensesBtn">📥 خروجی اکسل</button>
       </div>
     </div>
@@ -3245,8 +3179,8 @@ function openExpenseModalSingle(existing, presetSupplier){
         <label style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
           <span>پارت‌نامبر</span>
           <span style="display:flex;gap:4px">
-            <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10px;padding:3px 7px">⚡ فقط جدیدها</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10px;padding:3px 7px">🔄 ارسالِ کاملِ همه</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="display:none"></button>
+            <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10px;padding:3px 7px">⚖️ افزودن در وزن‌نامه</button>
           </span>
         </label>
         <input id="ePartNumber" type="text" value="${existing ? existing.part_number||'' : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
@@ -3759,8 +3693,8 @@ function openExpenseModalMultiRow(presetSupplier){
         </div>
         <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:8px">هزینه‌ی حمل مالِ کلِ این سنده (نه هر پارت‌نامبر جدا) و رویِ اولین آیتمِ ثبت‌شده نوشته می‌شه؛ تویِ دفترِ تأمین‌کننده به‌عنوانِ هزینه‌ی همینِ سند دیده می‌شه.</div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
-          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="font-size:10.5px">⚡ فقط جدیدها</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10.5px">🔄 ارسالِ کاملِ همه</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnLast100InModal" style="display:none"></button>
+          <button type="button" class="btn btn-ghost btn-sm" id="syncPartsBtnInModal" style="font-size:10.5px">⚖️ افزودن در وزن‌نامه</button>
         </div>
         <div style="margin-bottom:8px">
           <table class="data-table" style="min-width:600px">

@@ -1251,7 +1251,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
     <div class="page" id="page-customers">
       <div id="custLoadInfo" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:11px;color:var(--muted);"></div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button id="syncItemsBtn" class="action-btn" style="font-size:11px;padding:6px 12px;" onclick="syncItemsToDjango()">🔄 همگام‌سازی وزن قطعات از گوگل‌شیت</button>
+        <button id="syncItemsBtn" class="action-btn" style="font-size:11px;padding:6px 12px;" onclick="syncItemsToDjango()">⚖️ وزن‌نامه‌ی قطعات</button>
         <div id="syncProgressPanel" style="display:none;margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:12px;"></div>
       </div>
       <div class="filter-row" id="custFilter">
@@ -3916,35 +3916,10 @@ function hideSyncProgress(delayMs){
   setTimeout(()=>{ const p=document.getElementById('syncProgressPanel'); if(p) p.style.display='none'; }, delayMs||4000);
 }
 
-async function syncItemsToDjango(){
-  const btn = document.getElementById('syncItemsBtn');
-  if(btn) btn.disabled = true;
-  const t0 = Date.now();
-  showSyncProgress('⏳ <b>مرحله ۱ از ۲</b> — در حال خوندن وزن قطعات از گوگل‌شیت (۳۲هزار+ ردیفه، معمولاً ۱۵ تا ۴۵ ثانیه طول می‌کشه)...');
-  try{
-    const res = await sheetCall('getAllItemWeights');
-    const items = (res && res.items) || [];
-    if(!items.length){
-      showSyncProgress('⚠ چیزی از گوگل‌شیت خونده نشد: '+(res&&res.error||'نامشخص'));
-      if(btn) btn.disabled=false; return;
-    }
-    const t1 = Date.now();
-    showSyncProgress(`⏳ <b>مرحله ۲ از ۲</b> — ${fn(items.length)} پارت خونده شد (${Math.round((t1-t0)/1000)} ثانیه طول کشید). الان در حال ارسال به Django — این مرحله معمولاً ۱۰ تا ۳۰ ثانیه می‌کشه، لطفاً از این صفحه خارج نشو...`);
-    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
-    });
-    const data = await syncRes.json();
-    const totalSec = Math.round((Date.now()-t0)/1000);
-    if(data.ok){
-      showSyncProgress(`✅ <b>تمام شد</b> — ${fn(data.created)} پارت جدید، ${fn(data.updated)} پارت آپدیت شد. (کل زمان: ${totalSec} ثانیه)<br><span style="color:var(--muted);font-size:11px;">از همین الان می‌تونی سرچ پارت‌نامبر رو امتحان کنی — بدون نیاز به رفرش صفحه.</span>`);
-      hideSyncProgress(8000);
-    } else {
-      showSyncProgress('❌ همگام‌سازی ناموفق بود: '+(data.error||'نامشخص'));
-    }
-  }catch(e){
-    showSyncProgress('❌ خطا: '+e.message);
-  }
-  if(btn) btn.disabled = false;
+// ⚠️ (۱۴۰۵/۰۷/۰۶) مرجعِ وزنِ قطعات حالا «⚖️ وزن‌نامه‌ی قطعات» (weights.html) است، نه گوگل‌شیت.
+// همگام‌سازیِ قدیمی حذف شد — اگه می‌موند، یک کلیک همه‌ی ویرایش‌هایِ جدید رو با شیتِ کهنه بازنویسی می‌کرد.
+function syncItemsToDjango(q){
+  window.open('weights.html'+(q?('?q='+encodeURIComponent(q)):''),'_blank');
 }
 
 // تابع کمکی مشترک — رو onfocus هر فیلد سرچ مشتری صداش می‌زنیم. اگه customerMaster

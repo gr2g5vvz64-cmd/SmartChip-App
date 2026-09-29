@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>⚖️ وزن‌نامه‌ی قطعات — SmartChip</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<!--
+  ⚖️ وزن‌نامه‌ی قطعات (۱۴۰۵/۰۷/۰۶) — جایگزینِ شیتِ گوگلِ Verified_Weights
+  • دقیقاً همون ۲۲ ستون (A تا V)، همه دستی، بدونِ فرمول
+  • ستونِ A: فقط «verifi» یا خالی — verifi = کلِ سطر سبز
+  • جستجو؛ اگه قطعه نبود → «افزودنِ همین قطعه»
+  • ویرایش مستقیم در جدول، ذخیره‌ی خودکار با خروج از خانه؛ Enter = خانه‌ی پایینی
+  • پیستِ چندخانه‌ای از Excel/شیت
+  • خروجیِ Excel کامل
+  • هیچ تغییری گم نمی‌شه: اگه سرور جواب نده، تغییر تو صف (localStorage) می‌مونه و خودکار دوباره فرستاده می‌شه
+  • فقط مدیر ویرایش می‌کنه؛ بقیه (اگه لینک رو باز کنن) فقط می‌بینن
+-->
+<style>
+:root{
+  --ink:#1c2632; --ink-soft:#5b6878; --paper:#f3f5f7; --sheet:#ffffff;
+  --grid:#d9dee4; --grid-strong:#b9c1ca; --head:#eceff2; --head-ink:#46525f;
+  --green:#d4edda; --green-line:#9fd0ac; --green-ink:#1e6b36;
+  --brass:#0f6b5c; --brass-deep:#0a5146; --focus:#1a73e8;
+  --warn:#fff4d6; --warn-ink:#8a5a00; --err:#fbe3e1; --err-ink:#a8322b;
+  --amber:#fde9c9;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--paper);color:var(--ink);
+  font-feature-settings:"tnum" 1,"lnum" 1;display:flex;flex-direction:column;height:100%}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+/* ── نوارِ بالا ── */
+.top{background:var(--sheet);border-bottom:1px solid var(--grid-strong);padding:10px 14px 8px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.brand .mark{font-size:24px;line-height:1}
+.brand h1{font-size:17px;margin:0;font-weight:800;white-space:nowrap}
+.brand .who{font-size:11px;color:var(--ink-soft);white-space:nowrap}
+.searchbox{flex:1 1 320px;display:flex;align-items:center;gap:6px;background:var(--paper);border:1.5px solid var(--grid-strong);border-radius:8px;padding:0 10px;min-width:220px}
+.searchbox:focus-within{border-color:var(--brass);background:#fff}
+.searchbox input{flex:1;border:0;background:transparent;font:inherit;font-size:15px;padding:9px 0;direction:ltr;text-align:left;outline:none;color:var(--ink)}
+.searchbox input::placeholder{direction:rtl;text-align:right;color:#8b96a3}
+.searchbox .clear{border:0;background:none;font-size:16px;color:var(--ink-soft);padding:2px 4px;display:none}
+.seg{display:flex;border:1px solid var(--grid-strong);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:7px 11px;font-size:12px;color:var(--ink-soft)}
+.seg button+button{border-right:1px solid var(--grid-strong)}
+.seg button.on{background:var(--ink);color:#fff}
+.actions{display:flex;gap:8px;align-items:center}
+.btn{border:1px solid var(--grid-strong);background:#fff;border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--head)}
+.btn.primary{background:var(--brass);border-color:var(--brass-deep);color:#fff}
+.btn.primary:hover{background:var(--brass-deep)}
+.btn:disabled{opacity:.5;cursor:default}
+.counts{font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
+.counts b{color:var(--ink)}
+
+/* ── نوارهایِ وضعیت ── */
+.bar{padding:7px 14px;font-size:12.5px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.bar.show{display:flex}
+.bar.warn{background:var(--warn);color:var(--warn-ink);border-bottom:1px solid #f0d58a}
+.bar.err{background:var(--err);color:var(--err-ink);border-bottom:1px solid #eeb4ae}
+.bar.info{background:#e6f0fb;color:#1f4d7a;border-bottom:1px solid #bcd3ec}
+.bar .btn{padding:4px 10px;font-size:12px}
+.addbar{background:#eaf5f2;color:var(--brass-deep);border-bottom:1px solid #b9ddd4}
+.addbar b{direction:ltr;unicode-bidi:isolate;font-family:inherit}
+
+/* ── جدول (شبیهِ شیت، چپ‌به‌راست) ── */
+.wrap{flex:1;overflow:auto;background:var(--sheet);position:relative;direction:ltr}  /* شیت از ستونِ A (چپ) شروع می‌شه */
+#emptyBox{direction:rtl}
+table.sheet{border-collapse:separate;border-spacing:0;direction:ltr;font-size:13px;min-width:100%}
+.sheet th,.sheet td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:0;height:30px;white-space:nowrap}
+.sheet thead th{position:sticky;background:var(--head);color:var(--head-ink);font-weight:600;z-index:3}
+.sheet thead tr.letters th{top:0;height:22px;font-size:11px;font-weight:500;color:#7a8592;text-align:center}
+.sheet thead tr.titles th{top:22px;font-size:12px;padding:0 8px;text-align:center;border-bottom:1.5px solid var(--grid-strong)}
+.sheet .rn{position:sticky;left:0;z-index:2;background:var(--head);color:#7a8592;font-size:11px;text-align:center;width:46px;min-width:46px}
+.sheet thead .rn{z-index:5}
+.sheet .colA{position:sticky;left:46px;z-index:2;background:inherit;width:78px;min-width:78px}
+.sheet .colB{position:sticky;left:124px;z-index:2;background:inherit;width:250px;min-width:250px;border-right:1.5px solid var(--grid-strong)}
+.sheet thead .colA,.sheet thead .colB{z-index:5;background:var(--head)}
+.sheet tbody tr{background:var(--sheet)}
+.sheet tbody tr:hover{background:#f7f9fb}
+.sheet tbody tr.ok{background:var(--green)}
+.sheet tbody tr.ok td{border-bottom-color:var(--green-line)}
+.sheet tbody tr.ok .rn{background:#bfe3c8;color:var(--green-ink)}
+.sheet tbody tr.fresh{animation:fresh 1.6s ease-out}
+@keyframes fresh{from{background:#fff3b0}}
+.sheet input,.sheet select{width:100%;height:29px;border:0;background:transparent;font:inherit;font-size:13px;color:var(--ink);padding:0 7px;outline:none}
+.sheet td.num{width:88px;min-width:88px}
+.sheet td.num input{text-align:right}
+.sheet td.txt{min-width:130px}
+.sheet td.colB input{font-weight:600}
+.sheet select{appearance:none;-webkit-appearance:none;cursor:pointer;font-weight:600;color:var(--green-ink)}
+.sheet tr:not(.ok) select{color:#9aa4ae;font-weight:400}
+.sheet td:focus-within{box-shadow:inset 0 0 0 2px var(--focus);background:#fff}
+.sheet tr.ok td:focus-within{background:#eef8f0}
+.sheet td.saving{background:var(--warn)!important}
+.sheet td.saved{animation:saved 1s ease-out}
+@keyframes saved{from{background:#c9f0d3}}
+.sheet td.bad{background:var(--err)!important;box-shadow:inset 0 0 0 1.5px var(--err-ink)}
+.sheet td.queued{background:var(--amber)!important}
+.sheet td.changed-elsewhere{animation:elsewhere 2.4s ease-out}
+@keyframes elsewhere{from{background:#ffd9a8}}
+.sheet td.del{width:34px;min-width:34px;text-align:center}
+.sheet td.del button{border:0;background:none;color:#b3bcc6;font-size:14px;padding:4px;opacity:0}
+.sheet tr:hover td.del button,.sheet td.del button:focus{opacity:1}
+.sheet td.del button:hover{color:var(--err-ink)}
+body.ro .sheet input,body.ro .sheet select{pointer-events:none}
+body.ro .del,body.ro #addBtn{display:none!important}
+
+/* ── حالت‌هایِ خالی ── */
+.empty{padding:48px 20px;text-align:center;color:var(--ink-soft)}
+.empty .q{direction:ltr;unicode-bidi:isolate;font-weight:800;color:var(--ink);font-size:18px}
+.empty .big{font-size:40px;margin-bottom:6px}
+.empty p{margin:6px 0 16px}
+.empty .btn{font-size:14px;padding:10px 18px}
+
+/* ── پایین ── */
+.foot{background:var(--sheet);border-top:1px solid var(--grid-strong);padding:7px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft);flex-wrap:wrap}
+.foot .pager{display:flex;align-items:center;gap:6px;margin-inline-start:auto}
+.foot .pager .btn{padding:5px 10px}
+.foot kbd{background:var(--head);border:1px solid var(--grid-strong);border-bottom-width:2px;border-radius:4px;padding:0 4px;font-family:inherit;font-size:10.5px}
+
+.toast{position:fixed;bottom:calc(58px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;z-index:50;max-width:90vw;box-shadow:0 6px 24px rgba(0,0,0,.18);display:none}
+.toast.show{display:block}
+.gate{margin:auto;max-width:380px;background:#fff;border:1px solid var(--grid-strong);border-radius:12px;padding:24px;text-align:center;font-size:14px;line-height:1.9}
+.gate a{color:var(--brass)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--grid-strong);border-top-color:var(--brass);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+@media (max-width:640px){
+  .top{padding:8px 10px}
+  .brand h1{font-size:15px}
+  .sheet .colB{width:170px;min-width:170px}
+  .foot .keys{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate"><span class="spin"></span> در حالِ بررسیِ دسترسی…</div>
+
+<div id="app" style="display:none;flex-direction:column;height:100%">
+  <header class="top">
+    <div class="brand">
+      <span class="mark">⚖️</span>
+      <div><h1>وزن‌نامه‌ی قطعات</h1><div class="who" id="who"></div></div>
+    </div>
+    <label class="searchbox" title="جستجو در شماره‌ی پارت، Package و Manufacturer">
+      <span>🔍</span>
+      <input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="شماره‌ی پارت رو بنویسید…">
+      <button class="clear" id="qClear" type="button" aria-label="پاک کردنِ جستجو">✕</button>
+    </label>
+    <div class="seg" role="group" aria-label="فیلتر">
+      <button type="button" data-f="all" class="on">همه</button>
+      <button type="button" data-f="verified">verifi</button>
+      <button type="button" data-f="unverified">بدونِ verifi</button>
+    </div>
+    <div class="counts" id="counts"></div>
+    <div class="actions">
+      <button class="btn" id="undoBtn" type="button" disabled title="برگرداندنِ آخرین تغییرِ ذخیره‌شده (Ctrl+Z)">↶ برگرداندن</button>
+      <button class="btn" id="exportBtn" type="button">⬇ خروجیِ Excel</button>
+      <button class="btn primary" id="addBtn" type="button">➕ قطعه‌ی جدید</button>
+    </div>
+  </header>
+
+  <div class="bar warn" id="queueBar"><span id="queueText"></span><button class="btn" id="retryBtn" type="button">الان دوباره بفرست</button></div>
+  <div class="bar err" id="errBar"><span id="errText"></span><button class="btn" id="errRetry" type="button">تلاشِ دوباره</button></div>
+  <div class="bar info" id="roBar">👁 فقط مشاهده — ویرایشِ وزن‌نامه فقط با مدیر است.</div>
+  <div class="bar addbar" id="addBar"><span>«<b id="addBarQ"></b>» دقیقاً با این شماره نیست.</span><button class="btn primary" id="addBarBtn" type="button">➕ افزودنِ همین قطعه</button></div>
+
+  <div class="wrap" id="wrap">
+    <table class="sheet" id="sheet">
+      <thead>
+        <tr class="letters" id="hLetters"></tr>
+        <tr class="titles" id="hTitles"></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="emptyBox"></div>
+  </div>
+
+  <footer class="foot">
+    <span id="saveState">—</span>
+    <span class="keys"><kbd>Enter</kbd> خانه‌ی پایین · <kbd>Tab</kbd> خانه‌ی بعد · <kbd>Esc</kbd> لغوِ تایپ · پیست از Excel</span>
+    <div class="pager">
+      <button class="btn" id="prevBtn" type="button">‹ قبلی</button>
+      <span id="pageInfo"></span>
+      <button class="btn" id="nextBtn" type="button">بعدی ›</button>
+    </div>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ═══════════════════════════════ تنظیمات ═══════════════════════════════
+const API_BASE = 'https://smartchip-backend.onrender.com';   // ← بعد از دامنه‌ی جدید فقط همین خط عوض می‌شه
+const SHEET_API = API_BASE + '/api/items/sheet/';
+const PAGE_SIZE = 100;
+const QUEUE_KEY = 'smartchip_weights_queue_v1';
+const ROLE_CACHE_KEY = 'smartchip_weights_role_v1';
+const ROLE_CACHE_MS = 12 * 3600 * 1000;
+const ADMIN_ROLES = ['admin', 'owner'];
+
+// ستون‌ها دقیقاً مثلِ شیت
+const COLS = [
+  ['A','verified','Verifi','sel'], ['B','part_number','Part Number','txt'], ['C','package','Package','txt'],
+  ['D','manufacturer','Manufacturer','txt'], ['E','micro_unit_weight','Micro 1 Unit (g)','num'],
+  ['F','ai_unit_weight','AI Unit Weight (g)','num'], ['G','unit_qty','(Unit) عدد','num'],
+  ['H','unit_weight','Weight (g)','num'], ['I','pack_qty','(Pack) سینی','num'], ['J','pack_weight','Weight (g)','num'],
+  ['K','pack_weight_per_unit','وزن هر سینی','num'], ['L','tube_qty','(Tube) حلقه','num'], ['M','tube_weight','Weight (g)','num'],
+  ['N','tube_weight_per_unit','وزن هر حلقه','num'], ['O','reel_qty','(Reel) ریل','num'], ['P','reel_weight','Weight (g)','num'],
+  ['Q','reel_weight_per_unit','وزن هر ریل','num'], ['R','bag_qty','(BAG) کیسه','num'], ['S','bag_weight','Weight (g)','num'],
+  ['T','box_qty','(BOX) جعبه','num'], ['U','box_weight','Weight (g)','num'], ['V','box_weight_per_unit','وزن هر جعبه','num'],
+];
+const FIELDS = COLS.map(c => c[1]);
+
+// ═══════════════════════════════ وضعیت ═══════════════════════════════
+const S = {
+  email: '', name: '', canEdit: false,
+  q: '', filter: 'all', page: 1, total: 0, grand: 0, verifiedTotal: 0, exactId: null,
+  rows: [], byId: new Map(), loading: false, reqSeq: 0, ctrl: null,
+  undo: [],               // [{id, field, from, to, part}]
+  inflight: 0,
+};
+
+const $ = id => document.getElementById(id);
+const fa = n => Number(n || 0).toLocaleString('fa-IR');
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg, ms = 2600){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms); }
+function isVerified(v){ v = String(v || '').trim(); return v.toLowerCase() === 'verifi' || v === '✅ OK'; }
+function normNum(v){
+  // ارقامِ فارسی/عربی، «٫»، «٬» و ویرگول
+  let s = String(v ?? '').trim().replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  s = s.replace(/[٬,\s]/g, '').replace(/[٫\/]/g, '.');
+  return s;
+}
+function sameVal(field, a, b){
+  const kind = COLS.find(c => c[1] === field)[3];
+  if (kind === 'num'){ const x = parseFloat(normNum(a)) || 0, y = parseFloat(normNum(b)) || 0; return Math.abs(x - y) < 1e-9; }
+  return String(a ?? '').trim() === String(b ?? '').trim();
+}
+
+async function fetchT(url, opts = {}, ms = 25000){
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+  if (opts.signal) opts.signal.addEventListener('abort', () => c.abort());
+  try { return await fetch(url, {...opts, signal: c.signal}); } finally { clearTimeout(t); }
+}
+
+// ═══════════════════════════════ دسترسی ═══════════════════════════════
+async function gate(){
+  const email = (localStorage.getItem('smartchip_user_email') || '').trim().toLowerCase();
+  if (!email || !email.includes('@')){
+    $('gate').innerHTML = 'اول از <a href="index.html">صفحه‌ی اصلی</a> با ایمیلِ خودتون وارد بشید، بعد این صفحه رو باز کنید.';
+    return false;
+  }
+  S.email = email;
+  let info = null;
+  try{
+    const r = await fetchT(API_BASE + '/api/staff/staff/' + encodeURIComponent(email) + '/', {}, 15000);
+    if (r.status === 404){ $('gate').textContent = 'این ایمیل در لیستِ کارمندان نیست.'; return false; }
+    if (r.ok){
+      const d = await r.json();
+      if (!d.active){ $('gate').textContent = 'دسترسیِ این کاربر غیرفعال شده.'; return false; }
+      info = {name: d.name || '', role: d.role || '', at: Date.now()};
+      try{ localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({email, ...info})); }catch(e){}
+    }
+  }catch(e){}
+  if (!info){
+    // سرور خوابه یا شبکه قطعه: آخرین نقشِ تأییدشده (تا ۱۲ ساعت) — کسی بیرون نمی‌مونه
+    try{
+      const c = JSON.parse(localStorage.getItem(ROLE_CACHE_KEY) || 'null');
+      if (c && c.email === email && Date.now() - c.at < ROLE_CACHE_MS) info = c;
+    }catch(e){}
+  }
+  if (!info){
+    $('gate').innerHTML = 'سرور جواب نداد. <br><button class="btn primary" onclick="location.reload()">دوباره امتحان کن</button>';
+    return false;
+  }
+  S.name = info.name; S.canEdit = ADMIN_ROLES.includes(info.role);
+  return true;
+}
+
+// ═══════════════════════════════ بارگذاری ═══════════════════════════════
+async function load({keepScroll = false} = {}){
+  const seq = ++S.reqSeq;
+  if (S.ctrl) S.ctrl.abort();
+  S.ctrl = new AbortController();
+  S.loading = true; renderMeta();
+  const p = new URLSearchParams({page: S.page, size: PAGE_SIZE, filter: S.filter});
+  if (S.q) p.set('q', S.q);
+  try{
+    const r = await fetchT(SHEET_API + '?' + p, {signal: S.ctrl.signal});
+    const d = await r.json();
+    if (seq !== S.reqSeq) return;                         // جوابِ جستجویِ قدیمی‌تر
+    if (!d.ok) throw new Error(d.error || ('HTTP ' + r.status));
+    S.rows = d.rows; S.total = d.total; S.grand = d.grand_total; S.verifiedTotal = d.verified_total; S.exactId = d.exact_id;
+    S.byId = new Map(S.rows.map(x => [x.id, x]));
+    hideErr();
+    renderRows();
+    if (!keepScroll) $('wrap').scrollTop = 0;
+  }catch(e){
+    if (seq !== S.reqSeq) return;                         // جستجویِ جدیدتر جایگزینش شد
+    showErr('وزن‌نامه بارگذاری نشد — ' + (e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message) + '. اگه فیلترشکن خاموشه، روشنش کنید.');
+  }finally{
+    if (seq === S.reqSeq){ S.loading = false; renderMeta(); }
+  }
+}
+
+// ═══════════════════════════════ نمایش ═══════════════════════════════
+function renderHead(){
+  $('hLetters').innerHTML = '<th class="rn"></th>' + COLS.map(c => `<th class="${c[0] === 'A' ? 'colA' : c[0] === 'B' ? 'colB' : ''}">${c[0]}</th>`).join('') + '<th class="del"></th>';
+  $('hTitles').innerHTML = '<th class="rn">#</th>' + COLS.map(c => `<th class="${c[0] === 'A' ? 'colA' : c[0] === 'B' ? 'colB' : ''}">${esc(c[2])}</th>`).join('') + '<th class="del"></th>';
+}
+
+function cellHtml(row, c){
+  const [L, f, , kind] = c;
+  const v = row[f] ?? '';
+  const cls = L === 'A' ? 'colA' : L === 'B' ? 'colB txt' : kind === 'num' ? 'num' : 'txt';
+  const q = queuedValue(row.id, f);
+  const shown = q !== undefined ? q : v;
+  const qcls = q !== undefined ? ' queued' : '';
+  if (kind === 'sel'){
+    const legacy = shown && String(shown).toLowerCase() !== 'verifi' ? `<option value="${esc(shown)}" selected>${esc(shown)}</option>` : '';
+    return `<td class="${cls}${qcls}" data-f="${f}"><select data-f="${f}" aria-label="Verifi">
+      <option value=""${!shown ? ' selected' : ''}>—</option>${legacy}
+      <option value="verifi"${String(shown).toLowerCase() === 'verifi' ? ' selected' : ''}>verifi</option></select></td>`;
+  }
+  return `<td class="${cls}${qcls}" data-f="${f}"><input data-f="${f}" value="${esc(shown)}" ${kind === 'num' ? 'inputmode="decimal"' : ''} spellcheck="false" autocomplete="off" aria-label="${c[0]} ${esc(c[2])}"></td>`;
+}
+
+function rowHtml(row, idx){
+  const ok = isVerified(queuedValue(row.id, 'verified') ?? row.verified);
+  return `<tr data-id="${row.id}" class="${ok ? 'ok' : ''}"><td class="rn">${idx}</td>${COLS.map(c => cellHtml(row, c)).join('')}<td class="del"><button type="button" data-del="${row.id}" title="حذفِ این ردیف" aria-label="حذفِ ردیف">🗑</button></td></tr>`;
+}
+
+function renderRows(){
+  const off = (S.page - 1) * PAGE_SIZE;
+  $('tbody').innerHTML = S.rows.map((r, i) => rowHtml(r, off + i + 1)).join('');
+  // حالتِ «پیدا نشد»
+  const eb = $('emptyBox');
+  if (!S.rows.length){
+    if (S.q){
+      eb.innerHTML = `<div class="empty"><div class="big">🔎</div><div>«<span class="q">${esc(S.q)}</span>» در وزن‌نامه نیست.</div>
+        ${S.canEdit ? `<p>اگه قطعه‌ی جدیده، همین الان اضافه‌اش کنید و وزن‌هاش رو بنویسید.</p><button class="btn primary" type="button" id="emptyAdd">➕ افزودنِ «${esc(S.q)}»</button>` : ''}</div>`;
+      const b = $('emptyAdd'); if (b) b.onclick = () => createPart(S.q);
+    } else {
+      eb.innerHTML = `<div class="empty">ردیفی با این فیلتر نیست.</div>`;
+    }
+  } else eb.innerHTML = '';
+  // نوارِ «دقیقاً این شماره نیست» وقتی نتیجه‌هایِ مشابه هست
+  const showAdd = S.canEdit && S.q && S.rows.length && !S.exactId && S.q.length >= 2;
+  $('addBar').classList.toggle('show', !!showAdd);
+  $('addBarQ').textContent = S.q;
+  renderMeta();
+}
+
+function renderMeta(){
+  const pages = Math.max(1, Math.ceil(S.total / PAGE_SIZE));
+  $('counts').innerHTML = S.q || S.filter !== 'all'
+    ? `<b>${fa(S.total)}</b> نتیجه از ${fa(S.grand)} ردیف`
+    : `<b>${fa(S.grand)}</b> ردیف · <b>${fa(S.verifiedTotal)}</b> verifi`;
+  $('pageInfo').textContent = S.loading ? '…' : `صفحه‌ی ${fa(S.page)} از ${fa(pages)}`;
+  $('prevBtn').disabled = S.page <= 1 || S.loading;
+  $('nextBtn').disabled = S.page >= pages || S.loading;
+  $('qClear').style.display = S.q ? 'block' : 'none';
+  $('undoBtn').disabled = !S.undo.length;
+  const qn = readQueue().length;
+  $('queueBar').classList.toggle('show', qn > 0);
+  $('queueText').textContent = `⏳ ${fa(qn)} تغییر هنوز به سرور نرسیده — نگه داشته شده و خودکار دوباره فرستاده می‌شه. صفحه رو می‌تونید ببندید؛ دفعه‌ی بعد فرستاده می‌شه.`;
+  $('saveState').textContent = S.inflight ? 'در حالِ ذخیره…' : qn ? `${fa(qn)} تغییر در صف` : (S.lastSaved ? `✓ همه‌ی تغییرها ذخیره شد (${S.lastSaved})` : '—');
+}
+function showErr(m){ $('errText').textContent = '⚠️ ' + m; $('errBar').classList.add('show'); }
+function hideErr(){ $('errBar').classList.remove('show'); }
+
+// ═══════════════════════════════ صفِ ذخیره (هیچ تغییری گم نمی‌شه) ═══════════════════════════════
+function readQueue(){ try{ return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); }catch(e){ return []; } }
+function writeQueue(q){ try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }catch(e){} }
+function queuedValue(id, field){
+  const q = readQueue(); let v;
+  for (const it of q) if (it.id === id && it.field === field) v = it.value;
+  return v;
+}
+function enqueue(item){
+  const q = readQueue().filter(x => !(x.id === item.id && x.field === item.field));
+  // prev اولین نسخه‌ی در صف رو نگه می‌داریم (مبنایِ مقایسه با سرور)
+  const old = readQueue().find(x => x.id === item.id && x.field === item.field);
+  if (old) item.prev = old.prev;
+  q.push(item); writeQueue(q); renderMeta();
+}
+async function flushQueue(){
+  const q = readQueue(); if (!q.length || flushQueue.busy) return;
+  flushQueue.busy = true;
+  const left = [];
+  for (const it of q){
+    const res = await sendPatch(it.id, [{field: it.field, value: it.value, prev: it.prev}], {fromQueue: true});
+    if (res === 'retry') left.push(it);
+  }
+  writeQueue(left); flushQueue.busy = false; renderMeta();
+  if (!left.length && q.length) toast(`✅ ${fa(q.length)} تغییرِ در صف ذخیره شد`);
+}
+
+// ═══════════════════════════════ ذخیره ═══════════════════════════════
+function tdOf(id, field){ return document.querySelector(`tr[data-id="${id}"] td[data-f="${field}"]`); }
+function flash(td, cls){ if (!td) return; td.classList.remove('saving', 'saved', 'bad', 'queued', 'changed-elsewhere'); void td.offsetWidth; if (cls) td.classList.add(cls); }
+function applyRow(row, force = []){
+  const old = S.byId.get(row.id); if (old) Object.assign(old, row); else S.byId.set(row.id, row);
+  const tr = document.querySelector(`tr[data-id="${row.id}"]`); if (!tr) return;
+  tr.classList.toggle('ok', isVerified(row.verified));
+  for (const f of FIELDS){
+    const el = tr.querySelector(`[data-f="${f}"]:is(input,select)`);
+    // خانه‌ای که الان توش تایپ می‌کنید دست نمی‌خوره — مگر سرور صریحاً مقدارِ دیگه‌ای برگردونده باشه (force)
+    if (el && (document.activeElement !== el || force.includes(f))){
+      if (el.tagName === 'SELECT'){ if (![...el.options].some(o => o.value === (row[f] ?? ''))) el.insertAdjacentHTML('beforeend', `<option value="${esc(row[f])}">${esc(row[f])}</option>`); el.value = row[f] ?? ''; }
+      else el.value = row[f] ?? '';
+      el.dataset.orig = row[f] ?? '';
+    }
+  }
+}
+
+// نتیجه: 'ok' | 'conflict' | 'invalid' | 'retry'
+async function sendPatch(id, changes, {fromQueue = false, recordUndo = true} = {}){
+  changes.forEach(ch => { const td = tdOf(id, ch.field); flash(td, 'saving'); });
+  S.inflight++; renderMeta();
+  let r, d;
+  try{
+    r = await fetchT(SHEET_API + id + '/', {method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({changes, _staff: S.email})});
+    d = await r.json().catch(() => ({}));
+  }catch(e){
+    S.inflight--;
+    if (!fromQueue) changes.forEach(ch => enqueue({id, field: ch.field, value: ch.value, prev: ch.prev, part: (S.byId.get(id) || {}).part_number, at: Date.now()}));
+    changes.forEach(ch => flash(tdOf(id, ch.field), 'queued'));
+    renderMeta(); return 'retry';
+  }
+  S.inflight--;
+  if (r.ok && d.ok){
+    const before = S.byId.get(id) ? {...S.byId.get(id)} : null;
+    applyRow(d.row);
+    changes.forEach(ch => flash(tdOf(id, ch.field), 'saved'));
+    if (recordUndo && before) changes.forEach(ch => S.undo.push({id, field: ch.field, from: ch.prev ?? '', to: d.row[ch.field] ?? '', part: d.row.part_number}));
+    if (S.undo.length > 200) S.undo.splice(0, S.undo.length - 200);
+    S.lastSaved = new Date().toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'});
+    renderMeta(); return 'ok';
+  }
+  if (r.status === 409 && d.row){
+    const bad = d.conflicts && d.conflicts.length ? d.conflicts : changes.map(c => c.field);
+    applyRow(d.row, bad);
+    bad.forEach(f => flash(tdOf(id, f), 'changed-elsewhere'));
+    toast('⚠️ ' + (d.error || 'این خانه جایِ دیگه تغییر کرده بود — مقدارِ فعلی نشون داده شد'), 4200);
+    renderMeta(); return 'conflict';
+  }
+  if (r.status === 404){ toast('این ردیف دیگه وجود نداره (شاید حذف شده)'); renderMeta(); return 'invalid'; }
+  if (r.status === 403){ toast('⛔ ' + (d.error || 'اجازه‌ی ویرایش ندارید')); if (d.row) applyRow(d.row); renderMeta(); return 'invalid'; }
+  if (r.status >= 500 || !r.status){
+    if (!fromQueue) changes.forEach(ch => enqueue({id, field: ch.field, value: ch.value, prev: ch.prev, at: Date.now()}));
+    changes.forEach(ch => flash(tdOf(id, ch.field), 'queued')); renderMeta(); return 'retry';
+  }
+  // 400 — مقدارِ نامعتبر
+  const td = tdOf(id, d.field || changes[0].field); flash(td, 'bad');
+  if (td) td.title = d.error || 'مقدارِ نامعتبر';
+  toast('❌ ' + (d.error || 'مقدارِ نامعتبر'), 4000);
+  renderMeta(); return 'invalid';
+}
+
+function commitCell(el){
+  const tr = el.closest('tr'); if (!tr) return;
+  const id = +tr.dataset.id, f = el.dataset.f;
+  const row = S.byId.get(id); if (!row) return;
+  const prev = el.dataset.orig ?? (row[f] ?? '');
+  let val = el.value;
+  if (COLS.find(c => c[1] === f)[3] === 'num'){ val = normNum(val); if (el.value !== val) el.value = val; }
+  if (sameVal(f, prev, val)) { el.value = prev; return; }
+  if (f === 'part_number' && !String(val).trim()){ el.value = prev; toast('شماره‌ی پارت نمی‌تونه خالی باشه'); return; }
+  if (f === 'verified') tr.classList.toggle('ok', isVerified(val));
+  el.dataset.orig = val;
+  sendPatch(id, [{field: f, value: val, prev}]).then(res => { if (res === 'invalid'){ el.value = prev; el.dataset.orig = prev; if (f === 'verified') tr.classList.toggle('ok', isVerified(prev)); } });
+}
+
+// ═══════════════════════════════ افزودن / حذف ═══════════════════════════════
+async function createPart(part){
+  part = String(part || '').trim();
+  if (!part){ return; }
+  try{
+    const r = await fetchT(SHEET_API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({part_number: part, _staff: S.email})});
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 409 && d.row){
+      toast('این قطعه از قبل هست — نشونش دادم');
+      S.q = d.row.part_number; $('q').value = S.q; S.page = 1; await load(); focusCell(d.row.id, 'package'); return;
+    }
+    if (!r.ok || !d.ok){ toast('❌ ' + (d.error || ('افزوده نشد — HTTP ' + r.status)), 4000); return; }
+    // ردیفِ جدید رو نشون بده و مستقیم رویِ ستونِ بعدی (Package) برو
+    S.q = d.row.part_number; $('q').value = S.q; S.filter = 'all'; setSeg(); S.page = 1;
+    await load();
+    const tr = document.querySelector(`tr[data-id="${d.row.id}"]`); if (tr) tr.classList.add('fresh');
+    focusCell(d.row.id, 'package');
+    toast('✅ «' + d.row.part_number + '» اضافه شد — وزن‌هاش رو بنویسید');
+  }catch(e){ toast('❌ سرور جواب نداد — قطعه اضافه نشد. دوباره امتحان کنید.', 4200); }
+}
+async function deleteRow(id){
+  const row = S.byId.get(id); if (!row) return;
+  if (!confirm(`ردیفِ «${row.part_number}» کامل حذف بشه؟\n(همه‌ی وزن‌هاش پاک می‌شه)`)) return;
+  try{
+    const r = await fetchT(SHEET_API + id + '/?staff=' + encodeURIComponent(S.email), {method: 'DELETE'});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok){ toast('❌ ' + (d.error || 'حذف نشد')); return; }
+    toast('🗑 «' + row.part_number + '» حذف شد');
+    S.undo = S.undo.filter(u => u.id !== id);
+    await load({keepScroll: true});
+  }catch(e){ toast('❌ سرور جواب نداد — حذف نشد'); }
+}
+function focusCell(id, field){
+  const el = document.querySelector(`tr[data-id="${id}"] [data-f="${field}"]:is(input,select)`);
+  if (el){ el.focus(); if (el.select) el.select(); el.scrollIntoView({block: 'nearest', inline: 'nearest'}); }
+}
+
+// ═══════════════════════════════ برگرداندن ═══════════════════════════════
+async function undoLast(){
+  const u = S.undo.pop(); renderMeta(); if (!u) return;
+  if (!S.byId.has(u.id)){ toast('اون ردیف الان رویِ صفحه نیست — جستجوش کنید و دستی برگردونید: ' + u.part, 4500); return; }
+  const res = await sendPatch(u.id, [{field: u.field, value: u.from, prev: u.to}], {recordUndo: false});
+  if (res === 'ok') toast(`↶ برگشت: «${u.part}» ستونِ ${COLS.find(c => c[1] === u.field)[0]}`);
+}
+
+// ═══════════════════════════════ پیستِ چندخانه‌ای ═══════════════════════════════
+function onPaste(e){
+  const el = e.target; if (!el.matches || !el.matches('.sheet input,.sheet select')) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if (!text || (!text.includes('\t') && !/\n./.test(text.trim()))) return;   // پیستِ معمولی در یک خانه
+  e.preventDefault();
+  const grid = text.replace(/\r/g, '').replace(/\n$/, '').split('\n').map(l => l.split('\t'));
+  const tr0 = el.closest('tr'); const trs = [...$('tbody').children]; const r0 = trs.indexOf(tr0);
+  const c0 = FIELDS.indexOf(el.dataset.f);
+  const perRow = new Map(); let cells = 0, skipped = 0;
+  grid.forEach((vals, dr) => {
+    const tr = trs[r0 + dr]; if (!tr){ skipped += vals.length; return; }
+    const id = +tr.dataset.id; const row = S.byId.get(id);
+    vals.forEach((raw, dc) => {
+      const f = FIELDS[c0 + dc]; if (!f){ skipped++; return; }
+      const kind = COLS[c0 + dc][3];
+      let v = kind === 'num' ? normNum(raw) : String(raw).trim();
+      if (f === 'verified') v = v.toLowerCase() === 'verifi' ? 'verifi' : (v ? '__bad' : '');
+      if (v === '__bad'){ skipped++; return; }
+      if (f === 'part_number' && !v){ skipped++; return; }
+      const prev = row[f] ?? '';
+      if (sameVal(f, prev, v)) return;
+      if (!perRow.has(id)) perRow.set(id, []);
+      perRow.get(id).push({field: f, value: v, prev}); cells++;
+      const input = tr.querySelector(`[data-f="${f}"]:is(input,select)`); if (input){ input.value = v; input.dataset.orig = v; }
+      if (f === 'verified') tr.classList.toggle('ok', v === 'verifi');
+    });
+  });
+  if (!cells){ toast(skipped ? 'چیزی برایِ پیست نبود (خانه‌ها خارج از صفحه یا مقدارِ نامعتبر)' : 'مقدارها همون قبلی‌ان'); return; }
+  if (cells > 30 && !confirm(`${fa(cells)} خانه تغییر می‌کنه. ادامه بدم؟`)){ load({keepScroll: true}); return; }
+  Promise.all([...perRow].map(([id, ch]) => sendPatch(id, ch))).then(() => toast(`📋 ${fa(cells)} خانه پیست و ذخیره شد${skipped ? ` (${fa(skipped)} خانه رد شد)` : ''}`));
+}
+
+// ═══════════════════════════════ خروجیِ Excel ═══════════════════════════════
+async function exportXlsx(){
+  const btn = $('exportBtn'); btn.disabled = true; const old = btn.textContent; btn.innerHTML = '<span class="spin"></span> در حالِ ساختِ فایل…';
+  try{
+    const r = await fetchT(SHEET_API + 'export/', {}, 120000);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const cd = r.headers.get('Content-Disposition') || ''; const m = cd.match(/filename="([^"]+)"/);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = m ? m[1] : 'weights.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast(`✅ فایلِ Excel با ${fa(r.headers.get('X-Row-Count') || S.grand)} ردیف دانلود شد`);
+  }catch(e){ toast('❌ خروجی ساخته نشد — ' + (e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message), 4500); }
+  btn.disabled = false; btn.textContent = old;
+}
+
+// ═══════════════════════════════ رویدادها ═══════════════════════════════
+function setSeg(){ document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.f === S.filter)); }
+function wire(){
+  let t;
+  $('q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { S.q = $('q').value.trim(); S.page = 1; load(); }, 260); });
+  $('q').addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ clearTimeout(t); S.q = $('q').value.trim(); S.page = 1; load().then(() => { const first = $('tbody').querySelector('input[data-f="package"]'); if (first && S.rows.length === 1) first.focus(); }); }
+    if (e.key === 'Escape'){ $('q').value = ''; S.q = ''; S.page = 1; load(); }
+  });
+  $('qClear').onclick = () => { $('q').value = ''; S.q = ''; S.page = 1; load(); $('q').focus(); };
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.filter = b.dataset.f; S.page = 1; setSeg(); load(); });
+  $('prevBtn').onclick = () => { if (S.page > 1){ S.page--; load(); } };
+  $('nextBtn').onclick = () => { S.page++; load(); };
+  $('exportBtn').onclick = exportXlsx;
+  $('undoBtn').onclick = undoLast;
+  $('addBarBtn').onclick = () => createPart(S.q);
+  $('addBtn').onclick = () => {
+    const q = $('q').value.trim();
+    if (q && !S.exactId){ createPart(q); return; }
+    $('q').value = ''; $('q').focus(); $('q').placeholder = 'شماره‌ی پارتِ جدید رو بنویسید و Enter بزنید…';
+    toast('اول شماره‌ی پارت رو جستجو کنید؛ اگه نبود، دکمه‌ی «افزودن» ظاهر می‌شه');
+  };
+  $('retryBtn').onclick = flushQueue;
+  $('errRetry').onclick = () => load({keepScroll: true});
+
+  const tb = $('tbody');
+  tb.addEventListener('focusin', e => { const el = e.target; if (el.matches('input,select') && el.dataset.orig === undefined){ const row = S.byId.get(+el.closest('tr').dataset.id); el.dataset.orig = row ? (row[el.dataset.f] ?? '') : el.value; } });
+  tb.addEventListener('change', e => { if (e.target.matches('select')) commitCell(e.target); });
+  tb.addEventListener('focusout', e => { if (e.target.matches('input')) commitCell(e.target); });
+  tb.addEventListener('keydown', e => {
+    const el = e.target; if (!el.matches('input,select')) return;
+    const td = el.closest('td'), tr = el.closest('tr'); const ci = [...tr.children].indexOf(td);
+    const move = (dr) => { const next = tr.parentElement.children[[...tr.parentElement.children].indexOf(tr) + dr]; if (next){ const n = next.children[ci].querySelector('input,select'); if (n){ n.focus(); if (n.select) n.select(); } } };
+    if (e.key === 'Enter'){ e.preventDefault(); if (el.tagName === 'INPUT') commitCell(el); move(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'ArrowDown' && el.tagName === 'INPUT'){ e.preventDefault(); move(1); }
+    else if (e.key === 'ArrowUp' && el.tagName === 'INPUT'){ e.preventDefault(); move(-1); }
+    else if (e.key === 'Escape' && el.tagName === 'INPUT'){ el.value = el.dataset.orig ?? el.value; el.blur(); }
+  });
+  tb.addEventListener('paste', onPaste);
+  tb.addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b) deleteRow(+b.dataset.del); });
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey){
+      const a = document.activeElement;
+      const typing = a && a.tagName === 'INPUT' && a.dataset.orig !== undefined && a.value !== a.dataset.orig;
+      if (!typing && a !== $('q')){ e.preventDefault(); undoLast(); }
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f'){ e.preventDefault(); $('q').focus(); $('q').select(); }
+  });
+  window.addEventListener('online', flushQueue);
+  setInterval(flushQueue, 20000);
+  window.addEventListener('beforeunload', e => { if (S.inflight){ e.preventDefault(); e.returnValue = ''; } });
+}
+
+// ═══════════════════════════════ شروع ═══════════════════════════════
+(async function start(){
+  if (!(await gate())) return;
+  $('gate').style.display = 'none';
+  $('app').style.display = 'flex';
+  $('who').textContent = (S.name || S.email) + (S.canEdit ? '' : ' — فقط مشاهده');
+  if (!S.canEdit){ document.body.classList.add('ro'); $('roBar').classList.add('show'); }
+  renderHead(); wire(); setSeg();
+  const pre = new URLSearchParams(location.search).get('q');
+  if (pre){ $('q').value = pre; S.q = pre.trim(); }
+  await load();
+  flushQueue();
+  $('q').focus();
+})();
+</script>
+</body>
+</html>

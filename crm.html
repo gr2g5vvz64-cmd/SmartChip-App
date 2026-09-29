@@ -326,6 +326,41 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
     #crmBiFilterBar{ position:static }
     #crmBiFilterMini{ display:flex; position:sticky; top:0; z-index:20 }
   }
+
+/* ── (۱۴۰۵/۰۷/۰۷) فرمِ ثبتِ تماس — طرح ۲: نوارِ سریع ── */
+.qf2{position:relative;background:var(--surface);border:1px solid rgba(240,165,0,.3);border-radius:12px;padding:8px 10px 8px 30px;margin-bottom:10px}
+.qf2-bar{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px}
+.qf2 .form-control{font-size:12px;padding:6px 9px;min-height:32px}
+.qf2-cust{position:relative;flex:0 1 170px;min-width:130px}
+.qf2-note{flex:1 1 120px;min-width:120px;resize:none!important;overflow:hidden;line-height:1.5;height:32px;box-sizing:border-box}
+.qf2-chips{display:flex;gap:4px;flex-wrap:wrap}
+.qf2-chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 7px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-size:11.5px;font-weight:700;white-space:nowrap;user-select:none}
+.qf2-chip input{width:14px;height:14px;margin:0}
+.qf2-c-buy span{color:#60a5fa}.qf2-c-fin span{color:var(--accent)}.qf2-c-smp span{color:#f0a500}.qf2-c-sug span{color:#a78bfa}
+.qf2-c-buy:has(input:checked){border-color:#60a5fa;background:rgba(96,165,250,.12)}
+.qf2-c-fin:has(input:checked){border-color:var(--accent);background:rgba(240,165,0,.12)}
+.qf2-c-smp:has(input:checked){border-color:#f0a500;background:rgba(240,165,0,.12)}
+.qf2-c-sug:has(input:checked){border-color:#a78bfa;background:rgba(168,85,247,.12)}
+.qf2-tgl{height:32px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.qf2-tgl:hover,.qf2-tgl.on{color:var(--text);border-color:var(--accent)}
+.qf2-sum{color:var(--muted);font-size:10.5px}
+.qf2-save{height:32px;padding:0 16px;font-size:12.5px;font-weight:800}
+.qf2-x{position:absolute;left:4px;top:8px;height:32px;width:24px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px}
+.qf2-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin-top:7px;padding-top:7px;border-top:1px dashed var(--border)}
+.qf2-details .form-label{font-size:10px;margin-bottom:2px}
+.qf2-wide{grid-column:span 2}
+.qf2-history{margin-top:7px;padding-top:7px;border-top:1px dashed var(--border);max-height:230px;overflow-y:auto}
+.qf2-h-row{display:grid;grid-template-columns:118px 70px 1fr auto;gap:8px;align-items:start;padding:6px 4px;border-bottom:1px solid var(--border);font-size:12px}
+.qf2-h-row:last-child{border-bottom:none}
+.qf2-h-date{color:var(--muted);font-size:11px;white-space:nowrap}
+.qf2-h-type{color:var(--muted);font-size:11px}
+.qf2-h-note{line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.qf2-h-tags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.qf2-h-tag{font-size:10px;padding:1px 6px;border-radius:6px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.qf2-h-empty{color:var(--muted);font-size:12px;padding:8px 4px}
+.qf2-h-head{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px}
+.qf2 > [id$="Box"]{margin-top:8px}
+@media(max-width:700px){.qf2-h-row{grid-template-columns:1fr;gap:2px}.qf2-h-tags{justify-content:flex-start}.qf2-wide{grid-column:auto}}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -1498,22 +1533,33 @@ function renderToolbar(){
         </div>
       </div>
     </div>
-    <!-- فرم ثبت تماس سریع -->
-    <div id="quickContactForm" style="display:none;background:var(--surface);border:1px solid rgba(240,165,0,.3);border-radius:16px;padding:16px 18px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-size:14px;font-weight:800;color:var(--accent)">📞 ثبت تماس جدید</div>
-        <button onclick="document.getElementById('quickContactForm').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px">
-        <div style="position:relative">
-          <label class="form-label" style="font-size:10px">👤 نام مشتری *</label>
-          <input class="form-control" id="qf_customer" placeholder="نام مشتری..." oninput="qfSearchCustomer(this.value)" autocomplete="off"/>
+    <!-- فرم ثبت تماس سریع — ⚠️ (۱۴۰۵/۰۷/۰۷) طرح ۲ به درخواستِ کاربر: یک نوارِ سریع
+         (مشتری + صحبت + چهار گزینه + ثبت) تا جدول جایِ بیشتری بگیره. «جزئیات» (تاریخ، نوع،
+         پیگیری، کارشناس، اهمیت) هر بار بسته باز می‌شه؛ «تاریخچه» آخرین تماس‌هایِ همین مشتری.
+         همه‌ی idها و رفتارها مثلِ قبل‌اند. -->
+    <div id="quickContactForm" class="qf2" style="display:none">
+      <div class="qf2-bar">
+        <div class="qf2-cust">
+          <input class="form-control" id="qf_customer" placeholder="👤 نام مشتری *" oninput="qfSearchCustomer(this.value);qf2OnCustomerChange()" autocomplete="off"/>
           <div id="qf_customerAC" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:99;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.4)"></div>
         </div>
-        <div><label class="form-label" style="font-size:10px">📅 تاریخ</label>
-          <input class="form-control" id="qf_date" readonly style="cursor:pointer;font-size:11px" onclick="openDatePicker('qf_date')"/></div>
-        <div><label class="form-label" style="font-size:10px">نوع</label>
-          <select class="form-control" id="qf_type" style="font-size:11px">
+        <textarea class="form-control qf2-note" id="qf_note" rows="1" placeholder="💬 صحبتِ انجام‌شده *" oninput="qf2Grow(this)"></textarea>
+        <div class="qf2-chips">
+          <label class="qf2-chip qf2-c-buy"><input type="checkbox" id="qf_hasPurchase" onchange="document.getElementById('qf_purchaseBox').style.display=this.checked?'block':'none';if(this.checked&&qfPartRows.length===0){qfPartRows=[{name:'',qty:'',needMarket:false,needForeign:false}];qfRenderPartRows();}"/><span>📋 استعلام خرید</span></label>
+          <label class="qf2-chip qf2-c-fin"><input type="checkbox" id="qf_hasFinance" onchange="document.getElementById('qf_financeBox').style.display=this.checked?'block':'none'"/><span>💰 مالی</span></label>
+          <label class="qf2-chip qf2-c-smp"><input type="checkbox" id="qf_hasSample" onchange="document.getElementById('qf_sampleBox').style.display=this.checked?'block':'none';if(this.checked)qfRenderSampleRows();"/><span>📦 نمونه</span></label>
+          <label class="qf2-chip qf2-c-sug"><input type="checkbox" id="qf_hasSuggestion" onchange="document.getElementById('qf_suggestionBox').style.display=this.checked?'block':'none';"/><span>💡 پیشنهاد</span></label>
+        </div>
+        <button type="button" class="qf2-tgl" id="qf2HistBtn" onclick="qf2ToggleHistory()" title="آخرین تماس‌ها و صحبت‌هایِ همین مشتری">📜 تاریخچه</button>
+        <button type="button" class="qf2-tgl" id="qf2DetBtn" onclick="qf2ToggleDetails()" title="تاریخ، نوع، پیگیری، کارشناس، اهمیت">⚙️ جزئیات <span id="qf2DetSum" class="qf2-sum"></span> <span id="qf2DetArrow">▾</span></button>
+        <button type="button" onclick="submitQuickContact()" class="btn btn-primary qf2-save">✅ ثبت</button>
+        <button type="button" class="qf2-x" title="بستنِ فرم" onclick="document.getElementById('quickContactForm').style.display='none'">✕</button>
+      </div>
+      <div id="qf2Details" class="qf2-details" style="display:none">
+        <div><label class="form-label">📅 تاریخ</label>
+          <input class="form-control" id="qf_date" readonly style="cursor:pointer" onclick="openDatePicker('qf_date')" onchange="qf2UpdateSummary()"/></div>
+        <div><label class="form-label">نوع</label>
+          <select class="form-control" id="qf_type" onchange="qf2UpdateSummary()">
             <option value="تلفن">📱 تلفن</option>
             <option value="حضوری">🤝 حضوری</option>
             <option value="تلگرام">✈️ تلگرام</option>
@@ -1523,43 +1569,20 @@ function renderToolbar(){
             <option value="نمایشگاه">🏪 نمایشگاه</option>
             <option value="پیام">💬 پیام</option>
           </select></div>
-      </div>
-      <div style="margin-bottom:8px">
-        <label class="form-label" style="font-size:10px">💬 صحبت انجام‌شده *</label>
-        <textarea class="form-control" id="qf_note" rows="2" placeholder="خلاصه صحبت..." style="resize:none;font-size:12px"></textarea>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-        <div><label class="form-label" style="font-size:10px">📌 پیگیری بعدی</label>
-          <input class="form-control" id="qf_followDate" readonly style="cursor:pointer;font-size:11px" onclick="openDatePicker('qf_followDate')" placeholder="انتخاب تاریخ"/></div>
-        <div><label class="form-label" style="font-size:10px">📝 یادداشت پیگیری</label>
-          <input class="form-control" id="qf_followNote" style="font-size:11px" placeholder="توضیح..."/></div>
-        <div><label class="form-label" style="font-size:10px">👤 کارشناس</label>
-          <select class="form-control" id="qf_followUpBy" style="font-size:11px">
+        <div><label class="form-label">📌 پیگیری بعدی</label>
+          <input class="form-control" id="qf_followDate" readonly style="cursor:pointer" onclick="openDatePicker('qf_followDate')" onchange="qf2UpdateSummary()" placeholder="انتخاب تاریخ"/></div>
+        <div class="qf2-wide"><label class="form-label">📝 یادداشت پیگیری</label>
+          <input class="form-control" id="qf_followNote" placeholder="توضیح..."/></div>
+        <div><label class="form-label">👤 کارشناس</label>
+          <select class="form-control" id="qf_followUpBy">
             <option value="چاوشی">چاوشی</option><option value="حسین‌پور">حسین‌پور</option>
           </select></div>
-        <div><label class="form-label" style="font-size:10px">اهمیت</label>
-          <select class="form-control" id="qf_importance" style="font-size:11px">
+        <div><label class="form-label">اهمیت</label>
+          <select class="form-control" id="qf_importance" onchange="qf2UpdateSummary()">
             <option value="high">🔴 بالا</option><option value="medium" selected>🟡 متوسط</option><option value="low">🟢 پایین</option>
           </select></div>
       </div>
-      <div style="display:flex;gap:10px;margin-bottom:8px">
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 14px">
-          <input type="checkbox" id="qf_hasPurchase" onchange="document.getElementById('qf_purchaseBox').style.display=this.checked?'block':'none';if(this.checked&&qfPartRows.length===0){qfPartRows=[{name:'',qty:'',needMarket:false,needForeign:false}];qfRenderPartRows();}" style="width:16px;height:16px"/>
-          <span style="font-size:12px;font-weight:700;color:#60a5fa">📋 استعلام خرید</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 14px">
-          <input type="checkbox" id="qf_hasFinance" onchange="document.getElementById('qf_financeBox').style.display=this.checked?'block':'none'" style="width:16px;height:16px"/>
-          <span style="font-size:12px;font-weight:700;color:var(--accent)">💰 استعلام مالی</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 14px">
-          <input type="checkbox" id="qf_hasSample" onchange="document.getElementById('qf_sampleBox').style.display=this.checked?'block':'none';if(this.checked)qfRenderSampleRows();" style="width:16px;height:16px"/>
-          <span style="font-size:12px;font-weight:700;color:#f0a500">📦 نمونه</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 14px">
-          <input type="checkbox" id="qf_hasSuggestion" onchange="document.getElementById('qf_suggestionBox').style.display=this.checked?'block':'none';" style="width:16px;height:16px"/>
-          <span style="font-size:12px;font-weight:700;color:#a78bfa">💡 پیشنهاد/موضوع کاری</span>
-        </label>
-      </div>
+      <div id="qf2History" class="qf2-history" style="display:none"></div>
       <div id="qf_suggestionBox" style="display:none;border:1px solid rgba(168,85,247,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(168,85,247,.04)">
         <div style="font-size:11px;font-weight:800;color:#a78bfa;margin-bottom:8px">💡 پیشنهاد/موضوع کاری مشتری</div>
         <textarea id="qf_suggestionText" class="form-control" placeholder="مثلاً: مشتری پیشنهاد داد بسته‌بندی رو تغییر بدیم..."></textarea>
@@ -1596,10 +1619,6 @@ function renderToolbar(){
           <label class="fin-check-row" style="font-size:11px;padding:7px 10px"><input type="checkbox" id="qff_getSheba"/> دریافت شبا</label>
         </div>
         <input class="form-control" id="qff_note" style="font-size:11px" placeholder="یادداشت مالی..."/>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:10px">
-        <button onclick="document.getElementById('quickContactForm').style.display='none'" class="btn btn-ghost" style="font-size:12px">انصراف</button>
-        <button onclick="submitQuickContact()" class="btn btn-primary" style="font-size:13px;font-weight:800;padding:8px 24px">✅ ثبت در جدول</button>
       </div>
     </div>
 
@@ -2937,6 +2956,7 @@ function showCrmTab(tab){
   // فرم سریع فقط در تب جدول کامل
   const qf = document.getElementById('quickContactForm');
   if(qf) qf.style.display = tab==='table' ? 'block' : 'none';
+  if(tab==='table' && typeof qf2Collapse==='function') qf2Collapse();
   if(tab==='dashboard') renderDashboard();
   if(tab==='crmBi') renderCrmBi();
   if(tab==='table')     renderTableView();
@@ -8673,6 +8693,7 @@ function pickDateERP(d){
     if(el) el.value=dateStr;
   }
   closeModal('modalDatePicker');
+  if(typeof qf2UpdateSummary==='function') qf2UpdateSummary();
 }
 
 // ── یادآوری ──
@@ -8929,6 +8950,114 @@ function toShamsiCompact(dateStr){
 // ══════════════════════════════════════════════════════════════
 let qfPartRows = [];
 
+// ══════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۰۷) فرمِ ثبتِ تماس — طرح ۲ (نوارِ سریع)
+// • «جزئیات» هر بار که فرم باز می‌شه (یا بعد از هر ثبت) بسته است — طبقِ درخواستِ صریحِ کاربر، حالت یادش نمی‌مونه.
+//   ولی رویِ خودِ دکمه خلاصه‌ی مقادیرِ فعلی (تاریخ · نوع · پیگیری) دیده می‌شه تا چیزی پنهان نمونه.
+// • «تاریخچه» آخرین تماس‌ها و صحبت‌هایِ همین مشتری رو از داده‌ی همین صفحه (leads) نشون می‌ده — بدونِ درخواستِ جدید.
+// ══════════════════════════════════════════════════════════════
+function qf2Grow(el){
+  if(!el) return;
+  el.style.height='32px';
+  if(el.scrollHeight>34) el.style.height=Math.min(el.scrollHeight+2,140)+'px';
+}
+function qf2Collapse(){
+  const d=document.getElementById('qf2Details'), h=document.getElementById('qf2History');
+  if(d) d.style.display='none';
+  if(h) h.style.display='none';
+  const db=document.getElementById('qf2DetBtn'), hb=document.getElementById('qf2HistBtn');
+  if(db) db.classList.remove('on');
+  if(hb) hb.classList.remove('on');
+  const ar=document.getElementById('qf2DetArrow'); if(ar) ar.textContent='▾';
+  qf2Grow(document.getElementById('qf_note'));
+  qf2UpdateSummary();
+}
+function qf2ToggleDetails(){
+  const d=document.getElementById('qf2Details'); if(!d) return;
+  const open=d.style.display==='none';
+  d.style.display=open?'grid':'none';
+  document.getElementById('qf2DetBtn').classList.toggle('on',open);
+  document.getElementById('qf2DetArrow').textContent=open?'▴':'▾';
+  qf2UpdateSummary();
+}
+function qf2UpdateSummary(){
+  // خلاصه فقط وقتی چیزی با پیش‌فرض (امروز · تلفن · متوسط) فرق داره — تا نوار کوتاه بمونه ولی هیچ مقداری پنهان نمونه
+  const el=document.getElementById('qf2DetSum'); if(!el) return;
+  const v=id=>{const x=document.getElementById(id); return x?String(x.value||'').trim():'';};
+  const parts=[];
+  const date=v('qf_date');
+  const today=(typeof todayShamsiStr==='function')?todayShamsiStr():'';
+  if(date && date!==today) parts.push(date);
+  if(v('qf_type') && v('qf_type')!=='تلفن') parts.push(v('qf_type'));
+  if(v('qf_followDate')) parts.push('📌 '+v('qf_followDate'));
+  if(v('qf_importance')==='high') parts.push('🔴');
+  if(v('qf_importance')==='low') parts.push('🟢');
+  el.textContent=parts.length?'('+parts.join(' · ')+')':'';
+}
+function qf2ToggleHistory(){
+  const h=document.getElementById('qf2History'); if(!h) return;
+  const open=h.style.display==='none';
+  h.style.display=open?'block':'none';
+  document.getElementById('qf2HistBtn').classList.toggle('on',open);
+  if(open) qf2RenderHistory();
+}
+function qf2OnCustomerChange(){
+  const h=document.getElementById('qf2History');
+  if(h && h.style.display!=='none') qf2RenderHistory();
+}
+function qf2FindLead(name){
+  const n=String(name||'').trim(); if(!n) return null;
+  const list=(typeof leads!=='undefined'&&leads)||[];
+  let l=list.find(x=>x.customer===n);
+  if(!l && typeof normalizeFa==='function'){ const q=normalizeFa(n); l=list.find(x=>x.customer&&normalizeFa(x.customer)===q); }
+  return l||null;
+}
+function qf2FmtDate(d){
+  d=String(d||'');
+  if(d.length>10){
+    const t=new Date(d);
+    if(!isNaN(t)){
+      try{
+        const s=jdToS(gToJD(t.getFullYear(),t.getMonth()+1,t.getDate()));
+        const p2=x=>String(x).padStart(2,'0');
+        const f=(typeof fn==='function')?fn:(x=>x);
+        return f(`${s.y}/${p2(s.m)}/${p2(s.d)}`)+' · '+f(`${p2(t.getHours())}:${p2(t.getMinutes())}`);
+      }catch(e){}
+    }
+  }
+  return d;
+}
+function qf2Esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function qf2RenderHistory(){
+  const box=document.getElementById('qf2History'); if(!box) return;
+  const name=(document.getElementById('qf_customer').value||'').trim();
+  if(!name){ box.innerHTML='<div class="qf2-h-empty">اول نامِ مشتری رو بنویسید تا تماس‌هایِ قبلیش اینجا بیاد.</div>'; return; }
+  const lead=qf2FindLead(name);
+  const hist=lead?(lead.history||[]).filter(h=>h&&typeof h==='object'):[];
+  if(!hist.length){ box.innerHTML=`<div class="qf2-h-empty">برایِ «${qf2Esc(name)}» هنوز تماسی ثبت نشده — این اولین تماسه.</div>`; return; }
+  const sorted=hist.map((h,i)=>({h,i})).sort((a,b)=>{
+    const ta=Date.parse(a.h.date)||0, tb=Date.parse(b.h.date)||0;
+    return (tb-ta)||(b.i-a.i);
+  }).slice(0,8).map(x=>x.h);
+  const rows=sorted.map(h=>{
+    const tags=[];
+    if(h.followUpBy) tags.push('👤 '+h.followUpBy);
+    if(h.needsEstelamat) tags.push('📋 استعلام');
+    if(h.needsFinance) tags.push('💰 مالی');
+    if(h.trackingCode) tags.push('🔖 '+h.trackingCode);
+    if(h.nextFollowUpDate) tags.push('📌 '+h.nextFollowUpDate);
+    if(h.completed) tags.push('✅ انجام‌شده');
+    if(h.canceled) tags.push('✕ کنسل');
+    return `<div class="qf2-h-row">
+      <div class="qf2-h-date">${qf2Esc(qf2FmtDate(h.date))}</div>
+      <div class="qf2-h-type">${qf2Esc(h.type||'')}</div>
+      <div class="qf2-h-note">${qf2Esc(h.note||'—')}${h.nextFollowUpText?`<div style="color:var(--muted);font-size:11px">📝 ${qf2Esc(h.nextFollowUpText)}</div>`:''}</div>
+      <div class="qf2-h-tags">${tags.map(t=>`<span class="qf2-h-tag">${qf2Esc(t)}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+  box.innerHTML=`<div class="qf2-h-head"><span>📜 ${qf2Esc(lead.customer)} — ${hist.length} تماس</span><span>${hist.length>8?'۸ تماسِ آخر':''}</span></div>${rows}`;
+}
+
 function toggleQuickForm(show){
   // مطمئن بشیم تب جدول فعاله
   showCrmTab('table');
@@ -8937,6 +9066,7 @@ function toggleQuickForm(show){
   form.style.display = 'block';
   const dateEl = document.getElementById('qf_date');
   if(dateEl && !dateEl.value) dateEl.value = (typeof todayShamsiStr==='function') ? todayShamsiStr() : '';
+  qf2Collapse();
   const custEl = document.getElementById('qf_customer');
   if(custEl) custEl.focus();
   qfPartRows = [];
@@ -8968,6 +9098,7 @@ function qfSearchCustomer(val){
 function qfSelectCustomer(name){
   document.getElementById('qf_customer').value = name;
   document.getElementById('qf_customerAC').style.display = 'none';
+  qf2OnCustomerChange();
   // auto-fill تاریخ امروز شمسی
   const dateEl = document.getElementById('qf_date');
   if(dateEl && !dateEl.value && typeof todayShamsiStr === 'function'){
@@ -9257,6 +9388,7 @@ async function submitQuickContact(){
    'qff_sendStatement','qff_getStatement','qff_sendSheba','qff_getSheba']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
 
+  qf2Collapse();
   // رفرش جدول
   renderTableView();
   document.getElementById('qf_customer').focus();

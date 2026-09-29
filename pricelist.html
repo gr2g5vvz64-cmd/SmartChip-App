@@ -244,7 +244,7 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
     </div>
     <div class="hdr-actions">
       <div class="date-badge" id="dateBadge"></div>
-      <button class="icon-btn" id="syncBtn" onclick="syncFromSheet()" title="همگام‌سازی کامل و مستقیم با گوگل‌شیت (نه فقط کش)">🔄</button>
+      <button class="icon-btn" id="syncBtn" onclick="syncFromSheet()" title="بارگذاریِ دوباره‌ی وزن‌ها از وزن‌نامه‌ی قطعات">🔄</button>
       <button class="icon-btn" onclick="takeScreenshot()" title="اسکرین‌شات">📸</button>
     </div>
   </div>
@@ -452,69 +452,36 @@ function onShipInput(el){
   calc();
 }
 
-// ─── SYNC مستقیم از گوگل‌شیت (نه فقط از کش Django) — دقیقاً مثل دکمه‌ی ERP/CRM/موبایل ───
-const MAIN_SHEET_URL = "https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec";
 const DJANGO_ITEMS_API = "https://smartchip-backend.onrender.com/api/items/weights/";
-const DJANGO_ITEMS_SYNC_API = "https://smartchip-backend.onrender.com/api/items/sync/";
 
+// ⚠️ (۱۴۰۵/۰۷/۰۶) منبعِ وزن‌ها: «⚖️ وزن‌نامه‌ی قطعات» در سرور — نه گوگل‌شیت.
+// هر تغییری که در وزن‌نامه ذخیره بشه، با بارگذاریِ بعدی همین‌جا دیده می‌شه (دیگه sync لازم نیست).
+const DJANGO_ITEMS_ROWS_API = "https://smartchip-backend.onrender.com/api/items/rows/";
 async function syncFromSheet(){
   const btn=document.getElementById('syncBtn');
   const status=document.getElementById('syncStatus');
   btn.classList.add('syncing');
   status.style.display='block';
-  status.textContent='در حال خواندن مستقیم از گوگل‌شیت (ممکنه کمی طول بکشه، ۳۲هزار+ ردیفه)...';
+  status.textContent='در حال بارگذاریِ وزن‌ها از وزن‌نامه...';
   status.style.color='var(--muted)';
   try{
-    // ۱. مستقیم از گوگل‌شیت بخون (نه از کش Django)
-    const gRes = await fetch(MAIN_SHEET_URL+'?action=getAllItemWeights&t='+Date.now());
-    const gData = await gRes.json();
-    const items = gData && gData.items;
-    if(!items || !items.length) throw new Error('چیزی از گوگل‌شیت خونده نشد');
-
-    // همین‌جا، از همون داده‌ای که از گوگل‌شیت گرفتیم، rows رو می‌سازیم — قبلاً
-    // اینجا یه مرحله‌ی اضافه بود که دوباره کل ۳۲هزار ردیف رو از Django می‌خوند
-    // (که کاملاً زائد بود، چون همون داده رو همین الان داریم) — حذفش کردیم تا
-    // sync تقریباً نصف زمان قبل طول بکشه.
-    rows = items.map(d=>({
-      status: '✅ OK', part: d.partNumber||d.part_number,
-      g: d.unitQty||'', h: d.unitWeight||'', i: d.packQty||'', j: d.packWeight||'',
-      k: d.packWeightPerUnit||'', l: d.tubeQty||'', m: d.tubeWeight||'', n: d.tubeWeightPerUnit||'',
-      o: d.reelQty||'', p: d.reelWeight||'', q: d.reelWeightPerUnit||'',
-      r: d.bagQty||'', s: d.bagWeight||'', t: d.boxQty||'', u: d.boxWeight||'', v: d.boxWeightPerUnit||''
-    }));
-    window._priceSyncDone=true; console.log('Sync OK (نمایش فوری از گوگل‌شیت)، rows:', rows.length);
-    btn.classList.remove('syncing');
-    btn.classList.add('ok');
-    btn.textContent='✅';
-    status.textContent=`✅ نمایش آپدیت شد — ${fmt(items.length)} ردیف. در حال ارسال به سرور در پس‌زمینه...`;
+    const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),60000);
+    const res = await fetch(DJANGO_ITEMS_ROWS_API, {signal: ctrl.signal}); clearTimeout(t);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(!data || !Array.isArray(data.rows) || !data.rows.length) throw new Error('چیزی از سرور خونده نشد');
+    rows = data.rows;
+    window._priceSyncDone=true;
+    btn.classList.remove('syncing'); btn.classList.add('ok'); btn.textContent='✅';
+    status.textContent=`✅ ${fmt(data.rows.length)} ردیف بارگذاری شد`;
     status.style.color='var(--green)';
-
-    // ۲. ارسال به Django تو پس‌زمینه انجام می‌شه — کاربر منتظرش نمی‌مونه، چون
-    // چیزی که کاربر می‌بینه (rows) از قبل از گوگل‌شیت پر شده
-    fetch(DJANGO_ITEMS_SYNC_API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items})})
-      .then(r=>r.json())
-      .then(sData=>{
-        if(sData && sData.ok){
-          status.textContent=`✅ کامل شد — ${fmt(items.length)} ردیف (${sData.created||0} جدید، ${sData.updated||0} آپدیت روی سرور)`;
-        } else {
-          status.textContent='⚠️ نمایش آپدیت شد ولی ارسال به سرور ناموفق بود — بقیه‌ی کارمندان این آپدیت رو نمی‌بینن تا دوباره sync بزنی';
-          status.style.color='#fbbf24';
-        }
-      })
-      .catch(()=>{
-        status.textContent='⚠️ نمایش آپدیت شد ولی اتصال به سرور قطع شد — بقیه‌ی کارمندان این آپدیت رو نمی‌بینن تا دوباره sync بزنی';
-        status.style.color='#fbbf24';
-      });
-
-    setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},6000);
+    setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},4000);
   }catch(e){
-    console.error('Sync failed:',e.message);
-    btn.classList.remove('syncing');
-    btn.classList.add('err');
-    btn.textContent='❌';
-    status.textContent='❌ ناموفق ('+e.message+')';
+    console.error('Load failed:',e.message);
+    btn.classList.remove('syncing'); btn.classList.add('err'); btn.textContent='❌';
+    status.textContent='❌ وزن‌ها بارگذاری نشد ('+(e.name==='AbortError'?'سرور دیر جواب داد':e.message)+') — دوباره 🔄 رو بزنید';
     status.style.color='var(--red)';
-    setTimeout(()=>{btn.classList.remove('err');btn.textContent='🔄';status.style.display='none';},5000);
+    setTimeout(()=>{btn.classList.remove('err');btn.textContent='🔄';},5000);
   }
 }
 
@@ -567,7 +534,7 @@ function onSearch(){
   // lazy sync: اگه هنوز از شیت لود نشده بود، اول sync کن
   if(!window._priceSyncDone){
     const dd=document.getElementById('dropdown');
-    dd.innerHTML='<div class="dd-empty">در حال بارگذاری لیست آیتم‌ها از شیت...</div>';
+    dd.innerHTML='<div class="dd-empty">در حال بارگذاری لیست آیتم‌ها...</div>';
     dd.classList.add('show');
     syncFromSheet().then(function(){window._priceSyncDone=true;onSearch();});
     return;

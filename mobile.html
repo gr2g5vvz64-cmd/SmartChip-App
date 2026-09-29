@@ -1299,10 +1299,10 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <!-- ⚠️ (۱۴۰۵/۰۶/۱۷) دکمه‌ی «همگام‌سازی مشتریان» عمداً حذف شد — طبق
            همون تصمیم قبلی تو CRM/ERP (خطرناک بود: می‌تونست تغییرات تازه رو
            با نسخه‌ی قدیمی گوگل‌شیت بازنویسی کنه). فقط وزن قطعات مونده. -->
-      <div style="font-size:11px;font-weight:800;color:#f0a500;margin:14px 0 6px;">🔄 همگام‌سازی</div>
+      <div style="font-size:11px;font-weight:800;color:#f0a500;margin:14px 0 6px;">⚖️ وزنِ قطعات</div>
       <div class="action-btn-big" style="width:100%;flex-direction:row;justify-content:flex-start;gap:12px;background:rgba(240,165,0,.06);border-color:rgba(240,165,0,.25);margin-bottom:8px;" onclick="syncItemsToDjangoM()">
         <div class="action-icon-circle" style="background:rgba(240,165,0,.15);">⚖️</div>
-        <div class="action-label" style="color:#f0a500;">همگام‌سازی وزن قطعات</div>
+        <div class="action-label" style="color:#f0a500;">وزن‌نامه‌ی قطعات</div>
       </div>
     </div>
   </div>
@@ -4428,20 +4428,10 @@ updateDjangoSyncUIM();
 // ── همگام‌سازی وزن قطعات از گوگل‌شیت (موبایل) ──
 // ⚠️ (۱۴۰۵/۰۶/۱۷) syncCustomersToDjangoM حذف شد — دیگه هیچ دکمه‌ای صداش
 // نمی‌زد (طبق تصمیم قبلی، مشتریان دیگه از گوگل‌شیت سینک نمی‌شن)
-async function syncItemsToDjangoM(){
-  toast('⏳ در حال خواندن وزن قطعات (ممکنه کمی طول بکشه)...');
-  try{
-    const res = await sheetCall('getAllItemWeights');
-    const items = (res && res.items) || [];
-    if(!items.length){ toast('⚠ چیزی خونده نشد'); return; }
-    toast(`⏳ در حال ارسال ${items.length} پارت (صبر کن)...`);
-    const syncRes = await fetch('https://smartchip-backend.onrender.com/api/items/sync/', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})
-    });
-    const data = await syncRes.json();
-    if(data.ok) toast(`✅ تمام شد — ${data.created} جدید، ${data.updated} آپدیت شد`);
-    else toast('❌ ناموفق بود');
-  }catch(e){ toast('❌ خطا: '+e.message); }
+// ⚠️ (۱۴۰۵/۰۷/۰۶) مرجعِ وزنِ قطعات حالا «⚖️ وزن‌نامه‌ی قطعات» (weights.html) است، نه گوگل‌شیت.
+// همگام‌سازیِ قدیمی حذف شد — اگه می‌موند، یک کلیک همه‌ی ویرایش‌هایِ جدید رو با شیتِ کهنه بازنویسی می‌کرد.
+function syncItemsToDjangoM(q){
+  window.open('weights.html'+(q?('?q='+encodeURIComponent(q)):''),'_blank');
 }
 
 const DJANGO_FREEREM_API_M = 'https://smartchip-backend.onrender.com/api/worklog/free-reminders/';
@@ -5686,7 +5676,8 @@ function pcShowTab(n){
 }
 
 // ══ داده‌های وزن — دقیقاً همون منبع و منطق دسکتاپ ══
-const PC_API="https://script.google.com/macros/s/AKfycbzdGtRkgjtNFrcgQ_sxNx5H2aQFBebMeKbBKSuDmvEVUbNf5jJAYYHZW7i4ak1Z_ETL/exec";
+// ⚠️ (۱۴۰۵/۰۷/۰۶) منبعِ وزن‌ها: وزن‌نامه‌ی قطعات در سرور (نه اسکریپتِ گوگلِ جدا)
+const PC_API='https://smartchip-backend.onrender.com/api/items/rows/';
 const PC_COL_LABELS={"e":"ستون E","f":"ستون F","g":"(Unit) عدد","h":"Weight (g)","i":"(Pack) سینی","j":"Weight (g)","k":"وزن هر سینی","l":"(Tube) حلقه","m":"Weight (g)","n":"وزن هر حلقه","o":"(Reel) ریل","p":"Weight (g)","q":"وزن هر ریل","r":"(BAG) کیسه","s":"Weight (g)","t":"(BOX) جعبه","u":"Weight (g)","v":"وزن هر جعبه"};
 const PC_GROUPS=[{"key":"GH","label":"Unit","wCol":"h"},{"key":"IJK","label":"Pack","wCol":"j"},{"key":"LMN","label":"Tube","wCol":"m"},{"key":"OPQ","label":"Reel","wCol":"p"},{"key":"RS","label":"BAG","wCol":"s"},{"key":"TUV","label":"BOX","wCol":"u"}];
 const PC_GCOLS={"GH":["g","h"],"IJK":["i","j","k"],"LMN":["l","m","n"],"OPQ":["o","p","q"],"RS":["r","s"],"TUV":["t","u","v"]};
@@ -5709,14 +5700,15 @@ function pcFmtInline(el){ pcFmtHdr(el); }
 
 async function pcSyncFromSheet(){
   const statusEl=document.getElementById('pcSyncStatus');
-  statusEl.textContent='🔄 در حال بارگذاری از شیت...';
+  statusEl.textContent='🔄 در حال بارگذاری وزن‌ها...';
   try{
-    const res=await fetch(PC_API);
+    const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),60000);
+    const res=await fetch(PC_API,{signal:ctrl.signal}); clearTimeout(t);
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
-    if(data && Array.isArray(data) && data.length>0){
-      pcRows=[...data]; pcSyncDone=true;
-      statusEl.textContent='✅ '+data.length+' ردیف بارگذاری شد';
+    if(data && Array.isArray(data.rows) && data.rows.length>0){
+      pcRows=data.rows; pcSyncDone=true;
+      statusEl.textContent='✅ '+data.rows.length+' ردیف بارگذاری شد';
       setTimeout(()=>{statusEl.textContent='';},3000);
       return;
     }
@@ -5734,7 +5726,7 @@ function pcOnSearch(){
   const dd=document.getElementById('pcDropdown');
   if(!term){ dd.innerHTML=''; dd.style.display='none'; return; }
   if(!pcSyncDone){
-    dd.innerHTML='<div style="padding:10px;font-size:11px;color:var(--muted);">در حال بارگذاری لیست آیتم‌ها از شیت...</div>';
+    dd.innerHTML='<div style="padding:10px;font-size:11px;color:var(--muted);">در حال بارگذاری لیست آیتم‌ها...</div>';
     dd.style.display='block';
     pcSyncFromSheet().then(()=>{ pcSyncDone=true; pcOnSearch(); });
     return;
