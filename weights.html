@@ -129,7 +129,7 @@ body.resizing,body.resizing *{cursor:col-resize!important;user-select:none!impor
 .sheet tr:hover td.del button,.sheet td.del button:focus{opacity:1}
 .sheet td.del button:hover{color:var(--err-ink)}
 body.ro .sheet input,body.ro .sheet select,body.ro .sheet textarea{pointer-events:none}
-body.ro .del,body.ro #addBtn{display:none!important}
+body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
 
 /* ── حالت‌هایِ خالی ── */
 .empty{padding:48px 20px;text-align:center;color:var(--ink-soft)}
@@ -151,6 +151,41 @@ body.ro .del,body.ro #addBtn{display:none!important}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--grid-strong);border-top-color:var(--brass);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+/* ── 🧹 تکراری‌ها ── */
+.dup-ov{position:fixed;inset:0;background:rgba(20,28,38,.45);z-index:40;display:none;padding:18px}
+.dup-ov.show{display:flex}
+.dup-box{margin:auto;width:min(1180px,100%);height:100%;background:var(--paper);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.dup-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:#fff;border-bottom:1px solid var(--grid-strong)}
+.dup-hd b{font-size:15px}
+.dup-q{flex:1 1 200px;min-width:160px}
+.qf-x{border:0;background:none;font-size:18px;color:var(--ink-soft);cursor:pointer;padding:4px 8px}
+.dup-help{padding:8px 14px;font-size:12px;color:var(--ink-soft);line-height:1.9;border-bottom:1px solid var(--grid)}
+.dup-list{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.dup-ft{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#fff;border-top:1px solid var(--grid-strong);font-size:12px;color:var(--ink-soft);flex-wrap:wrap}
+.dup-ft #dupInfo{margin-inline-end:auto}
+.dcard{background:#fff;border:1px solid var(--grid-strong);border-radius:10px;padding:10px 12px}
+.dcard.done{background:#f1faf3;border-color:var(--green-line)}
+.dcard.skip{opacity:.55}
+.dcard table{border-collapse:collapse;direction:ltr;width:100%;font-size:12px}
+.dcard th{font-weight:600;color:var(--head-ink);background:var(--head);padding:4px 6px;border:1px solid var(--grid);white-space:nowrap}
+.dcard th small{color:#7a8592;font-weight:500}
+.dcard td{padding:5px 6px;border:1px solid var(--grid);text-align:center}
+.dcard td.pn{text-align:left;font-weight:600;word-break:break-word}
+.dcard td.pn code{background:#fff3b0;border-radius:3px;padding:0 2px;font-family:inherit}
+.dcard tr.keep td{background:#e9f6ec}
+.dcard tr.keep td.pick{box-shadow:inset 3px 0 0 var(--green-ink)}
+.dcard td.cf{background:#ffe9c7!important;font-weight:700}
+.dcard td.pick{width:34px}
+.dcard input[type=radio]{width:16px;height:16px;cursor:pointer}
+.dcard .dact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px}
+.dcard .dact input.nm{flex:1 1 220px;border:1px solid var(--grid-strong);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;direction:ltr}
+.dcard .dnote{color:var(--ink-soft);font-size:11.5px}
+.dcard .dnote.warn{color:var(--warn-ink)}
+.sim{margin:14px auto 0;max-width:560px;text-align:right;font-size:12.5px}
+.sim b{display:block;margin-bottom:6px;color:var(--ink)}
+.sim a{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--grid);border-radius:6px;margin-bottom:4px;color:var(--ink);text-decoration:none;background:#fff;direction:ltr}
+.sim a:hover{border-color:var(--brass)}
+.sim a span{color:var(--ink-soft);font-size:11px;direction:rtl}
 @media (max-width:640px){
   .top{padding:8px 10px}
   .brand h1{font-size:15px}
@@ -181,6 +216,7 @@ body.ro .del,body.ro #addBtn{display:none!important}
     <div class="counts" id="counts"></div>
     <div class="actions">
       <button class="btn" id="undoBtn" type="button" disabled title="برگرداندنِ آخرین تغییرِ ذخیره‌شده (Ctrl+Z)">↶ برگرداندن</button>
+      <button class="btn" id="dupBtn" type="button" title="پیدا کردن و یکی کردنِ پارت‌نامبرهایِ تکراری">🧹 تکراری‌ها</button>
       <button class="btn" id="fitBtn" type="button" title="همه‌ی ستون‌ها به اندازه‌ی خودکار (جاشدن در عرضِ صفحه)">↔ اندازه‌ی خودکار</button>
       <button class="btn" id="exportBtn" type="button">⬇ خروجیِ Excel</button>
       <button class="btn primary" id="addBtn" type="button">➕ قطعه‌ی جدید</button>
@@ -214,6 +250,28 @@ body.ro .del,body.ro #addBtn{display:none!important}
       <button class="btn" id="lastBtn" type="button" title="آخرِ جدول (Ctrl+End)">آخر ⤓</button>
     </div>
   </footer>
+</div>
+
+<div class="dup-ov" id="dupOv" role="dialog" aria-modal="true" aria-label="تکراری‌ها">
+  <div class="dup-box">
+    <div class="dup-hd">
+      <b>🧹 پارت‌نامبرهایِ تکراری</b>
+      <div class="seg" id="dupLevels">
+        <button type="button" data-l="1" class="on">قطعاً تکراری <span id="dupN1"></span></button>
+        <button type="button" data-l="2">احتمالی — بررسی کنید <span id="dupN2"></span></button>
+      </div>
+      <label class="searchbox dup-q"><span>🔍</span><input id="dupQ" type="text" placeholder="جستجو در تکراری‌ها…" autocomplete="off"></label>
+      <button class="btn" id="dupUndo" type="button" disabled>↶ برگرداندنِ آخرین ادغام</button>
+      <button class="qf-x" id="dupClose" type="button" aria-label="بستن">✕</button>
+    </div>
+    <div class="dup-help" id="dupHelp"></div>
+    <div class="dup-list" id="dupList"></div>
+    <div class="dup-ft">
+      <span id="dupInfo"></span>
+      <button class="btn" id="dupBulk" type="button">⚡ ادغامِ گروه‌هایِ بدونِ تعارضِ همین صفحه</button>
+      <button class="btn" id="dupMore" type="button">گروه‌هایِ بیشتر ›</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -564,6 +622,7 @@ function renderEmpty(){
       eb.innerHTML = `<div class="empty"><div class="big">🔎</div><div>«<span class="q">${esc(S.q)}</span>» در وزن‌نامه نیست.</div>
         ${S.canEdit ? `<p>اگه قطعه‌ی جدیده، همین الان اضافه‌اش کنید و وزن‌هاش رو بنویسید.</p><button class="btn primary" type="button" id="emptyAdd">➕ افزودنِ «${esc(S.q)}»</button>` : ''}</div>`;
       const btn = $('emptyAdd'); if (btn) btn.onclick = () => createPart(S.q);
+      showSimilar(S.q);
     } else eb.innerHTML = `<div class="empty">ردیفی با این فیلتر نیست.</div>`;
   } else eb.innerHTML = '';
   const showAdd = S.canEdit && S.q && S.total && !S.exactId && S.q.length >= 2;
@@ -796,6 +855,169 @@ async function exportXlsx(){
   btn.disabled = false; btn.textContent = old;
 }
 
+// ═══════════════════════════════ پارت‌هایِ مشابه (فقط برایِ دیدن، قبل از افزودن) ═══════════════════════════════
+async function showSimilar(q){
+  const eb = $('emptyBox'); const my = q;
+  try{
+    const r = await fetchT(API_BASE + '/api/items/similar/?q=' + encodeURIComponent(q), {}, 20000);
+    const d = await r.json();
+    if (my !== S.q || !d.ok || !d.rows.length) return;
+    const box = document.createElement('div'); box.className = 'sim';
+    box.innerHTML = '<b>قبل از افزودن نگاه کنید — شاید منظورتون یکی از این‌هاست:</b>' +
+      d.rows.map(x => `<a href="#" data-p="${esc(x.part_number)}">${esc(x.part_number)} <span>${x.similarity}٪ شبیه${x.is_verified ? ' · verifi' : ''}</span></a>`).join('');
+    box.addEventListener('click', e => { const a = e.target.closest('a[data-p]'); if (!a) return; e.preventDefault(); $('q').value = a.dataset.p; S.q = a.dataset.p; load(); });
+    const inner = eb.querySelector('.empty'); if (inner) inner.appendChild(box);
+  }catch(e){}
+}
+
+// ═══════════════════════════════ 🧹 تکراری‌ها ═══════════════════════════════
+const DUP_API = API_BASE + '/api/items/duplicates/';
+const DUP_SKIP_KEY = 'smartchip_weights_dupskip_v1';
+const DUP_UNDO_KEY = 'smartchip_weights_dupundo_v1';
+const D = {level: 1, offset: 0, groups: [], q: '', total: 0, busy: false};
+function dupSkips(){ try{ return JSON.parse(localStorage.getItem(DUP_SKIP_KEY) || '[]'); }catch(e){ return []; } }
+function dupUndos(){ try{ return JSON.parse(localStorage.getItem(DUP_UNDO_KEY) || '[]'); }catch(e){ return []; } }
+function setDupUndos(u){ try{ localStorage.setItem(DUP_UNDO_KEY, JSON.stringify(u.slice(-40))); }catch(e){} $('dupUndo').disabled = !u.length; }
+const isEmptyVal = v => v === '' || v == null;
+
+function openDup(){
+  $('dupOv').classList.add('show'); setDupUndos(dupUndos());
+  $('dupHelp').innerHTML = D.level === 1
+    ? 'این‌ها فقط در <b>فاصله، حروفِ کوچک/بزرگ، پرانتز یا علامت‌هایِ # * @</b> فرق دارن — یعنی یک قطعه‌ان. برایِ هر گروه، ردیفی که باید بمونه رو انتخاب کنید (پیشنهادِ سیستم از قبل انتخاب شده). <b>خانه‌هایِ خالیِ ردیفِ نگه‌دار از بقیه پر می‌شه</b> تا هیچ وزنی از دست نره. خانه‌هایِ <span style="background:#ffe9c7;padding:0 4px;border-radius:3px">نارنجی</span> یعنی مقدارها با هم فرق دارن — مقدارِ ردیفِ نگه‌دار می‌مونه.'
+    : 'این‌ها فقط در <b>خطِ تیره یا ٪</b> هم فرق دارن (مثلاً SOT-23 و SOT23). معمولاً یکی‌اند ولی <b>با دقت نگاه کنید</b> — ادغامِ خودکارِ دسته‌جمعی برایِ این بخش غیرفعاله.';
+  $('dupBulk').style.display = D.level === 1 ? '' : 'none';
+  dupLoad(true);
+}
+async function dupLoad(reset){
+  if (D.busy) return; D.busy = true;
+  if (reset){ D.offset = 0; D.groups = []; $('dupList').innerHTML = '<div class="empty"><span class="spin"></span> در حالِ پیدا کردنِ تکراری‌ها در کلِ وزن‌نامه…</div>'; }
+  const p = new URLSearchParams({level: D.level, offset: D.offset, limit: 20});
+  if (D.q) p.set('q', D.q);
+  const sk = dupSkips(); if (sk.length) p.set('skip', sk.join('|'));
+  try{
+    const r = await fetchT(DUP_API + '?' + p, {}, 60000); const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    D.total = d.total_groups;
+    $(D.level === 1 ? 'dupN1' : 'dupN2').textContent = '(' + fa(d.total_groups) + ')';
+    $(D.level === 1 ? 'dupN2' : 'dupN1').textContent = '(' + fa(d.other_level_groups) + ')';
+    if (reset) $('dupList').innerHTML = '';
+    d.groups.forEach(g => { D.groups.push(g); $('dupList').appendChild(dupCard(g)); });
+    D.offset += 20;
+    if (!D.groups.length) $('dupList').innerHTML = '<div class="empty"><div class="big">✨</div>تکراری‌ای نمونده.</div>';
+    $('dupInfo').textContent = `${fa(D.total)} گروه · ${fa(Math.min(D.offset, D.total))} تا نمایش داده شده`;
+    $('dupMore').disabled = D.offset >= D.total;
+  }catch(e){ $('dupList').innerHTML = `<div class="empty">⚠️ ${esc(e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message)}</div>`; }
+  D.busy = false;
+}
+function dupCols(g){
+  // فقط ستون‌هایی که حداقل در یکی از ردیف‌ها پرند
+  return COLS.filter(c => c[1] !== 'part_number' && c[1] !== 'verified' && g.rows.some(r => !isEmptyVal(r[c[1]])));
+}
+function dupPreview(g, keepId){
+  const keeper = g.rows.find(r => r.id === keepId); const others = g.rows.filter(r => r.id !== keepId);
+  let fill = 0, conf = 0;
+  COLS.forEach(([, f]) => {
+    if (f === 'part_number') return;
+    const vals = others.map(o => o[f]).filter(v => !isEmptyVal(v));
+    if (!vals.length) return;
+    if (isEmptyVal(keeper[f])) fill++;
+    else if (vals.some(v => !(f === 'verified' ? isVerified(v) === isVerified(keeper[f]) : String(v) === String(keeper[f])))) conf++;
+  });
+  return {fill, conf};
+}
+function hlDiff(name){
+  // فقط چیزهایی که تکراری بودن رو می‌سازن پررنگ می‌شن: نشانه‌هایِ # * @ اول/آخر یا تنها، و فاصله‌هایِ اضافه/نامرئی
+  // (* داخلِ یک مقدار مثلِ 8*12.5 عادیه و پررنگ نمی‌شه)
+  const mark = t => `<code>${esc(t).replace(/ /g, '·').replace(/\u00a0/g, '⍽')}</code>`;
+  const re = /(^\s*[#*@]+|[#*@]+\s*$|(?<=\s)[#*@]+(?=\s|$)|\s{2,}|\u00a0+|^\s+|\s+$)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(name))){ if (!m[0]){ re.lastIndex++; continue; } out += esc(name.slice(last, m.index)) + mark(m[0]); last = m.index + m[0].length; }
+  return out + esc(name.slice(last));
+}
+function dupCard(g){
+  const el = document.createElement('div'); el.className = 'dcard'; el.dataset.key = g.key;
+  const cols = dupCols(g); let keep = g.suggest_keep;
+  const conflictCell = (f, r) => {
+    const vals = g.rows.map(x => x[f]).filter(v => !isEmptyVal(v));
+    return !isEmptyVal(r[f]) && new Set(vals.map(v => f === 'verified' ? isVerified(v) : String(v))).size > 1;
+  };
+  const draw = () => {
+    const pv = dupPreview(g, keep); const keeper = g.rows.find(r => r.id === keep);
+    el.innerHTML = `<table><thead><tr><th>نگه‌دار</th><th>A <small>Verifi</small></th><th>B <small>Part Number</small></th>${cols.map(c => `<th>${c[0]} <small>${esc(c[2])}</small></th>`).join('')}</tr></thead><tbody>${
+      g.rows.map(r => `<tr class="${r.id === keep ? 'keep' : ''}"><td class="pick"><input type="radio" name="k${esc(g.key)}" value="${r.id}" ${r.id === keep ? 'checked' : ''} aria-label="نگه‌داشتنِ این ردیف"></td>
+        <td class="${conflictCell('verified', r) ? 'cf' : ''}">${r.is_verified ? '✅' : '—'}</td>
+        <td class="pn">${hlDiff(r.part_number)}</td>
+        ${cols.map(c => `<td class="${conflictCell(c[1], r) ? 'cf' : ''}">${esc(r[c[1]])}</td>`).join('')}</tr>`).join('')
+    }</tbody></table>
+    <div class="dact"><span>اسمِ نهایی:</span><input class="nm" value="${esc(keeper.part_number)}" spellcheck="false">
+      <span class="dnote ${pv.conf ? 'warn' : ''}">${pv.fill ? `${fa(pv.fill)} خانه از بقیه پر می‌شه` : 'چیزی برایِ پر کردن نیست'}${pv.conf ? ` · ⚠️ ${fa(pv.conf)} خانه مقدارِ متفاوت داره (مقدارِ نگه‌دار می‌مونه)` : ''}</span>
+      <button class="btn" data-a="skip" type="button">⏭ تکراری نیستن</button>
+      <button class="btn primary" data-a="merge" type="button">✅ ادغام — ${fa(g.rows.length - 1)} ردیف حذف بشه</button></div>`;
+  };
+  draw();
+  el.addEventListener('change', e => { if (e.target.type === 'radio'){ keep = +e.target.value; draw(); } });
+  el.addEventListener('click', async e => {
+    const b = e.target.closest('button[data-a]'); if (!b) return;
+    if (b.dataset.a === 'skip'){
+      const sk = dupSkips(); sk.push(g.key); try{ localStorage.setItem(DUP_SKIP_KEY, JSON.stringify(sk.slice(-2000))); }catch(x){}
+      el.classList.add('skip'); el.innerHTML = `<span class="dnote">⏭ «${esc(g.rows[0].part_number)}» — تکراری حساب نمی‌شه و دیگه نشون داده نمی‌شه.</span>`;
+      return;
+    }
+    b.disabled = true;
+    await dupMerge(el, g, keep, el.querySelector('input.nm').value);
+  });
+  el._merge = () => dupMerge(el, g, keep, el.querySelector('input.nm') ? el.querySelector('input.nm').value : '');
+  el._conflicts = () => dupPreview(g, keep).conf;
+  return el;
+}
+async function dupMerge(el, g, keep, name){
+  try{
+    const r = await fetchT(DUP_API + 'merge/', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keep_id: keep, remove_ids: g.rows.filter(x => x.id !== keep).map(x => x.id), new_name: name, _staff: S.email})}, 40000);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok){ toast('❌ ' + (d.error || 'ادغام نشد')); const b = el.querySelector('button[data-a=merge]'); if (b) b.disabled = false; return false; }
+    const u = dupUndos(); u.push({...d.undo, name: d.row.part_number}); setDupUndos(u);
+    el.classList.add('done');
+    el.innerHTML = `<span>✅ ادغام شد: <b dir="ltr">${esc(d.row.part_number)}</b>${d.filled.length ? ` — ${fa(d.filled.length)} خانه پر شد` : ''}${d.conflicts.length ? ` · ${fa(d.conflicts.length)} مقدارِ متفاوت کنار گذاشته شد` : ''}</span>`;
+    el._merge = null;
+    S.cache = new Map(); S.chunkState = new Map();                     // جدولِ اصلی بعد از بستنِ پنل تازه می‌شه
+    return true;
+  }catch(e){ toast('❌ سرور جواب نداد — ادغام انجام نشد'); const b = el.querySelector('button[data-a=merge]'); if (b) b.disabled = false; return false; }
+}
+async function dupBulk(){
+  const cards = [...$('dupList').querySelectorAll('.dcard')].filter(c => c._merge && !c.classList.contains('done') && !c.classList.contains('skip') && !c._conflicts());
+  if (!cards.length){ toast('در این صفحه گروهِ بدونِ تعارضی نمونده'); return; }
+  if (!confirm(`${fa(cards.length)} گروه با «نگه‌دارِ پیشنهادی» ادغام بشن؟\n(فقط گروه‌هایی که هیچ مقدارِ متفاوتی ندارن — هر کدوم جداگانه قابلِ برگشته)`)) return;
+  const btn = $('dupBulk'); btn.disabled = true; let n = 0;
+  for (const c of cards){ btn.textContent = `در حالِ ادغام… ${fa(n)}/${fa(cards.length)}`; if (await c._merge()) n++; }
+  btn.disabled = false; btn.textContent = '⚡ ادغامِ گروه‌هایِ بدونِ تعارضِ همین صفحه';
+  toast(`✅ ${fa(n)} گروه ادغام شد`);
+}
+async function dupUndoLast(){
+  const u = dupUndos(); const last = u.pop(); if (!last) return;
+  if (!confirm(`ادغامِ «${last.name}» برگرده؟ ردیف‌هایِ حذف‌شده دوباره ساخته می‌شن.`)) return;
+  try{
+    const r = await fetchT(DUP_API + 'unmerge/', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keeper_before: last.keeper_before, removed: last.removed, _staff: S.email})});
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    setDupUndos(u); toast(`↶ برگشت: ${fa(d.restored)} ردیف دوباره ساخته شد`);
+    S.cache = new Map(); S.chunkState = new Map(); dupLoad(true);
+  }catch(e){ toast('❌ برگردونده نشد — ' + e.message); }
+}
+function wireDup(){
+  $('dupBtn').onclick = openDup;
+  $('dupClose').onclick = () => { $('dupOv').classList.remove('show'); load({keepScroll: true}); };
+  $('dupOv').addEventListener('keydown', e => { if (e.key === 'Escape') $('dupClose').click(); });
+  document.querySelectorAll('#dupLevels button').forEach(b => b.onclick = () => {
+    D.level = +b.dataset.l; document.querySelectorAll('#dupLevels button').forEach(x => x.classList.toggle('on', x === b)); openDup();
+  });
+  let t; $('dupQ').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { D.q = $('dupQ').value.trim(); dupLoad(true); }, 300); });
+  $('dupMore').onclick = () => dupLoad(false);
+  $('dupBulk').onclick = dupBulk;
+  $('dupUndo').onclick = dupUndoLast;
+}
+
 // ═══════════════════════════════ رویدادها ═══════════════════════════════
 function setSeg(){ document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.f === S.filter)); }
 function wire(){
@@ -818,6 +1040,7 @@ function wire(){
   $('wrap').addEventListener('scroll', () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderWindow(); renderMeta(); }); }, {passive: true});
   window.addEventListener('resize', () => { applyWidths(); renderWindow(true); });
   wireResize();
+  wireDup();
   $('fitBtn').onclick = resetWidths;
   $('exportBtn').onclick = exportXlsx;
   $('undoBtn').onclick = undoLast;
