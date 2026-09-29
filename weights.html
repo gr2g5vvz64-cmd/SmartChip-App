@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>⚖️ وزن‌نامه‌ی قطعات — SmartChip</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
-<script>try{document.documentElement.dataset.theme=localStorage.getItem("smartchip_weights_theme")||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 <!--
   ⚖️ وزن‌نامه‌ی قطعات (۱۴۰۵/۰۷/۰۶) — جایگزینِ شیتِ گوگلِ Verified_Weights
@@ -20,20 +19,7 @@
 -->
 <style>
 :root{
-  /* ☀️ روشنِ ملایم — به‌جایِ سفیدِ خالص، کاغذیِ گرم و کم‌نور */
-  color-scheme:light;
-  --ink:#1f2933; --ink-soft:#5d6a78; --paper:#e4e7ea; --sheet:#f1f2ee; --card:#f7f7f3;
-  --grid:#d0d6dc; --grid-strong:#b3bbc5; --head:#e0e4e8; --head-ink:#46525f;
-  --green:#d3ead8; --green-line:#a4cfb0; --green-ink:#1e6b36;
-  --brass:#0f6b5c; --brass-deep:#0a5146; --focus:#1a73e8;
-  --warn:#f8edcf; --warn-ink:#8a5a00; --warn-line:#e8d08c; --err:#f6e0dd; --err-ink:#a8322b; --err-line:#e7b3ad; --amber:#f5e3c4;
-  --info:#e2ebf5; --info-ink:#1f4d7a; --info-line:#bcd0e6; --add:#e3efeb; --add-line:#b6d8ce;
-  --muted2:#7a8592; --muted3:#a3adb8; --ph1:#eceee9; --ph2:#e5e8e4; --grp-line:#8793a1; --mark:#f6e7a0;
-  --g-alt-h:#d9dee3; --g-alt-b:rgba(120,135,150,.05); --g-alt-ok:rgba(30,107,54,.05); --hover:#ebede8;
-  --rn-ok:#bfe0c7; --ok-focus:#e6f3e9; --saved:#c5ebcf; --elsewhere:#f7d4a5; --done:#e6f3e9; --keep:#dcefe1; --cf:#f7dfb8;
-}
-:root[data-theme="dark"]{
-  /* 🌙 تیره — هم‌رنگِ CRM */
+  /* 🌙 تیره — هم‌رنگِ CRM (به درخواستِ کاربر تنها حالت؛ سفید چشم رو خسته می‌کرد) */
   color-scheme:dark;
   --ink:#dde3ea; --ink-soft:#8d98a6; --paper:#0f1319; --sheet:#161b23; --card:#1d232d;
   --grid:#262e39; --grid-strong:#36414e; --head:#1b212a; --head-ink:#aeb8c4;
@@ -196,6 +182,15 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
 .dcard tr.keep td.pick{box-shadow:inset 3px 0 0 var(--green-ink)}
 .dcard td.cf{background:var(--cf)!important;font-weight:700}
 .dcard td.pick{width:34px}
+.dcard .dwrap{overflow-x:auto;direction:ltr}   /* از ستونِ «نگه‌دار» و A شروع بشه، نه از V */
+.dcard td.ed{padding:0}
+.dcard td.ed input,.dcard td.ed select{width:100%;min-width:52px;height:30px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:12px;text-align:center;outline:none}
+.dcard td.ed.pn input{min-width:200px}
+.dcard td.ed:focus-within{box-shadow:inset 0 0 0 2px var(--focus)}
+.dcard td.saving{background:var(--warn)!important}
+.dcard td.saved{background:var(--saved)!important}
+.dcard td.bad{background:var(--err)!important}
+.dcard td.gvc{font-weight:700;color:var(--green-ink)}
 .dcard input[type=radio]{width:16px;height:16px;cursor:pointer}
 .dcard .dact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px}
 .dcard .dact input.nm{flex:1 1 220px;border:1px solid var(--grid-strong);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;direction:ltr}
@@ -252,7 +247,6 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
     <div class="counts" id="counts"></div>
     <div class="actions">
       <button class="btn ico" id="undoBtn" type="button" disabled title="برگرداندنِ آخرین تغییرِ ذخیره‌شده (Ctrl+Z)" aria-label="برگرداندن">↶</button>
-      <button class="btn ico" id="themeBtn" type="button" title="تیره / روشنِ ملایم" aria-label="تغییرِ رنگ"></button>
       <button class="btn" id="dupBtn" type="button" title="پیدا کردن و یکی کردنِ پارت‌نامبرهایِ تکراری">🧹 تکراری‌ها</button>
       <button class="btn ico" id="fitBtn" type="button" title="همه‌ی ستون‌ها به اندازه‌ی خودکار (جاشدن در عرضِ صفحه)" aria-label="اندازه‌ی خودکارِ ستون‌ها">↔</button>
       <button class="btn" id="exportBtn" type="button" title="خروجیِ Excel از کلِ وزن‌نامه">⬇ Excel</button>
@@ -922,7 +916,7 @@ const isEmptyVal = v => v === '' || v == null;
 function openDup(){
   $('dupOv').classList.add('show'); setDupUndos(dupUndos()); showRules(false);
   $('dupHelp').innerHTML = D.level === 1
-    ? 'این‌ها فقط در <b>فاصله، حروفِ کوچک/بزرگ، پرانتز، علامت‌هایِ # * @، ترتیبِ کلمات</b> یا <b>کلمه‌هایِ «📖 اصلاحات»</b> فرق دارن — یعنی یک قطعه‌ان. برایِ هر گروه، ردیفی که باید بمونه رو انتخاب کنید (پیشنهادِ سیستم از قبل انتخاب شده). <b>خانه‌هایِ خالیِ ردیفِ نگه‌دار از بقیه پر می‌شه</b> تا هیچ وزنی از دست نره. خانه‌هایِ <span style="background:var(--cf);padding:0 4px;border-radius:3px">نارنجی</span> یعنی مقدارها با هم فرق دارن — مقدارِ ردیفِ نگه‌دار می‌مونه.'
+    ? '<b>پیشنهادِ «نگه‌دار» = ردیفی که وزن‌هایِ G تا V بیشتری داره</b> (ستونِ «وزن‌ها»)؛ موقعِ ادغام هم وزن‌ها اول از همون ردیف برداشته می‌شن. با <b>✏️ ویرایشِ ردیف‌ها</b> می‌تونید قبل از ادغام هر خانه‌ای رو اصلاح کنید.<br>این‌ها فقط در <b>فاصله، حروفِ کوچک/بزرگ، پرانتز، علامت‌هایِ # * @، ترتیبِ کلمات</b> یا <b>کلمه‌هایِ «📖 اصلاحات»</b> فرق دارن — یعنی یک قطعه‌ان. برایِ هر گروه، ردیفی که باید بمونه رو انتخاب کنید (پیشنهادِ سیستم از قبل انتخاب شده). <b>خانه‌هایِ خالیِ ردیفِ نگه‌دار از بقیه پر می‌شه</b> تا هیچ وزنی از دست نره. خانه‌هایِ <span style="background:var(--cf);padding:0 4px;border-radius:3px">نارنجی</span> یعنی مقدارها با هم فرق دارن — مقدارِ ردیفِ نگه‌دار می‌مونه.'
     : 'این‌ها فقط در <b>خطِ تیره یا ٪</b> هم فرق دارن (مثلاً SOT-23 و SOT23). معمولاً یکی‌اند ولی <b>با دقت نگاه کنید</b> — ادغامِ خودکارِ دسته‌جمعی برایِ این بخش غیرفعاله.';
   $('dupBulk').style.display = D.level === 1 ? '' : 'none';
   dupLoad(true);
@@ -981,34 +975,98 @@ function hlDiff(name){
   return out + plain(name.slice(last));
 }
 function dupCard(g){
+  // ⚠️ (۱۴۰۵/۰۷/۰۷) • پیشنهادِ نگه‌دار = ردیفی که G تا V بیشتری پر کرده (بعد verifi)
+  //                 • ✏️ ویرایش: همه‌ی ۲۲ ستونِ همه‌ی ردیف‌ها همون‌جا قابلِ اصلاح‌اند (ذخیره‌ی فوری)، بعد ادغام
   const el = document.createElement('div'); el.className = 'dcard'; el.dataset.key = g.key;
-  const cols = dupCols(g); let keep = g.suggest_keep;
+  let keep = g.suggest_keep, editing = false;
+  const gvCount = r => COLS.filter(c => c[0] >= 'G' && c[0] <= 'V' && !isEmptyVal(r[c[1]])).length;
   const conflictCell = (f, r) => {
     const vals = g.rows.map(x => x[f]).filter(v => !isEmptyVal(v));
     return !isEmptyVal(r[f]) && new Set(vals.map(v => f === 'verified' ? isVerified(v) : String(v))).size > 1;
   };
+  const noteHtml = () => {
+    const pv = dupPreview(g, keep);
+    return `${pv.fill ? `${fa(pv.fill)} خانه از بقیه پر می‌شه` : 'چیزی برایِ پر کردن نیست'}${pv.conf ? ` · ⚠️ ${fa(pv.conf)} خانه مقدارِ متفاوت داره (مقدارِ نگه‌دار می‌مونه)` : ''}`;
+  };
+  const cellView = (c, r) => {
+    const f = c[1];
+    if (!editing) return `<td class="${conflictCell(f, r) ? 'cf' : ''}" data-f="${f}">${esc(r[f])}</td>`;
+    return `<td class="ed ${conflictCell(f, r) ? 'cf' : ''}" data-f="${f}"><input data-id="${r.id}" data-f="${f}" value="${esc(r[f])}" data-orig="${esc(r[f])}" ${c[3] === 'num' ? 'inputmode="decimal"' : ''} spellcheck="false" autocomplete="off"></td>`;
+  };
   const draw = () => {
-    const pv = dupPreview(g, keep); const keeper = g.rows.find(r => r.id === keep);
-    el.innerHTML = `<table><thead><tr><th>نگه‌دار</th><th>A <small>Verifi</small></th><th>B <small>Part Number</small></th>${cols.map(c => `<th>${c[0]} <small>${esc(c[2])}</small></th>`).join('')}</tr></thead><tbody>${
-      g.rows.map(r => `<tr class="${r.id === keep ? 'keep' : ''}"><td class="pick"><input type="radio" name="k${esc(g.key)}" value="${r.id}" ${r.id === keep ? 'checked' : ''} aria-label="نگه‌داشتنِ این ردیف"></td>
-        <td class="${conflictCell('verified', r) ? 'cf' : ''}">${r.is_verified ? '✅' : '—'}</td>
-        <td class="pn">${hlDiff(r.part_number)}</td>
-        ${cols.map(c => `<td class="${conflictCell(c[1], r) ? 'cf' : ''}">${esc(r[c[1]])}</td>`).join('')}</tr>`).join('')
-    }</tbody></table>
+    const cols = editing ? COLS.filter(c => c[1] !== 'part_number' && c[1] !== 'verified') : dupCols(g);
+    const keeper = g.rows.find(r => r.id === keep);
+    el.innerHTML = `<div class="dwrap"><table><thead><tr><th>نگه‌دار</th><th>A <small>Verifi</small></th><th>B <small>Part Number</small></th>${cols.map(c => `<th>${c[0]} <small>${esc(c[2])}</small></th>`).join('')}<th title="تعدادِ خانه‌هایِ پرِ G تا V">وزن‌ها</th></tr></thead><tbody>${
+      g.rows.map(r => `<tr class="${r.id === keep ? 'keep' : ''}" data-id="${r.id}"><td class="pick"><input type="radio" name="k${esc(g.key)}" value="${r.id}" ${r.id === keep ? 'checked' : ''} aria-label="نگه‌داشتنِ این ردیف"></td>
+        ${editing
+          ? `<td class="ed ${conflictCell('verified', r) ? 'cf' : ''}" data-f="verified"><select data-id="${r.id}" data-f="verified" data-orig="${esc(r.verified)}"><option value="">—</option>${r.verified && String(r.verified).toLowerCase() !== 'verifi' ? `<option value="${esc(r.verified)}" selected>${esc(r.verified)}</option>` : ''}<option value="verifi" ${String(r.verified).toLowerCase() === 'verifi' ? 'selected' : ''}>verifi</option></select></td>
+             <td class="ed pn" data-f="part_number"><input data-id="${r.id}" data-f="part_number" value="${esc(r.part_number)}" data-orig="${esc(r.part_number)}" spellcheck="false" autocomplete="off" style="text-align:left;direction:ltr"></td>`
+          : `<td class="${conflictCell('verified', r) ? 'cf' : ''}">${r.is_verified ? '✅' : '—'}</td><td class="pn">${hlDiff(r.part_number)}</td>`}
+        ${cols.map(c => cellView(c, r)).join('')}<td class="gvc">${fa(gvCount(r))}</td></tr>`).join('')
+    }</tbody></table></div>
     <div class="dact"><span>اسمِ نهایی:</span><input class="nm" value="${esc(keeper.part_number)}" spellcheck="false">
-      <span class="dnote ${pv.conf ? 'warn' : ''}">${pv.fill ? `${fa(pv.fill)} خانه از بقیه پر می‌شه` : 'چیزی برایِ پر کردن نیست'}${pv.conf ? ` · ⚠️ ${fa(pv.conf)} خانه مقدارِ متفاوت داره (مقدارِ نگه‌دار می‌مونه)` : ''}</span>
+      <span class="dnote">${noteHtml()}</span>
+      <button class="btn" data-a="edit" type="button">${editing ? '✓ پایانِ ویرایش' : '✏️ ویرایشِ ردیف‌ها'}</button>
       <button class="btn" data-a="skip" type="button">⏭ تکراری نیستن</button>
       <button class="btn primary" data-a="merge" type="button">✅ ادغام — ${fa(g.rows.length - 1)} ردیف حذف بشه</button></div>`;
+    el.querySelector('.dnote').classList.toggle('warn', !!dupPreview(g, keep).conf);
+  };
+  const refreshMarks = () => {
+    // بعد از ذخیره‌ی یک خانه: رنگِ تعارض‌ها، شمارِ وزن‌ها و خلاصه به‌روز بشه بدونِ اینکه خانه‌ی فعلی از دست بره
+    el.querySelectorAll('tbody tr').forEach(tr => {
+      const r = g.rows.find(x => x.id === +tr.dataset.id); if (!r) return;
+      tr.querySelectorAll('td[data-f]').forEach(td => td.classList.toggle('cf', conflictCell(td.dataset.f, r)));
+      const gv = tr.querySelector('.gvc'); if (gv) gv.textContent = fa(gvCount(r));
+    });
+    const n = el.querySelector('.dnote'); if (n){ n.innerHTML = noteHtml(); n.classList.toggle('warn', !!dupPreview(g, keep).conf); }
+  };
+  const saveCell = async inp => {
+    const id = +inp.dataset.id, f = inp.dataset.f, r = g.rows.find(x => x.id === id);
+    let val = inp.value; const prev = inp.dataset.orig ?? '';
+    const kind = (COLS.find(c => c[1] === f) || [])[3];
+    if (kind === 'num'){ val = normNum(val); inp.value = val; }
+    if (sameVal(f, prev, val)) return;
+    inp.dataset.orig = val;                                 // جلوگیری از ارسالِ دوباره با blur بعدی
+    const td = inp.closest('td'); td.classList.add('saving');
+    try{
+      const res = await fetchT(SHEET_API + id + '/', {method: 'PATCH', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({changes: [{field: f, value: val, prev}], _staff: S.email})});
+      const d = await res.json().catch(() => ({}));
+      td.classList.remove('saving');
+      if (d.row) Object.assign(r, d.row);
+      if (res.ok && d.ok){
+        inp.dataset.orig = r[f] ?? ''; if (document.activeElement !== inp) inp.value = r[f] ?? '';
+        td.classList.add('saved'); setTimeout(() => td.classList.remove('saved'), 900);
+        const nm = el.querySelector('input.nm'); if (f === 'part_number' && id === keep && nm) nm.value = r.part_number;
+        const sb = S.byId.get(id); if (sb) Object.assign(sb, d.row);
+      } else {
+        inp.value = r[f] ?? prev; inp.dataset.orig = r[f] ?? prev;
+        td.classList.add('bad'); setTimeout(() => td.classList.remove('bad'), 1800);
+        toast('❌ ' + (d.error || 'ذخیره نشد'), 4000);
+      }
+      refreshMarks();
+    }catch(e){ inp.dataset.orig = prev; td.classList.remove('saving'); td.classList.add('bad'); toast('❌ سرور جواب نداد — این خانه ذخیره نشد'); }
   };
   draw();
-  el.addEventListener('change', e => { if (e.target.type === 'radio'){ keep = +e.target.value; draw(); } });
+  el.addEventListener('change', e => {
+    if (e.target.type === 'radio'){ keep = +e.target.value; draw(); return; }
+    if (e.target.matches('select[data-f]')) saveCell(e.target);
+  });
+  el.addEventListener('focusout', e => { if (e.target.matches('input[data-f]')) saveCell(e.target); });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches('input[data-f]')){ e.preventDefault(); e.target.blur(); }
+    if (e.key === 'Escape' && e.target.matches('input[data-f]')){ e.target.value = e.target.dataset.orig ?? e.target.value; e.target.blur(); }
+  });
   el.addEventListener('click', async e => {
     const b = e.target.closest('button[data-a]'); if (!b) return;
+    if (b.dataset.a === 'edit'){ editing = !editing; draw(); return; }
     if (b.dataset.a === 'skip'){
       const sk = dupSkips(); sk.push(g.key); try{ localStorage.setItem(DUP_SKIP_KEY, JSON.stringify(sk.slice(-2000))); }catch(x){}
       el.classList.add('skip'); el.innerHTML = `<span class="dnote">⏭ «${esc(g.rows[0].part_number)}» — تکراری حساب نمی‌شه و دیگه نشون داده نمی‌شه.</span>`;
       return;
     }
+    // اگه خانه‌ای هنوز در حالِ تایپه، اول ذخیره بشه
+    const a = document.activeElement; if (a && el.contains(a) && a.matches('input[data-f]')) await saveCell(a);
     b.disabled = true;
     await dupMerge(el, g, keep, el.querySelector('input.nm').value);
   });
@@ -1155,13 +1213,7 @@ function wire(){
   window.addEventListener('resize', () => { applyWidths(); renderWindow(true); });
   wireResize();
   wireDup();
-  const setThemeBtn = () => { const d = document.documentElement.dataset.theme === 'dark'; $('themeBtn').textContent = d ? '☀️' : '🌙'; $('themeBtn').title = d ? 'رفتن به روشنِ ملایم' : 'رفتن به تیره'; };
-  setThemeBtn();
-  $('themeBtn').onclick = () => {
-    const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = t; try{ localStorage.setItem('smartchip_weights_theme', t); }catch(e){}
-    setThemeBtn();
-  };
+
   $('fitBtn').onclick = resetWidths;
   $('exportBtn').onclick = exportXlsx;
   $('undoBtn').onclick = undoLast;
