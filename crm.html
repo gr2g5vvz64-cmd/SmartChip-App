@@ -336,7 +336,9 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .qf2-chips{display:flex;gap:4px;flex-wrap:wrap}
 .qf2-chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 7px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-size:11.5px;font-weight:700;white-space:nowrap;user-select:none}
 .qf2-chip input{width:14px;height:14px;margin:0}
-.qf2-c-buy span{color:#60a5fa}.qf2-c-fin span{color:var(--accent)}.qf2-c-smp span{color:#f0a500}.qf2-c-sug span{color:#a78bfa}
+.qf2-c-buy span{color:#60a5fa}.qf2-c-for span{color:#22d3ee}.qf2-c-pay span{color:#4ade80}
+.qf2-c-for:has(input:checked){border-color:#22d3ee;background:rgba(34,211,238,.12)}
+.qf2-c-pay:has(input:checked){border-color:#4ade80;background:rgba(74,222,128,.12)}.qf2-c-fin span{color:var(--accent)}.qf2-c-smp span{color:#f0a500}.qf2-c-sug span{color:#a78bfa}
 .qf2-c-buy:has(input:checked){border-color:#60a5fa;background:rgba(96,165,250,.12)}
 .qf2-c-fin:has(input:checked){border-color:var(--accent);background:rgba(240,165,0,.12)}
 .qf2-c-smp:has(input:checked){border-color:#f0a500;background:rgba(240,165,0,.12)}
@@ -361,6 +363,28 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .qf2-h-head{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px}
 .qf2 > [id$="Box"]{margin-top:8px}
 @media(max-width:700px){.qf2-h-row{grid-template-columns:1fr;gap:2px}.qf2-h-tags{justify-content:flex-start}.qf2-wide{grid-column:auto}}
+
+/* ── (۱۴۰۵/۰۷/۰۸) کارهایِ یک تماس ── */
+.tk-row td{padding:0 10px 8px!important;border:none!important;background:transparent!important}
+.tk-list{display:flex;flex-direction:column;gap:3px;margin-right:24px;border-right:2px solid var(--border);padding-right:10px}
+.tk-line{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:4px 8px;border-radius:7px;background:var(--surface);flex-wrap:wrap}
+.tk-line.tk-done{opacity:.5}
+.tk-line.tk-done .tk-label{text-decoration:line-through}
+.tk-chk{width:14px!important;height:14px!important;min-width:14px;flex:0 0 14px;display:inline-block!important;margin:0!important;padding:0!important;cursor:pointer}
+.tk-line > *{flex-shrink:0}
+.tk-line .tk-label{flex-shrink:1}
+.tk-ico{font-size:12px;width:14px;text-align:center}
+.tk-kind{font-size:13px}
+.tk-label{font-weight:700}
+.tk-code{font-size:10px;font-weight:800;color:var(--accent);direction:ltr;border:1px solid var(--border);border-radius:5px;padding:0 5px}
+.tk-status{color:var(--muted);font-size:10.5px}
+.tk-actions{margin-right:auto;display:flex;gap:4px}
+.tk-btn{font-size:9.5px;padding:2px 8px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text);cursor:pointer;font-family:Vazirmatn,sans-serif}
+.tk-btn:hover{border-color:var(--accent)}
+.tk-btn.tk-ok{border-color:rgba(34,197,94,.45);color:var(--green);background:rgba(34,197,94,.08)}
+.tk-badge{margin-top:4px;font-size:9px;font-weight:800;border-radius:6px;padding:1px 6px;display:inline-block}
+.tk-badge.tk-open{background:rgba(240,165,0,.15);color:var(--accent)}
+.tk-badge.tk-all{background:rgba(34,197,94,.15);color:var(--green)}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -1545,7 +1569,11 @@ function renderToolbar(){
         </div>
         <textarea class="form-control qf2-note" id="qf_note" rows="1" placeholder="💬 صحبتِ انجام‌شده *" oninput="qf2Grow(this)"></textarea>
         <div class="qf2-chips">
-          <label class="qf2-chip qf2-c-buy"><input type="checkbox" id="qf_hasPurchase" onchange="document.getElementById('qf_purchaseBox').style.display=this.checked?'block':'none';if(this.checked&&qfPartRows.length===0){qfPartRows=[{name:'',qty:'',needMarket:false,needForeign:false}];qfRenderPartRows();}"/><span>📋 استعلام خرید</span></label>
+          <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) طبقِ درخواستِ کاربر: داخلی و خارجی جدا (هر کدوم یک «کار»ِ جدا با کدِ -I / -C) -->
+          <input type="checkbox" id="qf_hasPurchase" hidden/>
+          <label class="qf2-chip qf2-c-buy" title="استعلام / پیش‌فاکتورِ بازارِ داخل (کد: ‎-I)"><input type="checkbox" id="qf_hasDomestic" onchange="qf2MarketChipChanged()"/><span>🇮🇷 داخلی</span></label>
+          <label class="qf2-chip qf2-c-for" title="استعلام / پیش‌فاکتورِ خارجی — چین/تایوان (کد: ‎-C)"><input type="checkbox" id="qf_hasForeign" onchange="qf2MarketChipChanged()"/><span>🌏 خارجی</span></label>
+          <label class="qf2-chip qf2-c-pay" title="وعده‌ی پرداخت — مالی در ERP هم می‌بینه"><input type="checkbox" id="qf_hasPromise" onchange="document.getElementById('qf_promiseBox').style.display=this.checked?'block':'none';if(this.checked)setTimeout(()=>document.getElementById('qf_promiseAmount').focus(),0)"/><span>💵 وعده</span></label>
           <label class="qf2-chip qf2-c-fin"><input type="checkbox" id="qf_hasFinance" onchange="document.getElementById('qf_financeBox').style.display=this.checked?'block':'none'"/><span>💰 مالی</span></label>
           <label class="qf2-chip qf2-c-smp"><input type="checkbox" id="qf_hasSample" onchange="document.getElementById('qf_sampleBox').style.display=this.checked?'block':'none';if(this.checked)qfRenderSampleRows();"/><span>📦 نمونه</span></label>
           <label class="qf2-chip qf2-c-sug"><input type="checkbox" id="qf_hasSuggestion" onchange="document.getElementById('qf_suggestionBox').style.display=this.checked?'block':'none';"/><span>💡 پیشنهاد</span></label>
@@ -1600,6 +1628,17 @@ function renderToolbar(){
         <div id="qf_sampleRows"></div>
         <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;margin-bottom:8px;color:#f0a500;border-color:rgba(240,165,0,.3);" onclick="qfAddSampleRow()">➕ افزودن نمونه</button>
         <textarea class="form-control" id="qf_sampleNote" placeholder="توضیح نمونه..." style="font-size:12px;"></textarea>
+      </div>
+      <div id="qf_promiseBox" style="display:none;border:1px solid rgba(74,222,128,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(74,222,128,.04)">
+        <div style="font-size:11px;font-weight:800;color:#4ade80;margin-bottom:8px">💵 وعده‌ی پرداخت — مالی در ERP هم می‌بینه</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1 1 160px"><label class="form-label" style="font-size:10px">مبلغ (تومان) *</label>
+            <input class="form-control" id="qf_promiseAmount" inputmode="numeric" placeholder="مثلاً ۲۰٬۰۰۰٬۰۰۰" oninput="qf2FormatAmount(this)" style="direction:ltr;text-align:center;font-weight:700"/></div>
+          <div style="flex:0 1 140px"><label class="form-label" style="font-size:10px">تا تاریخ</label>
+            <input class="form-control" id="qf_promiseDate" readonly style="cursor:pointer;text-align:center" onclick="openDatePicker('qf_promiseDate')"/></div>
+          <div style="flex:2 1 200px"><label class="form-label" style="font-size:10px">توضیح</label>
+            <input class="form-control" id="qf_promiseNote" placeholder="مثلاً: پیش‌پرداختِ سفارشِ ۲ آیتم"/></div>
+        </div>
       </div>
       <div id="qf_purchaseBox" style="display:none;border:1px solid rgba(96,165,250,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(96,165,250,.04)">
         <div style="font-size:11px;font-weight:800;color:#60a5fa;margin-bottom:8px">📋 پارت‌نامبر و تعداد</div>
@@ -3148,6 +3187,7 @@ async function loadLeads(){
   const djangoLeads = await fetchLeadsFromDjango();
   if(djangoLeads){ leads = djangoLeads; overlayQueuedLeadHistoryCRM(); }
   renderKanban();
+  loadPromisesCRM();
 }
 function renderKanban(){
   document.getElementById('kanbanBoard').innerHTML=LEAD_STATUSES.map(st=>{
@@ -3987,6 +4027,7 @@ function renderTableView(){
       <td style="width:90px">
         <div style="font-size:12px;font-weight:800;color:var(--accent)">${e.trackingCode||'—'}</div>
         <div style="font-size:9px;color:var(--muted);margin-top:2px">${e.date?toShamsiCompact(e.date):''}</div>
+        ${crmTasksBadge(r)}
       </td>
       <td style="min-width:150px;font-weight:700">
         ${r.customer}
@@ -3997,7 +4038,7 @@ function renderTableView(){
         ${(()=>{
           const blocks=[];
           // بلوک مالی
-          if(e.needsFinance||e.finance){
+          if(!CRM_TASK_ROWS && (e.needsFinance||e.finance)){
             const linkedReq = e.linkedRequestId ? (cachedRequests||[]).find(r=>String(r.id)===String(e.linkedRequestId)) : null;
             const fin = linkedReq && linkedReq.parts ? linkedReq.parts.finance : null;
             const needs = (fin && fin.needs) || {};
@@ -4015,7 +4056,7 @@ function renderTableView(){
             }
           }
           // بلوک خرید (داخل/خارج)
-          if(e.needsEstelamat){
+          if(!CRM_TASK_ROWS && e.needsEstelamat){
             const parts = (e.procurementParts&&e.procurementParts.items)||[];
             const cnt = parts.filter(p=>p.name).length;
             const reqId = e.linkedRequestId||'';
@@ -4097,7 +4138,7 @@ function renderTableView(){
         <input type="checkbox" ${e.canceled?'checked':''} onchange="toggleCanceled('${r.leadId}',${r.hIdx},this.checked)"/>
         ${e.canceled?`<input style="margin-top:3px;font-size:9px;" value="${(e.cancelReason||'').replace(/"/g,'&quot;')}" placeholder="دلیل کنسلی..." onchange="updateTableEntry('${r.leadId}',${r.hIdx},'cancelReason',this.value)"/>`:''}
       </td>
-    </tr>`;
+    </tr>` + crmTasksRowHTML(r);
   }).join('');
 
   const emptyRowHTML=`<tr style="background:rgba(240,165,0,.06);border-top:2px solid var(--accent);">
@@ -4131,6 +4172,7 @@ function renderTableView(){
       <tbody>${realRowsHTML}${emptyRowHTML}</tbody>
     </table>`;
   checkLinkedRequestsCompletion();
+  crmAutoCompleteByTasks(rows);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -8959,6 +9001,178 @@ function toShamsiCompact(dateStr){
 let qfPartRows = [];
 
 // ══════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۰۸) «کارها»یِ یک تماس — طبقِ خواسته‌ی کاربر:
+//   هر کاری که مشتری در یک تماس گفت (وعده‌ی پرداخت، استعلامِ داخلی، استعلامِ خارجی، کارِ مالی)
+//   یک ردیفِ جدا زیرِ همون تماس داره با وضعیتِ خودش؛ تکمیل‌شده‌ها کم‌رنگ و تیک‌خورده،
+//   تماس تا وقتی حتی یک کار باز باشه باز می‌مونه، و با تکمیلِ آخرین کار خودکار تکمیل می‌شه.
+//   کدِ پیگیری: داخلی = «-I» (ایران) ، خارجی = «-C» (چین/خارج)
+//   وعده‌ی پرداخت: «واریز شد» در CRM → در CRM تمام، ولی در مالیِ ERP باز تا مالی ثبت و تأیید کنه.
+// ══════════════════════════════════════════════════════════════
+const CRM_TASK_ROWS = true;
+const PROMISE_API = 'https://smartchip-backend.onrender.com/api/worklog/payment-promises/';
+let payPromises = [];
+const FIN_NEED_LABELS = {sendInvoice:'ارسالِ فاکتور', sendProforma:'پیش‌فاکتور', getCheque:'دریافتِ چک', sayyadiReg:'ثبتِ صیادی',
+  sendStatement:'ارسالِ صورتحساب', getStatement:'دریافتِ صورتحساب', sendSheba:'ارسالِ شبا', getSheba:'دریافتِ شبا'};
+
+function qf2MarketChipChanged(){
+  const dm=document.getElementById('qf_hasDomestic').checked, fr=document.getElementById('qf_hasForeign').checked;
+  document.getElementById('qf_hasPurchase').checked = dm || fr;
+  document.getElementById('qf_purchaseBox').style.display = (dm || fr) ? 'block' : 'none';
+  if((dm || fr) && qfPartRows.length === 0) qfPartRows = [{name:'',qty:'',needMarket:dm,needForeign:fr}];
+  else qfPartRows.forEach(p => { p.needMarket = dm; p.needForeign = fr; });
+  qfRenderPartRows();
+}
+function qf2SyncMarketChips(){
+  // اگه ردیفی هیچ‌کدوم از داخل/خارج رو نداره، از چیپ‌ها بگیره؛ و چیپ‌ها از ردیف‌ها (تیکِ دستیِ داخل/خارجِ هر پارت)
+  const dmEl=document.getElementById('qf_hasDomestic'), frEl=document.getElementById('qf_hasForeign');
+  qfPartRows.forEach(p => { if(!p.needMarket && !p.needForeign){ p.needMarket = dmEl.checked; p.needForeign = frEl.checked; } });
+  if(qfPartRows.some(p => p.name && p.needMarket)) dmEl.checked = true;
+  if(qfPartRows.some(p => p.name && p.needForeign)) frEl.checked = true;
+  document.getElementById('qf_hasPurchase').checked = dmEl.checked || frEl.checked;
+}
+function qf2ParseAmount(v){
+  const s = String(v||'').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'');
+  return s ? parseInt(s, 10) : 0;
+}
+function qf2FormatAmount(el){
+  const n = qf2ParseAmount(el.value);
+  el.value = n ? n.toLocaleString('fa-IR') : '';
+}
+function crmFaMoney(n){ return Number(n||0).toLocaleString('fa-IR'); }
+async function qf2CreatePromise(body){
+  body.created_by = (currentUser && (currentUser.name||currentUser.email)) || '';
+  try{
+    const r = await fetch(PROMISE_API, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const d = await r.json();
+    if(d && d.ok && d.promise){ payPromises = payPromises.filter(x => x.id !== d.promise.id).concat([d.promise]); toast('💵 وعده‌ی پرداخت ثبت شد — مالی در ERP هم می‌بینه'); return d.promise; }
+    toast('❌ وعده‌ی پرداخت ثبت نشد: ' + ((d && d.error) || r.status));
+  }catch(e){ toast('❌ وعده‌ی پرداخت ثبت نشد (اتصال) — دوباره از ردیفِ تماس اضافه کنید'); }
+  return null;
+}
+async function loadPromisesCRM(){
+  try{
+    const r = await fetch(PROMISE_API + '?scope=recent', {cache:'no-store'});
+    const d = await r.json();
+    if(d && d.ok){ payPromises = d.promises || []; if(document.getElementById('crmMainTable')) renderTableView(); }
+  }catch(e){}
+}
+async function crmReportPromise(id){
+  const p = payPromises.find(x => x.id === id); if(!p) return;
+  if(!confirm(`واریزِ ${crmFaMoney(p.amount)} تومان از «${p.customer}» انجام شد؟\n(در CRM تکمیل می‌شه؛ در مالیِ ERP تا ثبت و تأییدِ مالی باز می‌مونه)`)) return;
+  try{
+    const r = await fetch(PROMISE_API + id + '/action/', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'report', by:(currentUser && (currentUser.name||currentUser.email))||''})});
+    const d = await r.json();
+    if(d && d.ok){ Object.assign(p, d.promise); toast('✅ اعلامِ واریز ثبت شد — منتظرِ تأییدِ مالی'); renderTableView(); }
+    else toast('❌ ثبت نشد: ' + ((d && d.error) || r.status));
+  }catch(e){ toast('❌ ثبت نشد (اتصال)'); }
+}
+async function crmToggleTask(leadId, hIdx, kind, checked){
+  const l = leads.find(x => String(x.id) === String(leadId)); if(!l || !l.history || !l.history[hIdx]) return;
+  const td = Object.assign({}, l.history[hIdx].taskDone || {});
+  if(checked) td[kind] = {at: new Date().toISOString(), by: (currentUser && (currentUser.name||currentUser.email))||''};
+  else delete td[kind];
+  await updateTableEntry(leadId, hIdx, 'taskDone', td);
+  renderTableView();
+}
+
+function crmEntryTasks(r){
+  const e = r.entry, tasks = [];
+  const tc = e.trackingCode || '';
+  const reqId = e.linkedRequestId || '';
+  const req = reqId ? (cachedRequests||[]).find(x => String(x.id) === String(reqId)) : null;
+  const parts = req && req.parts ? req.parts : null;
+  const manual = e.taskDone || {};
+  const mk = (kind, o) => tasks.push(Object.assign({kind, manualDone: !!manual[kind]}, o));
+  // 💵 وعده‌هایِ پرداخت
+  payPromises.filter(p => String(p.lead_id) === String(r.leadId) && p.entry_date === e.date && p.status !== 'canceled').forEach(p => {
+    const done = p.status === 'reported' || p.status === 'confirmed';
+    const status = p.status === 'confirmed' ? `تأییدِ مالی · ${p.confirmed_by||''}`
+      : p.status === 'reported' ? `اعلامِ واریز: ${p.reported_by||''} — منتظرِ ثبت و تأییدِ مالی`
+      : (p.overdue ? `<b style="color:var(--red)">⚠ سررسید گذشته</b> — منتظرِ واریز` : 'منتظرِ واریز');
+    tasks.push({kind:'promise-'+p.id, icon:'💵', unit:'مالی', done, noManual:true,
+      label:`وعده‌ی پرداخت ${crmFaMoney(p.amount)} تومان` + (p.due_date ? ` — تا ${fn(p.due_date.replace(/-/g,'/'))}` : ''),
+      status, actions: p.status === 'pending' ? `<button class="tk-btn tk-ok" onclick="crmReportPromise(${p.id})">✓ واریز شد</button>` : ''});
+  });
+  if(e.hasPromise && !payPromises.some(p => String(p.lead_id) === String(r.leadId) && p.entry_date === e.date)){
+    tasks.push({kind:'promise-pending', icon:'💵', unit:'مالی', done:false, noManual:true, label:'وعده‌ی پرداخت', status:'در حالِ بارگذاری…', actions:''});
+  }
+  // 🇮🇷 استعلامِ داخلی
+  const pp = e.procurementParts;
+  if(e.needsEstelamat && pp && pp.needMarket){
+    const n = (pp.marketItems||[]).length;
+    const auto = !!(parts && parts.marketApproved);
+    const ready = !!(parts && parts.needMarket && parts.marketQuoteComplete && !parts.marketApproved);
+    mk('domestic', {icon:'🇮🇷', unit:'تدارکات', code: tc ? tc + '-I' : '', done: auto || !!manual.domestic,
+      label:`استعلام / پیش‌فاکتورِ داخلی — ${fn(n)} قلم`,
+      status: auto ? 'تأیید شد' : ready ? '<b style="color:var(--accent)">قیمت آماده است</b>' : ('منتظرِ قیمتِ تدارکات' + (req && !(parts&&parts.marketQuoteComplete) ? ' ' + slaBadgeHTML(req.createdAt,'market') : '')),
+      actions: (ready ? `<button class="tk-btn tk-ok" onclick="openDomesticApprovalModal('${reqId}','${r.leadId}',${r.hIdx})">تأیید</button>` : '')
+        + (reqId ? `<button class="tk-btn" title="وضعیتِ سفارش" onclick="openOrderStatusModal('${r.leadId}',${r.hIdx})">📦</button>` : '')
+        + `<button class="tk-btn" onclick="openEstelamatTickModal('${r.leadId}',${r.hIdx})">ویرایش</button>`});
+  }
+  // 🌏 استعلامِ خارجی
+  if(e.needsEstelamat && pp && pp.needForeign){
+    const n = (pp.foreignItems||[]).length;
+    const auto = !!(parts && parts.foreignApproved);
+    const ready = !!(parts && parts.needForeign && parts.foreignQuoteComplete && !parts.foreignApproved);
+    mk('foreign', {icon:'🌏', unit:'بازرگانی', code: tc ? tc + '-C' : '', done: auto || !!manual.foreign,
+      label:`استعلام / پیش‌فاکتورِ خارجی — ${fn(n)} قلم`,
+      status: auto ? 'تأیید شد' : ready ? '<b style="color:#22d3ee">قیمت آماده است</b>' : ('منتظرِ قیمتِ بازرگانی' + (req && !(parts&&parts.foreignQuoteComplete) ? ' ' + slaBadgeHTML(req.createdAt,'foreign') : '')),
+      actions: (ready ? `<button class="tk-btn tk-ok" onclick="openForeignApprovalModal('${reqId}','${r.leadId}',${r.hIdx})">تأیید</button>` : '')
+        + (reqId ? `<button class="tk-btn" title="وضعیتِ سفارش" onclick="openOrderStatusModal('${r.leadId}',${r.hIdx})">📦</button>` : '')
+        + `<button class="tk-btn" onclick="openEstelamatTickModal('${r.leadId}',${r.hIdx})">ویرایش</button>`});
+  }
+  // 💰 کارِ مالی (ارسالِ فاکتور، دریافتِ چک، …)
+  if(e.needsFinance || e.finance){
+    const fin = parts ? parts.finance : null;
+    const needs = (fin && fin.needs) || (e.finance && e.finance.needs) || {};
+    const doneMap = (fin && fin.done) || {};
+    const keys = Object.keys(needs).filter(k => needs[k]);
+    const allDone = keys.length && keys.every(k => doneMap[k]);
+    const auto = !!(allDone && fin && fin.crmConfirmed);
+    mk('finance', {icon:'💰', unit:'مالی', done: auto || !!manual.finance,
+      label:'کارِ مالی: ' + (keys.map(k => FIN_NEED_LABELS[k] || k).join('، ') || '—'),
+      status: auto ? 'تکمیل' : allDone ? '<b style="color:var(--green)">مالی پاسخ داد</b>' : `${fn(keys.filter(k => doneMap[k]).length)} از ${fn(keys.length)} انجام شده`,
+      actions: allDone && fin && !fin.crmConfirmed ? `<button class="tk-btn tk-ok" onclick="confirmFinanceResponse('${reqId}','${r.leadId}',${r.hIdx})">تأیید نهایی</button>`
+        : `<button class="tk-btn" onclick="openFinanceTick('${r.leadId}',${r.hIdx})">ویرایش</button>`});
+  }
+  return tasks;
+}
+function crmTasksBadge(r){
+  const t = crmEntryTasks(r); if(!t.length) return '';
+  const open = t.filter(x => !x.done).length;
+  return open ? `<div class="tk-badge tk-open">${fn(open)} از ${fn(t.length)} باز</div>` : `<div class="tk-badge tk-all">همه تکمیل</div>`;
+}
+function crmTasksRowHTML(r){
+  const t = crmEntryTasks(r); if(!t.length) return '';
+  const e = r.entry;
+  const lines = t.map(x => `<div class="tk-line ${x.done ? 'tk-done' : ''}">
+      ${x.noManual ? `<span class="tk-ico">${x.done ? '✅' : '⭕'}</span>`
+        : `<input type="checkbox" class="tk-chk" ${x.done ? 'checked' : ''} ${x.done && !x.manualDone ? 'disabled title="از ERP تکمیل شده"' : 'title="تیکِ دستی — تکمیل در CRM"'} onchange="crmToggleTask('${r.leadId}',${r.hIdx},'${x.kind}',this.checked)">`}
+      <span class="tk-kind">${x.icon}</span>
+      <span class="tk-label">${x.label}</span>
+      ${x.code ? `<span class="tk-code">${x.code}</span>` : ''}
+      <span class="tk-status">${x.unit} · ${x.status}</span>
+      <span class="tk-actions">${x.actions || ''}</span>
+    </div>`).join('');
+  return `<tr class="tk-row" style="${e.canceled ? 'opacity:.5;' : ''}"><td colspan="12"><div class="tk-list">${lines}</div></td></tr>`;
+}
+const _crmAutoDone = new Set();
+function crmAutoCompleteByTasks(rows){
+  // فقط تماس‌هایِ جدید (tasksV) — تماس‌هایِ قدیمی بی‌خبر بایگانی نمی‌شن
+  (rows||[]).forEach(r => {
+    const e = r.entry, key = r.leadId + '_' + e.date;
+    if(!e.tasksV || e.completed || e.canceled || _crmAutoDone.has(key)) return;
+    const t = crmEntryTasks(r);
+    if(t.length && t.every(x => x.done) && !t.some(x => x.kind === 'promise-pending')){
+      _crmAutoDone.add(key);
+      setTimeout(() => { updateTableEntry(r.leadId, r.hIdx, 'completed', true).then(() => { toast(`✅ همه‌ی کارهایِ تماس با ${r.customer} تکمیل شد`); renderTableView(); }); }, 0);
+    }
+  });
+}
+setInterval(() => { if(document.visibilityState === 'visible') loadPromisesCRM(); }, 90000);
+
+// ══════════════════════════════════════════════════════════════
 // ⚠️ (۱۴۰۵/۰۷/۰۷) فرمِ ثبتِ تماس — طرح ۲ (نوارِ سریع)
 // • «جزئیات» هر بار که فرم باز می‌شه (یا بعد از هر ثبت) بسته است — طبقِ درخواستِ صریحِ کاربر، حالت یادش نمی‌مونه.
 //   ولی رویِ خودِ دکمه خلاصه‌ی مقادیرِ فعلی (تاریخ · نوع · پیگیری) دیده می‌شه تا چیزی پنهان نمونه.
@@ -9128,7 +9342,8 @@ function qfToggleFinance(checked){
 }
 
 function qfAddPartRow(){
-  qfPartRows.push({name:'',qty:'',needMarket:false,needForeign:false});
+  const dm=document.getElementById('qf_hasDomestic'), fr=document.getElementById('qf_hasForeign');
+  qfPartRows.push({name:'',qty:'',needMarket:!!(dm&&dm.checked),needForeign:!!(fr&&fr.checked)});
   qfRenderPartRows();
 }
 
@@ -9233,6 +9448,12 @@ async function submitQuickContact(){
   const followNote  = document.getElementById('qf_followNote').value.trim();
   const followUpBy  = document.getElementById('qf_followUpBy').value;
   const importance  = document.getElementById('qf_importance').value;
+  qf2SyncMarketChips();
+  const hasPromise = document.getElementById('qf_hasPromise').checked;
+  const promiseAmount = qf2ParseAmount(document.getElementById('qf_promiseAmount').value);
+  if(hasPromise && !promiseAmount){ toast('⚠ مبلغِ وعده‌ی پرداخت رو بنویسید'); document.getElementById('qf_promiseAmount').focus(); return; }
+  const promiseDate = document.getElementById('qf_promiseDate').value || ((typeof todayShamsiStr==='function')?todayShamsiStr():'');
+  const promiseNote = document.getElementById('qf_promiseNote').value.trim();
   const hasPurchase = document.getElementById('qf_hasPurchase').checked;
   const hasFinance  = document.getElementById('qf_hasFinance').checked;
   const hasSample   = document.getElementById('qf_hasSample').checked;
@@ -9292,6 +9513,8 @@ async function submitQuickContact(){
     needsFinance: needFinanceFlag,
     finance: needFinanceFlag ? {needs:finNeeds, note:finNote, done:{}} : null,
     completed: false, canceled: false,
+    // ⚠️ (۱۴۰۵/۰۷/۰۸) تماس با «کارها»ی جدا: وقتی همه‌ی کارها تکمیل بشن، خودِ تماس هم خودکار تکمیل می‌شه
+    tasksV: 1, hasPromise: hasPromise || undefined,
   };
 
   if(!lead.history) lead.history=[];
@@ -9371,12 +9594,25 @@ async function submitQuickContact(){
   }
   }
 
+  // 💵 وعده‌ی پرداخت → سرور (هم CRM هم مالیِ ERP می‌بینن)
+  if(hasPromise){
+    await qf2CreatePromise({customer: lead.customer, lead_id: String(lead.id), entry_date: entry.date, tracking_code: entry.trackingCode||'',
+                            amount: promiseAmount, due_date: promiseDate, note: promiseNote || note || ''});
+  }
+
   // ریست فرم
   document.getElementById('qf_customer').value='';
   document.getElementById('qf_note').value='';
   document.getElementById('qf_followDate').value='';
   document.getElementById('qf_followNote').value='';
   document.getElementById('qf_hasPurchase').checked=false;
+  document.getElementById('qf_hasDomestic').checked=false;
+  document.getElementById('qf_hasForeign').checked=false;
+  document.getElementById('qf_hasPromise').checked=false;
+  document.getElementById('qf_promiseAmount').value='';
+  document.getElementById('qf_promiseDate').value='';
+  document.getElementById('qf_promiseNote').value='';
+  document.getElementById('qf_promiseBox').style.display='none';
   document.getElementById('qf_hasFinance').checked=false;
   document.getElementById('qf_hasSample').checked=false;
   document.getElementById('qf_hasSuggestion').checked=false;

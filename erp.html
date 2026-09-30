@@ -1033,6 +1033,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="nav-group-items" id="ngi-finance" style="max-height:none">
         <button class="nav-item" onclick="showPage('financedash')"><span class="nav-icon">📊</span><span>داشبورد مالی</span></button>
         <button class="nav-item" onclick="showPage('financetasks')"><span class="nav-icon">✅</span><span>تسک‌های مالی (از CRM)</span><span class="nbadge orange" id="financeTaskBadge" style="display:none">0</span></button>
+        <button class="nav-item" onclick="showPage('promises')"><span class="nav-icon">💵</span><span>وعده‌های پرداخت</span><span class="nbadge orange" id="promiseBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('debtcases')"><span class="nav-icon">💳</span><span>وصول مطالبات</span><span class="nbadge red" id="debtCaseBadgeERP" style="display:none">0</span></button>
         <!-- صفحه‌ی «صورتحساب‌ها» حذف شد — نیاز مالی الان فقط از تیک مالی در تماس CRM ثبت می‌شود -->
         <button class="nav-item" onclick="showPage('chequesreceived')"><span class="nav-icon">💳</span><span>چک‌های دریافتی</span></button>
@@ -1483,6 +1484,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
     </div>
 
     <!-- ══ تسک‌های مالی — از تیک‌های CRM ══ -->
+    <!-- ══ 💵 وعده‌هایِ پرداخت — از CRM (۱۴۰۵/۰۷/۰۸) ══ -->
+    <div class="page" id="page-promises"><div id="promisesContent"></div></div>
+
     <div class="page" id="page-financetasks"><div id="financeTasksContent"></div><div id="suggestionsContent" style="margin-top:24px;"></div></div>
 
     <!-- ══ وصول مطالبات — شروع از مالی ══ -->
@@ -4207,13 +4211,100 @@ function fnMoney(n){
 
 // ══════════════════════════════════════════
 // NAVIGATION
+
+// ══════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۰۸) کدِ پیگیری با پسوندِ بخش — داخلی «-I» (ایران) ، خارجی «-C» (چین/خارج)
+//   (فقط نمایش؛ خودِ کدِ ذخیره‌شده عوض نمی‌شه — جستجو با کدِ اصلی هم کار می‌کنه)
+// ══════════════════════════════════════════════════════════════
+function sideCode(code, side){
+  if(!code) return code || '';
+  const c = String(code);
+  if(!/^[A-Za-z\u0600-\u06FF0-9]+-\d+$/.test(c) && !/\d$/.test(c)) return c;   // اسمِ مشتری یا متنِ آزاد → دست نمی‌خوره
+  return /-(I|C)$/.test(c) ? c : c + '-' + side;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 💵 وعده‌هایِ پرداخت (۱۴۰۵/۰۷/۰۸) — ثبت در CRM، پیگیری و تأیید در مالی
+//   pending  : منتظرِ واریز
+//   reported : کارشناس در CRM «واریز شد» زده → در CRM تمام؛ اینجا باز تا مالی ثبت و تأیید کنه
+//   confirmed: مالی تأیید کرد → همه‌جا تمام
+// ══════════════════════════════════════════════════════════════
+const PROMISE_API_ERP = 'https://smartchip-backend.onrender.com/api/worklog/payment-promises/';
+let payPromisesERP = [];
+let promiseViewERP = 'open';
+async function loadPromisesERP(){
+  try{
+    const r = await fetch(PROMISE_API_ERP + '?scope=recent', {cache:'no-store'});
+    const d = await r.json();
+    if(d && d.ok){
+      payPromisesERP = d.promises || [];
+      setBadge('promiseBadge', payPromisesERP.filter(p => p.status==='pending' || p.status==='reported').length);
+      const pg = document.getElementById('page-promises');
+      if(pg && pg.classList.contains('active')) renderPromisesERP();
+    }
+  }catch(e){}
+}
+function _pmMoney(n){ return fn(Number(n||0).toLocaleString('en-US')); }
+function _pmWho(){ return (typeof currentUser!=='undefined' && currentUser && (currentUser.name||currentUser.email)) || ''; }
+async function promiseActionERP(id, action){
+  const p = payPromisesERP.find(x => x.id === id); if(!p) return;
+  const msg = action === 'confirm' ? `واریزِ ${_pmMoney(p.amount)} تومان از «${p.customer}» در حساب دیده و ثبت شد؟`
+            : action === 'reopen' ? 'این وعده دوباره باز بشه (منتظرِ واریز)؟' : 'این وعده لغو بشه؟';
+  if(!confirm(msg)) return;
+  try{
+    const r = await fetch(PROMISE_API_ERP + id + '/action/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action, by:_pmWho()})});
+    const d = await r.json();
+    if(d && d.ok){ Object.assign(p, d.promise); renderPromisesERP(); setBadge('promiseBadge', payPromisesERP.filter(x => x.status==='pending'||x.status==='reported').length); }
+    else alert('ثبت نشد: ' + ((d && d.error) || r.status));
+  }catch(e){ alert('ثبت نشد — اتصال به سرور'); }
+}
+function renderPromisesERP(){
+  const box = document.getElementById('promisesContent'); if(!box) return;
+  const all = payPromisesERP.slice();
+  const open = all.filter(p => p.status==='pending' || p.status==='reported');
+  const list = promiseViewERP === 'open' ? open : all.filter(p => p.status==='confirmed' || p.status==='canceled');
+  list.sort((a,b) => promiseViewERP==='open' ? ((b.status==='reported')-(a.status==='reported') || String(a.due_date).localeCompare(String(b.due_date))) : String(b.confirmed_at||b.created_at).localeCompare(String(a.confirmed_at||a.created_at)));
+  const reported = open.filter(p => p.status==='reported').length, overdue = open.filter(p => p.overdue).length;
+  const sum = open.reduce((a,p) => a + (p.amount||0), 0);
+  const row = p => {
+    const st = p.status==='reported' ? `<span style="color:#4ade80;font-weight:800">✅ کارشناس اعلامِ واریز کرده</span><div style="font-size:10px;color:var(--muted)">${p.reported_by||''} — منتظرِ ثبت و تأییدِ مالی</div>`
+      : p.status==='pending' ? (p.overdue ? '<span style="color:#f87171;font-weight:800">⚠ سررسید گذشته</span>' : '<span style="color:var(--accent);font-weight:700">⏳ منتظرِ واریز</span>')
+      : p.status==='confirmed' ? `<span style="color:var(--green)">✔ تأیید شد</span><div style="font-size:10px;color:var(--muted)">${p.confirmed_by||''}</div>` : '<span style="color:var(--muted)">لغو شد</span>';
+    const act = (p.status==='pending'||p.status==='reported')
+      ? `<button class="btn btn-primary btn-sm" onclick="promiseActionERP(${p.id},'confirm')">✅ تأیید (ثبت شد)</button> <button class="btn btn-ghost btn-sm" onclick="promiseActionERP(${p.id},'cancel')">لغو</button>`
+      : `<button class="btn btn-ghost btn-sm" onclick="promiseActionERP(${p.id},'reopen')">بازگشایی</button>`;
+    return `<tr style="${p.status==='reported'?'background:rgba(74,222,128,.06);':''}">
+      <td style="font-weight:700">${p.customer}${p.tracking_code?`<div style="font-size:10px;color:var(--accent)">${p.tracking_code}</div>`:''}</td>
+      <td style="font-weight:800;direction:ltr;text-align:center">${_pmMoney(p.amount)}</td>
+      <td style="text-align:center">${p.due_date?fn(p.due_date.replace(/-/g,'/')):'—'}</td>
+      <td>${st}</td>
+      <td style="font-size:11px;color:var(--muted)">${p.note||''}<div>ثبت: ${p.created_by||''}</div></td>
+      <td style="white-space:nowrap">${act}</td></tr>`;
+  };
+  box.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="stat-card" style="flex:1;min-width:150px;padding:12px;border:1px solid var(--border);border-radius:12px"><div style="font-size:11px;color:var(--muted)">وعده‌هایِ باز</div><div style="font-size:22px;font-weight:800">${fn(open.length)}</div></div>
+      <div class="stat-card" style="flex:1;min-width:150px;padding:12px;border:1px solid rgba(74,222,128,.35);border-radius:12px"><div style="font-size:11px;color:var(--muted)">اعلامِ واریز — منتظرِ تأییدِ شما</div><div style="font-size:22px;font-weight:800;color:#4ade80">${fn(reported)}</div></div>
+      <div class="stat-card" style="flex:1;min-width:150px;padding:12px;border:1px solid rgba(248,113,113,.35);border-radius:12px"><div style="font-size:11px;color:var(--muted)">سررسید گذشته</div><div style="font-size:22px;font-weight:800;color:#f87171">${fn(overdue)}</div></div>
+      <div class="stat-card" style="flex:1;min-width:180px;padding:12px;border:1px solid var(--border);border-radius:12px"><div style="font-size:11px;color:var(--muted)">جمعِ مبالغِ باز (تومان)</div><div style="font-size:20px;font-weight:800">${_pmMoney(sum)}</div></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn ${promiseViewERP==='open'?'btn-primary':'btn-ghost'} btn-sm" onclick="promiseViewERP='open';renderPromisesERP()">باز (${fn(open.length)})</button>
+      <button class="btn ${promiseViewERP==='done'?'btn-primary':'btn-ghost'} btn-sm" onclick="promiseViewERP='done';renderPromisesERP()">تأییدشده / لغوشده</button>
+      <button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="loadPromisesERP()">🔄 تازه‌سازی</button>
+    </div>
+    ${list.length ? `<div class="tbl-wrap"><table class="tbl" style="width:100%"><thead><tr><th>مشتری</th><th>مبلغ (تومان)</th><th>سررسید</th><th>وضعیت</th><th>توضیح</th><th></th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`
+      : `<div style="text-align:center;color:var(--muted);padding:40px">${promiseViewERP==='open' ? 'وعده‌ی بازی نیست ✨' : 'موردی نیست'}</div>`}`;
+}
+setInterval(() => { if(document.visibilityState === 'visible') loadPromisesERP(); }, 90000);
+
 // ══════════════════════════════════════════
 function showPage(p){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
   const pg=document.getElementById('page-'+p);
   if(pg) pg.classList.add('active');
-  const titles={dashboard:'داشبورد',requests:'درخواست‌های فروش',samples:'نمونه‌ها',customers:'مشتریان',cprofile:'پروفایل مشتری',procurement:'نیاز مشتری',estelamat:'استعلامات',estelamatforeign:'استعلامات خارج',bazdash:'داشبورد بازرگانی',financedash:'داشبورد مالی',financetasks:'تسک‌های مالی (از CRM)',
+  const titles={dashboard:'داشبورد',requests:'درخواست‌های فروش',samples:'نمونه‌ها',customers:'مشتریان',cprofile:'پروفایل مشتری',procurement:'نیاز مشتری',estelamat:'استعلامات',estelamatforeign:'استعلامات خارج',bazdash:'داشبورد بازرگانی',financedash:'داشبورد مالی',financetasks:'تسک‌های مالی (از CRM)',promises:'وعده‌های پرداخت (از CRM)',
     'samples-bazargani':'نمونه‌ها — بازرگانی','samples-anbar':'نمونه‌ها — انبار',
     'deptfeedback-tadarokat':'بازخورد — تدارکات','deptfeedback-bazargani':'بازخورد — بازرگانی',
     'deptfeedback-mali':'بازخورد — مالی','deptfeedback-anbar':'بازخورد — انبار',
@@ -4253,6 +4344,7 @@ function showPage(p){
   if(p==='bazdash')       renderBazarganiDashboard();
   if(p==='financedash')   renderFinanceDashboard();
   if(p==='financetasks')  { renderFinanceTasks(); renderSuggestions(); }
+  if(p==='promises')      { renderPromisesERP(); loadPromisesERP(); }
   if(p==='debtcases')     renderDebtCasesERP();
   if(p.indexOf('deptfeedback-')===0) renderDeptFeedback(p.replace('deptfeedback-',''));
   if(p==='feedbackdash')  renderFeedbackDashboard();
@@ -4816,7 +4908,7 @@ function renderCustNeed(){
   const el=document.getElementById('custNeedBody');
   if(!rows.length){el.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">موردی نیست</div></div></td></tr>`;return;}
   el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openEstelamat('${r.requestId}')">
-    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${r.displayNumber}</span></td>
+    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${sideCode(r.displayNumber,'I')}</span></td>
     <td>${fn(r.totalItems)}</td>
     <td>${fn(r.quoted+r.approved+r.delivered)}</td>
     <td>${fn(r.approved+r.delivered)}</td>
@@ -4918,7 +5010,7 @@ function renderEstelamatPage(){
   if(estelamatFilterRequestId){
     items=getRequestMarketItems(estelamatFilterRequestId);
     const r=requests.find(x=>String(x.id)===String(estelamatFilterRequestId));
-    titleSuffix=`— فقط درخواست ${r?(r.displayNumber||r.customer):''} <button class="action-btn" style="font-size:10px;padding:3px 8px;margin-right:8px;" onclick="estelamatFilterRequestId=null;renderEstelamatPage();">✕ نمایش همه</button>`;
+    titleSuffix=`— فقط درخواست ${sideCode(r?(r.displayNumber||r.customer):'','I')} <button class="action-btn" style="font-size:10px;padding:3px 8px;margin-right:8px;" onclick="estelamatFilterRequestId=null;renderEstelamatPage();">✕ نمایش همه</button>`;
   } else if(curEstelamatCustomer){
     items=getCustomerMarketItems(curEstelamatCustomer);
     titleSuffix=`— ${curEstelamatCustomer}`;
@@ -5321,7 +5413,7 @@ function renderForeignNeed(){
   const el=document.getElementById('foreignNeedBody');
   if(!rows.length){el.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">موردی نیست</div></div></td></tr>`;return;}
   el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openForeignEstelamatByRequest('${r.requestId}')">
-    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${r.displayNumber||''}</span></td>
+    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${sideCode(r.displayNumber||'','C')}</span></td>
     <td>${fn(r.totalItems)}</td>
     <td>${fn(r.quoted+r.approved+r.orderedShipping+r.arrived+r.deliveredToCustomer)}</td>
     <td>${fn(r.approved+r.orderedShipping+r.arrived+r.deliveredToCustomer)}</td>
@@ -5346,7 +5438,7 @@ function renderForeignNeedInProgress(){
   if(!el) return;
   if(!rows.length){el.innerHTML=`<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🚚</div><div class="empty-text">موردی در حال پیگیری نیست</div></div></td></tr>`;return;}
   el.innerHTML=rows.map(r=>`<tr style="cursor:pointer" onclick="openForeignEstelamatByRequest('${r.requestId}')">
-    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${r.displayNumber||''}</span></td>
+    <td><strong>${r.customer}</strong> <span style="font-size:9px;color:var(--accent);">${sideCode(r.displayNumber||'','C')}</span></td>
     <td>${fn(r.totalItems)}</td>
     <td style="color:#60a5fa">${fn(r.approved+r.orderedShipping)}</td>
     <td><button class="action-btn">مشاهده ›</button></td>
@@ -5449,7 +5541,7 @@ function renderEstelamatForeignPage(){
   if(estelamatForeignFilterRequestId){
     items=getRequestForeignItems(estelamatForeignFilterRequestId);
     const r=requests.find(x=>String(x.id)===String(estelamatForeignFilterRequestId));
-    titleSuffix=`— فقط درخواست ${r?(r.displayNumber||r.customer):''} <button class="action-btn" style="font-size:10px;padding:3px 8px;margin-right:8px;" onclick="estelamatForeignFilterRequestId=null;renderEstelamatForeignPage();">✕ نمایش همه</button>`;
+    titleSuffix=`— فقط درخواست ${sideCode(r?(r.displayNumber||r.customer):'','C')} <button class="action-btn" style="font-size:10px;padding:3px 8px;margin-right:8px;" onclick="estelamatForeignFilterRequestId=null;renderEstelamatForeignPage();">✕ نمایش همه</button>`;
   } else if(curEstelamatForeignCustomer){
     items=getCustomerForeignItems(curEstelamatForeignCustomer);
     titleSuffix=`— ${curEstelamatForeignCustomer}`;
@@ -5516,7 +5608,7 @@ function renderEstelamatForeignPage(){
       <summary style="font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;padding:8px 0;">🗄️ بایگانی — رفته مرحله‌ی بعد یا بسته‌شده (${fn(archiveItems.length)})</summary>
       <div style="margin-top:10px;">
         ${archiveItems.map(it=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-          <div><strong style="font-size:12px;">${it.item.name||'—'}</strong> <span style="font-size:10px;color:var(--muted);margin-right:8px;">${it.customer||''} — ${it.displayNumber||''}</span></div>
+          <div><strong style="font-size:12px;">${it.item.name||'—'}</strong> <span style="font-size:10px;color:var(--muted);margin-right:8px;">${it.customer||''} — ${sideCode(it.displayNumber||'','C')}</span></div>
           <div style="font-size:10.5px;">${archiveLabel(it)}</div>
         </div>`).join('')}
       </div>
@@ -5932,7 +6024,7 @@ function renderDomesticDeliv(){
   const el=document.getElementById('domesticDelivBody');
   if(!rows.length){el.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🏬</div><div class="empty-text">موردی نیست</div></div></td></tr>`;return;}
   el.innerHTML=rows.map(r=>`<tr>
-      <td style="font-size:10px;color:var(--accent)">${r.displayNumber||'—'}</td>
+      <td style="font-size:10px;color:var(--accent)">${sideCode(r.displayNumber||'—','I')}</td>
       <td><strong>${r.customer}</strong></td>
       <td style="font-size:12px;font-weight:600">${r.name}</td>
       <td>${fn(r.qty)}</td>
@@ -9729,6 +9821,8 @@ function updateNavBadges(){
   setBadge('fbBadgeAnbar', feedbackUnresolved('anbar'));
   setBadge('fbBadgeMali', feedbackUnresolved('mali'));
   setBadge('financeTaskBadge', (financeTasks||[]).filter(t=>!t.done).length);
+  setBadge('promiseBadge', (payPromisesERP||[]).filter(p=>p.status==='pending'||p.status==='reported').length);
+  if(!window._promisesLoadedOnce){ window._promisesLoadedOnce = true; loadPromisesERP(); }
   setBadge('clearanceBadge', (shipments||[]).filter(s=>s.sentToClearance && !s.clearedToWarehouse).length);
 
   // نمونه‌ها — سمت فروش: هر ردیفی که هنوز ارجاع نشده، یا همه‌ی واحدهای درگیرش
