@@ -4064,21 +4064,29 @@ let SHAMSI_HOLIDAYS_SET = new Set();
 let CHINA_HOLIDAYS_SET = new Set();
 let CHINA_COMPENSATORY_SET = new Set();
 let GLOBAL_HOLIDAYS_SET = new Set();
+const _MADAR_HOL_URLS = ['https://smartchip-backend.onrender.com/api/worklog/holidays/compat/', 'https://smartchip-backend.onrender.com/api/calendar/list/'];
+// ⚠️ (۱۴۰۵/۰۷/۰۸) اصلاحِ جدی: قبلاً فقط «ماه/روز» نگه داشته می‌شد (بدونِ سال) — تعطیلاتِ قمریِ یک سال
+// (تاسوعا/عاشورا/فطر…) سالِ بعد هم اشتباهی تعطیل حساب می‌شد و SLA (ساعتِ کاری) خراب می‌شد.
+// حالا «سال/ماه/روز» + منبعِ معتبرِ مدار (worklog/holidays) با fallback به /api/calendar/list/
 async function loadCalendarHolidaysM(){
-  try{
-    const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/calendar/list/');
-    if(!data) return;
-    SHAMSI_HOLIDAYS_SET = new Set();
-    (data.iran||[]).forEach(iso=>{
-      const [gy,gm,gd] = iso.split('-').map(Number);
-      try{ const jd=gToJD(gy,gm,gd); const sd=jdToS(jd); SHAMSI_HOLIDAYS_SET.add(sd.m+'/'+sd.d); }catch(e){}
-    });
-    CHINA_HOLIDAYS_SET = new Set(data.china_holiday||[]);
-    CHINA_COMPENSATORY_SET = new Set(data.china_compensatory||[]);
-    GLOBAL_HOLIDAYS_SET = new Set(data.global||[]);
-  }catch(e){ console.warn('⚠️ لود تقویم شکست خورد:', e); }
+  for (const url of _MADAR_HOL_URLS){
+    try{
+      const data = await fetchJsonWithRetry(url);
+      if(!data || !Array.isArray(data.iran) || !data.iran.length) continue;
+      SHAMSI_HOLIDAYS_SET = new Set();
+      data.iran.forEach(iso=>{
+        const [gy,gm,gd] = iso.split('-').map(Number);
+        try{ const jd=gToJD(gy,gm,gd); const sd=jdToS(jd); SHAMSI_HOLIDAYS_SET.add(sd.y+'/'+sd.m+'/'+sd.d); }catch(e){}
+      });
+      CHINA_HOLIDAYS_SET = new Set(data.china_holiday||[]);
+      CHINA_COMPENSATORY_SET = new Set(data.china_compensatory||[]);
+      GLOBAL_HOLIDAYS_SET = new Set(data.global||[]);
+      return;
+    }catch(e){ console.warn('⚠️ لود تقویم از', url, 'شکست خورد:', e); }
+  }
 }
-function isShamsiHolidayM(y,m,d){ return SHAMSI_HOLIDAYS_SET.has(m+'/'+d); }
+
+function isShamsiHolidayM(y,m,d){ return SHAMSI_HOLIDAYS_SET.has(y+'/'+m+'/'+d); }
 function isShamsiBizDayM(y,m,d){
   try{
     if(sDow(y,m,d)===6) return false;
@@ -5928,6 +5936,28 @@ function pcCalc(){
 // ⚠️ (۱۴۰۵/۰۷/۰۹) طبقِ تصمیمِ کاربر: PWA کاملاً برداشته شد — منشأِ چند خرابیِ واقعیِ اخیر بود.
 // اگه قبلاً رویِ این مرورگر نصب شده باشه، فایلِ sw.js (که رویِ سرور با یک نسخه‌ی خودکارحذف‌کننده
 // جایگزین شده) دفعه‌یِ بعد که این صفحه باز بشه، خودش رو کاملاً از مرورگر پاک می‌کنه.
+</script>
+
+<!-- ⚠️ (۱۴۰۵/۰۷/۰۸) هشدارِ تعطیلات در همه‌ی مدار: «یک ماه تا نوروز / تعطیلاتِ چین» (قابلِ بستن؛ فرداش دوباره) -->
+<div id="madarHolPill" style="display:none;position:fixed;bottom:16px;right:16px;z-index:9999;max-width:min(380px,calc(100vw - 32px));background:#1d212e;color:#f4f5f8;border:1px solid rgba(240,165,0,.55);border-radius:12px;padding:10px 12px 10px 34px;font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px;line-height:1.8;box-shadow:0 8px 30px rgba(0,0,0,.35);direction:rtl"></div>
+<script>
+(function(){
+  const API = 'https://smartchip-backend.onrender.com/api/worklog/holidays/';
+  const fa = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  const fdate = j => { const m=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند']; const [y,mo,d]=j.split('-').map(Number); return fa(d)+' '+m[mo-1]; };
+  fetch(API).then(r => r.json()).then(d => {
+    const today = new Date().toISOString().slice(0,10);
+    const w = (d.active_warnings || []).filter(p => !localStorage.getItem('madar_hol_x_' + p.key + '_' + today));
+    if (!w.length) return;
+    const box = document.getElementById('madarHolPill');
+    box.innerHTML = '<button type="button" aria-label="بستن" style="position:absolute;top:6px;left:8px;border:0;background:none;color:#9aa2bd;font-size:15px;cursor:pointer">✕</button>' +
+      w.map(p => { const flag = p.country === 'IR' ? '🇮🇷' : '🇨🇳';
+        const head = p.ongoing ? `${flag} <b>الان ${p.short}</b> — تا ${fdate(p.jend)}` : `${flag} <b>${fa(p.days_left)} روز تا ${p.short}</b> · ${fdate(p.jstart)} تا ${fdate(p.jend)}`;
+        return `<div style="margin-bottom:4px">${head}${p.status === 'predicted' ? ' <span style="color:#9aa2bd">(پیش‌بینی)</span>' : ''}<div style="color:#b9c0d6;font-size:11px">${p.note}</div></div>`; }).join('');
+    box.style.display = 'block';
+    box.querySelector('button').onclick = () => { w.forEach(p => localStorage.setItem('madar_hol_x_' + p.key + '_' + today, '1')); box.style.display = 'none'; };
+  }).catch(() => {});
+})();
 </script>
 </body>
 </html>

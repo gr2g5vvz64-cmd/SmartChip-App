@@ -120,6 +120,17 @@ body > *{position:relative;z-index:1}
   .tile-title{font-size:12.5px}
   .tile-desc{font-size:9.5px}
 }
+/* ── هشدارِ تعطیلات ── */
+.hol-strip{width:min(620px,100%);margin:-10px auto 26px;display:flex;flex-direction:column;gap:8px}
+.hol-item{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-right:3px solid var(--accent);border-radius:12px;padding:10px 14px;text-align:right}
+.hol-item.cn{border-right-color:#e0453a}
+.hol-flag{font-size:22px;line-height:1.2}
+.hol-main{flex:1;min-width:0}
+.hol-title{font-size:13.5px;font-weight:800;color:var(--text)}
+.hol-title .n{color:var(--accent-hi)}
+.hol-dates{font-size:11.5px;color:var(--muted);margin-top:1px}
+.hol-note{font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.8}
+.hol-tag{font-size:10px;color:var(--faint);border:1px solid var(--border);border-radius:8px;padding:0 6px;margin-right:6px;font-weight:500}
 @media (prefers-reduced-motion:reduce){.trace path{animation:none;stroke-dashoffset:0}.trace circle{animation:none;opacity:1}.tile{transition:none}}
 </style>
 <script>
@@ -151,6 +162,8 @@ body > *{position:relative;z-index:1}
     <p class="motto-en" lang="en" dir="ltr">Your name should close deals before you even enter the room. Build that reputation.</p>
   </blockquote>
 </figure>
+<!-- ⚠️ (۱۴۰۵/۰۷/۰۸) هشدارِ تعطیلات: یک ماه تا نوروز / تعطیلاتِ چین (و در طولِ تعطیلی) -->
+<div class="hol-strip" id="holStrip" hidden></div>
 
 
 <div id="loadingState"><div style="color:var(--muted);font-size:13px;">در حال بررسی دسترسی...</div></div>
@@ -443,5 +456,27 @@ init();
   </div>
 </div>
 
+
+<script>
+// ⚠️ (۱۴۰۵/۰۷/۰۸) هشدارِ تعطیلات در صفحه‌ی اصلی — از منبعِ معتبرِ مدار
+(function(){
+  const fa = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  const MN = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+  const fdate = j => { const [y,m,d] = j.split('-').map(Number); return fa(d) + ' ' + MN[m-1]; };
+  fetch('https://smartchip-backend.onrender.com/api/worklog/holidays/').then(r => r.json()).then(d => {
+    const w = d.active_warnings || []; if (!w.length) return;
+    const box = document.getElementById('holStrip');
+    box.innerHTML = w.map(p => {
+      const cn = p.country === 'CN';
+      const title = p.ongoing ? `الان <span class="n">${p.short}</span> است` : `<span class="n">${fa(p.days_left)} روز</span> تا ${p.short}`;
+      return `<div class="hol-item ${cn ? 'cn' : ''}"><div class="hol-flag">${cn ? '🇨🇳' : '🇮🇷'}</div><div class="hol-main">
+        <div class="hol-title">${title}${p.status === 'predicted' ? '<span class="hol-tag">پیش‌بینی</span>' : ''}</div>
+        <div class="hol-dates">${fdate(p.jstart)} تا ${fdate(p.jend)} · ${fa(p.days)} روز</div>
+        <div class="hol-note">${p.note}</div></div></div>`;
+    }).join('');
+    box.hidden = false;
+  }).catch(() => {});
+})();
+</script>
 </body>
 </html>
