@@ -636,6 +636,28 @@
 <head>
 <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;   // مهلتی که خودِ صفحه گذاشته — دست نمی‌زنیم
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
 <link rel="manifest" href="./manifest-erp.json">
@@ -2513,7 +2535,7 @@ function storeEmail(e){ localStorage.setItem('smartchip_erp_email', e); }
 
 async function getCurrentUserInfoFromDjangoOrSheet(email){
   try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    const res = await fetch('https://api.smartchipelec.com/api/staff/staff/'+encodeURIComponent(email)+'/');
     if(res.status===404){
       return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
     }
@@ -3023,7 +3045,7 @@ let customerMaster = [];
 let currentOrderItems = [];
 
 // اتصال داده‌ی مشتریان به Django — مرحله ۴ مهاجرت (بعد از وصل‌شدن CRM در مرحله ۳)
-const DJANGO_CUSTOMERS_API = 'https://smartchip-backend.onrender.com/api/customers/customers/';
+const DJANGO_CUSTOMERS_API = 'https://api.smartchipelec.com/api/customers/customers/';
 function customerFromApiERP(d){
   return {
     id: d.id,
@@ -3041,9 +3063,9 @@ function customerFromApiERP(d){
 // ══════════════════════════════════════════════════════════════
 // اتصال یادآوری‌ها و تسک‌ها به Django — مرحله ۸ مهاجرت
 // ══════════════════════════════════════════════════════════════
-const DJANGO_FREEREM_API_ERP = 'https://smartchip-backend.onrender.com/api/worklog/free-reminders/';
-const DJANGO_RECURRING_API_ERP = 'https://smartchip-backend.onrender.com/api/worklog/recurring-reminders/';
-const DJANGO_TASKS_API_ERP = 'https://smartchip-backend.onrender.com/api/worklog/tasks/';
+const DJANGO_FREEREM_API_ERP = 'https://api.smartchipelec.com/api/worklog/free-reminders/';
+const DJANGO_RECURRING_API_ERP = 'https://api.smartchipelec.com/api/worklog/recurring-reminders/';
+const DJANGO_TASKS_API_ERP = 'https://api.smartchipelec.com/api/worklog/tasks/';
 
 function freeRemFromApiERP(d){
   return { id:d.id, customer:d.customer||'', desc:d.desc||'', date:d.date||'',
@@ -3147,7 +3169,7 @@ async function deleteTaskInDjangoERP(id){
 
 // معادل Django برای closeCRMLeads — تو تاریخچه‌ی لیدهای این مشتری، هر ورودیِ باز رو
 // (نه تکمیل‌شده نه کنسل‌شده) تکمیل‌شده علامت می‌زنه — دقیقاً همون منطق قبلی سمت سرور
-const DJANGO_LEADS_API_ERP = 'https://smartchip-backend.onrender.com/api/leads/leads/';
+const DJANGO_LEADS_API_ERP = 'https://api.smartchipelec.com/api/leads/leads/';
 async function closeCRMLeadsInDjango(customers){
   if(!customers || !customers.length) return {ok:true, closed:0};
   try{
@@ -3306,7 +3328,7 @@ updateDjangoSyncUI();
 // اگه نشد از گوگل‌شیت قدیمی (fallback امن)
 async function getNextCustomerSeqFromDjango(customerName){
   try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-customer-seq/', {
+    const res = await fetch('https://api.smartchipelec.com/api/requests/next-customer-seq/', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:customerName})
     });
     if(res.ok) return await res.json();
@@ -3315,7 +3337,7 @@ async function getNextCustomerSeqFromDjango(customerName){
 }
 async function getNextOrderNumberFromDjango(){
   try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/requests/next-order-number/');
+    const res = await fetch('https://api.smartchipelec.com/api/requests/next-order-number/');
     if(res.ok) return await res.json();
   }catch(e){}
   return await sheetCall('getNextOrderNumber');
@@ -3334,7 +3356,7 @@ function formatCustomerReqNumber(customerName, seq){
   return `${abbr}-${String(seq).padStart(2,'0')}`;
 }
 
-const DJANGO_REQUESTS_API_ERP = 'https://smartchip-backend.onrender.com/api/requests/requests/';
+const DJANGO_REQUESTS_API_ERP = 'https://api.smartchipelec.com/api/requests/requests/';
 
 function requestFromApiERP(d){
   return { id:d.id, date:d.date||'', customer:d.customer||'', assignee:d.assignee||'',
@@ -3410,8 +3432,8 @@ async function deleteRequestInDjango(id){
 // اتصال محموله‌ها و پکینگ‌لیست به Django — مرحله ۲۱ مهاجرت
 // (کد محموله مثل SC-1405-009 مستقیم به‌عنوان شناسه‌ی URL استفاده می‌شه)
 // ══════════════════════════════════════════════════════════════
-const DJANGO_SHIPMENTS_API_ERP = 'https://smartchip-backend.onrender.com/api/shipments/shipments/';
-const DJANGO_PACKINGLISTS_API_ERP = 'https://smartchip-backend.onrender.com/api/shipments/packinglists/';
+const DJANGO_SHIPMENTS_API_ERP = 'https://api.smartchipelec.com/api/shipments/shipments/';
+const DJANGO_PACKINGLISTS_API_ERP = 'https://api.smartchipelec.com/api/shipments/packinglists/';
 
 function shipmentFromApiERP(d){
   return { id:d.code, supplier:d.supplier||'', desc:d.desc||'', orderDate:d.order_date||'',
@@ -3489,9 +3511,9 @@ async function savePackingListInDjangoERP(pl){
 // ══════════════════════════════════════════════════════════════
 // اتصال مالی (چک‌ها) به Django — مرحله ۲۴ مهاجرت
 // ══════════════════════════════════════════════════════════════
-const DJANGO_CHQREC_API_ERP = 'https://smartchip-backend.onrender.com/api/finance/cheques-received/';
-const DJANGO_CHQRET_API_ERP = 'https://smartchip-backend.onrender.com/api/finance/cheques-returned/';
-const DJANGO_PAIDCHQ_API_ERP = 'https://smartchip-backend.onrender.com/api/finance/paid-cheques/';
+const DJANGO_CHQREC_API_ERP = 'https://api.smartchipelec.com/api/finance/cheques-received/';
+const DJANGO_CHQRET_API_ERP = 'https://api.smartchipelec.com/api/finance/cheques-returned/';
+const DJANGO_PAIDCHQ_API_ERP = 'https://api.smartchipelec.com/api/finance/paid-cheques/';
 
 function chqReceivedFromApiERP(d){
   return { id:d.id, rowNumber:d.row_number, dateReceived:d.date_received||'', transferor:d.transferor||'',
@@ -3528,7 +3550,7 @@ async function fetchJsonWithRetry(url, timeoutMs){
   return data;
 }
 
-const DJANGO_WAREHOUSE_API = 'https://smartchip-backend.onrender.com/api/ops/warehouse-items/';
+const DJANGO_WAREHOUSE_API = 'https://api.smartchipelec.com/api/ops/warehouse-items/';
 function whItemFromApi(d){
   return {id:d.id, plId:d.pl_id||'', shipId:d.ship_id||'', customer:d.customer||'',
     displayNumber:d.display_number||'', name:d.name||'', supplier:d.supplier||'',
@@ -3561,7 +3583,7 @@ async function updateWarehouseItemInDjango(w){
 }
 
 // ── ۲. پکینگ خروجی (OutboundPacking) — شناسه رشته‌ای، از کلاینت ──
-const DJANGO_OUTBOUND_API = 'https://smartchip-backend.onrender.com/api/ops/outbound-packings/';
+const DJANGO_OUTBOUND_API = 'https://api.smartchipelec.com/api/ops/outbound-packings/';
 function outboundFromApi(d){
   return {id:d.id, customerPrefix:d.customer_prefix||'', customer:d.customer||'', items:d.items||[],
     invoiceDone:!!d.invoice_done, invoiceDate:d.invoice_date||'', createdDate:d.created_date||'',
@@ -3588,7 +3610,7 @@ async function updateOutboundPackingInDjango(p){
 }
 
 // ── ۳. آدرس مشتریان (CustomerAddress) — شناسه رشته‌ای، از کلاینت ──
-const DJANGO_ADDRESS_API = 'https://smartchip-backend.onrender.com/api/ops/customer-addresses/';
+const DJANGO_ADDRESS_API = 'https://api.smartchipelec.com/api/ops/customer-addresses/';
 function addrFromApi(d){
   return {id:d.id, customer:d.customer||'', title:d.title||'', city:d.city||'', full:d.full_address||'',
     postal:d.postal_code||'', phone:d.mobile1||'', mobile1:d.mobile1||'', mobile2:d.mobile2||'',
@@ -3641,7 +3663,7 @@ async function deleteCustomerAddressInDjango(id){
 }
 
 // ── ۴. بازخورد پس از تحویل (DeliveryFeedback) — شناسه عددی خودکار Django ──
-const DJANGO_FEEDBACK_API = 'https://smartchip-backend.onrender.com/api/ops/delivery-feedback/';
+const DJANGO_FEEDBACK_API = 'https://api.smartchipelec.com/api/ops/delivery-feedback/';
 function feedbackFromApi(d){
   return {id:d.id, trackingCode:d.tracking_code||'', requestId:d.request_id||'', customer:d.customer||'',
     departments:d.departments||[], type:d.feedback_type||'', description:d.description||'',
@@ -3688,7 +3710,7 @@ async function linkFeedbackNewRequestInDjango(id, newRequestId){
 // فیدبک چندانتخابیِ فروش خودش دپارتمان(های) مقصد رو قفل می‌کنه، هر دپارتمان
 // جدا جواب می‌ده و جدا بایگانی می‌شه، فروش در پایان تکمیل/کنسل می‌زنه.
 // ══════════════════════════════════════════════════════════════
-const DJANGO_SAMPLES_API = 'https://smartchip-backend.onrender.com/api/samples/sample-feedback/';
+const DJANGO_SAMPLES_API = 'https://api.smartchipelec.com/api/samples/sample-feedback/';
 let sampleFeedbacks = [];
 const SAMPLE_REASONS = [
   {key:'quality',  label:'😕 عدم کیفیت',            dept:'bazargani'},
@@ -3730,7 +3752,7 @@ async function updateSampleFeedbackInDjango(id, patch){
 }
 
 // ── ۵. درخواست ارسال فوری (UrgentShipRequest) — شناسه عددی خودکار Django ──
-const DJANGO_URGENT_API = 'https://smartchip-backend.onrender.com/api/ops/urgent-ship-requests/';
+const DJANGO_URGENT_API = 'https://api.smartchipelec.com/api/ops/urgent-ship-requests/';
 function urgentFromApi(d){
   return {id:d.id, requestId:d.request_id||'', customer:d.customer||'', items:d.items||[],
     requestedBy:d.requested_by||'', resolved:!!d.resolved};
@@ -3755,7 +3777,7 @@ async function resolveUrgentShipInDjango(id){
 }
 
 // ── ۶. تسک مالی (FinanceTask) — شناسه عددی خودکار Django ──
-const DJANGO_FINTASK_API = 'https://smartchip-backend.onrender.com/api/ops/finance-tasks/';
+const DJANGO_FINTASK_API = 'https://api.smartchipelec.com/api/ops/finance-tasks/';
 function finTaskFromApi(d){
   return {id:d.id, customer:d.customer||'', type:d.task_type||'', label:d.label||'', note:d.note||'',
     leadId:d.lead_id||'', trackingCode:d.tracking_code||'', linkedRequestId:d.linked_request_id||'',
@@ -3783,7 +3805,7 @@ async function updateFinanceTaskInDjango(id, doneDate, doneBy){
 }
 
 // ── ۷. عملکرد تامین‌کننده خارج (ForeignSupplierPerformance) — شناسه رشته‌ای، از کلاینت ──
-const DJANGO_FSP_API = 'https://smartchip-backend.onrender.com/api/ops/foreign-supplier-performance/';
+const DJANGO_FSP_API = 'https://api.smartchipelec.com/api/ops/foreign-supplier-performance/';
 function fspFromApi(d){
   return {id:d.id, supplier:d.supplier||'', itemName:d.item_name||'', approvedPrice:d.approved_price||'',
     result:d.result||'', date:d.date||'', customer:d.customer||'', reqId:d.req_id||''};
@@ -3802,7 +3824,7 @@ async function addForeignSupplierPerformanceInDjango(f){
 }
 
 // ── بایگانی خرید داخل — شناسه رشته‌ای، از کلاینت ──
-const DJANGO_DPURCH_API = 'https://smartchip-backend.onrender.com/api/ops/domestic-purchase-archive/';
+const DJANGO_DPURCH_API = 'https://api.smartchipelec.com/api/ops/domestic-purchase-archive/';
 function dPurchFromApi(d){
   return {id:d.id, reqId:d.req_id||'', displayNumber:d.display_number||'', customer:d.customer||'',
     name:d.name||'', qty:d.qty||'', supplier:d.supplier||'', price:d.price||'', purchaseDate:d.purchase_date||''};
@@ -4229,7 +4251,7 @@ function sideCode(code, side){
 //   reported : کارشناس در CRM «واریز شد» زده → در CRM تمام؛ اینجا باز تا مالی ثبت و تأیید کنه
 //   confirmed: مالی تأیید کرد → همه‌جا تمام
 // ══════════════════════════════════════════════════════════════
-const PROMISE_API_ERP = 'https://smartchip-backend.onrender.com/api/worklog/payment-promises/';
+const PROMISE_API_ERP = 'https://api.smartchipelec.com/api/worklog/payment-promises/';
 let payPromisesERP = [];
 let promiseViewERP = 'open';
 async function loadPromisesERP(){
@@ -5066,7 +5088,7 @@ async function markDomesticItemCollected(reqId, itemIdx){
   renderEstelamatPage();
   if(isConnected) await reliableUpdateRequestParts(r.id, r.parts);
   try{
-    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${reqId}/collect-item/`, {
+    const httpRes = await fetch(`https://api.smartchipelec.com/api/ops/cascade/domestic/${reqId}/collect-item/`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({itemIdx, trackingCode:r.displayNumber||''})
     });
@@ -5228,7 +5250,7 @@ async function checkDomesticQuoteCascade(r){
   const allResolved = items.length>0 && items.every(it=>resolvedStatuses.includes(it.status));
   if(!allResolved || r.parts.marketQuoteComplete) return; // یا هنوز کامل نشده، یا قبلاً ثبت شده — دوباره لازم نیست
   try{
-    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/domestic/${r.id}/check-completion/`, {
+    const httpRes = await fetch(`https://api.smartchipelec.com/api/ops/cascade/domestic/${r.id}/check-completion/`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({trackingCode:r.displayNumber, actor:(currentUser&&currentUser.name)||''})
     });
@@ -5759,7 +5781,7 @@ async function checkForeignQuoteCascade(r){
   const allResolved = items.length>0 && items.every(it=>resolvedStatuses.includes(it.status));
   if(!allResolved || r.parts.foreignQuoteComplete) return;
   try{
-    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/foreign/${r.id}/check-completion/`, {
+    const httpRes = await fetch(`https://api.smartchipelec.com/api/ops/cascade/foreign/${r.id}/check-completion/`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({trackingCode:r.displayNumber, actor:(currentUser&&currentUser.name)||''})
     });
@@ -5930,7 +5952,7 @@ async function notifySupplierOfOrder(ship){
   if(connected) return; // سرور خودش پیام رو می‌فرسته — اینجا کاری لازم نیست
 
   try{
-    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-supplier-invite/', {
+    const httpRes = await fetch('https://api.smartchipelec.com/api/bot/send-supplier-invite/', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({supplier: ship.supplier})
     });
@@ -6731,7 +6753,7 @@ function getDisplayPrefix(dn){
 // ══════════════════════════════════════════════════════════════
 // وصول مطالبات — این صفحه قبلاً فقط یه جعبه‌ی خالی بود، الان کامل شد
 // ══════════════════════════════════════════════════════════════
-const DJANGO_DEBTS_API = 'https://smartchip-backend.onrender.com/api/debts/cases/';
+const DJANGO_DEBTS_API = 'https://api.smartchipelec.com/api/debts/cases/';
 function debtCaseFromApi(d){
   return {id:d.id, customer:d.customer||'', totalDebt:d.total_debt||0, startDate:d.start_date||'',
     createdDate:d.created_date||'', createdBy:d.created_by||'', assignedTo:d.assigned_to||'',
@@ -7412,7 +7434,7 @@ async function markPackingSent(pkId){
         const kind = it.source==='foreign' ? 'foreign' : 'domestic';
         try{
           const r = requests.find(x=>String(x.id)===String(it.reqId));
-          const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/${it.reqId}/ship-item/`, {
+          const httpRes = await fetch(`https://api.smartchipelec.com/api/ops/cascade/${it.reqId}/ship-item/`, {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({itemIdx:it.itemIdx, kind, trackingCode:(r&&r.displayNumber)||''})
           });
@@ -8557,7 +8579,7 @@ async function smartNotify(shipId, msgType){
   toast('⏳ در حال ارسال...');
   let res = null;
   try{
-    const r = await fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
+    const r = await fetch('https://api.smartchipelec.com/api/bot/send-smart-notification/', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:s.customer, message:msg})
     });
     res = await r.json();
@@ -8617,7 +8639,7 @@ async function autoNotify(ship, msgType){
   if(!ship||!ship.customer) return;
   const msg = MSG_TEMPLATES[msgType](ship);
   // ارسال در پس‌زمینه — بدون block کردن UI
-  fetch('https://smartchip-backend.onrender.com/api/bot/send-smart-notification/', {
+  fetch('https://api.smartchipelec.com/api/bot/send-smart-notification/', {
     method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:ship.customer, message:msg})
   })
     .then(r=>r.json())
@@ -8759,7 +8781,7 @@ let botInvites = [];
 
 async function loadBotInvites(){
   try {
-    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/invites/');
+    const res = await fetch('https://api.smartchipelec.com/api/bot/invites/');
     if(res.ok){
       const data = await res.json();
       botInvites = data.map(d=>({id:d.id, customer:d.customer, mobile:d.mobile,
@@ -8787,7 +8809,7 @@ async function sendBotInviteIfNeeded(ship){
   // ارسال دعوت — از طریق Django (خودش پیامک هم می‌فرسته)
   let res;
   try {
-    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-invite/', {
+    const httpRes = await fetch('https://api.smartchipelec.com/api/bot/send-invite/', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({customer: ship.customer, mobile: cm.mobile||'', orderId: ship.id||''})
     });
@@ -8921,7 +8943,7 @@ function resendBotInvite(customerName){
 let staffListForAssignment = [];
 async function loadStaffListForBotPanel(){
   try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
+    const res = await fetch('https://api.smartchipelec.com/api/bot/staff-list/');
     if(res.ok){ staffListForAssignment = await res.json(); window._staffListLoaded = true; }
   }catch(e){ console.error('🔴 خطای بارگذاری لیست کارمندان:', e); }
   renderStaffBotTab();
@@ -8929,7 +8951,7 @@ async function loadStaffListForBotPanel(){
 async function deleteBotInvite(id, customerName){
   if(!confirm(`دعوت‌نامه‌ی «${customerName}» کامل حذف بشه؟`)) return;
   try{
-    const res = await fetch(`https://smartchip-backend.onrender.com/api/bot/invites/${id}/`, {method:'DELETE'});
+    const res = await fetch(`https://api.smartchipelec.com/api/bot/invites/${id}/`, {method:'DELETE'});
     if(res.ok || res.status===204){
       botInvites = botInvites.filter(b=>b.id!==id);
       renderBotStatusPanel();
@@ -8972,7 +8994,7 @@ function renderStaffBotTab(){
 }
 async function sendStaffBotInviteWhatsApp(staffId){
   try{
-    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-staff-invite/', {
+    const httpRes = await fetch('https://api.smartchipelec.com/api/bot/send-staff-invite/', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({staffId})
     });
@@ -10824,7 +10846,7 @@ function searchItemAutocomplete(val){
   _itemSearchTimer=setTimeout(async()=>{
     let items=[];
     try{
-      const data=await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(val.trim()));
+      const data=await fetchJsonWithRetry('https://api.smartchipelec.com/api/items/search/?q='+encodeURIComponent(val.trim()));
       items=(data&&data.items)||[];
     }catch(e){}
     if(mySeq!==_itemSearchSeq) return; // یه سرچ جدیدتر تو راهه، این جواب کهنه رو دور بریز
@@ -10859,7 +10881,7 @@ function searchProcurementQuickRowAC(inputEl,idx){
   _pqRowSearchTimer[idx]=setTimeout(async()=>{
     let items=[];
     try{
-      const data=await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(val.trim()));
+      const data=await fetchJsonWithRetry('https://api.smartchipelec.com/api/items/search/?q='+encodeURIComponent(val.trim()));
       items=(data&&data.items)||[];
     }catch(e){}
     if(!items.length){box.style.display='none';return;}
@@ -11276,7 +11298,7 @@ async function cancelRequest(id){
       await reliableUpdateRequestParts(r.id, r.parts);
       // بایگانی کردن لید متناظر در CRM — تا از جدول فعال به بایگانی بره
       try{
-        await fetch('https://smartchip-backend.onrender.com/api/requests/archive-lead-by-tracking-code/', {
+        await fetch('https://api.smartchipelec.com/api/requests/archive-lead-by-tracking-code/', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({trackingCode:r.displayNumber, reason:r.cancelReason||'کنسل شده از ERP'})
         });
@@ -11759,7 +11781,7 @@ async function sendSupplierBotInviteWhatsApp(supplierName){
   if(!inviteId){
     var res;
     try{
-      var httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-supplier-invite/', {
+      var httpRes = await fetch('https://api.smartchipelec.com/api/bot/send-supplier-invite/', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({supplier:supplierName})
       });
@@ -11807,7 +11829,7 @@ async function sendBotInviteWhatsApp(customerName){
     // اگه اینجا تو گوگل‌شیت ساخته بشه، وقتی مشتری Start بزنه، Django هیچ‌وقت این شناسه رو پیدا نمی‌کنه
     var res;
     try{
-      var httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-invite/', {
+      var httpRes = await fetch('https://api.smartchipelec.com/api/bot/send-invite/', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({customer:customerName, mobile:cm.mobile, orderId:''})
       });
@@ -12107,7 +12129,7 @@ let CHINA_COMPENSATORY_SET = new Set();
 let GLOBAL_HOLIDAYS_SET = new Set();
 let _calendarLoaded = false;
 
-const _MADAR_HOL_URLS = ['https://smartchip-backend.onrender.com/api/worklog/holidays/compat/', 'https://smartchip-backend.onrender.com/api/calendar/list/'];
+const _MADAR_HOL_URLS = ['https://api.smartchipelec.com/api/worklog/holidays/compat/', 'https://api.smartchipelec.com/api/calendar/list/'];
 // ⚠️ (۱۴۰۵/۰۷/۰۸) اصلاحِ جدی: قبلاً فقط «ماه/روز» نگه داشته می‌شد (بدونِ سال) — تعطیلاتِ قمریِ یک سال
 // (تاسوعا/عاشورا/فطر…) سالِ بعد هم اشتباهی تعطیل حساب می‌شد و SLA (ساعتِ کاری) خراب می‌شد.
 // حالا «سال/ماه/روز» + منبعِ معتبرِ مدار (worklog/holidays) با fallback به /api/calendar/list/
@@ -13011,7 +13033,7 @@ async function resolveUrgentShipUI(id){
 
 
 async function fetchSuggestionsFromDjango(){
-  const data = await fetchJsonWithRetry('https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/');
+  const data = await fetchJsonWithRetry('https://api.smartchipelec.com/api/ops/cascade/suggestions/');
   return data;
 }
 function renderSuggestions(){
@@ -13045,7 +13067,7 @@ async function respondToSuggestion(id){
   toast('⏳ در حال ثبت...');
   let res=null;
   try{
-    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/suggestions/${id}/respond/`, {
+    const httpRes = await fetch(`https://api.smartchipelec.com/api/ops/cascade/suggestions/${id}/respond/`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({response:responseText, respondedBy:(currentUser&&currentUser.name)||''})
     });
@@ -13097,7 +13119,7 @@ async function markFinanceTaskDone(id){
   toast('⏳ در حال ثبت آبشاری...');
   let res=null;
   try{
-    const httpRes = await fetch(`https://smartchip-backend.onrender.com/api/ops/cascade/finance-task/${id}/complete/`, {
+    const httpRes = await fetch(`https://api.smartchipelec.com/api/ops/cascade/finance-task/${id}/complete/`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({doneBy, note})
     });
@@ -13156,7 +13178,7 @@ async function markFinanceTaskDone(id){
 <div id="madarHolPill" style="display:none;position:fixed;bottom:16px;right:16px;z-index:9999;max-width:min(380px,calc(100vw - 32px));background:#1d212e;color:#f4f5f8;border:1px solid rgba(240,165,0,.55);border-radius:12px;padding:10px 12px 10px 34px;font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px;line-height:1.8;box-shadow:0 8px 30px rgba(0,0,0,.35);direction:rtl"></div>
 <script>
 (function(){
-  const API = 'https://smartchip-backend.onrender.com/api/worklog/holidays/';
+  const API = 'https://api.smartchipelec.com/api/worklog/holidays/';
   const fa = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
   const fdate = j => { const m=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند']; const [y,mo,d]=j.split('-').map(Number); return fa(d)+' '+m[mo-1]; };
   fetch(API).then(r => r.json()).then(d => {

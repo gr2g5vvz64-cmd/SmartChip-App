@@ -2,6 +2,28 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;   // مهلتی که خودِ صفحه گذاشته — دست نمی‌زنیم
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+
 <title>💲 SmartChip قیمت‌ها</title>
 <!--
   ════════════════════════════════════════════════════
@@ -452,11 +474,11 @@ function onShipInput(el){
   calc();
 }
 
-const DJANGO_ITEMS_API = "https://smartchip-backend.onrender.com/api/items/weights/";
+const DJANGO_ITEMS_API = "https://api.smartchipelec.com/api/items/weights/";
 
 // ⚠️ (۱۴۰۵/۰۷/۰۶) منبعِ وزن‌ها: «⚖️ وزن‌نامه‌ی قطعات» در سرور — نه گوگل‌شیت.
 // هر تغییری که در وزن‌نامه ذخیره بشه، با بارگذاریِ بعدی همین‌جا دیده می‌شه (دیگه sync لازم نیست).
-const DJANGO_ITEMS_ROWS_API = "https://smartchip-backend.onrender.com/api/items/rows/";
+const DJANGO_ITEMS_ROWS_API = "https://api.smartchipelec.com/api/items/rows/";
 async function syncFromSheet(){
   const btn=document.getElementById('syncBtn');
   const status=document.getElementById('syncStatus');

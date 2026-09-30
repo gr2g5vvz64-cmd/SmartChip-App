@@ -2,6 +2,28 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;   // مهلتی که خودِ صفحه گذاشته — دست نمی‌زنیم
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest-reminders.json">
 <meta name="theme-color" content="#7c3aed">
@@ -245,8 +267,8 @@
 // ⚠️ (۱۴۰۵/۰۶/۲۸) طبق تصمیمِ صریحِ کاربر: این PWA دیگه به دیتابیسِ
 // جداگانه‌ی خودش وصل نیست — مستقیم به همون worklog که از قبل تویِ
 // CRM/ERP/Mobile استفاده می‌شه وصل می‌شه، تا دیتا یکی و مشترک بمونه.
-const FREE_API = 'https://smartchip-backend.onrender.com/api/worklog/free-reminders/';
-const RECUR_API = 'https://smartchip-backend.onrender.com/api/worklog/recurring-reminders/';
+const FREE_API = 'https://api.smartchipelec.com/api/worklog/free-reminders/';
+const RECUR_API = 'https://api.smartchipelec.com/api/worklog/recurring-reminders/';
 // ⚠️ فقط یادآوری‌های خودِ همین کارمند نشون داده می‌شه (نه کلِ تیم) —
 // یادآوری‌هایِ تیمی جای جداگانه‌ای (تبِ CRM) دیده می‌شن، نه اینجا.
 const MY_NAME = 'حمیدرضا چاوشی ابیانه';
@@ -1109,7 +1131,7 @@ if('serviceWorker' in navigator){
 <div id="madarHolPill" style="display:none;position:fixed;bottom:84px;right:16px;z-index:9999;max-width:min(380px,calc(100vw - 32px));background:#1d212e;color:#f4f5f8;border:1px solid rgba(240,165,0,.55);border-radius:12px;padding:10px 12px 10px 34px;font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px;line-height:1.8;box-shadow:0 8px 30px rgba(0,0,0,.35);direction:rtl"></div>
 <script>
 (function(){
-  const API = 'https://smartchip-backend.onrender.com/api/worklog/holidays/';
+  const API = 'https://api.smartchipelec.com/api/worklog/holidays/';
   const fa = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
   const fdate = j => { const m=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند']; const [y,mo,d]=j.split('-').map(Number); return fa(d)+' '+m[mo-1]; };
   fetch(API).then(r => r.json()).then(d => {

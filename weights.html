@@ -2,6 +2,28 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;   // مهلتی که خودِ صفحه گذاشته — دست نمی‌زنیم
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>⚖️ وزن‌نامه‌ی قطعات — SmartChip</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
@@ -342,7 +364,7 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn,body.ro #pkgBtn{display:none!import
 
 <script>
 // ═══════════════════════════════ تنظیمات ═══════════════════════════════
-const API_BASE = 'https://smartchip-backend.onrender.com';   // ← بعد از دامنه‌ی جدید فقط همین خط عوض می‌شه
+const API_BASE = 'https://api.smartchipelec.com';   // ← بعد از دامنه‌ی جدید فقط همین خط عوض می‌شه
 const SHEET_API = API_BASE + '/api/items/sheet/';
 const CHUNK = 200;          // هر بار ۲۰۰ ردیف از سرور (فقط وقتی به اون قسمت اسکرول می‌کنید)
 const BUFFER = 25;          // چند ردیف بالا/پایینِ صفحه‌ی دیدنی آماده می‌مونه

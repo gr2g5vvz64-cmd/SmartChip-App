@@ -2,6 +2,28 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;   // مهلتی که خودِ صفحه گذاشته — دست نمی‌زنیم
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
 <link rel="manifest" href="./manifest-staffadmin.json">
@@ -142,7 +164,7 @@ function submitEmailForm(){
 }
 async function getCurrentUserInfoFromDjangoOrSheet(email){
   try{
-    const res = await fetch('https://smartchip-backend.onrender.com/api/staff/staff/'+encodeURIComponent(email)+'/');
+    const res = await fetch('https://api.smartchipelec.com/api/staff/staff/'+encodeURIComponent(email)+'/');
     if(res.status===404){
       return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
     }
@@ -205,7 +227,7 @@ function renderForm(){
     </table>
   `;
 }
-const DJANGO_STAFF_API = 'https://smartchip-backend.onrender.com/api/staff/staff/';
+const DJANGO_STAFF_API = 'https://api.smartchipelec.com/api/staff/staff/';
 // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق دستور صریح کاربر: جدول یکپارچه — یه ردیف واحد برای
 // هر کارمند، نه دو جدول جدا با دو اسم. staffBotListM از api/bot/staff-list/
 // میاد و بر اساس id با staffList (که از api/staff/staff/ میاد) وصل می‌شه.
@@ -216,7 +238,7 @@ async function loadStaff(){
     if(res.ok){ staffList = await res.json(); }
   }catch(e){}
   try{
-    const botRes = await fetch('https://smartchip-backend.onrender.com/api/bot/staff-list/');
+    const botRes = await fetch('https://api.smartchipelec.com/api/bot/staff-list/');
     if(botRes.ok) staffBotListM = await botRes.json();
   }catch(e){ staffBotListM = []; }
   if(!staffList.length){
@@ -367,7 +389,7 @@ async function removeStaffMember(email){
 // botStatusCellHTML/renderTable (جدول یکپارچه، طبق دستور کاربر).
 async function sendStaffBotInviteWhatsAppAdmin(staffId){
   try{
-    const httpRes = await fetch('https://smartchip-backend.onrender.com/api/bot/send-staff-invite/', {
+    const httpRes = await fetch('https://api.smartchipelec.com/api/bot/send-staff-invite/', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({staffId})
     });

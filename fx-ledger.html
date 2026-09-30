@@ -2,6 +2,28 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;   // مهلتی که خودِ صفحه گذاشته — دست نمی‌زنیم
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
 <link rel="manifest" href="./manifest-fxledger.json">
@@ -252,7 +274,7 @@ input.fx-prov-input, input[data-f="goods"][value="1"], input[data-f="goods"][val
 // فارکس) مسدود می‌شد — بدونِ فیلترشکن، فقط همین مسیرِ خاص timeout
 // می‌داد، درحالی‌که بقیه‌ی مسیرهایِ همون سرور سالم بودن. الان به یه
 // اسمِ کاملاً خنثی تغییر کرده.
-const FX_API = 'https://smartchip-backend.onrender.com/api/ledger/';
+const FX_API = 'https://api.smartchipelec.com/api/ledger/';
 // ⚠️ (۱۴۰۵/۰۷/۱۰) دقیقاً همون الگویِ ERP (کلیدِ sc_cache_v2 اونجا): آخرین دیتایِ موفق تویِ
 // حافظه‌ی محلیِ مرورگر ذخیره می‌شه و با هر بازکردنِ صفحه، فوراً (بدونِ صبر برایِ سرور) نشون
 // داده می‌شه؛ سرور در پس‌زمینه، بی‌سروصدا، دیتایِ تازه رو جایگزین می‌کنه. برخلافِ ERP، اینجا
@@ -271,7 +293,7 @@ function fxLoadCache(){
     return c;
   }catch(e){ return null; }
 }
-const CRM_CUSTOMERS_API = 'https://smartchip-backend.onrender.com/api/customers/customers/';
+const CRM_CUSTOMERS_API = 'https://api.smartchipelec.com/api/customers/customers/';
 
 // ── شمسی: تبدیل و فرمت (بدون کتابخانه‌ی خارجی، همون الگوریتم استانداردِ رایج) ──
 function gregorianToJalali(gy, gm, gd){
@@ -673,7 +695,7 @@ function fxSyncPartsFromSheet(btn, onlyNew){
 async function fxSearchItems(q){
   if(!q || q.trim().length<1) return [];
   try{
-    const data = await fetch('https://smartchip-backend.onrender.com/api/items/search/?q='+encodeURIComponent(q.trim()));
+    const data = await fetch('https://api.smartchipelec.com/api/items/search/?q='+encodeURIComponent(q.trim()));
     const j = await data.json();
     return (j && j.items) || [];
   }catch(e){ return []; }
