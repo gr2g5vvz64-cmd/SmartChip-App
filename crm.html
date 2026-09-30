@@ -422,6 +422,33 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .dir-sec{margin-top:16px}
 .dir-sub{font-size:11px;font-weight:400;color:var(--muted);margin-right:6px}
 .dir-hint{font-size:11px;color:var(--muted);margin:4px 0 10px;line-height:1.9}
+
+/* ── (۱۴۰۵/۰۷/۰۸) کارنامه‌ی کارشناس ── */
+.ec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.ec-title{font-size:18px;font-weight:800}
+.ec-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.ec-ctrl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px}
+.ec-sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.ec-st{font-size:13.5px;font-weight:800;margin-bottom:10px}
+.ec-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.ec-kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 10px}
+.ec-kpi.good .ec-kv{color:var(--green)}
+.ec-kpi.bad .ec-kv{color:var(--red)}
+.ec-kv{font-size:20px;font-weight:800;line-height:1.3}
+.ec-kl{font-size:11px;color:var(--muted)}
+.ec-kh{font-size:10px;color:var(--muted);margin-top:2px}
+.ec-dir{margin-top:10px}
+.ec-dirbar{height:8px;border-radius:4px;background:rgba(96,165,250,.35);overflow:hidden}
+.ec-dirbar span{display:block;height:100%;background:var(--accent)}
+.ec-dirleg{display:flex;gap:14px;font-size:11px;margin-top:5px;color:var(--text)}
+.ec-muted{color:var(--muted)}
+.ec-note{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.8}
+.ec-table{width:100%;font-size:12px}
+.ec-table th.ec-g{background:rgba(240,165,0,.08)}
+.ec-row{cursor:pointer}
+.ec-row:hover td{background:rgba(240,165,0,.06)}
+@media(max-width:640px){.ec-grid{grid-template-columns:1fr}}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -549,6 +576,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
           <button class="crm-nav-item" id="tabBtnProspMgmtStats" onclick="showCrmTab('prospMgmtStats')" style="display:none"><span class="crm-nav-icon">📈</span><span>داشبورد مدیریت</span></button>
           <button class="crm-nav-item" id="tabBtnSalesForecast" onclick="showCrmTab('salesForecast')" style="display:none"><span class="crm-nav-icon">🔮</span><span>پیش‌بینی فروش</span></button>
           <button class="crm-nav-item" id="tabBtnCrmBi" onclick="showCrmTab('crmBi')" style="display:none"><span class="crm-nav-icon">💹</span><span>تحلیلِ مدیریتی</span></button>
+            <button class="crm-nav-item" id="tabBtnExpertCard" onclick="showCrmTab('expertCard')" title="عملکردِ هر کارشناس — جذب، سفارش، مشتریانِ سابق، وصول"><span class="crm-nav-icon">🏅</span><span>کارنامه‌ی کارشناس</span></button>
           <button class="crm-nav-item" id="tabBtnDashboard" onclick="showCrmTab('dashboard')" style="display:none"><span class="crm-nav-icon">📋</span><span>داشبورد سفارش‌ها</span></button>
         </div>
         <div class="crm-pg" data-g="fin">
@@ -1531,6 +1559,7 @@ function renderToolbar(){
     <div id="botStatusView" style="display:none;padding:16px;"></div>
     <div id="salesForecastView" style="display:none;padding:16px;"></div>
     <div id="crmBiView" style="display:none;padding:16px;"></div>
+      <div id="expertCardView" style="display:none;padding:16px;"></div>
     <div id="waListsView" style="display:none;padding:16px;"></div>
     <div id="prospApprovalsView" style="display:none;padding:16px;"></div>
     <div id="prospMgmtView" style="display:none;padding:16px;"></div>
@@ -3007,7 +3036,7 @@ async function renderCrmBi(forceReload){
 
 function showCrmTab(tab){
   ['morning','table','archive','dashboard','remTomorrow','remRecurring','remFree','calendar','debts','botStatus','salesForecast','crmBi','waLists',
-   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospChangelog','prospApprovals','prospMgmt','prospDecisions'].forEach(t=>{
+   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospChangelog','prospApprovals','prospMgmt','prospDecisions','expertCard'].forEach(t=>{
     const btn=document.getElementById('tabBtn'+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn) btn.classList.toggle('active', t===tab);
   });
@@ -3037,6 +3066,7 @@ function showCrmTab(tab){
   _s('prospApprovalsView', tab==='prospApprovals'?'block':'none');
   _s('prospMgmtView',      tab==='prospMgmt'     ?'block':'none');
   _s('prospDecisionsView', tab==='prospDecisions'?'block':'none');
+  _s('expertCardView',     tab==='expertCard'    ?'block':'none');
   // فرم سریع فقط در تب جدول کامل
   const qf = document.getElementById('quickContactForm');
   if(qf) qf.style.display = tab==='table' ? 'block' : 'none';
@@ -3065,6 +3095,7 @@ function showCrmTab(tab){
   if(tab==='prospApprovals') renderProspectApprovals(document.getElementById('prospApprovalsView'));
   if(tab==='prospMgmt')      renderManagementApprovals(document.getElementById('prospMgmtView'));
   if(tab==='prospDecisions') renderProspDecisions();
+  if(tab==='expertCard')     renderExpertCard();
   // ⚠️ (۱۴۰۵/۰۶/۱۳) فیکس: این فراخوانی قبلاً فقط یه‌بار موقع init صدا زده
   // می‌شد — اگه currentUser هنوز کامل لود نشده بود، دکمه‌های تاییدها/تایید
   // مدیریت مخفی می‌موندن و هیچ‌وقت درست نمی‌شدن. الان هر بار تعویض تب هم
@@ -3129,7 +3160,7 @@ const CRM_RAIL = [
   {id:'prosp', name:'جذبِ مشتری',       short:'جذب',     tabs:['prospQuick','prospCreate','prospTable','prospCustomers','prospDecisions','prospApprovals','prospMgmt','prospChangelog'], badges:['decisionsBadgeInline','approvalsBadgeInline','mgmtBadgeInline']},
   {id:'order', name:'سفارشِ مشتری',     short:'سفارش',   tabs:['table','archive'], badges:[]},
   {id:'rem',   name:'یادآوری‌ها',        short:'یادآوری', tabs:['remTomorrow','remRecurring','remFree','calendar','remCalendar'], badges:['remTomorrowNavBadge','remRecurringNavBadge']},
-  {id:'dash',  name:'گزارش و داشبورد',  short:'گزارش',   tabs:['prospStats','prospMgmtStats','salesForecast','crmBi','dashboard'], badges:[]},
+  {id:'dash',  name:'گزارش و داشبورد',  short:'گزارش',   tabs:['prospStats','prospMgmtStats','salesForecast','crmBi','dashboard','expertCard'], badges:[]},
   {id:'fin',   name:'مالی',              short:'مالی',    tabs:['debts'], badges:['debtsSubBadge']},
   {id:'tool',  name:'ابزار',             short:'ابزار',   tabs:['waLists','botStatus'], badges:[]}
 ];
@@ -9047,6 +9078,164 @@ function toShamsiCompact(dateStr){
 // فرم ثبت تماس سریع
 // ══════════════════════════════════════════════════════════════
 let qfPartRows = [];
+
+// ══════════════════════════════════════════════════════════════
+// 🏅 کارنامه‌ی کارشناس (۱۴۰۵/۰۷/۰۸) — عملکردِ هر نفر یکجا، با تفکیکِ روشن:
+//   🎯 جذب (فعالیت، رزرو، جذب‌شده، نرخِ تبدیل) · 📦 سفارش (تماس، تبدیل به استعلام، تکمیل)
+//   🔁 مشتریانِ سابق (درخواست/تأییدِ کار رویِ مشتریِ قدیمی) · 💵 وصول (وعده‌هایِ پرداخت)
+//   و در جذب و سفارش: «ما زنگ زدیم / مشتری زنگ زد».
+//   مدیر/سرپرست: همه‌ی کارشناس‌ها + مقایسه ؛ کارشناس: فقط کارنامه‌ی خودش.
+//   (همه از داده‌ای که CRM الان داره حساب می‌شه؛ داده‌ی قبل از ثبتِ «چه کسی زنگ زد» = نامشخص)
+// ══════════════════════════════════════════════════════════════
+const EC = {period:'month', who:null, approvals:null, loading:false};
+function _ecPad(n){ return String(n).padStart(2,'0'); }
+function _ecJ(d){ try{ const s = jdToS(gToJD(d.getFullYear(), d.getMonth()+1, d.getDate())); return `${s.y}/${_ecPad(s.m)}/${_ecPad(s.d)}`; }catch(e){ return ''; } }
+function _ecRange(){
+  const now = new Date();
+  if(EC.period === 'month'){
+    const j = _ecJ(now).slice(0, 8) + '01';                        // اولِ ماهِ شمسیِ جاری
+    // تاریخِ میلادیِ اولِ ماهِ شمسی
+    let d = new Date(now); for(let i = 0; i < 32 && _ecJ(d) > j; i++) d = new Date(d.getTime() - 86400000);
+    d.setHours(0,0,0,0);
+    return {fromJ: j, fromD: d, label: 'این ماه'};
+  }
+  const days = EC.period === '90' ? 90 : 30;
+  const d = new Date(now.getTime() - days*86400000); d.setHours(0,0,0,0);
+  return {fromJ: _ecJ(d), fromD: d, label: `${fn(days)} روزِ اخیر`};
+}
+function _ecStaffNames(){
+  const set = new Set();
+  (staffListCRM||[]).forEach(x => x && x.name && set.add(x.name));
+  if(currentUser && currentUser.name) set.add(currentUser.name);
+  return [...set];
+}
+function _ecCanon(n){
+  n = String(n||'').trim(); if(!n) return 'نامشخص';
+  const names = _ecStaffNames();
+  if(names.includes(n)) return n;
+  const hit = names.find(x => x.includes(n) || n.includes(x));     // «چاوشی» → «حمیدرضا چاوشی ابیانه»
+  return hit || n;
+}
+function _ecBlank(){ return {
+  p:{acts:0,out:0,inn:0,unk:0,newRes:0,conv:0,lost:0,active:0},
+  o:{calls:0,out:0,inn:0,unk:0,cust:new Set(),inq:0,inqOut:0,inqIn:0,done:0,canceled:0},
+  x:{req:0,ok:0,no:0,wait:0},
+  m:{count:0,sum:0,got:0,gotSum:0,overdue:0} }; }
+function _ecCompute(){
+  const R = _ecRange(), S = {};
+  const get = n => (S[n] = S[n] || _ecBlank());
+  // 🎯 جذب
+  (prospects||[]).forEach(p => {
+    const hist = p.reservationHistory || [];
+    const acts = (p.activityLog||[]).concat(...hist.map(h => h.activity_log||[]));
+    acts.forEach(a => { if(String(a.date||'') < R.fromJ) return; const r = get(_ecCanon(a.staff_name)).p; r.acts++;
+      if(a.direction==='outbound') r.out++; else if(a.direction==='inbound') r.inn++; else r.unk++; });
+    const convSeen = new Set();
+    hist.forEach(h => {
+      if(String(h.start||'') >= R.fromJ) get(_ecCanon(h.staff_name)).p.newRes++;
+      if(String(h.end||'') >= R.fromJ){
+        if(h.outcome === 'converted'){ get(_ecCanon(h.staff_name)).p.conv++; convSeen.add(p.id); }
+        else if(h.outcome === 'timeout' || h.outcome === 'released') get(_ecCanon(h.staff_name)).p.lost++;
+      }
+    });
+    if(p.status === 'reserved' && p.assigneeName){
+      const r = get(_ecCanon(p.assigneeName)).p; r.active++;
+      if(String(p.reservationStart||'') >= R.fromJ) r.newRes++;
+    }
+    if(p.status === 'acquired' && String(p.acquiredDate||'') >= R.fromJ && !convSeen.has(p.id) && p.assigneeName) get(_ecCanon(p.assigneeName)).p.conv++;
+  });
+  // 📦 سفارش
+  (leads||[]).forEach(l => (l.history||[]).forEach(e => {
+    if(!e || !e.date || new Date(e.date) < R.fromD) return;
+    const r = get(_ecCanon(e.by || e.followUpBy)).o; r.calls++; r.cust.add((l.customer||'').trim());
+    const inq = !!(e.trackingCode && (e.needsEstelamat || e.linkedRequestId));
+    if(e.direction==='outbound'){ r.out++; if(inq) r.inqOut++; } else if(e.direction==='inbound'){ r.inn++; if(inq) r.inqIn++; } else r.unk++;
+    if(inq) r.inq++; if(e.completed) r.done++; if(e.canceled) r.canceled++;
+  }));
+  // 🔁 مشتریانِ سابق (درخواستِ کار رویِ مشتریِ قدیمیِ بدونِ اولویت)
+  (EC.approvals||[]).filter(a => a.type === 'old_customer_no_priority' && String(a.requested_date||'') >= R.fromJ).forEach(a => {
+    const r = get(_ecCanon(a.requested_by_name)).x; r.req++;
+    if(a.status==='approved') r.ok++; else if(a.status==='rejected') r.no++; else r.wait++;
+  });
+  // 💵 وصول
+  (payPromises||[]).forEach(pm => {
+    if(pm.status === 'canceled' || !pm.created_at || new Date(pm.created_at) < R.fromD) return;
+    const r = get(_ecCanon(pm.created_by)).m; r.count++; r.sum += pm.amount||0;
+    if(pm.status==='reported' || pm.status==='confirmed'){ r.got++; r.gotSum += pm.amount||0; }
+    if(pm.overdue) r.overdue++;
+  });
+  delete S['نامشخص_'];
+  return {R, S};
+}
+function _ecPct(a,b){ return b ? Math.round(a*100/b) : null; }
+function _ecPctTxt(a,b){ const v = _ecPct(a,b); return v === null ? '—' : fn(v)+'٪'; }
+function _ecMoney(n){ return Number(n||0).toLocaleString('fa-IR'); }
+function _ecDirBar(out, inn, unk){
+  const k = out + inn, po = k ? Math.round(out*100/k) : 0;
+  return `<div class="ec-dir"><div class="ec-dirbar"><span style="width:${po}%"></span></div>
+    <div class="ec-dirleg"><span>📞 ما ${fn(out)}</span><span>📲 مشتری ${fn(inn)}</span>${unk ? `<span class="ec-muted">نامشخص ${fn(unk)}</span>` : ''}</div></div>`;
+}
+function _ecKpi(label, val, hint, tone){ return `<div class="ec-kpi ${tone||''}"><div class="ec-kv">${val}</div><div class="ec-kl">${label}</div>${hint?`<div class="ec-kh">${hint}</div>`:''}</div>`; }
+function _ecDetail(name, d){
+  const p = d.p, o = d.o, x = d.x, m = d.m;
+  const closed = p.conv + p.lost;
+  return `
+  <div class="ec-grid">
+    <div class="ec-sec"><div class="ec-st">🎯 جذبِ مشتری</div>
+      <div class="ec-kpis">${_ecKpi('فعالیتِ ثبت‌شده', fn(p.acts))}${_ecKpi('رزروِ جدید', fn(p.newRes))}${_ecKpi('جذب‌شده', fn(p.conv), '', 'good')}${_ecKpi('نرخِ تبدیل', _ecPctTxt(p.conv, closed), closed ? `از ${fn(closed)} پرونده‌ی بسته‌شده` : 'هنوز پرونده‌ای بسته نشده')}${_ecKpi('رزروِ فعالِ الان', fn(p.active))}</div>
+      ${_ecDirBar(p.out, p.inn, p.unk)}</div>
+    <div class="ec-sec"><div class="ec-st">📦 سفارش (مشتریانِ فعلی و سابق)</div>
+      <div class="ec-kpis">${_ecKpi('تماس', fn(o.calls))}${_ecKpi('مشتریِ یکتا', fn(o.cust.size))}${_ecKpi('به استعلام رسید', fn(o.inq), _ecPctTxt(o.inq, o.calls)+' از تماس‌ها', 'good')}${_ecKpi('تبدیل — تماسِ ما', _ecPctTxt(o.inqOut, o.out))}${_ecKpi('تبدیل — تماسِ مشتری', _ecPctTxt(o.inqIn, o.inn))}${_ecKpi('تکمیل‌شده', fn(o.done), 'کنسل: ' + fn(o.canceled))}</div>
+      ${_ecDirBar(o.out, o.inn, o.unk)}</div>
+    <div class="ec-sec"><div class="ec-st">🔁 مشتریانِ سابق</div>
+      <div class="ec-kpis">${_ecKpi('درخواستِ کار رویِ مشتریِ قدیمی', fn(x.req))}${_ecKpi('تأییدِ مدیریت', fn(x.ok), '', 'good')}${_ecKpi('رد', fn(x.no), '', x.no?'bad':'')}${_ecKpi('در انتظار', fn(x.wait))}</div>
+      <div class="ec-note">مشتریانِ سابقِ بدونِ اولویتِ ۱/۵/۹ فقط با تأییدِ مدیریت دوباره پیگیری می‌شن؛ تماس‌هایِ مشتریانِ سابقِ دارایِ اولویت در بخشِ «سفارش» حساب شده.</div></div>
+    <div class="ec-sec"><div class="ec-st">💵 وصول (وعده‌هایِ پرداخت)</div>
+      <div class="ec-kpis">${_ecKpi('وعده‌ی ثبت‌شده', fn(m.count), _ecMoney(m.sum)+' ریال')}${_ecKpi('واریزشده', fn(m.got), _ecMoney(m.gotSum)+' ریال', 'good')}${_ecKpi('نرخِ وصول', _ecPctTxt(m.gotSum, m.sum), 'بر اساسِ مبلغ')}${_ecKpi('سررسیدگذشته', fn(m.overdue), '', m.overdue?'bad':'')}</div></div>
+  </div>`;
+}
+function _ecTable(S, names){
+  return `<div style="overflow-x:auto"><table class="crm-table ec-table"><thead>
+    <tr><th rowspan="2">کارشناس</th><th colspan="4" class="ec-g">🎯 جذب</th><th colspan="4" class="ec-g">📦 سفارش</th><th colspan="2" class="ec-g">🔁 سابق</th><th colspan="2" class="ec-g">💵 وصول</th></tr>
+    <tr><th>فعالیت</th><th>سهمِ 📞</th><th>جذب‌شده</th><th>تبدیل</th><th>تماس</th><th>سهمِ 📞</th><th>به استعلام</th><th>تبدیل</th><th>درخواست</th><th>تأیید</th><th>وعده</th><th>وصول (ریال)</th></tr></thead><tbody>
+    ${names.map(n => { const d = S[n], p = d.p, o = d.o;
+      return `<tr class="ec-row" onclick="EC.who=${JSON.stringify(n).replace(/"/g,'&quot;')};renderExpertCard(true)">
+        <td style="font-weight:800">${n}</td>
+        <td>${fn(p.acts)}</td><td>${_ecPctTxt(p.out, p.out+p.inn)}</td><td>${fn(p.conv)}</td><td>${_ecPctTxt(p.conv, p.conv+p.lost)}</td>
+        <td>${fn(o.calls)}</td><td>${_ecPctTxt(o.out, o.out+o.inn)}</td><td>${fn(o.inq)}</td><td>${_ecPctTxt(o.inq, o.calls)}</td>
+        <td>${fn(d.x.req)}</td><td>${fn(d.x.ok)}</td>
+        <td>${fn(d.m.count)}</td><td>${_ecMoney(d.m.gotSum)}</td></tr>`; }).join('')}
+    </tbody></table></div><div class="ec-note">رویِ هر ردیف بزنید تا کارنامه‌ی کاملِ اون کارشناس باز بشه. «سهمِ 📞» یعنی از تماس‌هایِ مشخص‌شده، چند درصد رو خودِ کارشناس شروع کرده.</div>`;
+}
+async function renderExpertCard(skipLoad){
+  const c = document.getElementById('expertCardView'); if(!c) return;
+  const boss = isSalesSupOrAbove();
+  if(!boss) EC.who = (currentUser && (currentUser.name||currentUser.email)) || '';
+  if(!skipLoad){
+    c.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال جمع‌آوریِ داده…</div>';
+    try{ if(!window._staffListLoadedCRM) await loadStaffListCRM(); }catch(e){}
+    try{ if(!payPromises.length) await loadPromisesCRM(); }catch(e){}
+    try{ const r = await fetch(DJANGO_APPROVALS_API, {cache:'no-store'}); const j = r.ok ? await r.json() : []; EC.approvals = Array.isArray(j) ? j : (j.results||[]); }catch(e){ EC.approvals = EC.approvals || []; }
+  }
+  const {R, S} = _ecCompute();
+  const staff = _ecStaffNames();
+  staff.forEach(n => { if(!S[n]) S[n] = _ecBlank(); });
+  const names = Object.keys(S).filter(n => n !== 'نامشخص' || (S[n].o.calls + S[n].p.acts) > 0)
+    .sort((a,b) => (S[b].o.calls + S[b].p.acts) - (S[a].o.calls + S[a].p.acts));
+  const who = EC.who && S[EC.who] ? EC.who : null;
+  const per = [['month','این ماه'],['30','۳۰ روز'],['90','۹۰ روز']].map(([k,l]) =>
+    `<button class="btn btn-sm ${EC.period===k?'btn-primary':'btn-ghost'}" onclick="EC.period='${k}';renderExpertCard(true)">${l}</button>`).join('');
+  const sel = boss ? `<select class="form-control" style="max-width:240px;font-size:12px" onchange="EC.who=this.value||null;renderExpertCard(true)">
+      <option value="">همه‌ی کارشناس‌ها — مقایسه</option>${names.map(n => `<option value="${n.replace(/"/g,'&quot;')}" ${n===who?'selected':''}>${n}</option>`).join('')}</select>` : '';
+  c.innerHTML = `
+    <div class="ec-head">
+      <div><div class="ec-title">🏅 کارنامه‌ی کارشناس</div><div class="ec-sub">${who ? who : 'مقایسه‌ی همه‌ی کارشناس‌ها'} · ${R.label} (از ${fn(R.fromJ)})</div></div>
+      <div class="ec-ctrl">${per}${sel}</div>
+    </div>
+    <div class="dash-scope">🧭 دامنه: <b>جذب + سفارش + مشتریانِ سابق + وصول</b> — هر بخش جدا حساب شده و با هم جمع نمی‌شن. تماس‌هایِ قبل از ثبتِ «چه کسی زنگ زد» نامشخص‌اند.</div>
+    ${who ? (boss ? `<button class="btn btn-ghost btn-sm" style="margin-bottom:10px" onclick="EC.who=null;renderExpertCard(true)">‹ برگشت به مقایسه</button>` : '') + _ecDetail(who, S[who])
+          : (names.length ? _ecTable(S, names) : '<div class="empty-state"><div class="empty-icon">🏅</div><div class="empty-text">در این بازه داده‌ای نیست</div></div>')}`;
+}
 
 // ══════════════════════════════════════════════════════════════
 // ⚠️ (۱۴۰۵/۰۷/۰۸) «چه کسی زنگ زد» در داشبوردها + برچسبِ دامنه‌ی هر داشبورد
