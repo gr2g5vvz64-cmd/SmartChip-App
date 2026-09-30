@@ -385,6 +385,27 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .tk-badge{margin-top:4px;font-size:9px;font-weight:800;border-radius:6px;padding:1px 6px;display:inline-block}
 .tk-badge.tk-open{background:rgba(240,165,0,.15);color:var(--accent)}
 .tk-badge.tk-all{background:rgba(34,197,94,.15);color:var(--green)}
+
+/* ── (۱۴۰۵/۰۷/۰۸) نتیجه‌ی درخواست‌هایِ تأیید ── */
+.dec-intro{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.9}
+.dec-sec{margin-bottom:18px}
+.dec-sec-t{font-size:13px;font-weight:800;margin-bottom:6px}
+.dec-sec-t span{font-size:11px;color:var(--muted);margin-right:6px}
+.dec-hint{font-size:11px;color:var(--muted);margin-bottom:8px}
+.dec-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px}
+.dec-card.dec-ok{border-color:rgba(34,197,94,.45);border-right:3px solid var(--green)}
+.dec-card.dec-no{opacity:.6}
+.dec-card.dec-no .dec-name{text-decoration:line-through}
+.dec-card.dec-done{opacity:.5}
+.dec-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dec-name{font-size:13px;font-weight:800}
+.dec-tag{font-size:10px;font-weight:800;border-radius:6px;padding:1px 7px}
+.dec-tag.ok{background:rgba(34,197,94,.15);color:var(--green)}
+.dec-tag.no{background:rgba(239,68,68,.12);color:var(--red)}
+.dec-tag.wait{background:rgba(240,165,0,.14);color:var(--accent)}
+.dec-tag.done{background:var(--card);color:var(--muted)}
+.dec-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.dec-go{margin-top:8px}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -488,6 +509,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
           <button class="crm-nav-item" id="tabBtnProspCreate" onclick="showCrmTab('prospCreate')" ><span class="crm-nav-icon">🆕</span><span>ساخت مشتری</span></button>
           <button class="crm-nav-item" id="tabBtnProspTable" onclick="showCrmTab('prospTable')" ><span class="crm-nav-icon">📋</span><span>جدول ثبت</span></button>
           <button class="crm-nav-item" id="tabBtnProspCustomers" onclick="showCrmTab('prospCustomers')" ><span class="crm-nav-icon">👥</span><span>مشتریان</span></button>
+            <button class="crm-nav-item" id="tabBtnProspDecisions" onclick="showCrmTab('prospDecisions')" title="نتیجه‌ی درخواست‌هایِ تأییدی که فرستادید"><span class="crm-nav-icon">🗳️</span><span>نتیجه‌ی درخواست‌ها</span><span class="crm-nav-badge" id="decisionsBadgeInline" style="display:none"></span></button>
           <div class="crm-pg-sep"></div>
           <button class="crm-nav-item" id="tabBtnProspApprovals" onclick="showCrmTab('prospApprovals')" style="display:none"><span class="crm-nav-icon">✅</span><span>تاییدها</span><span class="crm-nav-badge" id="approvalsBadgeInline" style="display:none"></span></button>
           <button class="crm-nav-item" id="tabBtnProspMgmt" onclick="showCrmTab('prospMgmt')" style="display:none"><span class="crm-nav-icon">🔔</span><span>تایید مدیریت</span><span class="crm-nav-badge" id="mgmtBadgeInline" style="display:none"></span></button>
@@ -1496,6 +1518,7 @@ function renderToolbar(){
     <div id="waListsView" style="display:none;padding:16px;"></div>
     <div id="prospApprovalsView" style="display:none;padding:16px;"></div>
     <div id="prospMgmtView" style="display:none;padding:16px;"></div>
+      <div id="prospDecisionsView" style="display:none;padding:16px;"></div>
 
     <div id="calendarView" style="display:none;padding:16px;">
       <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(240,165,0,.15),rgba(232,99,10,.08));border:1px solid rgba(240,165,0,.3);border-radius:12px;padding:11px 18px;margin-bottom:14px;">
@@ -1632,8 +1655,8 @@ function renderToolbar(){
       <div id="qf_promiseBox" style="display:none;border:1px solid rgba(74,222,128,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(74,222,128,.04)">
         <div style="font-size:11px;font-weight:800;color:#4ade80;margin-bottom:8px">💵 وعده‌ی پرداخت — مالی در ERP هم می‌بینه</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-          <div style="flex:1 1 160px"><label class="form-label" style="font-size:10px">مبلغ (تومان) *</label>
-            <input class="form-control" id="qf_promiseAmount" inputmode="numeric" placeholder="مثلاً ۲۰٬۰۰۰٬۰۰۰" oninput="qf2FormatAmount(this)" style="direction:ltr;text-align:center;font-weight:700"/></div>
+          <div style="flex:1 1 160px"><label class="form-label" style="font-size:10px">مبلغ (ریال) *</label>
+            <input class="form-control" id="qf_promiseAmount" inputmode="numeric" placeholder="مثلاً ۲۰۰٬۰۰۰٬۰۰۰ ریال" oninput="qf2FormatAmount(this)" style="direction:ltr;text-align:center;font-weight:700"/></div>
           <div style="flex:0 1 140px"><label class="form-label" style="font-size:10px">تا تاریخ</label>
             <input class="form-control" id="qf_promiseDate" readonly style="cursor:pointer;text-align:center" onclick="openDatePicker('qf_promiseDate')"/></div>
           <div style="flex:2 1 200px"><label class="form-label" style="font-size:10px">توضیح</label>
@@ -2963,7 +2986,7 @@ async function renderCrmBi(forceReload){
 
 function showCrmTab(tab){
   ['morning','table','archive','dashboard','remTomorrow','remRecurring','remFree','calendar','debts','botStatus','salesForecast','crmBi','waLists',
-   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospChangelog','prospApprovals','prospMgmt'].forEach(t=>{
+   'prospCreate','prospQuick','prospCustomers','prospTable','prospStats','prospMgmtStats','prospChangelog','prospApprovals','prospMgmt','prospDecisions'].forEach(t=>{
     const btn=document.getElementById('tabBtn'+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn) btn.classList.toggle('active', t===tab);
   });
@@ -2992,6 +3015,7 @@ function showCrmTab(tab){
   _s('waListsView', tab==='waLists'?'block':'none');
   _s('prospApprovalsView', tab==='prospApprovals'?'block':'none');
   _s('prospMgmtView',      tab==='prospMgmt'     ?'block':'none');
+  _s('prospDecisionsView', tab==='prospDecisions'?'block':'none');
   // فرم سریع فقط در تب جدول کامل
   const qf = document.getElementById('quickContactForm');
   if(qf) qf.style.display = tab==='table' ? 'block' : 'none';
@@ -3019,6 +3043,7 @@ function showCrmTab(tab){
   if(tab==='waLists') renderWaListsPage();
   if(tab==='prospApprovals') renderProspectApprovals(document.getElementById('prospApprovalsView'));
   if(tab==='prospMgmt')      renderManagementApprovals(document.getElementById('prospMgmtView'));
+  if(tab==='prospDecisions') renderProspDecisions();
   // ⚠️ (۱۴۰۵/۰۶/۱۳) فیکس: این فراخوانی قبلاً فقط یه‌بار موقع init صدا زده
   // می‌شد — اگه currentUser هنوز کامل لود نشده بود، دکمه‌های تاییدها/تایید
   // مدیریت مخفی می‌موندن و هیچ‌وقت درست نمی‌شدن. الان هر بار تعویض تب هم
@@ -3080,7 +3105,7 @@ const CRM_RAIL_ICONS = {
 };
 const CRM_RAIL = [
   {id:'today', name:'امروز',            short:'امروز',   tabs:['morning'], badges:[]},
-  {id:'prosp', name:'جذبِ مشتری',       short:'جذب',     tabs:['prospQuick','prospCreate','prospTable','prospCustomers','prospApprovals','prospMgmt','prospChangelog'], badges:['approvalsBadgeInline','mgmtBadgeInline']},
+  {id:'prosp', name:'جذبِ مشتری',       short:'جذب',     tabs:['prospQuick','prospCreate','prospTable','prospCustomers','prospDecisions','prospApprovals','prospMgmt','prospChangelog'], badges:['decisionsBadgeInline','approvalsBadgeInline','mgmtBadgeInline']},
   {id:'order', name:'سفارشِ مشتری',     short:'سفارش',   tabs:['table','archive'], badges:[]},
   {id:'rem',   name:'یادآوری‌ها',        short:'یادآوری', tabs:['remTomorrow','remRecurring','remFree','calendar','remCalendar'], badges:['remTomorrowNavBadge','remRecurringNavBadge']},
   {id:'dash',  name:'گزارش و داشبورد',  short:'گزارش',   tabs:['prospStats','prospMgmtStats','salesForecast','crmBi','dashboard'], badges:[]},
@@ -9001,6 +9026,104 @@ function toShamsiCompact(dateStr){
 let qfPartRows = [];
 
 // ══════════════════════════════════════════════════════════════
+// 🗳️ نتیجه‌ی درخواست‌هایِ تأیید (۱۴۰۵/۰۷/۰۸) — طبقِ خواسته‌ی کاربر:
+//   کارشناس باید ببینه مدیر کدوم مشتری‌ها رو تأیید یا رد کرده.
+//   • رد شده    → در این صفحه می‌مونه، خط‌خورده با «عدم فعالیت» — بدونِ شمارنده
+//   • تأیید شده → با شمارنده، تا کارشناس «ادامه» بزنه → فرمِ ساختِ مشتری با همون مشخصات و تأییدِ اعمال‌شده
+//   (قبلاً نتیجه فقط وقتی دیده می‌شد که کارشناس در همون فرم می‌موند و «بررسی وضعیت» می‌زد)
+//   + شمارنده‌هایِ مدیر/سرپرست هر ۶۰ ثانیه تازه می‌شن (قبلاً فقط یک بار موقعِ باز شدنِ CRM)
+// ══════════════════════════════════════════════════════════════
+const DECISION_ACK_API = 'https://smartchip-backend.onrender.com/api/worklog/approval-acks/';
+let _myDecisions = [], _decisionAcks = new Set();
+const APPROVAL_TYPE_LABEL = {old_customer_no_priority:'کار رویِ مشتریِ قدیمی (بدونِ اولویتِ ۱/۵/۹)', credit_amount_needed:'تعیینِ مبلغِ اعتبار', priority_needed:'تعیینِ اولویتِ فروش'};
+function _isMine(a){
+  const me = currentUser || {};
+  return (a.requested_by_id && me.email && a.requested_by_id.toLowerCase() === String(me.email).toLowerCase())
+      || (a.requested_by_name && me.name && a.requested_by_name === me.name);
+}
+async function loadMyDecisions(){
+  try{
+    const [ra, rk] = await Promise.all([fetch(DJANGO_APPROVALS_API, {cache:'no-store'}), fetch(DECISION_ACK_API, {cache:'no-store'})]);
+    const all = ra.ok ? await ra.json() : [];
+    const acks = rk.ok ? await rk.json() : {ids:[]};
+    const list = Array.isArray(all) ? all : (all.results || []);
+    _myDecisions = list.filter(_isMine);
+    _decisionAcks = new Set((acks.ids || []).map(Number));
+  }catch(e){}
+  return _myDecisions;
+}
+function _decisionsPending(){ return _myDecisions.filter(a => a.status === 'approved' && !_decisionAcks.has(Number(a.id))); }
+async function updateDecisionsBadge(){
+  await loadMyDecisions();
+  const n = _decisionsPending().length;
+  const b = document.getElementById('decisionsBadgeInline');
+  if(b){ b.textContent = fn(n); b.style.display = n > 0 ? 'inline-block' : 'none'; }
+  if(typeof updateAllGroupBadges === 'function') updateAllGroupBadges();
+  const v = document.getElementById('prospDecisionsView');
+  if(v && v.style.display === 'block') renderProspDecisions(true);
+}
+async function renderProspDecisions(skipLoad){
+  const c = document.getElementById('prospDecisionsView'); if(!c) return;
+  if(!skipLoad){ c.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">در حال بارگذاری…</div>'; await loadMyDecisions(); }
+  const rows = _myDecisions.slice().sort((a,b) => (b.id||0) - (a.id||0));
+  const approved = rows.filter(a => a.status === 'approved' && !_decisionAcks.has(Number(a.id)));
+  const rejected = rows.filter(a => a.status === 'rejected');
+  const pending  = rows.filter(a => a.status === 'pending');
+  const done     = rows.filter(a => a.status === 'approved' && _decisionAcks.has(Number(a.id)));
+  const card = (a, kind) => `
+    <div class="dec-card dec-${kind}">
+      <div class="dec-head">
+        <span class="dec-name">${a.customer_name||'—'}</span>
+        ${kind==='ok' ? '<span class="dec-tag ok">✅ مدیریت تأیید کرد</span>' : kind==='no' ? '<span class="dec-tag no">⛔ عدم فعالیت — مدیریت رد کرد</span>' : kind==='wait' ? '<span class="dec-tag wait">⏳ در انتظارِ تصمیم</span>' : '<span class="dec-tag done">ادامه داده شد</span>'}
+      </div>
+      <div class="dec-meta">${APPROVAL_TYPE_LABEL[a.type]||a.type} · ${a.customer_phone||'—'} · درخواست: ${a.requested_date||''}${a.resolved_date ? ' · تصمیم: ' + a.resolved_date + (a.resolved_by ? ' (' + a.resolved_by + ')' : '') : ''}</div>
+      ${kind==='ok' ? `<button class="btn btn-primary btn-sm dec-go" onclick="continueDecision(${a.id})">▶ ادامه‌ی فعالیت</button>` : ''}
+    </div>`;
+  const sec = (title, hint, list, kind) => list.length ? `<div class="dec-sec"><div class="dec-sec-t">${title} <span>${fn(list.length)}</span></div>${hint ? `<div class="dec-hint">${hint}</div>` : ''}${list.map(a => card(a, kind)).join('')}</div>` : '';
+  c.innerHTML = `
+    <div class="dec-intro">نتیجه‌ی درخواست‌هایِ تأییدی که فرستادید. تأییدشده‌ها تا وقتی «ادامه» نزنید شمارنده دارن؛ ردشده‌ها فقط برایِ دیدن اینجا می‌مونن.</div>
+    ${sec('✅ تأییدشده — منتظرِ ادامه', 'با «ادامه» فرمِ ساختِ مشتری با همین مشخصات باز می‌شه و تأییدِ مدیریت از قبل اعمال شده؛ بعد از ثبت، مشتری به جدولِ جذب می‌ره.', approved, 'ok')}
+    ${sec('⏳ در انتظارِ تصمیم', '', pending, 'wait')}
+    ${sec('⛔ ردشده', '', rejected, 'no')}
+    ${sec('✔ ادامه داده‌شده', '', done.slice(0, 20), 'done')}
+    ${!rows.length ? '<div class="empty-state"><div class="empty-icon">🗳️</div><div class="empty-text">هنوز درخواستِ تأییدی نفرستادید</div></div>' : ''}`;
+}
+async function continueDecision(id){
+  const a = _myDecisions.find(x => Number(x.id) === Number(id)); if(!a) return;
+  try{ await fetch(DECISION_ACK_API, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({approval_id: a.id, by: (currentUser && (currentUser.name||currentUser.email))||''})}); }catch(e){}
+  _decisionAcks.add(Number(a.id));
+  updateDecisionsBadge();
+  if(a.type === 'old_customer_no_priority'){
+    showCrmTab('prospCreate');
+    setTimeout(() => {
+      const nm = document.getElementById('pNewName'); if(nm){ nm.value = a.customer_name || ''; nm.dispatchEvent(new Event('input', {bubbles:true})); }
+      const ph = document.getElementById('pNewPhone1'); if(ph && a.customer_phone){ ph.value = a.customer_phone; ph.dispatchEvent(new Event('input', {bubbles:true})); }
+      // تأییدِ مدیریت از قبل اعمال شده — بعد از بررسیِ خودکارِ نام (که ممکنه هشدار بذاره)
+      setTimeout(() => {
+        _prospectApprovedRequestId = a.id; _prospectPendingRequestId = null; _prospectWarningBlocking = false;
+        const box = document.getElementById('pNewWarning');
+        if(box) box.innerHTML = `<div style="background:rgba(34,197,94,.12);border:1px solid var(--green);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--green)">✅ مدیریت اجازه‌ی کار رویِ «${a.customer_name}» رو داده — بقیه‌ی مشخصات رو کامل کنید و ثبت کنید تا به جدولِ جذب بره.</div>`;
+        if(typeof checkProspectFormValidity === 'function') checkProspectFormValidity();
+      }, 600);
+    }, 60);
+    toast('▶ مشخصات پر شد — بقیه رو کامل کنید و ثبت کنید');
+  } else {
+    showCrmTab('prospTable');
+    toast('▶ ادامه در جدولِ جذب');
+  }
+}
+// شمارنده‌ها زنده بمونن: مدیر (تأیید مدیریت)، سرپرست (تأییدها)، کارشناس (نتیجه‌ی درخواست‌ها)
+function _refreshApprovalBadges(){
+  if(document.visibilityState !== 'visible' || !currentUser) return;
+  try{ updateMgmtBadge(); }catch(e){}
+  try{ updateApprovalsBadge(); }catch(e){}
+  try{ updateDecisionsBadge(); }catch(e){}
+}
+setInterval(_refreshApprovalBadges, 60000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') _refreshApprovalBadges(); });
+setTimeout(_refreshApprovalBadges, 4000);
+
+// ══════════════════════════════════════════════════════════════
 // ⚠️ (۱۴۰۵/۰۷/۰۸) «کارها»یِ یک تماس — طبقِ خواسته‌ی کاربر:
 //   هر کاری که مشتری در یک تماس گفت (وعده‌ی پرداخت، استعلامِ داخلی، استعلامِ خارجی، کارِ مالی)
 //   یک ردیفِ جدا زیرِ همون تماس داره با وضعیتِ خودش؛ تکمیل‌شده‌ها کم‌رنگ و تیک‌خورده،
@@ -9058,7 +9181,7 @@ async function loadPromisesCRM(){
 }
 async function crmReportPromise(id){
   const p = payPromises.find(x => x.id === id); if(!p) return;
-  if(!confirm(`واریزِ ${crmFaMoney(p.amount)} تومان از «${p.customer}» انجام شد؟\n(در CRM تکمیل می‌شه؛ در مالیِ ERP تا ثبت و تأییدِ مالی باز می‌مونه)`)) return;
+  if(!confirm(`واریزِ ${crmFaMoney(p.amount)} ریال از «${p.customer}» انجام شد؟\n(در CRM تکمیل می‌شه؛ در مالیِ ERP تا ثبت و تأییدِ مالی باز می‌مونه)`)) return;
   try{
     const r = await fetch(PROMISE_API + id + '/action/', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({action:'report', by:(currentUser && (currentUser.name||currentUser.email))||''})});
@@ -9091,7 +9214,7 @@ function crmEntryTasks(r){
       : p.status === 'reported' ? `اعلامِ واریز: ${p.reported_by||''} — منتظرِ ثبت و تأییدِ مالی`
       : (p.overdue ? `<b style="color:var(--red)">⚠ سررسید گذشته</b> — منتظرِ واریز` : 'منتظرِ واریز');
     tasks.push({kind:'promise-'+p.id, icon:'💵', unit:'مالی', done, noManual:true,
-      label:`وعده‌ی پرداخت ${crmFaMoney(p.amount)} تومان` + (p.due_date ? ` — تا ${fn(p.due_date.replace(/-/g,'/'))}` : ''),
+      label:`وعده‌ی پرداخت ${crmFaMoney(p.amount)} ریال` + (p.due_date ? ` — تا ${fn(p.due_date.replace(/-/g,'/'))}` : ''),
       status, actions: p.status === 'pending' ? `<button class="tk-btn tk-ok" onclick="crmReportPromise(${p.id})">✓ واریز شد</button>` : ''});
   });
   if(e.hasPromise && !payPromises.some(p => String(p.lead_id) === String(r.leadId) && p.entry_date === e.date)){

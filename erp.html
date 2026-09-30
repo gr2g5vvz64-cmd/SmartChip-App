@@ -4248,7 +4248,7 @@ function _pmMoney(n){ return fn(Number(n||0).toLocaleString('en-US')); }
 function _pmWho(){ return (typeof currentUser!=='undefined' && currentUser && (currentUser.name||currentUser.email)) || ''; }
 async function promiseActionERP(id, action){
   const p = payPromisesERP.find(x => x.id === id); if(!p) return;
-  const msg = action === 'confirm' ? `واریزِ ${_pmMoney(p.amount)} تومان از «${p.customer}» در حساب دیده و ثبت شد؟`
+  const msg = action === 'confirm' ? `واریزِ ${_pmMoney(p.amount)} ریال از «${p.customer}» در حساب دیده و ثبت شد؟`
             : action === 'reopen' ? 'این وعده دوباره باز بشه (منتظرِ واریز)؟' : 'این وعده لغو بشه؟';
   if(!confirm(msg)) return;
   try{
@@ -4286,14 +4286,14 @@ function renderPromisesERP(){
       <div class="stat-card" style="flex:1;min-width:150px;padding:12px;border:1px solid var(--border);border-radius:12px"><div style="font-size:11px;color:var(--muted)">وعده‌هایِ باز</div><div style="font-size:22px;font-weight:800">${fn(open.length)}</div></div>
       <div class="stat-card" style="flex:1;min-width:150px;padding:12px;border:1px solid rgba(74,222,128,.35);border-radius:12px"><div style="font-size:11px;color:var(--muted)">اعلامِ واریز — منتظرِ تأییدِ شما</div><div style="font-size:22px;font-weight:800;color:#4ade80">${fn(reported)}</div></div>
       <div class="stat-card" style="flex:1;min-width:150px;padding:12px;border:1px solid rgba(248,113,113,.35);border-radius:12px"><div style="font-size:11px;color:var(--muted)">سررسید گذشته</div><div style="font-size:22px;font-weight:800;color:#f87171">${fn(overdue)}</div></div>
-      <div class="stat-card" style="flex:1;min-width:180px;padding:12px;border:1px solid var(--border);border-radius:12px"><div style="font-size:11px;color:var(--muted)">جمعِ مبالغِ باز (تومان)</div><div style="font-size:20px;font-weight:800">${_pmMoney(sum)}</div></div>
+      <div class="stat-card" style="flex:1;min-width:180px;padding:12px;border:1px solid var(--border);border-radius:12px"><div style="font-size:11px;color:var(--muted)">جمعِ مبالغِ باز (ریال)</div><div style="font-size:20px;font-weight:800">${_pmMoney(sum)}</div></div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:10px">
       <button class="btn ${promiseViewERP==='open'?'btn-primary':'btn-ghost'} btn-sm" onclick="promiseViewERP='open';renderPromisesERP()">باز (${fn(open.length)})</button>
       <button class="btn ${promiseViewERP==='done'?'btn-primary':'btn-ghost'} btn-sm" onclick="promiseViewERP='done';renderPromisesERP()">تأییدشده / لغوشده</button>
       <button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="loadPromisesERP()">🔄 تازه‌سازی</button>
     </div>
-    ${list.length ? `<div class="tbl-wrap"><table class="tbl" style="width:100%"><thead><tr><th>مشتری</th><th>مبلغ (تومان)</th><th>سررسید</th><th>وضعیت</th><th>توضیح</th><th></th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`
+    ${list.length ? `<div class="tbl-wrap"><table class="tbl" style="width:100%"><thead><tr><th>مشتری</th><th>مبلغ (ریال)</th><th>سررسید</th><th>وضعیت</th><th>توضیح</th><th></th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`
       : `<div style="text-align:center;color:var(--muted);padding:40px">${promiseViewERP==='open' ? 'وعده‌ی بازی نیست ✨' : 'موردی نیست'}</div>`}`;
 }
 setInterval(() => { if(document.visibilityState === 'visible') loadPromisesERP(); }, 90000);
