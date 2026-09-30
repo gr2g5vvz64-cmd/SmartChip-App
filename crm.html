@@ -331,7 +331,7 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .qf2{position:relative;background:var(--surface);border:1px solid rgba(240,165,0,.3);border-radius:12px;padding:8px 10px 8px 30px;margin-bottom:10px}
 .qf2-bar{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px}
 .qf2 .form-control{font-size:12px;padding:6px 9px;min-height:32px}
-.qf2-cust{position:relative;flex:0 1 170px;min-width:130px}
+.qf2-cust{position:relative;flex:0 1 150px;min-width:120px}
 .qf2-note{flex:1 1 120px;min-width:120px;resize:none!important;overflow:hidden;line-height:1.5;height:32px;box-sizing:border-box}
 .qf2-chips{display:flex;gap:4px;flex-wrap:wrap}
 .qf2-chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 7px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-size:11.5px;font-weight:700;white-space:nowrap;user-select:none}
@@ -345,7 +345,10 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .qf2-c-sug:has(input:checked){border-color:#a78bfa;background:rgba(168,85,247,.12)}
 .qf2-tgl{height:32px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
 .qf2-tgl:hover,.qf2-tgl.on{color:var(--text);border-color:var(--accent)}
-.qf2-sum{color:var(--muted);font-size:10.5px}
+.qf2-sum{color:var(--muted);font-size:10.5px;margin-right:3px}
+.qf2-ico{padding:0 9px;font-size:14px}
+.qf2-lbl{font-style:normal}
+@media (max-width:1440px){.qf2 .qf2-lbl{display:none}.qf2 .qf2-chip{padding:0 6px}.qf2 .qf2-dir label{padding:0 7px}.qf2 .qf2-note{min-width:100px}.qf2 .qf2-save{padding:0 12px}}
 .qf2-save{height:32px;padding:0 16px;font-size:12.5px;font-weight:800}
 .qf2-x{position:absolute;left:4px;top:8px;height:32px;width:24px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px}
 .qf2-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin-top:7px;padding-top:7px;border-top:1px dashed var(--border)}
@@ -406,6 +409,19 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .dec-tag.done{background:var(--card);color:var(--muted)}
 .dec-meta{font-size:11px;color:var(--muted);margin-top:4px}
 .dec-go{margin-top:8px}
+
+/* ── (۱۴۰۵/۰۷/۰۸) چه کسی زنگ زد + دامنه‌ی داشبوردها ── */
+.qf2-dir{display:flex;height:32px;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:0 0 auto}
+.qf2-dir label{display:flex;align-items:center;cursor:pointer;font-size:11.5px;font-weight:700;padding:0 9px;color:var(--muted);white-space:nowrap}
+.qf2-dir label + label{border-right:1px solid var(--border)}
+.qf2-dir input{display:none}
+.qf2-dir label:has(input:checked){background:rgba(240,165,0,.16);color:var(--accent)}
+.qf2-dir.need{border-color:var(--red);box-shadow:0 0 0 2px rgba(239,68,68,.25)}
+.dash-scope{font-size:11.5px;color:var(--muted);background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:6px 10px;margin-bottom:12px}
+.dash-scope b{color:var(--text)}
+.dir-sec{margin-top:16px}
+.dir-sub{font-size:11px;font-weight:400;color:var(--muted);margin-right:6px}
+.dir-hint{font-size:11px;color:var(--muted);margin:4px 0 10px;line-height:1.9}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -1591,6 +1607,11 @@ function renderToolbar(){
           <div id="qf_customerAC" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:99;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.4)"></div>
         </div>
         <textarea class="form-control qf2-note" id="qf_note" rows="1" placeholder="💬 صحبتِ انجام‌شده *" oninput="qf2Grow(this)"></textarea>
+        <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) چه کسی تماس رو شروع کرد — اجباری و بدونِ پیش‌فرض (برایِ ارزیابیِ عملکردِ کارشناس) -->
+        <div class="qf2-dir" id="qfDirBox" role="radiogroup" aria-label="چه کسی زنگ زد؟" title="چه کسی تماس رو شروع کرد؟ — برایِ ارزیابیِ عملکرد لازمه">
+          <label><input type="radio" name="qf_dir" value="outbound" onchange="document.getElementById('qfDirBox').classList.remove('need')"/><span>📞 ما</span></label>
+          <label><input type="radio" name="qf_dir" value="inbound" onchange="document.getElementById('qfDirBox').classList.remove('need')"/><span>📲 مشتری</span></label>
+        </div>
         <div class="qf2-chips">
           <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) طبقِ درخواستِ کاربر: داخلی و خارجی جدا (هر کدوم یک «کار»ِ جدا با کدِ -I / -C) -->
           <input type="checkbox" id="qf_hasPurchase" hidden/>
@@ -1598,11 +1619,11 @@ function renderToolbar(){
           <label class="qf2-chip qf2-c-for" title="استعلام / پیش‌فاکتورِ خارجی — چین/تایوان (کد: ‎-C)"><input type="checkbox" id="qf_hasForeign" onchange="qf2MarketChipChanged()"/><span>🌏 خارجی</span></label>
           <label class="qf2-chip qf2-c-pay" title="وعده‌ی پرداخت — مالی در ERP هم می‌بینه"><input type="checkbox" id="qf_hasPromise" onchange="document.getElementById('qf_promiseBox').style.display=this.checked?'block':'none';if(this.checked)setTimeout(()=>document.getElementById('qf_promiseAmount').focus(),0)"/><span>💵 وعده</span></label>
           <label class="qf2-chip qf2-c-fin"><input type="checkbox" id="qf_hasFinance" onchange="document.getElementById('qf_financeBox').style.display=this.checked?'block':'none'"/><span>💰 مالی</span></label>
-          <label class="qf2-chip qf2-c-smp"><input type="checkbox" id="qf_hasSample" onchange="document.getElementById('qf_sampleBox').style.display=this.checked?'block':'none';if(this.checked)qfRenderSampleRows();"/><span>📦 نمونه</span></label>
-          <label class="qf2-chip qf2-c-sug"><input type="checkbox" id="qf_hasSuggestion" onchange="document.getElementById('qf_suggestionBox').style.display=this.checked?'block':'none';"/><span>💡 پیشنهاد</span></label>
+          <label class="qf2-chip qf2-c-smp" title="نمونه"><input type="checkbox" id="qf_hasSample" onchange="document.getElementById('qf_sampleBox').style.display=this.checked?'block':'none';if(this.checked)qfRenderSampleRows();"/><span>📦<i class="qf2-lbl"> نمونه</i></span></label>
+          <label class="qf2-chip qf2-c-sug" title="پیشنهاد / موضوعِ کاری"><input type="checkbox" id="qf_hasSuggestion" onchange="document.getElementById('qf_suggestionBox').style.display=this.checked?'block':'none';"/><span>💡<i class="qf2-lbl"> پیشنهاد</i></span></label>
         </div>
-        <button type="button" class="qf2-tgl" id="qf2HistBtn" onclick="qf2ToggleHistory()" title="آخرین تماس‌ها و صحبت‌هایِ همین مشتری">📜 تاریخچه</button>
-        <button type="button" class="qf2-tgl" id="qf2DetBtn" onclick="qf2ToggleDetails()" title="تاریخ، نوع، پیگیری، کارشناس، اهمیت">⚙️ جزئیات <span id="qf2DetSum" class="qf2-sum"></span> <span id="qf2DetArrow">▾</span></button>
+        <button type="button" class="qf2-tgl qf2-ico" id="qf2HistBtn" onclick="qf2ToggleHistory()" title="تاریخچه — آخرین تماس‌ها و صحبت‌هایِ همین مشتری" aria-label="تاریخچه">📜</button>
+        <button type="button" class="qf2-tgl" id="qf2DetBtn" onclick="qf2ToggleDetails()" title="جزئیات — تاریخ، نوع، پیگیری، کارشناس، اهمیت" aria-label="جزئیات">⚙️<span id="qf2DetSum" class="qf2-sum"></span><span id="qf2DetArrow">▾</span></button>
         <button type="button" onclick="submitQuickContact()" class="btn btn-primary qf2-save">✅ ثبت</button>
         <button type="button" class="qf2-x" title="بستنِ فرم" onclick="document.getElementById('quickContactForm').style.display='none'">✕</button>
       </div>
@@ -3020,8 +3041,8 @@ function showCrmTab(tab){
   const qf = document.getElementById('quickContactForm');
   if(qf) qf.style.display = tab==='table' ? 'block' : 'none';
   if(tab==='table' && typeof qf2Collapse==='function') qf2Collapse();
-  if(tab==='dashboard') renderDashboard();
-  if(tab==='crmBi') renderCrmBi();
+  if(tab==='dashboard'){ renderDashboard(); crmDecorateDashboards('dashboard'); }
+  if(tab==='crmBi'){ Promise.resolve().then(()=>renderCrmBi()).catch(()=>{}).then(()=>crmDecorateDashboards('crmBi')); }
   if(tab==='table')     renderTableView();
   if(tab==='archive')   renderArchiveView('');
   if(tab==='morning')   renderMorningView();
@@ -3035,8 +3056,8 @@ function showCrmTab(tab){
   if(tab==='prospQuick')     renderProspectQuickForm(document.getElementById('prospQuickView'));
   if(tab==='prospCustomers') renderCustomersPage(document.getElementById('prospCustomersView'));
   if(tab==='prospTable')     renderProspectTable(document.getElementById('prospTableView'));
-  if(tab==='prospStats')     renderProspectStats(document.getElementById('prospStatsView'));
-  if(tab==='prospMgmtStats') renderManagementDashboard(document.getElementById('prospMgmtStatsView'));
+  if(tab==='prospStats'){ Promise.resolve().then(()=>renderProspectStats(document.getElementById('prospStatsView'))).catch(()=>{}).then(()=>crmDecorateDashboards('prospStats')); }
+  if(tab==='prospMgmtStats') Promise.resolve().then(()=>renderManagementDashboard(document.getElementById('prospMgmtStatsView'))).catch(()=>{}).then(()=>crmDecorateDashboards('prospMgmtStats'));
   if(tab==='prospChangelog') renderCustomerChangelog(document.getElementById('prospChangelogView'));
   if(tab==='botStatus') renderBotStatusPanelCrm();
   if(tab==='salesForecast') renderSalesForecast();
@@ -4051,7 +4072,7 @@ function renderTableView(){
     return `<tr style="${dimStyle}${borderStyle}">
       <td style="width:90px">
         <div style="font-size:12px;font-weight:800;color:var(--accent)">${e.trackingCode||'—'}</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px">${e.date?toShamsiCompact(e.date):''}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">${e.direction==='outbound'?'<span title="ما زنگ زدیم">📞</span> ':e.direction==='inbound'?'<span title="مشتری زنگ زد">📲</span> ':''}${e.date?toShamsiCompact(e.date):''}</div>
         ${crmTasksBadge(r)}
       </td>
       <td style="min-width:150px;font-weight:700">
@@ -7390,7 +7411,7 @@ function renderQuickFormActivityBox(p){
         <select class="form-control" id="pQfType">${PROSPECT_ACTIVITY_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('')}</select>
         <label class="form-label" style="margin-top:10px">جهت تماس</label>
         <div style="display:flex;gap:14px;font-size:11.5px;margin-bottom:4px">
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pQfDirection" value="outbound" checked/> 📞 من تماس گرفتم</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pQfDirection" value="outbound"/> 📞 من تماس گرفتم</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pQfDirection" value="inbound"/> 📲 مشتری زنگ زد</label>
         </div>
         <label class="form-label" style="margin-top:10px">📝 شرح مذاکره</label>
@@ -7423,6 +7444,8 @@ async function submitQuickFormActivity(){
   }
   const type = document.getElementById('pQfType').value;
   const direction = (document.querySelector('input[name="pQfDirection"]:checked')||{}).value || '';
+  // ⚠️ (۱۴۰۵/۰۷/۰۸) قبلاً «من تماس گرفتم» از قبل انتخاب بود — داده کج می‌شد. حالا اجباری و بدونِ پیش‌فرض.
+  if(!direction){ toast('⚠ جهتِ تماس رو مشخص کنید: «من تماس گرفتم» یا «مشتری زنگ زد»'); return; }
   const said = document.getElementById('pQfSaid').value.trim();
   const heard = document.getElementById('pQfHeard').value.trim();
   const nextFollowup = document.getElementById('pQfNextFollowup').value.trim();
@@ -9026,6 +9049,74 @@ function toShamsiCompact(dateStr){
 let qfPartRows = [];
 
 // ══════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۰۸) «چه کسی زنگ زد» در داشبوردها + برچسبِ دامنه‌ی هر داشبورد
+//   ما زنگ زدیم = تلاش و پیگیریِ فعالِ کارشناس ؛ مشتری زنگ زد = تقاضا و اعتبارِ رابطه
+//   دامنه‌ها: «داشبورد من/مدیریت» = فقط جذب ؛ «داشبورد سفارش‌ها» = فقط تماس‌هایِ سفارش (مشتریانِ فعلی و سابق)
+//             «تحلیلِ مدیریتی» = جذب + وضعیتِ فعال/غیرفعالِ مشتریان
+// ══════════════════════════════════════════════════════════════
+const CRM_DASH_SCOPE = {
+  prospStats:     {c:'prospStatsView',     t:'🎯 دامنه: فقط <b>جذبِ مشتری</b> (مشتری‌هایِ بالقوه و رزروشده‌ی خودتون)'},
+  prospMgmtStats: {c:'prospMgmtStatsView', t:'🎯 دامنه: فقط <b>جذبِ مشتری</b> — همه‌ی کارشناس‌ها'},
+  dashboard:      {c:'dashboardView',      t:'📦 دامنه: فقط <b>تماس‌هایِ سفارش</b> — مشتریانِ فعلی و سابق (نه جذب)'},
+  crmBi:          {c:'crmBiView',          t:'🧭 دامنه: <b>جذب</b> (فعالیت‌ها و تبدیل) + <b>وضعیتِ مشتریان</b> (فعال/غیرفعال بر اساسِ سفارشِ ERP) — تماس‌هایِ صفحه‌ی سفارش اینجا نیستن'},
+};
+function _jalaliNDaysAgo(n){
+  const d = new Date(Date.now() - n*86400000);
+  try{ const s = jdToS(gToJD(d.getFullYear(), d.getMonth()+1, d.getDate())); return `${s.y}/${String(s.m).padStart(2,'0')}/${String(s.d).padStart(2,'0')}`; }catch(e){ return ''; }
+}
+function _dirTable(rows, extraHead, extraCell){
+  const names = Object.keys(rows).sort((a,b) => rows[b].total - rows[a].total);
+  if(!names.length) return '<div style="color:var(--muted);font-size:12px;padding:10px">در این بازه تماسی ثبت نشده.</div>';
+  return `<div style="overflow-x:auto"><table class="crm-table" style="width:100%;font-size:12px"><thead><tr>
+      <th>کارشناس</th><th>کلِ تماس‌ها</th><th>📞 ما زنگ زدیم</th><th>📲 مشتری زنگ زد</th><th>نامشخص</th><th>سهمِ تماسِ ما</th>${extraHead||''}</tr></thead><tbody>
+    ${names.map(n => { const r = rows[n], known = r.out + r.inn, pct = known ? Math.round(r.out*100/known) : null;
+      return `<tr><td style="font-weight:700">${n}</td><td>${fn(r.total)}</td><td>${fn(r.out)}</td><td>${fn(r.inn)}</td><td style="color:var(--muted)">${fn(r.unk)}</td>
+        <td><div style="display:flex;align-items:center;gap:6px;justify-content:center"><div style="width:70px;height:6px;border-radius:3px;background:var(--border);overflow:hidden"><div style="width:${pct||0}%;height:100%;background:var(--accent)"></div></div>${pct===null?'—':fn(pct)+'٪'}</div></td>${extraCell?extraCell(r):''}</tr>`; }).join('')}
+    </tbody></table></div>`;
+}
+function _dirSectionOrders(){
+  const since = Date.now() - 30*86400000, rows = {};
+  (leads||[]).forEach(l => (l.history||[]).forEach(e => {
+    if(!e || !e.date || new Date(e.date).getTime() < since) return;
+    const who = e.by || e.followUpBy || 'نامشخص';
+    const r = rows[who] = rows[who] || {total:0,out:0,inn:0,unk:0,outConv:0,inConv:0};
+    r.total++;
+    const conv = !!(e.trackingCode && (e.needsEstelamat || e.linkedRequestId));
+    if(e.direction === 'outbound'){ r.out++; if(conv) r.outConv++; } else if(e.direction === 'inbound'){ r.inn++; if(conv) r.inConv++; } else r.unk++;
+  }));
+  const pc = (a,b) => b ? fn(Math.round(a*100/b))+'٪' : '—';
+  return `<div class="dash-section dir-sec"><div class="sec-title">📞 ابتکارِ تماس — سفارش <span class="dir-sub">۳۰ روزِ اخیر · برایِ ارزیابیِ کارشناس</span></div>
+    <div class="dir-hint">«ما زنگ زدیم» یعنی پیگیریِ فعالِ کارشناس؛ «مشتری زنگ زد» یعنی تقاضا. ستون‌هایِ «به استعلام رسید» نشون می‌ده چند درصد از هر نوع تماس به درخواستِ واقعی در ERP تبدیل شد. تماس‌هایِ قبل از این به‌روزرسانی «نامشخص» حساب می‌شن.</div>
+    ${_dirTable(rows, '<th>به استعلام رسید — تماسِ ما</th><th>به استعلام رسید — تماسِ مشتری</th>', r => `<td>${pc(r.outConv, r.out)}</td><td>${pc(r.inConv, r.inn)}</td>`)}</div>`;
+}
+function _dirSectionProspects(){
+  const since = _jalaliNDaysAgo(30), rows = {};
+  (prospects||[]).forEach(p => {
+    const acts = (p.activityLog||[]).concat(...((p.reservationHistory||[]).map(h => h.activity_log||[])));
+    acts.forEach(a => {
+      if(!a || (since && String(a.date||'') < since)) return;
+      const who = a.staff_name || 'نامشخص';
+      const r = rows[who] = rows[who] || {total:0,out:0,inn:0,unk:0};
+      r.total++;
+      if(a.direction === 'outbound') r.out++; else if(a.direction === 'inbound') r.inn++; else r.unk++;
+    });
+  });
+  return `<div class="dash-section dir-sec"><div class="sec-title">📞 ابتکارِ تماس — جذب <span class="dir-sub">۳۰ روزِ اخیر</span></div>
+    <div class="dir-hint">در جذب، بیشترِ ارزشِ کارِ کارشناس در «ما زنگ زدیم» است. «مشتری زنگ زد» نشونه‌ی علاقه‌ی واقعیِ مشتریه.</div>
+    ${_dirTable(rows)}</div>`;
+}
+function crmDecorateDashboards(tab){
+  const run = () => {
+    const sc = CRM_DASH_SCOPE[tab]; if(!sc) return;
+    const c = document.getElementById(sc.c); if(!c) return;
+    if(!c.querySelector('.dash-scope')) c.insertAdjacentHTML('afterbegin', `<div class="dash-scope">${sc.t}</div>`);
+    if(tab === 'dashboard' && !c.querySelector('.dir-sec')) c.insertAdjacentHTML('beforeend', _dirSectionOrders());
+    if(tab === 'prospMgmtStats' && !c.querySelector('.dir-sec')) c.insertAdjacentHTML('beforeend', _dirSectionProspects());
+  };
+  run(); setTimeout(run, 1500); setTimeout(run, 4000);     // داشبوردهایی که دیرتر از سرور پر می‌شن
+}
+
+// ══════════════════════════════════════════════════════════════
 // 🗳️ نتیجه‌ی درخواست‌هایِ تأیید (۱۴۰۵/۰۷/۰۸) — طبقِ خواسته‌ی کاربر:
 //   کارشناس باید ببینه مدیر کدوم مشتری‌ها رو تأیید یا رد کرده.
 //   • رد شده    → در این صفحه می‌مونه، خط‌خورده با «عدم فعالیت» — بدونِ شمارنده
@@ -9572,6 +9663,8 @@ async function submitQuickContact(){
   const followUpBy  = document.getElementById('qf_followUpBy').value;
   const importance  = document.getElementById('qf_importance').value;
   qf2SyncMarketChips();
+  const callDir = (document.querySelector('input[name="qf_dir"]:checked')||{}).value || '';
+  if(!callDir){ document.getElementById('qfDirBox').classList.add('need'); toast('⚠ مشخص کنید چه کسی زنگ زد: «📞 ما» یا «📲 مشتری»'); return; }
   const hasPromise = document.getElementById('qf_hasPromise').checked;
   const promiseAmount = qf2ParseAmount(document.getElementById('qf_promiseAmount').value);
   if(hasPromise && !promiseAmount){ toast('⚠ مبلغِ وعده‌ی پرداخت رو بنویسید'); document.getElementById('qf_promiseAmount').focus(); return; }
@@ -9638,6 +9731,8 @@ async function submitQuickContact(){
     completed: false, canceled: false,
     // ⚠️ (۱۴۰۵/۰۷/۰۸) تماس با «کارها»ی جدا: وقتی همه‌ی کارها تکمیل بشن، خودِ تماس هم خودکار تکمیل می‌شه
     tasksV: 1, hasPromise: hasPromise || undefined,
+    // ⚠️ (۱۴۰۵/۰۷/۰۸) برایِ ارزیابیِ عملکرد: چه کسی تماس رو شروع کرد + چه کسی ثبتش کرد
+    direction: callDir, by: (currentUser && (currentUser.name||currentUser.email)) || '',
   };
 
   if(!lead.history) lead.history=[];
@@ -9728,6 +9823,7 @@ async function submitQuickContact(){
   document.getElementById('qf_note').value='';
   document.getElementById('qf_followDate').value='';
   document.getElementById('qf_followNote').value='';
+  document.querySelectorAll('input[name="qf_dir"]').forEach(x=>x.checked=false);
   document.getElementById('qf_hasPurchase').checked=false;
   document.getElementById('qf_hasDomestic').checked=false;
   document.getElementById('qf_hasForeign').checked=false;
