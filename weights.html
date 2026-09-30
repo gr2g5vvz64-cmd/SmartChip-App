@@ -135,7 +135,7 @@ body.resizing,body.resizing *{cursor:col-resize!important;user-select:none!impor
 .sheet tr:hover td.del button,.sheet td.del button:focus{opacity:1}
 .sheet td.del button:hover{color:var(--err-ink)}
 body.ro .sheet input,body.ro .sheet select,body.ro .sheet textarea{pointer-events:none}
-body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
+body.ro .del,body.ro #addBtn,body.ro #dupBtn,body.ro #pkgBtn{display:none!important}
 
 /* ── حالت‌هایِ خالی ── */
 .empty{padding:48px 20px;text-align:center;color:var(--ink-soft)}
@@ -212,6 +212,19 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
 .rsug td.w{direction:ltr;text-align:left;font-weight:700;white-space:nowrap}
 .rsug td.ex{direction:ltr;text-align:left;color:var(--ink-soft);font-size:11.5px}
 .rsug .brand{color:var(--warn-ink);font-size:11px}
+.psec{font-size:13px;font-weight:700;margin:6px 2px 2px;display:flex;align-items:center;gap:8px}
+.psec small{font-weight:400;color:var(--ink-soft)}
+.pgrp{background:var(--card);border:1px solid var(--grid-strong);border-radius:9px}
+.pgrp.off{opacity:.55}
+.pgh{display:flex;align-items:center;gap:8px;padding:7px 10px;flex-wrap:wrap}
+.pgh input[type=checkbox]{width:16px;height:16px}
+.pgh input.pv{width:150px;border:1px solid var(--grid-strong);border-radius:6px;padding:5px 8px;font:inherit;font-size:13px;font-weight:700;direction:ltr;text-align:center;background:var(--sheet);color:var(--ink)}
+.pgh .pc{color:var(--ink-soft);font-size:12px}
+.pgh .pex{color:var(--ink-soft);font-size:11.5px;direction:ltr;flex:1;min-width:160px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pgh button{border:0;background:none;color:var(--brass);cursor:pointer;font:inherit;font-size:12px}
+.pitems{border-top:1px solid var(--grid);max-height:260px;overflow:auto;padding:4px 10px 6px}
+.pitem{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;direction:ltr}
+.pitem mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 2px}
 .sim{margin:14px auto 0;max-width:560px;text-align:right;font-size:12.5px}
 .sim b{display:block;margin-bottom:6px;color:var(--ink)}
 .sim a{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--grid);border-radius:6px;margin-bottom:4px;color:var(--ink);text-decoration:none;background:var(--card);direction:ltr}
@@ -247,6 +260,7 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
     <div class="counts" id="counts"></div>
     <div class="actions">
       <button class="btn ico" id="undoBtn" type="button" disabled title="برگرداندنِ آخرین تغییرِ ذخیره‌شده (Ctrl+Z)" aria-label="برگرداندن">↶</button>
+      <button class="btn" id="pkgBtn" type="button" title="Package رو از رویِ پارت‌نامبر پر کن">📦 Package</button>
       <button class="btn" id="dupBtn" type="button" title="پیدا کردن و یکی کردنِ پارت‌نامبرهایِ تکراری">🧹 تکراری‌ها</button>
       <button class="btn ico" id="fitBtn" type="button" title="همه‌ی ستون‌ها به اندازه‌ی خودکار (جاشدن در عرضِ صفحه)" aria-label="اندازه‌ی خودکارِ ستون‌ها">↔</button>
       <button class="btn" id="exportBtn" type="button" title="خروجیِ Excel از کلِ وزن‌نامه">⬇ Excel</button>
@@ -303,6 +317,23 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn{display:none!important}
       <span id="dupInfo"></span>
       <button class="btn" id="dupBulk" type="button">⚡ ادغامِ گروه‌هایِ بدونِ تعارضِ همین صفحه</button>
       <button class="btn" id="dupMore" type="button">گروه‌هایِ بیشتر ›</button>
+    </div>
+  </div>
+</div>
+
+<div class="dup-ov" id="pkgOv" role="dialog" aria-modal="true" aria-label="تکمیلِ Package">
+  <div class="dup-box">
+    <div class="dup-hd">
+      <b>📦 تکمیلِ Package از رویِ پارت‌نامبر</b>
+      <label class="searchbox dup-q"><span>🔍</span><input id="pkgQ" type="text" placeholder="جستجو در پیشنهادها (پکیج یا پارت)…" autocomplete="off"></label>
+      <button class="btn" id="pkgUndo" type="button" disabled>↶ برگرداندنِ آخرین اعمال</button>
+      <button class="qf-x" id="pkgClose" type="button" aria-label="بستن">✕</button>
+    </div>
+    <div class="dup-help">فقط ردیف‌هایی که <b>Package خالی</b> دارن و پارت‌نامبرشون اطلاعاتِ پکیج داره. هیچ مقدارِ موجودی عوض نمی‌شه. مقدارِ هر گروه رو می‌تونید قبل از اعمال <b>ویرایش</b> کنید، یا ردیف‌هایِ اشتباه رو از تیک دربیارید.</div>
+    <div class="dup-list" id="pkgList"></div>
+    <div class="dup-ft">
+      <span id="pkgInfo"></span>
+      <button class="btn primary" id="pkgApply" type="button">✅ اعمال</button>
     </div>
   </div>
 </div>
@@ -1172,6 +1203,106 @@ async function delRule(id){
   }catch(e){ toast('❌ ' + e.message); }
 }
 
+// ═══════════════════════════════ 📦 تکمیلِ Package ═══════════════════════════════
+const PKG_API = API_BASE + '/api/items/';
+const PKG_UNDO_KEY = 'smartchip_weights_pkgundo_v1';
+const P = {groups: [], q: '', busy: false};
+const TIER = {
+  learned: ['✅ یادگرفته از داده‌یِ خودتون', 'همون سبکی که خودتون در Package نوشتید — آزمون رویِ ردیف‌هایِ پر: ۹۹٫۹٪ درست', true],
+  standard: ['📘 کدِ استانداردِ پکیج', 'مثلِ SOD-123، TO-252، DIP-8 — به همون سبکِ خط‌تیره‌دار', true],
+  review: ['🔍 نیاز به بررسی', 'حدس: DIP بدونِ تعدادِ پایه، SMA/SMB/SMC (ممکنه کانکتور باشه)، یا «نوع + سایز» برایِ نوع‌هایِ جدید — پیش‌فرض تیک نخورده', false],
+};
+function pkgUndos(){ try{ return JSON.parse(localStorage.getItem(PKG_UNDO_KEY) || '[]'); }catch(e){ return []; } }
+function setPkgUndos(u){ try{ localStorage.setItem(PKG_UNDO_KEY, JSON.stringify(u.slice(-10))); }catch(e){} $('pkgUndo').disabled = !u.length; }
+async function openPkg(){
+  $('pkgOv').classList.add('show'); setPkgUndos(pkgUndos());
+  $('pkgList').innerHTML = '<div class="empty"><span class="spin"></span> در حالِ بررسیِ پارت‌نامبرها و یادگرفتن از Packageهایِ موجود…</div>';
+  try{
+    const r = await fetchT(PKG_API + 'package-suggest/', {}, 60000); const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    P.groups = d.groups.map(g => ({...g, on: TIER[g.tier][2], value: g.package, off: new Set(), open: false}));
+    P.empty = d.empty_total; renderPkg();
+  }catch(e){ $('pkgList').innerHTML = `<div class="empty">⚠️ ${esc(e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message)}</div>`; }
+}
+function pkgSelected(){
+  const out = [];
+  P.groups.forEach(g => { if (!g.on || !g.value.trim()) return; g.rows.forEach(r => { if (!g.off.has(r.id)) out.push({id: r.id, package: g.value.trim()}); }); });
+  return out;
+}
+function pkgMark(pn, tok){
+  const i = pn.toUpperCase().indexOf(String(tok).toUpperCase());
+  return i < 0 ? esc(pn) : esc(pn.slice(0, i)) + '<mark>' + esc(pn.slice(i, i + tok.length)) + '</mark>' + esc(pn.slice(i + tok.length));
+}
+function renderPkg(){
+  const q = P.q.toUpperCase();
+  const vis = P.groups.filter(g => !q || g.value.toUpperCase().includes(q) || g.rows.some(r => r.part_number.toUpperCase().includes(q)));
+  let html = '', lastTier = '';
+  vis.forEach(g => {
+    if (g.tier !== lastTier){
+      lastTier = g.tier; const n = P.groups.filter(x => x.tier === g.tier).reduce((a, x) => a + x.count, 0);
+      html += `<div class="psec">${TIER[g.tier][0]} <small>${fa(n)} ردیف · ${TIER[g.tier][1]}</small></div>`;
+    }
+    const gi = P.groups.indexOf(g); const sel = g.rows.length - g.off.size;
+    html += `<div class="pgrp ${g.on ? '' : 'off'}" data-g="${gi}"><div class="pgh">
+      <input type="checkbox" data-a="on" ${g.on ? 'checked' : ''} aria-label="اعمالِ این گروه">
+      <input class="pv" data-a="val" value="${esc(g.value)}" spellcheck="false" aria-label="مقدارِ Package">
+      <span class="pc">× ${fa(sel)}${g.off.size ? ` از ${fa(g.rows.length)}` : ''}</span>
+      <span class="pex">${esc(g.rows[0].part_number)}${g.rows[1] ? ' · ' + esc(g.rows[1].part_number) : ''}</span>
+      <button type="button" data-a="open">${g.open ? 'بستن ▴' : 'ردیف‌ها ▾'}</button></div>
+      ${g.open ? `<div class="pitems">${g.rows.map(r => `<label class="pitem"><input type="checkbox" data-id="${r.id}" ${g.off.has(r.id) ? '' : 'checked'}> ${pkgMark(r.part_number, r.token)}</label>`).join('')}</div>` : ''}
+    </div>`;
+  });
+  $('pkgList').innerHTML = html || '<div class="empty"><div class="big">✨</div>پیشنهادی نمونده — همه‌ی Packageهایِ قابلِ استخراج پر شدن.</div>';
+  const n = pkgSelected().length;
+  $('pkgInfo').textContent = `${fa(P.groups.reduce((a, g) => a + g.count, 0))} پیشنهاد از ${fa(P.empty || 0)} ردیفِ بدونِ Package · ${fa(n)} انتخاب شده`;
+  $('pkgApply').textContent = `✅ اعمالِ ${fa(n)} ردیف`; $('pkgApply').disabled = !n;
+}
+async function pkgApply(){
+  const items = pkgSelected(); if (!items.length) return;
+  if (!confirm(`Package برایِ ${fa(items.length)} ردیف پر بشه؟\n(فقط خانه‌هایِ خالی؛ قابلِ برگشت)`)) return;
+  const btn = $('pkgApply'); btn.disabled = true; let done = [];
+  try{
+    for (let i = 0; i < items.length; i += 400){
+      btn.textContent = `در حالِ اعمال… ${fa(Math.min(i + 400, items.length))}/${fa(items.length)}`;
+      const r = await fetchT(PKG_API + 'package-apply/', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({items: items.slice(i, i + 400), _staff: S.email})}, 60000);
+      const d = await r.json(); if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status);
+      done = done.concat(d.items);
+    }
+  }catch(e){ toast('❌ ' + (e.name === 'AbortError' ? 'سرور دیر جواب داد' : e.message) + (done.length ? ` — ${fa(done.length)} ردیف قبلش اعمال شده بود` : ''), 5000); }
+  if (done.length){ const u = pkgUndos(); u.push({at: Date.now(), items: done}); setPkgUndos(u); toast(`✅ Package برایِ ${fa(done.length)} ردیف پر شد`); }
+  S.cache = new Map(); S.chunkState = new Map();
+  openPkg();
+}
+async function pkgUndoLast(){
+  const u = pkgUndos(); const last = u.pop(); if (!last) return;
+  if (!confirm(`اعمالِ آخر (${fa(last.items.length)} ردیف) برگرده؟ ردیف‌هایی که بعدش دستی عوض کردید دست نمی‌خورن.`)) return;
+  let n = 0;
+  try{
+    for (let i = 0; i < last.items.length; i += 400){
+      const r = await fetchT(PKG_API + 'package-undo/', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({items: last.items.slice(i, i + 400), _staff: S.email})}, 60000);
+      const d = await r.json(); if (!d.ok) throw new Error(d.error || 'HTTP ' + r.status); n += d.count;
+    }
+    setPkgUndos(u); toast(`↶ ${fa(n)} ردیف به حالتِ قبل برگشت`);
+  }catch(e){ toast('❌ برگردونده نشد — ' + e.message); }
+  S.cache = new Map(); S.chunkState = new Map(); openPkg();
+}
+function wirePkg(){
+  $('pkgBtn').onclick = openPkg;
+  $('pkgClose').onclick = () => { $('pkgOv').classList.remove('show'); load({keepScroll: true}); };
+  $('pkgOv').addEventListener('keydown', e => { if (e.key === 'Escape') $('pkgClose').click(); });
+  $('pkgApply').onclick = pkgApply; $('pkgUndo').onclick = pkgUndoLast;
+  let t; $('pkgQ').addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { P.q = $('pkgQ').value.trim(); renderPkg(); }, 200); });
+  $('pkgList').addEventListener('change', e => {
+    const box = e.target.closest('.pgrp'); if (!box) return; const g = P.groups[+box.dataset.g];
+    if (e.target.dataset.a === 'on'){ g.on = e.target.checked; renderPkg(); }
+    else if (e.target.dataset.id){ const id = +e.target.dataset.id; if (e.target.checked) g.off.delete(id); else g.off.add(id); renderPkg(); }
+  });
+  $('pkgList').addEventListener('input', e => { if (e.target.dataset.a === 'val'){ const g = P.groups[+e.target.closest('.pgrp').dataset.g]; g.value = e.target.value; const n = pkgSelected().length; $('pkgApply').textContent = `✅ اعمالِ ${fa(n)} ردیف`; } });
+  $('pkgList').addEventListener('click', e => { if (e.target.dataset.a === 'open'){ const g = P.groups[+e.target.closest('.pgrp').dataset.g]; g.open = !g.open; renderPkg(); } });
+}
+
 function wireDup(){
   $('dupRulesBtn').onclick = () => { const on = $('rulesView').style.display === 'none'; showRules(on); if (!on) dupLoad(true); };
   $('rulesView').addEventListener('click', e => {
@@ -1213,6 +1344,7 @@ function wire(){
   window.addEventListener('resize', () => { applyWidths(); renderWindow(true); });
   wireResize();
   wireDup();
+  wirePkg();
 
   $('fitBtn').onclick = resetWidths;
   $('exportBtn').onclick = exportXlsx;
