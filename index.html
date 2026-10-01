@@ -245,6 +245,7 @@ const APP_URLS = {
   staffAdmin: 'staff-admin.html',  // فقط برای مدیر — افزودن/حذف کارمند
   fxLedger: 'fx-ledger.html',      // ⚠️ (۱۴۰۵/۰۶/۱۸) دفتر ارزی — فقط مدیر، تسویه ریال⇄یوان با مشتریان/تأمین‌کننده
   reminders: 'reminders.html',     // ⚠️ (۱۴۰۵/۰۶/۲۷) یادآوری‌ها — PWA کاملاً مستقل، کارِ فردا/آزاد/دوره‌ای/تقویم
+  org: 'org.html',                 // ⚠️ (۱۴۰۵/۰۷/۰۸) سازمان — منابعِ انسانی، اداری، کارتابلِ من
   guide: 'راهنمای-کامل-SmartChip.html', // راهنمای کامل پلتفرم
 };
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
@@ -262,12 +263,26 @@ if(isMobileDevice()){
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
 const ROLE_TILES = {
-  admin:   ['erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide'],
-  sales:   ['crm','priceList','guide'],
-  ops:     ['erp','guide'],
-  finance: ['erp','guide'],
+  admin:   ['org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide'],
+  sales:   ['org','crm','priceList','guide'],
+  ops:     ['org','erp','guide'],
+  finance: ['org','erp','guide'],
+};
+const ROLE_GROUP = {
+  owner:'admin', admin:'admin',
+  sup_sales:'sales', sales_expert:'sales',
+  sup_finance:'finance', accounting:'finance',
+  sup_trade:'ops', trade_expert:'ops', sup_procurement:'ops', procurement_staff:'ops',
+  sup_warehouse:'ops', warehouse_keeper:'ops', parts_mgmt:'ops', pcb_mgmt:'ops', service:'ops', office:'ops',
+};
+const ROLE_LABEL = {
+  owner:'مدیریت', admin:'مدیریت', sup_sales:'سرپرستِ فروش', sup_trade:'سرپرستِ بازرگانی', sup_procurement:'سرپرستِ تدارکات',
+  sup_finance:'سرپرستِ مالی', sup_warehouse:'سرپرستِ انبار', office:'مسئولِ دفتر', sales_expert:'کارشناسِ فروش', accounting:'حسابداری',
+  warehouse_keeper:'انباردار', trade_expert:'کارشناسِ بازرگانی', procurement_staff:'تدارکات', service:'خدمات', parts_mgmt:'مدیریتِ قطعات', pcb_mgmt:'مدیریتِ برد',
+  sales:'فروش', ops:'عملیات', finance:'مالی',
 };
 const TILE_META = {
+  org:      {icon:'🏢', title:'سازمان', desc:'منابعِ انسانی · اداری · کارتابلِ من'},
   erp:      {icon:'🏭', title:'ERP', desc:'تدارکات، بازرگانی، مالی، ردیابی محموله'},
   crm:      {icon:'📞', title:'CRM فروش', desc:'پیجویی و ثبت تماس با مشتری'},
   priceList:{icon:'💰', title:'Price List', desc:'ماشین‌حساب قیمت‌دهی قطعات'},
@@ -296,7 +311,7 @@ async function sheetCall(action, data={}){
   }catch(e){ return null; }
 }
 function roleLabel(role){
-  return {admin:'مدیر', sales:'فروش', ops:'تدارکات/بازرگانی', finance:'مالی'}[role] || role || '—';
+  return (typeof ROLE_LABEL!=='undefined' && ROLE_LABEL[role]) || {admin:'مدیر', sales:'فروش', ops:'تدارکات/بازرگانی', finance:'مالی'}[role] || role || '—';
 }
 
 // شناسایی ساده با ایمیل — یک‌بار پرسیده می‌شود و در همان مرورگر نگه داشته می‌شود
@@ -370,7 +385,9 @@ async function init(){
   }
   document.getElementById('mainState').style.display='flex';
   document.getElementById('userInfoText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
-  const allowedTiles=ROLE_TILES[userInfo.role]||[];
+  // ⚠️ (۱۴۰۵/۰۷/۰۸) رفعِ باگ: نقش‌هایِ جدید (owner، sup_sales، sales_expert، accounting…) در ROLE_TILES نبودن
+  //   → مثلاً مدیر با نقشِ owner هیچ کاشی‌ای نمی‌دید. حالا هر نقش به گروهش نگاشت می‌شه؛ نقشِ ناشناخته هم حداقل «سازمان» و «راهنما» رو می‌بینه.
+  const allowedTiles=ROLE_TILES[ROLE_GROUP[userInfo.role]||userInfo.role]||['org','reminders','guide'];
   const isMob = isMobileDevice();
   document.getElementById('tilesContainer').innerHTML=allowedTiles.map(key=>{
     const m=TILE_META[key];

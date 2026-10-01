@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+window.MADAR_NO_INBOX_BUTTON = true;   // کارتابل همین‌جا کامل نشون داده می‌شه
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🏢 سازمان — مدار</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e7d6b'/%3E%3Crect x='18' y='14' width='28' height='38' rx='3' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M26 24h4M34 24h4M26 32h4M34 32h4M29 52v-9h6v9' stroke='%23fff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f1117">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+/* ═══ 🏢 سازمان — منابعِ انسانی و اتوماسیونِ اداری (۱۴۰۵/۰۷/۰۸) ═══ */
+:root{--bg:#0f1117;--surface:#1a1e2a;--card:#232838;--border:#323952;--accent:#f0a500;--accent-hi:#ffcf5a;--teal:#2dd4bf;
+  --text:#f4f5f8;--muted:#9aa2bd;--faint:#6b7390;--green:#22c55e;--red:#ef4444}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Vazirmatn',Tahoma,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.side{background:var(--surface);border-left:1px solid var(--border);padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;text-decoration:none}
+.brand b{font-size:18px;font-weight:900}
+.brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:500}
+.back{display:inline-block;font-size:11px;color:var(--muted);margin:0 2px 16px;text-decoration:none}
+.back:hover{color:var(--accent)}
+.grp{font-size:10.5px;font-weight:800;color:var(--faint);letter-spacing:.08em;margin:16px 8px 6px}
+.nav{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--text);font:inherit;font-size:13px;padding:9px 10px;border-radius:9px;cursor:pointer;text-align:right}
+.nav:hover{background:var(--card)}
+.nav.on{background:rgba(240,165,0,.13);color:var(--accent);font-weight:800}
+.nav .ic{width:20px;text-align:center}
+.nav .soon{margin-right:auto;font-size:9.5px;color:var(--faint);border:1px solid var(--border);border-radius:6px;padding:0 5px}
+.nav .bd{margin-right:auto;background:var(--red);color:#fff;border-radius:9px;font-size:10px;padding:0 6px;min-width:18px;text-align:center}
+.main{padding:22px 26px 60px;max-width:1180px}
+h1{font-size:20px;font-weight:900;margin-bottom:4px}
+.sub{font-size:12.5px;color:var(--muted);margin-bottom:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.kpi .v{font-size:24px;font-weight:900}
+.kpi .l{font-size:11.5px;color:var(--muted)}
+.kpi.warn .v{color:var(--accent)} .kpi.good .v{color:var(--green)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card h3{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.alert{font-size:12px;line-height:1.9;border-radius:10px;padding:9px 12px;margin-bottom:10px;border:1px solid rgba(240,165,0,.35);background:rgba(240,165,0,.07)}
+.alert.ok{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.07)}
+.units{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.u{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.u .t{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13.5px}
+.u .hc{margin-right:auto;font-size:11px;color:var(--muted);font-weight:500}
+.u .heads{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.8}
+.u .bar{height:5px;background:var(--card);border-radius:3px;margin-top:8px;overflow:hidden}
+.u .bar span{display:block;height:100%;background:var(--teal)}
+.miss{color:var(--accent)!important}
+.unit{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.unit-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.unit-h b{font-size:15px}
+.unit-h .d{font-size:11.5px;color:var(--muted)}
+.pos{padding:10px 16px;border-bottom:1px solid #262c3d;display:grid;grid-template-columns:220px 1fr auto;gap:12px;align-items:start}
+.pos:last-child{border-bottom:0}
+.pos .pt{font-weight:800;font-size:13px}
+.pos .pk{font-size:10.5px;color:var(--faint)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:3px 10px;font-size:12px}
+.chip .star{color:var(--accent)}
+.chip .sh{font-size:10.5px;color:var(--teal);font-weight:800}
+.chip button{border:0;background:none;color:var(--faint);cursor:pointer;font-size:13px;line-height:1}
+.chip button:hover{color:var(--red)}
+.empty-pos{font-size:11.5px;color:var(--faint)}
+.btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:11.5px;font-weight:700;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:#141821;border-color:var(--accent)}
+.btn.sm{font-size:10.5px;padding:3px 8px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.jd{white-space:pre-line;font-size:12.5px;line-height:2;color:var(--text)}
+.jd-l{font-size:11px;font-weight:800;color:var(--muted);margin:10px 0 2px}
+.inbox-it{display:flex;gap:12px;align-items:center;padding:11px 14px;border:1px solid var(--border);border-radius:11px;background:var(--surface);margin-bottom:7px;text-decoration:none}
+.inbox-it:hover{border-color:var(--accent)}
+.inbox-it .ic{font-size:20px}
+.inbox-it .t{font-weight:800;font-size:13px}
+.inbox-it .s{font-size:11.5px;color:var(--muted)}
+.inbox-it .go{margin-right:auto;font-size:11.5px;color:var(--accent);font-weight:700}
+.soon-card{border:1px dashed var(--border);border-radius:14px;padding:28px;text-align:center;color:var(--muted);font-size:13px;line-height:2}
+.soon-card b{color:var(--text);font-size:15px}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+label.f{font-size:11.5px;color:var(--muted);display:block}
+.inp,select.inp,textarea.inp{width:100%;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;border-radius:9px;padding:8px 10px;margin-top:4px}
+textarea.inp{min-height:92px;line-height:1.9;resize:vertical}
+.ov{position:fixed;inset:0;background:rgba(8,10,16,.7);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{width:min(560px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
+.modal h3{font-size:15px;margin-bottom:12px}
+.loading{color:var(--muted);font-size:12.5px;padding:30px;text-align:center}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:10px;font-size:12.5px;z-index:60;display:none}
+@media(max-width:820px){
+  .wrap{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-left:0;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:4px;padding:10px}
+  .side .grp,.side .back{display:none}
+  .brand{width:100%;margin-bottom:4px}
+  .nav{width:auto;padding:7px 9px;font-size:12px}
+  .main{padding:16px 12px 60px}
+  .pos{grid-template-columns:1fr}
+  .acts{justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <a class="brand" href="index.html"><span style="font-size:24px">🏢</span><span><b>سازمان</b><small>منابعِ انسانی · اداری</small></span></a>
+    <a class="back" href="index.html">‹ صفحه‌ی اصلیِ مدار</a>
+    <div class="grp">منابعِ انسانی</div>
+    <button class="nav" data-v="dash"><span class="ic">📊</span>نمایِ کلی</button>
+    <button class="nav" data-v="units"><span class="ic">🧭</span>واحدها و سِمَت‌ها</button>
+    <button class="nav" data-v="mine"><span class="ic">👤</span>پرونده‌ی من</button>
+    <button class="nav" data-v="staff"><span class="ic">👥</span>کارمندان و دسترسی‌ها</button>
+    <div class="grp">اتوماسیونِ اداری</div>
+    <button class="nav" data-v="inbox"><span class="ic">📥</span>کارتابلِ من<span class="bd" id="inboxBd" hidden>0</span></button>
+    <button class="nav" data-v="closure" id="navClosure" hidden><span class="ic">📢</span>تعطیلیِ اعلامی</button>
+    <button class="nav" data-v="leave"><span class="ic">🏖️</span>مرخصی و مأموریت<span class="soon">به‌زودی</span></button>
+    <button class="nav" data-v="requests"><span class="ic">🧾</span>درخواست‌هایِ اداری<span class="soon">به‌زودی</span></button>
+    <button class="nav" data-v="letters"><span class="ic">✉️</span>نامه‌ها و دبیرخانه<span class="soon">به‌زودی</span></button>
+  </aside>
+  <main class="main" id="main"><div class="loading">در حالِ بارگذاری…</div></main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const API = 'https://api.smartchipelec.com';
+const S = {view: 'dash', structure: null, dash: null, me: null, staff: [], inbox: []};
+const $ = id => document.getElementById(id);
+const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){ const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 2600); }
+async function api(path, body){
+  const r = await fetch(API + path, body ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)} : {cache: 'no-store'});
+  const d = await r.json().catch(() => ({ok: false, error: 'پاسخِ نامعتبر'}));
+  if(r.status === 401){ MadarAuth.require(true); throw new Error('ورود لازم است'); }
+  if(!r.ok || d.ok === false) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+
+// ─────────── ناوبری ───────────
+document.querySelectorAll('.nav').forEach(b => b.onclick = () => go(b.dataset.v));
+function go(v){
+  S.view = v; history.replaceState(null, '', '#' + v);
+  document.querySelectorAll('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  ({dash: viewDash, units: viewUnits, mine: viewMine, staff: viewStaff, inbox: viewInbox, closure: viewClosure,
+    leave: () => viewSoon('🏖️ مرخصی و مأموریت', 'درخواستِ مرخصی یا مأموریت از موبایل ← خودکار به کارتابلِ مدیرِ مستقیم (سرپرستِ واحد، یا مدیریت) ← تأیید با یک دکمه (حتی از بله) ← مانده‌ی مرخصی و تقویمِ تعطیلات خودکار.'),
+    requests: () => viewSoon('🧾 درخواست‌هایِ اداری', 'خریدِ اداری، تنخواه، تجهیزات، پیش‌پرداختِ حقوق — همه با یک مسیرِ تأییدِ یکسان و قابلِ پیگیری، در کارتابلِ مدیرِ مستقیم.'),
+    letters: () => viewSoon('✉️ نامه‌ها و دبیرخانه', 'شماره‌گذاریِ خودکارِ نامه‌هایِ وارده و صادره، ارجاع به همکار (در کارتابلِ اون)، بایگانیِ قابلِ جستجو.')}[v] || viewDash)();
+}
+
+// ─────────── 📊 نمایِ کلی ───────────
+async function viewDash(){
+  const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
+  try{ S.dash = await api('/api/org/dashboard/'); }catch(e){ m.innerHTML = `<div class="loading">⚠️ ${esc(e.message)}</div>`; return; }
+  const d = S.dash, maxH = Math.max(1, ...d.units.map(u => u.headcount));
+  m.innerHTML = `
+    <h1>📊 نمایِ کلیِ سازمان</h1><div class="sub">اسمارت‌چیپ — واحدها، نیروها و کارهایِ منتظر</div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${fa(d.headcount)}</div><div class="l">کارمندِ فعال</div></div>
+      <div class="kpi"><div class="v">${fa(d.units.length)}</div><div class="l">واحد</div></div>
+      <div class="kpi ${d.multi_role.length ? 'warn' : ''}"><div class="v">${fa(d.multi_role.length)}</div><div class="l">نفر با چند سِمَت</div></div>
+      <div class="kpi ${d.missing_heads.length ? 'warn' : 'good'}"><div class="v">${fa(d.missing_heads.length)}</div><div class="l">واحدِ بدونِ سرپرست</div></div>
+      <div class="kpi ${S.inbox.length ? 'warn' : 'good'}"><div class="v">${fa(S.inbox.length)}</div><div class="l">موردِ منتظرِ من (کارتابل)</div></div>
+    </div>
+    ${d.unassigned.length ? `<div class="alert">👤 هنوز سِمَتی ندارن: <b>${d.unassigned.map(esc).join('، ')}</b> — در «واحدها و سِمَت‌ها» انتساب بدید.</div>` : ''}
+    ${d.missing_heads.length ? `<div class="alert">🧭 واحدهایِ بدونِ سرپرست: <b>${d.missing_heads.map(esc).join('، ')}</b> — تا تعیینِ سرپرست، درخواست‌هایِ این واحدها مستقیم به مدیریت می‌ره.</div>` : '<div class="alert ok">✅ همه‌ی واحدها سرپرست دارن.</div>'}
+    ${d.multi_role.length ? `<div class="alert">🔀 چند سِمَتی: ${d.multi_role.map(x => `<b>${esc(x.name)}</b> (${fa(x.positions)} سِمَت)`).join('، ')} — طبیعیِ اوایلِ کاره؛ با جذبِ نیرو، سِمَت‌ها جدا می‌شن.</div>` : ''}
+    <div class="units">${d.units.map(u => `
+      <div class="u"><div class="t"><span>${u.icon || '▫️'}</span>${esc(u.name)}<span class="hc">${fa(u.headcount)} نفر</span></div>
+        <div class="heads ${u.missing_head ? 'miss' : ''}">${u.heads.length ? (u.name === 'مدیریت' ? 'مدیران: ' : 'سرپرست: ') + u.heads.map(esc).join('، ') : (u.missing_head ? 'سرپرست تعیین نشده' : '—')}</div>
+        <div class="bar"><span style="width:${Math.round(u.headcount * 100 / maxH)}%"></span></div></div>`).join('')}</div>`;
+}
+
+// ─────────── 🧭 واحدها و سِمَت‌ها ───────────
+async function loadStructure(){
+  S.structure = await api('/api/org/structure/');
+  if(S.structure.can_edit && !S.staff.length){
+    try{ const r = await fetch(API + '/api/staff/staff/'); if(r.ok) S.staff = (await r.json()).filter(x => x.active !== false); }catch(e){}
+  }
+}
+async function viewUnits(){
+  const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
+  try{ await loadStructure(); }catch(e){ m.innerHTML = `<div class="loading">⚠️ ${esc(e.message)}</div>`; return; }
+  const ed = S.structure.can_edit;
+  m.innerHTML = `<h1>🧭 واحدها و سِمَت‌ها</h1>
+    <div class="sub">هر نفر می‌تونه چند سِمَت داشته باشه؛ ⭐ = سِمَتِ اصلی. مدیرِ مستقیمِ هر نفر خودکار حساب می‌شه: عضو ← سرپرستِ واحد؛ سرپرست ← مدیریت.${ed ? '' : ' (فقط مدیریت می‌تونه تغییر بده)'}</div>
+    ${S.structure.units.map(u => `
+      <div class="unit"><div class="unit-h"><span style="font-size:20px">${u.icon || '▫️'}</span><div><b>${esc(u.name)}</b><div class="d">${esc(u.description)}</div></div>
+        ${ed ? `<div class="acts" style="margin-right:auto"><button class="btn sm" onclick="editPosition(null,${u.id})">+ سِمَتِ جدید</button></div>` : ''}</div>
+        ${u.positions.map(p => `
+          <div class="pos"><div><div class="pt">${esc(p.title)}</div><div class="pk">${esc(p.kind_label)}</div></div>
+            <div class="chips">${p.people.length ? p.people.map(a => `<span class="chip">${a.is_primary ? '<span class="star" title="سِمَتِ اصلی">⭐</span>' : ''}${esc(a.staff.name || a.staff.email)}${a.share_percent != null ? `<span class="sh">${fa(a.share_percent)}٪</span>` : ''}${ed ? `<button title="برداشتن از این سِمَت" onclick="unassign(${a.id},'${esc(a.staff.name)}','${esc(p.title)}')">✕</button>` : ''}</span>`).join('')
+              : `<span class="empty-pos">${p.kind === 'supervisor' ? 'سرپرست تعیین نشده — درخواست‌ها به مدیریت می‌ره' : 'هنوز کسی نیست'}</span>`}</div>
+            <div class="acts"><button class="btn sm" onclick="showJD(${p.id})">شرحِ وظایف</button>${ed ? `<button class="btn sm" onclick="assignDlg(${p.id})">+ فرد</button><button class="btn sm" onclick="editPosition(${p.id})">ویرایش</button>` : ''}</div>
+          </div>`).join('')}
+      </div>`).join('')}`;
+}
+function findPos(id){ for(const u of S.structure.units) for(const p of u.positions) if(p.id === id) return [u, p]; return [null, null]; }
+function modal(html){ const o = document.createElement('div'); o.className = 'ov'; o.innerHTML = `<div class="modal">${html}</div>`; o.onclick = e => { if(e.target === o) o.remove(); }; document.body.appendChild(o); return o; }
+function showJD(id){
+  const [u, p] = findPos(id);
+  const o = modal(`<h3>${esc(u.name)} — ${esc(p.title)}</h3>
+    <div class="jd-l">شرحِ وظایف</div><div class="jd">${esc(p.responsibilities) || '—'}</div>
+    ${p.authorities ? `<div class="jd-l">اختیارات</div><div class="jd">${esc(p.authorities)}</div>` : ''}
+    ${p.kpis ? `<div class="jd-l">شاخص‌هایِ ارزیابی</div><div class="jd">${esc(p.kpis)}</div>` : ''}
+    <div style="text-align:left;margin-top:14px"><button class="btn" data-x>بستن</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+}
+function editPosition(id, unitId){
+  const [u, p] = id ? findPos(id) : [S.structure.units.find(x => x.id === unitId), {title:'', kind:'member', responsibilities:'', authorities:'', kpis:''}];
+  const o = modal(`<h3>${id ? 'ویرایشِ سِمَت' : 'سِمَتِ جدید'} — ${esc(u.name)}</h3>
+    <div class="form-row"><div><label class="f">عنوان<input class="inp" id="pTitle" value="${esc(p.title)}"></label></div>
+      <div><label class="f">نوع<select class="inp" id="pKind">${[['member','عضوِ واحد'],['supervisor','سرپرستِ واحد'],['manager','مدیریت / شریک']].map(([k,l]) => `<option value="${k}" ${p.kind===k?'selected':''}>${l}</option>`).join('')}</select></label></div></div>
+    <label class="f">شرحِ وظایف (هر مورد یک خط)<textarea class="inp" id="pResp">${esc(p.responsibilities)}</textarea></label>
+    <label class="f">اختیارات<textarea class="inp" id="pAuth" style="min-height:60px">${esc(p.authorities)}</textarea></label>
+    <label class="f">شاخص‌هایِ ارزیابی<textarea class="inp" id="pKpi" style="min-height:60px">${esc(p.kpis)}</textarea></label>
+    <div class="acts" style="margin-top:12px">${id ? '<button class="btn" data-del style="margin-left:auto">حذفِ سِمَت</button>' : ''}<button class="btn" data-x>انصراف</button><button class="btn pri" data-s>ذخیره</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelector('[data-s]').onclick = async () => {
+    try{ await api('/api/org/position/', {id: id || undefined, unit_id: u.id, title: $('pTitle').value, kind: $('pKind').value,
+           responsibilities: $('pResp').value, authorities: $('pAuth').value, kpis: $('pKpi').value});
+         o.remove(); toast('✅ ذخیره شد'); viewUnits(); }catch(e){ toast('❌ ' + e.message); }
+  };
+  const del = o.querySelector('[data-del]');
+  if(del) del.onclick = async () => { if(!confirm('این سِمَت حذف بشه؟')) return; try{ await api('/api/org/position/' + id + '/delete/', {}); o.remove(); viewUnits(); }catch(e){ toast('❌ ' + e.message); } };
+}
+function assignDlg(posId){
+  const [u, p] = findPos(posId);
+  const taken = new Set(p.people.map(a => a.staff.email));
+  const opts = S.staff.filter(x => !taken.has(x.email)).map(x => `<option value="${esc(x.email)}">${esc(x.name || x.email)}</option>`).join('');
+  const o = modal(`<h3>افزودنِ فرد به «${esc(p.title)}»</h3>
+    <label class="f">کارمند<select class="inp" id="aStaff">${opts || '<option value="">— همه انتساب دارن —</option>'}</select></label>
+    <div class="form-row" style="margin-top:10px">
+      <label class="f" style="display:flex;align-items:center;gap:8px;margin-top:18px"><input type="checkbox" id="aPrim"> سِمَتِ اصلیِ این فرد</label>
+      ${p.kind === 'manager' ? '<div><label class="f">سهمِ شراکت (٪)<input class="inp" id="aShare" inputmode="decimal" placeholder="مثلاً ۵۰"></label></div>' : ''}
+    </div>
+    <div class="sub" style="margin:4px 0 0">اگه این اولین سِمَتِ این فرده، خودکار «اصلی» می‌شه. یک نفر می‌تونه همزمان چند سِمَت داشته باشه.</div>
+    <div class="acts" style="margin-top:12px"><button class="btn" data-x>انصراف</button><button class="btn pri" data-s>افزودن</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelector('[data-s]').onclick = async () => {
+    const email = $('aStaff').value; if(!email) return;
+    const sh = $('aShare') ? String($('aShare').value).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)) : '';
+    try{ await api('/api/org/assign/', {staff_email: email, position_id: posId, is_primary: $('aPrim').checked, share_percent: sh || null});
+         o.remove(); toast('✅ اضافه شد'); viewUnits(); }catch(e){ toast('❌ ' + e.message); }
+  };
+}
+async function unassign(id, name, title){
+  if(!confirm(`${name} از سِمَتِ «${title}» برداشته بشه؟`)) return;
+  try{ await api('/api/org/unassign/', {assignment_id: id}); toast('برداشته شد'); viewUnits(); }catch(e){ toast('❌ ' + e.message); }
+}
+
+// ─────────── 👤 پرونده‌ی من ───────────
+async function viewMine(){
+  const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
+  try{ S.me = await api('/api/org/me/'); }catch(e){ m.innerHTML = `<div class="loading">⚠️ ${esc(e.message)}</div>`; return; }
+  const d = S.me;
+  m.innerHTML = `<h1>👤 پرونده‌ی من</h1><div class="sub">${esc(d.staff.name)} · ${esc(d.staff.email)}</div>
+    <div class="card"><h3>👔 مدیرِ مستقیم</h3><div style="font-size:13px">${d.managers.length ? d.managers.map(x => esc(x.name)).join('، ') : '—'}</div>
+      <div class="sub" style="margin:6px 0 0">درخواست‌هایِ شما (مرخصی، خرید، …) به کارتابلِ ${d.managers.length > 1 ? 'این افراد' : 'این فرد'} می‌ره.</div></div>
+    ${d.positions.length ? d.positions.map(p => `
+      <div class="card"><h3>${p.unit_icon || '▫️'} ${esc(p.unit_name)} — ${esc(p.title)} ${p.is_primary ? '<span style="font-size:11px;color:var(--accent)">⭐ اصلی</span>' : ''}${p.share_percent != null ? `<span style="font-size:11px;color:var(--teal)">سهمِ شراکت ${fa(p.share_percent)}٪</span>` : ''}</h3>
+        <div class="jd-l">شرحِ وظایف</div><div class="jd">${esc(p.responsibilities) || '—'}</div>
+        ${p.authorities ? `<div class="jd-l">اختیارات</div><div class="jd">${esc(p.authorities)}</div>` : ''}
+        ${p.kpis ? `<div class="jd-l">شاخص‌هایِ ارزیابی</div><div class="jd">${esc(p.kpis)}</div>` : ''}</div>`).join('')
+      : '<div class="alert">هنوز سِمَتی برایِ شما تعریف نشده — مدیریت از «واحدها و سِمَت‌ها» انتساب می‌ده.</div>'}`;
+}
+
+// ─────────── 👥 کارمندان ───────────
+function viewStaff(){
+  $('main').innerHTML = `<h1>👥 کارمندان و دسترسی‌ها</h1>
+    <div class="sub">حساب‌هایِ کاربری، نقش‌ها، اتصالِ بله/تلگرام و ورودهایِ امن در صفحه‌ی «مدیریتِ کارمندان» است. سِمَت و واحدِ هر نفر در «واحدها و سِمَت‌ها».</div>
+    <a class="btn pri" href="staff-admin.html" style="font-size:13px;padding:9px 16px">👥 باز کردنِ مدیریتِ کارمندان ›</a>`;
+}
+
+// ─────────── 📥 کارتابلِ من ───────────
+async function loadInbox(){
+  try{ const d = await api('/api/org/inbox/'); S.inbox = d.items || []; }catch(e){ S.inbox = []; }
+  const b = $('inboxBd'); b.hidden = !S.inbox.length; b.textContent = fa(S.inbox.length);
+}
+async function viewInbox(){
+  const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
+  await loadInbox();
+  m.innerHTML = `<h1>📥 کارتابلِ من</h1><div class="sub">هر چیزی که در کلِ مدار منتظرِ شماست — با یک کلیک به همون صفحه‌ای که کار اونجا انجام می‌شه.</div>
+    ${S.inbox.length ? S.inbox.map(it => `<a class="inbox-it" href="${esc(it.link || '#')}"><span class="ic">${esc(it.icon)}</span><span><div class="t">${esc(it.title)}</div><div class="s">${esc(it.sub)}</div></span><span class="go">برو ›</span></a>`).join('')
+      : '<div class="soon-card">✨ <b>چیزی منتظرِ شما نیست</b><br>تأییدها، وعده‌هایِ پرداخت، یادآوری‌هایِ امروز و نتیجه‌ی درخواست‌هاتون اینجا جمع می‌شن.</div>'}`;
+}
+
+// ─────────── 📢 تعطیلیِ اعلامی (مدیریت) ───────────
+async function viewClosure(){
+  const m = $('main');
+  let rows = [];
+  try{ const r = await fetch(API + '/api/calendar/announced/'); if(r.ok) rows = (await r.json()).rows || []; }catch(e){}
+  m.innerHTML = `<h1>📢 تعطیلیِ اعلامی</h1>
+    <div class="sub">عزایِ عمومی، تعطیلیِ گرما یا آلودگی و … — هیچ تقویمی پیش‌بینی‌شون نمی‌کنه. ثبت در اینجا ← خودکار در SLA، یادآوری‌ها، تقویمِ گوگل و همه‌ی صفحه‌ها.</div>
+    <div class="card"><div class="form-row">
+      <div><label class="f">تاریخِ شروع (شمسی)<input class="inp" id="cDate" placeholder="۱۴۰۵/۰۸/۰۵" dir="ltr" style="text-align:center"></label></div>
+      <div><label class="f">چند روز<input class="inp" id="cDays" value="1" inputmode="numeric" style="text-align:center"></label></div>
+      <div><label class="f">کشور<select class="inp" id="cCountry"><option value="iran">ایران</option><option value="china">چین</option></select></label></div></div>
+      <label class="f">عنوان<input class="inp" id="cTitle" placeholder="مثلاً: تعطیلی به‌خاطرِ آلودگیِ هوا"></label>
+      <label class="f" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="cNotify" checked> به همه‌ی کارمندها در بله/تلگرام خبر بده</label>
+      <div style="margin-top:12px"><button class="btn pri" id="cSave">ثبتِ تعطیلی</button></div></div>
+    <div class="card"><h3>ثبت‌شده‌ها</h3>${rows.length ? rows.map(r => `<div style="font-size:12.5px;padding:5px 0;border-bottom:1px solid #262c3d">${fa(r.jdate.replace(/-/g,'/'))} · ${esc(r.title)} <span style="color:var(--muted);font-size:11px">${r.country === 'china' ? '🇨🇳' : '🇮🇷'}</span></div>`).join('') : '<div class="sub">موردی ثبت نشده</div>'}</div>`;
+  $('cSave').onclick = async () => {
+    try{ const d = await api('/api/calendar/announced/', {date: $('cDate').value, days: $('cDays').value, title: $('cTitle').value, country: $('cCountry').value, notify: $('cNotify').checked});
+         toast('✅ ثبت شد: ' + fa(d.dates.length) + ' روز'); viewClosure(); }catch(e){ toast('❌ ' + e.message); }
+  };
+}
+
+function viewSoon(title, text){
+  $('main').innerHTML = `<h1>${title}</h1><div class="sub">مرحله‌ی بعدیِ ساختِ «سازمان»</div>
+    <div class="soon-card"><b>به‌زودی</b><br>${esc(text)}</div>`;
+}
+
+// ─────────── شروع ───────────
+(async function init(){
+  if(!MadarAuth.token()){ MadarAuth.require(true); $('main').innerHTML = '<div class="loading">برایِ «سازمان» با ورودِ امن وارد شوید.</div>'; return; }
+  try{ S.me = await api('/api/org/me/'); }catch(e){ $('main').innerHTML = `<div class="loading">⚠️ ${esc(e.message)}<br><br>اگه سرور تازه به‌روز شده، چند دقیقه‌ی دیگه دوباره امتحان کنید.</div>`; return; }
+  if(S.me.is_mgmt) $('navClosure').hidden = false;
+  await loadInbox();
+  const v = (location.hash || '').slice(1);
+  go(['dash','units','mine','staff','inbox','closure','leave','requests','letters'].includes(v) ? v : 'dash');
+  setInterval(() => { if(document.visibilityState === 'visible') loadInbox(); }, 120000);
+})();
+</script>
+</body>
+</html>

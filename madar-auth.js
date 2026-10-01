@@ -184,6 +184,67 @@
     sessions: function () { return fetch(API + '/api/staff/auth/sessions/').then(function (r) { return r.json(); }); }
   };
 
+  // ── ۵) لینکِ مستقیم به یک تب/صفحه (از کارتابل): crm.html#tab=prospMgmt ، erp.html#page=promises ──
+  function deepLink() {
+    var m = /^#(tab|page)=([\w-]+)/.exec(location.hash || ''); if (!m) return;
+    var tries = 0, iv = setInterval(function () {
+      tries++;
+      var fn = m[1] === 'tab' ? window.showCrmTab : window.showPage;
+      var ready = typeof fn === 'function' && !document.getElementById('madarAuth');
+      if (ready) { clearInterval(iv); setTimeout(function () { try { fn(m[2]); } catch (e) {} }, 600); }
+      if (tries > 60) clearInterval(iv);
+    }, 400);
+  }
+
+  // ── ۶) 📥 کارتابلِ من — در همه‌ی صفحه‌ها ──
+  var inboxCss = '#madarInbox{position:fixed;left:16px;bottom:16px;z-index:2147482000;font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
+    '#madarInbox .mi-btn{display:flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:19px;border:1px solid #323952;background:#1a1e2a;color:#f4f5f8;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3)}' +
+    '#madarInbox .mi-btn:hover{border-color:#f0a500}' +
+    '#madarInbox .mi-n{min-width:20px;height:20px;border-radius:10px;background:#ef4444;color:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}' +
+    '#madarInbox .mi-n.zero{background:#323952;color:#9aa2bd}' +
+    '#madarInbox .mi-panel{position:absolute;left:0;bottom:46px;width:min(360px,calc(100vw - 32px));max-height:min(480px,70vh);overflow:auto;background:#1a1e2a;border:1px solid #323952;border-radius:14px;box-shadow:0 16px 50px rgba(0,0,0,.45);color:#f4f5f8}' +
+    '#madarInbox .mi-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #323952;font-weight:800;font-size:13px;position:sticky;top:0;background:#1a1e2a}' +
+    '#madarInbox .mi-h a{color:#f0a500;font-size:11px;font-weight:600;text-decoration:none}' +
+    '#madarInbox .mi-it{display:flex;gap:10px;align-items:flex-start;padding:9px 14px;border-bottom:1px solid #262c3d;text-decoration:none;color:inherit}' +
+    '#madarInbox .mi-it:hover{background:#232838}' +
+    '#madarInbox .mi-ic{font-size:16px;line-height:1.4}' +
+    '#madarInbox .mi-t{font-size:12.5px;font-weight:700;line-height:1.6}' +
+    '#madarInbox .mi-s{font-size:11px;color:#9aa2bd;line-height:1.6}' +
+    '#madarInbox .mi-empty{padding:22px 14px;text-align:center;color:#9aa2bd;font-size:12px}';
+  var inbox = {el: null, items: [], open: false};
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+  function inboxRender() {
+    if (!inbox.el) return;
+    var n = inbox.items.length;
+    var fa = function (x) { return String(x).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); };
+    inbox.el.innerHTML = '<button type="button" class="mi-btn" aria-expanded="' + inbox.open + '" title="کارتابلِ من — هر چیزی که منتظرِ شماست">📥 کارتابل <span class="mi-n' + (n ? '' : ' zero') + '">' + fa(n) + '</span></button>' +
+      (inbox.open ? '<div class="mi-panel" role="dialog" aria-label="کارتابلِ من"><div class="mi-h"><span>📥 کارتابلِ من</span><a href="org.html#inbox">صفحه‌ی کامل ›</a></div>' +
+        (n ? inbox.items.slice(0, 30).map(function (it) {
+          return '<a class="mi-it" href="' + esc(it.link || '#') + '"><span class="mi-ic">' + esc(it.icon) + '</span><span><div class="mi-t">' + esc(it.title) + '</div><div class="mi-s">' + esc(it.sub) + '</div></span></a>';
+        }).join('') : '<div class="mi-empty">✨ چیزی منتظرِ شما نیست</div>') + '</div>' : '');
+    inbox.el.querySelector('.mi-btn').onclick = function (e) { e.stopPropagation(); inbox.open = !inbox.open; inboxRender(); if (inbox.open) inboxLoad(); };
+    var pn = inbox.el.querySelector('.mi-panel'); if (pn) pn.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+  function inboxLoad() {
+    if (!get(TK)) return;
+    fetch(API + '/api/org/inbox/', {cache: 'no-store'}).then(function (r) {
+      if (r.status === 404 || r.status === 401) { if (inbox.el) { inbox.el.remove(); inbox.el = null; } return null; }
+      return r.ok ? r.json() : null;
+    }).then(function (d) {
+      if (!d || !d.ok) return;
+      if (!inbox.el) {
+        var st = document.createElement('style'); st.textContent = inboxCss; document.head.appendChild(st);
+        inbox.el = document.createElement('div'); inbox.el.id = 'madarInbox'; document.body.appendChild(inbox.el);
+        var rb = document.getElementById('roadmapBtn'); if (rb) inbox.el.style.bottom = '76px';   // دکمه‌ی نقشه‌ی راهِ صفحه‌ی اصلی
+        document.addEventListener('click', function () { if (inbox.open && inbox.el) { inbox.open = false; inboxRender(); } });
+      }
+      inbox.items = d.items || []; inboxRender();
+      if (typeof window.onMadarInbox === 'function') { try { window.onMadarInbox(inbox.items); } catch (e) {} }
+    }).catch(function () {});
+  }
+  MadarAuth.inbox = function () { return inbox.items; };
+  MadarAuth.refreshInbox = inboxLoad;
+
   // ── ۴) شروع: اگه توکن نیست → فرم ؛ اگه هست → اعتبارش در پس‌زمینه بررسی بشه ──
   function boot() {
     var t = get(TK);
@@ -197,5 +258,11 @@
       .then(function (d) { if (d && d.staff && d.staff.name) set(NK, d.staff.name); })
       .catch(function () {});
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  function start() {
+    boot(); deepLink();
+    if (window.MADAR_NO_INBOX_BUTTON) return;          // صفحه‌ای که کارتابل رو خودش نشون می‌ده (سازمان)
+    setTimeout(inboxLoad, 2500);
+    setInterval(function () { if (document.visibilityState === 'visible') inboxLoad(); }, 120000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
