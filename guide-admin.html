@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🛠️ راهنمای مدیریتِ مدار</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141821'/%3E%3Cpath d='M16 18h14a6 6 0 0 1 6 6v26a5 5 0 0 0-5-5H16zM48 18H38a6 6 0 0 0-6 6v26a5 5 0 0 1 5-5h11z' fill='%23F0A500'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f1117">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+:root{--bg:#0f1117;--surface:#1a1e2a;--card:#232838;--border:#323952;--accent:#f0a500;--hi:#ffcf5a;--text:#f4f5f8;--muted:#9aa2bd;--faint:#6b7390;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--teal:#2dd4bf}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{font-family:'Vazirmatn',Tahoma,sans-serif;background:var(--bg);color:var(--text);direction:rtl;line-height:2;-webkit-font-smoothing:antialiased}
+a{color:var(--hi)}
+.wrap{display:grid;grid-template-columns:290px 1fr;min-height:100vh}
+nav.toc{background:var(--surface);border-left:1px solid var(--border);position:sticky;top:0;height:100vh;overflow:auto;padding:16px 12px}
+.toc .brand{font-size:19px;font-weight:900;color:var(--accent);display:block;text-decoration:none}
+.toc .brand small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.toc input{width:100%;margin:12px 0 6px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;border-radius:9px;padding:7px 10px}
+.toc .g{font-size:10.5px;font-weight:800;color:var(--faint);letter-spacing:.06em;margin:14px 6px 4px}
+.toc a.i{display:block;font-size:12.5px;color:var(--text);text-decoration:none;padding:4px 8px;border-radius:7px;line-height:1.7}
+.toc a.i:hover{background:var(--card);color:var(--hi)}
+.toc a.i.hide{display:none}
+main{padding:26px 34px 80px;max-width:980px}
+header.top{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:22px}
+header.top h1{font-size:26px;font-weight:900}
+header.top .meta{font-size:12px;color:var(--muted)}
+section{margin:0 0 30px;scroll-margin-top:12px}
+section.hide{display:none}
+h2{font-size:19px;font-weight:900;margin:0 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h3{font-size:15px;font-weight:800;margin:16px 0 4px}
+p,li{font-size:14px}
+ul,ol{padding-right:22px;margin:4px 0 10px}
+li{margin:2px 0}
+.who{font-size:10.5px;font-weight:800;border-radius:6px;padding:0 7px;border:1px solid var(--border);color:var(--muted)}
+.who.all{color:var(--green);border-color:rgba(34,197,94,.4)} .who.boss{color:var(--accent);border-color:rgba(240,165,0,.4)}
+table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13px}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:right;vertical-align:top}
+th{background:var(--card);font-weight:800;font-size:12.5px}
+td:first-child{font-weight:700;width:38%}
+.tip,.warn,.ok{border-radius:10px;padding:9px 13px;margin:10px 0;font-size:13.5px;border:1px solid}
+.tip{background:rgba(96,165,250,.07);border-color:rgba(96,165,250,.35)}
+.warn{background:rgba(240,165,0,.07);border-color:rgba(240,165,0,.4)}
+.ok{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.35)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;position:relative;padding:6px 40px 6px 0;margin:4px 0}
+.steps>li::before{content:counter(s);position:absolute;right:0;top:7px;width:27px;height:27px;border-radius:50%;background:var(--accent);color:#141821;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+kbd,code{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:0 5px;font-size:12.5px;font-family:inherit;direction:ltr;display:inline-block}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 12px;font-size:12.5px}
+.flow span{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px 10px}
+.flow b{color:var(--accent)}
+.toplink{position:fixed;left:16px;bottom:16px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:5px 12px;font-size:12px;text-decoration:none}
+@media(max-width:860px){.wrap{grid-template-columns:1fr} nav.toc{position:static;height:auto;max-height:46vh;border-left:0;border-bottom:1px solid var(--border)} main{padding:18px 14px 70px}}
+@media print{nav.toc,.toplink{display:none}.wrap{display:block} body{background:#fff;color:#000} th{background:#eee} .tip,.warn,.ok{background:none}}
+.live{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:10px 0 18px}
+.live div{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:12.5px}
+.live b{display:block;font-size:14px}
+.live .g{color:var(--green)} .live .r{color:var(--red)} .live .y{color:var(--accent)}
+.gate{border:1px solid rgba(240,165,0,.4);background:rgba(240,165,0,.07);border-radius:12px;padding:16px;margin:20px 0;font-size:14px}
+pre{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 12px;direction:ltr;text-align:left;overflow:auto;font-size:12.5px;line-height:1.8;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="فهرست">
+  <a class="brand" href="index.html">🛠️ راهنمای مدیریتِ مدار<small>زیرساخت، حساب‌ها، روال‌ها</small></a>
+  <input id="q" type="search" placeholder="🔍 جستجو… (مثلاً: Render یا کلید)" aria-label="جستجو">
+  <div id="tocList"></div>
+</nav>
+<main id="doc">
+<header class="top">
+  <h1>🛠️ راهنمای مدیریتِ مدار</h1>
+  <div class="meta">نسخه‌ی ۱٫۰ · آخرین به‌روزرسانی: <b>۱۴۰۵/۰۷/۰۹</b> · هر چیزی که مدار رو سرِ پا نگه می‌داره: سایت‌ها، حساب‌ها، تنظیمات، روال‌ها و کارهایِ خودکار.</div>
+</header>
+<div class="gate" id="gate" hidden></div>
+<div class="warn">🔒 <b>این صفحه رمز نداره و نباید داشته باشه.</b> فایل‌هایِ مدار رویِ GitHub Pages عمومی‌اند؛ پس هیچ رمز، کلید، توکن یا شماره‌حسابی اینجا نوشته نمی‌شه. رمزها فقط در <b>مدیرِ رمز (Password Manager)</b> شخصیِ شرکا نگه داشته بشن.</div>
+
+<section data-g="نمای کلی" id="live">
+<h2>📡 وضعیتِ زنده</h2>
+<div class="live" id="liveBox"><div>در حالِ بررسی…</div></div>
+<div class="tip">این خانه‌ها همین الان از سرور خونده می‌شن: سلامتِ سرور و دیتابیس، حالتِ ورودِ امن، و وضعیتِ تقویمِ رسمیِ سالِ بعد.</div>
+</section>
+
+<section data-g="نمای کلی" id="arch">
+<h2>🧭 نقشه‌ی کلیِ مدار</h2>
+<div class="flow"><span>👤 مرورگر/گوشیِ کارمند</span><b>←</b><span>📄 صفحه‌ها: GitHub Pages</span><b>←</b><span>☁️ Cloudflare (DNS + پروکسی)</span><b>←</b><span>🖥️ سرور: Render (Django)</span><b>←</b><span>🗄️ دیتابیس: Supabase (Postgres)</span></div>
+<table><tr><th>لایه</th><th>کجا</th><th>نقش</th></tr>
+<tr><td>صفحه‌ها (فرانت‌اند)</td><td>GitHub — ریپوی <code>SmartChip-App</code> ← GitHub Pages</td><td>همه‌ی HTMLها: index، crm، erp، mobile، org، reminders، weights، pricelist، fx-ledger، staff-admin، راهنماها + <code>madar-auth.js</code></td></tr>
+<tr><td>سرور (بک‌اند)</td><td>GitHub — ریپوی بک‌اند ← Render سرویسِ <code>smartchip-backend</code></td><td>Django REST: همه‌ی داده و منطق</td></tr>
+<tr><td>دیتابیس</td><td>Supabase</td><td>PostgreSQL — همه‌ی داده‌ها</td></tr>
+<tr><td>دامنه</td><td>هاست‌ایران (ثبت) ← Cloudflare (DNS)</td><td><code>smartchipelec.com</code> · <code>api.smartchipelec.com</code> ← سرور</td></tr>
+<tr><td>کارهایِ زمان‌دار</td><td>cron-job.org + GitHub Actions</td><td>یادآوری‌ها، بکاپِ شبانه، بیدار نگه داشتنِ سرور، تمرینِ بازگردانی</td></tr>
+<tr><td>پیام‌رسانی</td><td>باتِ بله + باتِ تلگرام</td><td>کدِ ورود، یادآوری‌ها، اطلاع‌رسانیِ مشتری، بکاپ</td></tr>
+<tr><td>تقویم</td><td>Google Apps Script (هر کاربر)</td><td>همگام‌سازیِ دوطرفه با گوگل کلندر</td></tr>
+<tr><td>توسعه</td><td>Claude — پروژه‌ی «نرم افزار هوشمند» + سیستمِ محلی (Python، VS Code)</td><td>ساخت و تغییرِ مدار</td></tr>
+</table>
+</section>
+
+<section data-g="نمای کلی" id="accounts">
+<h2>🗝️ فهرستِ حساب‌ها و دارایی‌ها</h2>
+<p>هر حساب: کجاست، به چه درد می‌خوره، و چه چیزی باید درباره‌اش مطمئن باشید. <b>برایِ همه: رمزِ قوی + تأییدِ دومرحله‌ای (2FA) + ثبت در مدیرِ رمز + دسترسیِ هر دو شریک.</b></p>
+<table><tr><th>سرویس</th><th>کاربرد</th><th>نکته‌ی حیاتی</th></tr>
+<tr><td>GitHub</td><td>کدِ صفحه‌ها و سرور، Pages، Actions، Secrets</td><td>از دست رفتن = از دست رفتنِ کد؛ 2FA حتماً</td></tr>
+<tr><td>Render</td><td>اجرایِ سرور، متغیرهایِ محیطی، دامنه‌ی api</td><td>پلنِ رایگان: بعد از ۱۵ دقیقه بی‌کاری می‌خوابه</td></tr>
+<tr><td>Supabase</td><td>دیتابیسِ اصلی</td><td>پروژه رو هرگز حذف نکنید؛ پلنِ رایگان با بی‌استفادگیِ طولانی «Pause» می‌شه</td></tr>
+<tr><td>Cloudflare</td><td>DNS، SSL، پروکسی (دسترسی از ایران بدونِ فیلترشکن)</td><td>رکوردِ <code>api</code> نارنجی؛ SSL = Full (strict)</td></tr>
+<tr><td>هاست‌ایران</td><td>ثبت و تمدیدِ دامنه‌ی smartchipelec.com</td><td><b>تاریخِ انقضایِ دامنه</b> رو در یادآوری‌ها بذارید؛ تمدید نشه = قطعِ کاملِ مدار</td></tr>
+<tr><td>cron-job.org</td><td>صدا زدنِ زمان‌بندی‌شده‌ی سرور</td><td>با تغییرِ کلیدِ کرون، همه‌ی جاب‌ها عوض بشن</td></tr>
+<tr><td>تلگرام (BotFather)</td><td>توکنِ باتِ تلگرام</td><td>توکن فقط در Render</td></tr>
+<tr><td>بله (سازنده‌ی بات)</td><td>توکنِ باتِ بله — کانالِ اصلیِ کدِ ورود</td><td>توکن فقط در Render</td></tr>
+<tr><td>Google</td><td>Apps Scriptِ تقویم، گوگل کلندر؛ (قدیمی) گوگل‌شیت و Apps Scriptِ CRMِ اولیه</td><td>هر کاربر اسکریپتِ تقویمِ خودش رو داره</td></tr>
+<tr><td>OpenAI</td><td>کلید برایِ قابلیت‌هایِ هوشمندِ بات</td><td>کلید فقط در Render؛ سقفِ هزینه تنظیم بشه</td></tr>
+<tr><td>Claude (Anthropic)</td><td>توسعه‌ی مدار — پروژه‌ی «نرم افزار هوشمند»</td><td>فایل‌ها و تاریخچه‌ی کار همین‌جاست</td></tr>
+<tr><td>واتس‌اپ</td><td>دعوتِ کارمند/مشتری به بات، Broadcast List</td><td>API نداره؛ همه‌چیز با لینکِ آماده و دستی</td></tr>
+<tr><td>کامپیوترِ توسعه (ویندوز)</td><td>پوشه‌ی بک‌اند، Python، venv، VS Code</td><td>مسیر: <code>C:\Users\Chavoshi\Desktop\smartchip_backend</code> — بکاپ داشته باشه</td></tr>
+</table>
+</section>
+
+<!-- ═══════════════════════════ زیرساخت ═══════════════════════════ -->
+<section data-g="زیرساخت" id="domain">
+<h2>🌐 دامنه و Cloudflare</h2>
+<ul>
+<li>دامنه: <b>smartchipelec.com</b> — ثبت در <b>هاست‌ایران</b>. Nameserverها در پنلِ هاست‌ایران رویِ Cloudflare تنظیم شده (<code>etta.ns.cloudflare.com</code> و <code>leonidas.ns.cloudflare.com</code>).</li>
+<li><b>Cloudflare ← DNS</b>:
+<table><tr><th>رکورد</th><th>تنظیم</th></tr>
+<tr><td><code>api</code> — CNAME</td><td>← <code>smartchip-backend.onrender.com</code> · <b>Proxied (نارنجی)</b></td></tr>
+<tr><td><code>madar</code> — CNAME (برنامه‌ریزی‌شده)</td><td>← <code>gr2g5vvz64-cmd.github.io</code> · DNS only (خاکستری) تا GitHub گواهی بگیره</td></tr></table></li>
+<li><b>SSL/TLS ← Overview</b>: حالت <b>Full (strict)</b>.</li>
+<li>چرا Cloudflare؟ با ابرِ نارنجی، کاربرِ ایرانی به IPهایِ Cloudflare وصل می‌شه نه <code>onrender.com</code> که بعضی اینترنت‌ها مسدودش می‌کنن. صفحه‌ها هم اگه این مسیر قطع بشه، خودکار از آدرسِ مستقیمِ Render استفاده می‌کنن.</li>
+<li>اگه Render خطایِ گواهی داد: رکوردِ <code>api</code> رو موقتاً خاکستری ← در Render «Verify» ← دوباره نارنجی.</li>
+</ul>
+</section>
+
+<section data-g="زیرساخت" id="github">
+<h2>🐙 GitHub</h2>
+<table><tr><th>ریپو</th><th>محتوا</th><th>انتشار</th></tr>
+<tr><td><code>SmartChip-App</code></td><td>همه‌ی HTMLها، <code>madar-auth.js</code>، آیکون‌ها، manifestها، service workerها</td><td>GitHub Pages — با هر push خودکار منتشر می‌شه</td></tr>
+<tr><td>ریپوی بک‌اند (<code>smartchip_backend</code>)</td><td>پروژه‌ی Django و همه‌ی اپ‌ها</td><td>Render با هر push خودکار deploy می‌کنه</td></tr>
+</table>
+<h3>GitHub Actions (کارهایِ خودکار)</h3>
+<table><tr><th>فایل</th><th>کار</th></tr>
+<tr><td><code>keep-alive.yml</code></td><td>هر چند دقیقه سرور رو صدا می‌زنه تا نخوابه</td></tr>
+<tr><td><code>server-check.yml</code></td><td>بررسیِ سلامتِ سرور</td></tr>
+<tr><td><code>nightly-backup.yml</code></td><td>بکاپِ شبانه به تلگرام — کلید از <b>GitHub Secrets</b> (<code>CRON_SECRET_KEY</code>)</td></tr>
+<tr><td><code>backup-restore-drill.yml</code></td><td>هر هفته بکاپ رو رویِ یک دیتابیسِ آزمایشی بازمی‌گردونه و شمارش‌ها رو تطبیق می‌ده</td></tr>
+</table>
+<p><b>Settings ← Secrets and variables ← Actions</b>: <code>CRON_SECRET_KEY</code> (همون مقدارِ Render). <b>Settings ← Pages</b>: انتشار از شاخه‌ی اصلی؛ (برنامه‌ریزی‌شده) Custom domain = <code>madar.smartchipelec.com</code> + Enforce HTTPS. فایلِ <code>CNAME</code>ِ ریشه‌ی ریپو رو هرگز پاک نکنید.</p>
+</section>
+
+<section data-g="زیرساخت" id="render">
+<h2>🖥️ Render</h2>
+<p>سرویس: <b>smartchip-backend</b> (پلنِ رایگان). بخش‌هایِ مهم: <b>Events</b> (deployها)، <b>Logs</b> (خطاها)، <b>Environment</b> (متغیرها)، <b>Settings ← Custom Domains</b>، <b>Shell</b> (اجرایِ دستور رویِ سرور)، <b>Manual Deploy</b>.</p>
+<h3>متغیرهایِ محیطی (Environment)</h3>
+<table><tr><th>متغیر</th><th>کار</th></tr>
+<tr><td><code>SECRET_KEY</code></td><td>کلیدِ امنیتیِ Django — هش‌هایِ ورودِ امن هم به این وابسته‌اند؛ عوض بشه، همه باید دوباره وارد بشن</td></tr>
+<tr><td><code>DEBUG</code></td><td>رویِ سرور حتماً <code>False</code></td></tr>
+<tr><td><code>ALLOWED_HOSTS</code></td><td><code>smartchip-backend.onrender.com,api.smartchipelec.com</code> (و بقیه) — آدرسِ onrender رو پاک نکنید</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>آدرسِ اتصال به Supabase</td></tr>
+<tr><td><code>CORS_ALLOW_ALL</code></td><td>اجازه‌ی اتصالِ صفحه‌ها از دامنه‌ی دیگه (فعلاً باز)</td></tr>
+<tr><td><code>TELEGRAM_BOT_TOKEN</code> · <code>BALE_BOT_TOKEN</code></td><td>توکنِ بات‌ها</td></tr>
+<tr><td><code>CRON_SECRET_KEY</code></td><td>کلیدِ کارهایِ زمان‌دار (cron-job.org و GitHub Actions)</td></tr>
+<tr><td><code>OPENAI_API_KEY</code></td><td>قابلیت‌هایِ هوشمندِ بات</td></tr>
+<tr><td><code>BACKUP_TELEGRAM_CHAT_ID</code></td><td>کانال/چتی که بکاپِ شبانه به اون می‌ره</td></tr>
+<tr><td><code>BACKUP_DRILL_KEY</code> (اختیاری)</td><td>کلیدِ جدا برایِ تمرینِ بازگردانی؛ نباشه از CRON_SECRET_KEY استفاده می‌شه</td></tr>
+<tr><td><code>MADAR_AUTH_MODE</code></td><td>ورودِ امن: <code>off</code> / <code>log</code> / <code>on</code> — <a href="#security">←</a></td></tr>
+</table>
+</section>
+
+<section data-g="زیرساخت" id="supabase">
+<h2>🗄️ Supabase</h2>
+<ul>
+<li>دیتابیسِ PostgreSQL مدار. <code>DATABASE_URL</code>ِ Render به این وصله.</li>
+<li>بکاپِ اصلیِ ما <b>بکاپِ شبانه‌ی خودِ مدار به تلگرام</b> است (مستقل از Supabase) + تمرینِ هفتگیِ بازگردانی.</li>
+<li>هرگز پروژه یا جدول‌ها رو از پنلِ Supabase دستی حذف/ویرایش نکنید؛ همه‌ی تغییرات از طریقِ مدار یا migration.</li>
+</ul>
+</section>
+
+<section data-g="زیرساخت" id="cron">
+<h2>⏱️ cron-job.org و کارهایِ زمان‌دار</h2>
+<p>هر آدرس با <code>?key=CRON_SECRET_KEY</code> صدا زده می‌شه (آدرسِ پایه: <code>https://smartchip-backend.onrender.com</code>). زمان‌بندیِ پیشنهادی:</p>
+<table><tr><th>آدرس</th><th>زمان</th><th>کار</th></tr>
+<tr><td><code>/api/worklog/cron/check-reminders/</code></td><td>هر ۵ دقیقه</td><td>یادآوری‌ها و «قبل از موعد»ها، هشدارِ تعطیلات (یک ماه قبل)، سررسیدِ وعده‌ها، دریافتِ خودکارِ تقویمِ رسمی (روزی یک بار)، یادآوریِ «روشن کردنِ قفلِ ورودِ امن»</td></tr>
+<tr><td><code>/api/bot/cron/morning-briefing/</code></td><td>هر روز ۷ صبح</td><td>خلاصه‌ی صبحگاهی</td></tr>
+<tr><td><code>/api/bot/cron/followup-reminder/</code></td><td>هر روز ۹ صبح</td><td>یادآورِ پیگیری‌ها</td></tr>
+<tr><td><code>/api/bot/cron/tomorrow-tasks/</code></td><td>عصرِ هر روز</td><td>کارهایِ فردا</td></tr>
+<tr><td><code>/api/bot/cron/platform-health/</code></td><td>هر ساعت</td><td>سلامتِ پلتفرم</td></tr>
+<tr><td><code>/api/bot/cron/supplier-delay-check/</code> · <code>/api/bot/cron/eta-warning-check/</code></td><td>روزانه</td><td>تأخیرِ تأمین‌کننده و هشدارِ ETA</td></tr>
+<tr><td><code>/api/worklog/cron/weekly-report/</code></td><td>هفتگی</td><td>گزارشِ هفتگی</td></tr>
+</table>
+<div class="warn">زمان‌بندیِ دقیقِ فعلی رو در پنلِ cron-job.org ببینید؛ این جدول پیشنهادیه. <b>check-reminders</b> مهم‌ترینه — قطع بشه، یادآوری و هشدارها نمی‌رسن.</div>
+</section>
+
+<section data-g="زیرساخت" id="bots">
+<h2>🤖 بات‌ها: بله، تلگرام، واتس‌اپ</h2>
+<ul>
+<li><b>وبهوک‌ها</b>: <code>/api/bot/webhook/bale/</code> و <code>/api/bot/webhook/telegram/</code>. منویِ بات: <code>/api/bot/setup-bale-menu/</code> و <code>/api/bot/setup-telegram-menu/</code>.</li>
+<li><b>کارمند</b>: لینکِ دعوت از «مدیریتِ کارمندان» ← Start ← <code>/myid ایمیل</code>.</li>
+<li><b>مشتری</b>: «🤖 وضعیت Bot» ← دعوت با واتس‌اپ ← Start. پیام‌هایِ سفارش از همون بات می‌ره (اولویت با هر کدوم که وصله).</li>
+<li><b>کدِ ورودِ امن</b> اول از بله، بعد تلگرام؛ اگه کارمند هیچ‌کدوم رو نداشت، برایِ مدیریت می‌ره.</li>
+<li><b>واتس‌اپ</b>: API نداره — دعوت‌ها با لینکِ آماده و Broadcast Listها دستی (حداکثر ۲۵۶ نفر).</li>
+</ul>
+</section>
+
+<section data-g="زیرساخت" id="google">
+<h2>📅 Google</h2>
+<ul>
+<li><b>Apps Scriptِ تقویم</b>: هر کاربر از «⏰ یادآوری‌ها ← 📅 تقویم» کدِ اختصاصیِ خودش رو می‌گیره و در script.google.com اجرا می‌کنه (هر ۵ دقیقه همگام می‌شه). سه تقویم: 🔵 یادآوری‌ها، 🟠 کارهای روز، 🔴 مدار — تعطیلات.</li>
+<li>بعد از تغییرِ اسکریپت در مدار، کاربرها کدِ جدید رو جایگزین و <code>setup</code> رو یک بار اجرا کنن.</li>
+<li><b>قدیمی (در حالِ حذف)</b>: گوگل‌شیت و Apps Scriptِ CRMِ اولیه. وزن‌نامه و مشتریان از گوگل‌شیت جدا شدن؛ چند قابلیتِ باقی‌مونده (پیامک، اطلاع‌رسانیِ معرفی، بخشی از فهرستِ کارمندان) هنوز به گوگل‌شیت وصل‌اند.</li>
+</ul>
+</section>
+
+<!-- ═══════════════════════════ توسعه ═══════════════════════════ -->
+<section data-g="توسعه و انتشار" id="local">
+<h2>💻 سیستمِ توسعه (ویندوز)</h2>
+<ul>
+<li>پوشه‌ی بک‌اند: <code>C:\Users\Chavoshi\Desktop\smartchip_backend</code> — شاملِ <code>manage.py</code>، پوشه‌ی <code>smartchip_backend</code> (تنظیمات) و همه‌ی اپ‌ها.</li>
+<li>Python + محیطِ مجازی <code>venv</code>؛ ویرایش با <b>VS Code</b>.</li>
+</ul>
+<h3>دستورهایِ پرکاربرد (در ترمینالِ همین پوشه)</h3>
+<pre>venv\Scripts\activate                          # فعال کردنِ محیطِ مجازی (اولِ هر بار)
+python verify_install.py                       # بررسیِ درستیِ نصبِ همه‌ی بخش‌ها — قبل از هر push
+python manage.py makemigrations --dry-run      # آیا مدلی migration لازم داره؟
+python manage.py migrate                       # اعمالِ migrationها
+python -X utf8 manage.py dumpdata APP --indent 2 -o out.json   # خروجیِ داده (‎-X utf8‎ برایِ فارسی)
+python manage.py reconcile_calendar            # گزارشِ یکپارچه‌سازیِ تقویم (--apply برایِ اعمال)
+python manage.py restore_backup FILE --dry-run # آزمایشِ بازگردانیِ بکاپ
+python manage.py verify_lead_activities        # بررسیِ سلامتِ تاریخچه‌ی تماس‌ها
+findstr /s /n "متن" *.py                        # جستجو در کدها</pre>
+<div class="warn">فایل‌هایِ هم‌نام (<code>urls.py</code>، <code>views.py</code>، <code>models.py</code>) رو بر اساسِ <b>مسیرِ پوشه</b> جایگزین کنید — مثلاً <code>smartchip_backend/urls.py</code> با <code>org_app/urls.py</code> فرق داره.</div>
+</section>
+
+<section data-g="توسعه و انتشار" id="deploy">
+<h2>🚀 انتشارِ یک تغییر (چک‌لیست)</h2>
+<ol class="steps">
+<li>فایل‌هایِ <b>سرور</b> رو طبقِ مسیرشون در پوشه‌ی بک‌اند جایگزین کنید.</li>
+<li>اگه migration هست: <code>python manage.py migrate</code>.</li>
+<li><code>python verify_install.py</code> ← <b>همه باید ✅ باشه</b>؛ با ❌ push نکنید.</li>
+<li>commit و push ریپوی بک‌اند ← در Render ← Events منتظرِ <b>Live</b> (سبز).</li>
+<li>فایل‌هایِ <b>صفحه</b> (HTML و <code>madar-auth.js</code>) رو در ریپوی <code>SmartChip-App</code> جایگزین ← commit و push.</li>
+<li>در مرورگر <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> و یک تستِ سریع.</li>
+</ol>
+<div class="tip">ترتیب مهمه: اول سرور، بعد صفحه‌ها. صفحه‌هایِ جدید با سرورِ قدیمی ممکنه بخشی‌شون کار نکنه.</div>
+</section>
+
+<section data-g="توسعه و انتشار" id="claude">
+<h2>🤝 کار با Claude</h2>
+<ul>
+<li>همه‌ی توسعه در پروژه‌ی <b>«نرم افزار هوشمند»</b> انجام می‌شه؛ Claude سابقه‌ی کار و تصمیم‌ها رو از همین پروژه دنبال می‌کنه.</li>
+<li>هر تحویل: فایل‌هایِ <b>کامل</b> (نه تکه‌کد)، تست‌شده رویِ نسخه‌ی آزمایشی، به‌همراهِ مراحلِ نصب و به‌روزرسانیِ <code>verify_install.py</code>.</li>
+<li>برایِ ارسالِ فایل از سیستم: ZIP با PowerShell، مثلاً
+<pre>powershell Compress-Archive -Path staff_app,smartchip_backend\settings.py -DestinationPath files.zip -Force</pre></li>
+<li>قبل از ارسالِ فایلِ تنظیمات: مطمئن بشید هیچ رمز یا کلیدی مستقیم داخلش نیست.</li>
+<li><b>این دو راهنما همراهِ هر تغییرِ مدار به‌روز می‌شن</b> — اگه تحویلی بدونِ به‌روزرسانیِ راهنما بود، یادآوری کنید.</li>
+</ul>
+</section>
+
+<!-- ═══════════════════════════ امنیت ═══════════════════════════ -->
+<section data-g="امنیت و بکاپ" id="security">
+<h2>🔐 امنیت و ورودِ امن</h2>
+<table><tr><th>حالتِ <code>MADAR_AUTH_MODE</code></th><th>یعنی</th></tr>
+<tr><td><code>off</code></td><td>بدونِ بررسی (رفتارِ قدیم)</td></tr>
+<tr><td><code>log</code></td><td>مرحله‌ی اول: فرمِ ورود نمایش داده می‌شه، ورودها ثبت می‌شن، کسی رد نمی‌شه</td></tr>
+<tr><td><code>on</code></td><td>قفل روشن: بدونِ ورودِ امن هیچ کاری ممکن نیست</td></tr>
+</table>
+<ol class="steps">
+<li>در حالتِ <code>log</code> همه یک بار وارد بشن. «مدیریتِ کارمندان ← 🔐 ورودهای امن» نشون می‌ده چه کسی مونده. <b>مدار خودش در بله خبر می‌ده</b> وقتی همه وارد شدن.</li>
+<li>فهرستِ «درخواست‌هایِ بدونِ ورود» رو نگاه کنید (باید خالی یا فقط مواردِ شناخته‌شده باشه).</li>
+<li>Render ← Environment ← <code>MADAR_AUTH_MODE</code> = <code>on</code> ← Save. مشکل؟ برگردونید رویِ <code>log</code> (یک دقیقه).</li>
+</ol>
+<h3>اصولِ امنیتی</h3>
+<ul>
+<li>2FA رویِ همه‌ی حساب‌ها؛ رمزها در مدیرِ رمز؛ هر دو شریک به همه‌ی حساب‌ها دسترسی داشته باشن.</li>
+<li><b>کلیدِ قدیمیِ کرون</b> (که قبلاً در فایلِ workflow نوشته شده بود) باید عوض بشه: مقدارِ جدید در Render ← GitHub Secrets ← همه‌ی جاب‌هایِ cron-job.org.</li>
+<li>هیچ رمز/کلیدی در فایل‌هایِ ریپو (به‌خصوص صفحه‌ها که عمومی‌اند) نوشته نشه.</li>
+</ul>
+</section>
+
+<section data-g="امنیت و بکاپ" id="backup">
+<h2>💾 بکاپ و روزِ حادثه</h2>
+<ul>
+<li><b>بکاپِ شبانه</b>: همه‌ی اپ‌ها با شمارش و هش، فشرده، به چت/کانالِ تلگرامِ بکاپ. کپشن تعدادِ ردیفِ هر بخش رو نشون می‌ده.</li>
+<li><b>تمرینِ هفتگیِ بازگردانی</b> (GitHub Actions): بکاپ رویِ دیتابیسِ آزمایشی بازگردانده و تطبیق داده می‌شه؛ شکست = ایمیل/هشدارِ GitHub.</li>
+<li><b>بازگردانی</b>: <code>python manage.py restore_backup FILE --dry-run</code> ← بعد بدونِ dry-run. رویِ دیتابیسِ پُر فقط با <code>--allow-nonempty</code> (با احتیاط).</li>
+</ul>
+<h3>سرور بالا نمیاد</h3>
+<ol class="steps">
+<li>Render ← Logs: خطا رو بخونید (متنش رو برایِ Claude بفرستید).</li>
+<li>Render ← Events: آخرین deploy موفق بوده؟ اگه نه، «Rollback» به deployِ قبلی.</li>
+<li>Supabase در دسترسه؟ (پنلِ Supabase)</li>
+<li>Cloudflare: رکوردِ <code>api</code> و SSL سالمه؟ صفحه‌ها خودکار از آدرسِ مستقیمِ Render هم استفاده می‌کنن.</li>
+</ol>
+<div class="tip">راهنمایِ کاملِ گام‌به‌گام: فایلِ «راهنمای روزِ حادثه» در همین پروژه.</div>
+</section>
+
+<!-- ═══════════════════════════ روال‌ها ═══════════════════════════ -->
+<section data-g="روال‌ها" id="onboard">
+<h2>👋 کارمندِ جدید</h2>
+<ol class="steps">
+<li><b>مدیریتِ کارمندان</b>: ایمیلِ کاری، نام، موبایل، نقش ← افزودن.</li>
+<li>دعوتِ بات (دکمه‌ی واتس‌اپ) ← کارمند Start + <code>/myid ایمیل</code>.</li>
+<li><b>🏢 سازمان ← واحدها و سِمَت‌ها</b>: انتساب به سِمَت (و در صورتِ نیاز چند سِمَت)؛ شرحِ وظایف رو مرور کنید.</li>
+<li>لینکِ «📖 راهنمای کارکنان» رو بدید و بخشِ «روزِ اول» رو با هم انجام بدید.</li>
+</ol>
+</section>
+
+<section data-g="روال‌ها" id="offboard">
+<h2>🚪 خروجِ کارمند</h2>
+<ol class="steps">
+<li><b>مدیریتِ کارمندان</b>: «فعال» رو خاموش کنید ← همه‌ی ورودهاش <b>همون لحظه</b> باطل می‌شن.</li>
+<li>بخشِ 🔐 ورودها: «خروج از همه‌ی دستگاه‌ها» (برایِ اطمینان).</li>
+<li><b>🏢 سازمان</b>: از سِمَت‌ها بردارید؛ اگه سرپرست بود، جانشین تعیین کنید.</li>
+<li>مشتری‌هایِ رزروشده و یادآوری‌هایِ بازش رو به نفرِ دیگه بسپارید.</li>
+<li>اگه به GitHub/Render/… دسترسی داشت، دسترسی و رمزها عوض بشن.</li>
+</ol>
+</section>
+
+<section data-g="روال‌ها" id="automation">
+<h2>🔁 کارهایِ خودکار (بدونِ نیاز به یادآوری)</h2>
+<table><tr><th>کار</th><th>زمان</th><th>اگه نشد</th></tr>
+<tr><td>دریافتِ تقویمِ رسمیِ ایرانِ سالِ بعد</td><td>از آبان، روزانه</td><td>تا ۱ اسفند پیام در بله</td></tr>
+<tr><td>دریافتِ برنامه‌ی تعطیلاتِ چینِ سالِ بعد</td><td>از مهر، روزانه</td><td>تا ۱۰ ژانویه پیام در بله</td></tr>
+<tr><td>هشدارِ یک‌ماهه‌ی نوروز و تعطیلاتِ بلندِ چین</td><td>۳۰ روز قبل</td><td>—</td></tr>
+<tr><td>تمدیدِ جدولِ پیش‌بینیِ ۱۰ ساله‌ی تعطیلات</td><td>۱ مهرِ ۱۴۱۴ (در تقویمِ 🔴)</td><td>به Claude بگید</td></tr>
+<tr><td>یادآوریِ روشن کردنِ قفلِ ورودِ امن</td><td>وقتی همه وارد شدن / هفتگی</td><td>—</td></tr>
+<tr><td>هشدارِ سررسیدِ وعده‌ی پرداخت</td><td>یک بار پس از سررسید</td><td>—</td></tr>
+<tr><td>بکاپِ شبانه + تمرینِ هفتگی</td><td>هر شب / هر هفته</td><td>هشدارِ GitHub</td></tr>
+<tr><td><b>تمدیدِ دامنه</b></td><td>طبقِ تاریخِ انقضا در هاست‌ایران</td><td><b>خودکار نیست — در یادآوری‌ها بذارید</b></td></tr>
+</table>
+</section>
+
+<section data-g="روال‌ها" id="open">
+<h2>📌 کارهایِ باز</h2>
+<ul>
+<li>🔐 روشن کردنِ قفلِ ورودِ امن (بعد از ورودِ همه).</li>
+<li>🔑 تعویضِ کلیدِ قدیمیِ کرون (Render + GitHub Secrets + cron-job.org).</li>
+<li>🌐 انتقالِ صفحه‌ها به <code>madar.smartchipelec.com</code> (CNAME + GitHub Pages) + بررسیِ CORS.</li>
+<li>📅 ثبتِ تاریخِ انقضایِ دامنه در یادآوری‌ها.</li>
+<li>🏖️ مرخصی و مأموریت · 🧾 درخواست‌هایِ اداری · ✉️ نامه‌ها (سازمان).</li>
+<li>📱 چیپ‌هایِ جدیدِ تماس در نسخه‌ی موبایل.</li>
+<li>🗣️ یکپارچه‌سازیِ بازخوردها و CEM (نقشه‌ی راه).</li>
+<li>🧾 اتصال به هلو (منتظرِ پاسخِ پشتیبانیِ هلو درباره‌ی وب‌سرویس).</li>
+<li>📄 حذفِ باقیمانده‌ی گوگل‌شیت (پیامک، اطلاع‌رسانیِ معرفی، فهرستِ کارمندان).</li>
+</ul>
+</section>
+
+<section data-g="روال‌ها" id="changes">
+<h2>🆕 تاریخچه‌ی نسخه‌ها</h2>
+<table><tr><th>تاریخ</th><th>تغییر</th></tr>
+<tr><td>۱۴۰۵/۰۷/۰۸</td><td>org_app (سازمان + کارتابل) · ورودِ امن (staff_app/auth.py، MADAR_AUTH_MODE) · calendar_app یکپارچه با منبعِ واحدِ تعطیلات · holidays.py + holidays_sync.py (دریافتِ خودکار) · وعده‌ی پرداخت · کارهایِ تماس · دامنه‌ی api با Cloudflare + مسیرِ پشتیبان</td></tr>
+<tr><td>۱۴۰۵/۰۷/۰۷</td><td>گوگل کلندرِ دوطرفه (Apps Script) · ابزارهایِ وزن‌نامه · بازطراحیِ صفحه‌ی اصلی («مدار»)</td></tr>
+<tr><td>۱۴۰۵/۰۷/۰۶</td><td>backup_app نسخه‌ی ۲ + تمرینِ بازگردانی · items_app (وزن‌نامه) · activities_app</td></tr>
+</table>
+</section>
+</main>
+</div>
+<a class="toplink" href="#">⬆ بالا</a>
+<script>
+// فهرستِ خودکار + جستجو
+(function(){
+  const list = document.getElementById('tocList'), secs = [...document.querySelectorAll('main section')];
+  let g = '', html = '';
+  secs.forEach(s => {
+    if(s.dataset.g !== g){ g = s.dataset.g; html += `<div class="g">${g}</div>`; }
+    const t = s.querySelector('h2').childNodes[0].textContent.trim();
+    html += `<a class="i" href="#${s.id}" data-id="${s.id}">${t}</a>`;
+  });
+  list.innerHTML = html;
+  const q = document.getElementById('q');
+  // اِعراب (ـِ ـَ ـُ …) و نیم‌فاصله نادیده — «کدِ ورود» با «کد ورود» پیدا بشه
+  const norm = t => t.replace(/[\u064B-\u065F\u0670]/g,'').replace(/[\u200c\s]+/g,' ').replace(/[يى]/g,'ی').replace(/ك/g,'ک').toLowerCase();
+  q.addEventListener('input', () => {
+    const v = norm(q.value.trim());
+    secs.forEach(s => {
+      const hit = !v || norm(s.textContent).includes(v);
+      s.classList.toggle('hide', !hit);
+      list.querySelector(`[data-id="${s.id}"]`).classList.toggle('hide', !hit);
+    });
+  });
+})();
+</script><script>
+/* وضعیتِ زنده + فقط مدیریت (نمایشی — محتوا رمز نداره) */
+(function(){
+  const API='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  const get = p => fetch(API+p,{cache:'no-store'}).catch(()=>fetch(OLD+p,{cache:'no-store'})).then(r=>r.ok?r.json():null).catch(()=>null);
+  const box=document.getElementById('liveBox');
+  Promise.all([get('/api/worklog/health/'), get('/api/staff/auth/mode/'), get('/api/calendar/status/')]).then(([h,m,c])=>{
+    const cell=(t,v,cls)=>`<div>${t}<b class="${cls}">${v}</b></div>`;
+    let html='';
+    html+=h&&h.ok?cell('🖥️ سرور و دیتابیس','سالم'+(h.ms!=null?' · '+h.ms+' ms':''),'g'):cell('🖥️ سرور و دیتابیس','در دسترس نیست','r');
+    const mm=m&&m.mode; html+=cell('🔐 ورودِ امن', mm==='on'?'قفل روشن':mm==='log'?'مرحله‌ی اول (log)':mm==='off'?'خاموش':'نامشخص', mm==='on'?'g':mm?'y':'r');
+    if(c&&c.years){ c.years.forEach(y=>{ html+=cell((y.country==='IR'?'🇮🇷 تقویمِ ':'🇨🇳 تقویمِ ')+y.year, y.official?'رسمی ✅':'پیش‌بینی (منتظرِ رسمی)', y.official?'g':'y'); });
+      if((c.announced_upcoming||[]).length) html+=cell('📢 تعطیلیِ اعلامیِ پیشِ رو', c.announced_upcoming.length+' مورد','y'); }
+    box.innerHTML=html;
+  });
+  const t=localStorage.getItem('madar_token');
+  if(t){ fetch(API+'/api/staff/auth/me/',{headers:{Authorization:'Token '+t}}).then(r=>r.ok?r.json():null).then(d=>{
+    if(d&&d.staff&&!['owner','admin'].includes(d.staff.role)){ const g=document.getElementById('gate'); g.hidden=false; g.innerHTML='این راهنما مخصوصِ مدیریته. برایِ راهنمایِ کار با مدار: <a href="guide-staff.html">📖 راهنمای کارکنان</a>'; }
+  }).catch(()=>{}); }
+})();
+</script>
+</body>
+</html>

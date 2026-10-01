@@ -246,7 +246,8 @@ const APP_URLS = {
   fxLedger: 'fx-ledger.html',      // ⚠️ (۱۴۰۵/۰۶/۱۸) دفتر ارزی — فقط مدیر، تسویه ریال⇄یوان با مشتریان/تأمین‌کننده
   reminders: 'reminders.html',     // ⚠️ (۱۴۰۵/۰۶/۲۷) یادآوری‌ها — PWA کاملاً مستقل، کارِ فردا/آزاد/دوره‌ای/تقویم
   org: 'org.html',                 // ⚠️ (۱۴۰۵/۰۷/۰۸) سازمان — منابعِ انسانی، اداری، کارتابلِ من
-  guide: 'راهنمای-کامل-SmartChip.html', // راهنمای کامل پلتفرم
+  guide: 'guide-staff.html',       // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای کارکنان — کامل و به‌روز
+  adminGuide: 'guide-admin.html',  // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای مدیریتِ مدار — زیرساخت، حساب‌ها، روال‌ها (فقط مدیریت)
 };
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -263,7 +264,7 @@ if(isMobileDevice()){
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
 const ROLE_TILES = {
-  admin:   ['org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide'],
+  admin:   ['org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide','adminGuide'],
   sales:   ['org','crm','priceList','guide'],
   ops:     ['org','erp','guide'],
   finance: ['org','erp','guide'],
@@ -290,7 +291,8 @@ const TILE_META = {
   staffAdmin:{icon:'👥', title:'مدیریت کارمندان', desc:'افزودن/حذف دسترسی نیروها'},
   fxLedger: {icon:'💱', title:'دفتر ارزی', desc:'تسویه ریال⇄یوان با مشتریان و تأمین‌کننده'},
   reminders:{icon:'⏰', title:'یادآوری‌ها', desc:'کارِ فردا، یادآوریِ آزاد و دوره‌ای، تقویم'},
-  guide:    {icon:'📖', title:'راهنمای مدار', desc:'آموزش کامل CRM، ERP، ماشین‌حساب و موبایل'},
+  guide:    {icon:'📖', title:'راهنمای کارکنان', desc:'مرحله‌به‌مرحله — از روزِ اول تا همه‌ی بخش‌ها'},
+  adminGuide:{icon:'🛠️', title:'راهنمای مدیریتِ مدار', desc:'سایت‌ها، حساب‌ها، تنظیمات و روال‌ها'},
 };
 if(isMobileDevice()){
   TILE_META.erp.desc='نسخه‌ی موبایل — ثبت سریع و مشاهده وضعیت';
