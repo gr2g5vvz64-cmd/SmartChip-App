@@ -246,6 +246,7 @@ const APP_URLS = {
   fxLedger: 'fx-ledger.html',      // ⚠️ (۱۴۰۵/۰۶/۱۸) دفتر ارزی — فقط مدیر، تسویه ریال⇄یوان با مشتریان/تأمین‌کننده
   reminders: 'reminders.html',     // ⚠️ (۱۴۰۵/۰۶/۲۷) یادآوری‌ها — PWA کاملاً مستقل، کارِ فردا/آزاد/دوره‌ای/تقویم
   org: 'org.html',                 // ⚠️ (۱۴۰۵/۰۷/۰۸) سازمان — منابعِ انسانی، اداری، کارتابلِ من
+  attendance: 'attendance.html',   // ⚠️ (۱۴۰۵/۰۷/۱۰) حضور و غیاب — کیوآرکدِ شخصیِ چرخان + گوشیِ حضور
   guide: 'guide-staff.html',       // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای کارکنان — کامل و به‌روز
   adminGuide: 'guide-admin.html',  // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای مدیریتِ مدار — زیرساخت، حساب‌ها، روال‌ها (فقط مدیریت)
 };
@@ -264,10 +265,10 @@ if(isMobileDevice()){
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
 const ROLE_TILES = {
-  admin:   ['org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide','adminGuide'],
-  sales:   ['org','crm','priceList','guide'],
-  ops:     ['org','erp','guide'],
-  finance: ['org','erp','guide'],
+  admin:   ['attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide','adminGuide'],
+  sales:   ['attendance','org','crm','priceList','guide'],
+  ops:     ['attendance','org','erp','guide'],
+  finance: ['attendance','org','erp','guide'],
 };
 const ROLE_GROUP = {
   owner:'admin', admin:'admin',
@@ -283,6 +284,7 @@ const ROLE_LABEL = {
   sales:'فروش', ops:'عملیات', finance:'مالی',
 };
 const TILE_META = {
+  attendance:{icon:'🕘', title:'حضور و غیاب', desc:'ثبتِ ورود و خروج با کیوآرکد و گوشی'},
   org:      {icon:'🏢', title:'سازمان', desc:'منابعِ انسانی · اداری · کارتابلِ من'},
   erp:      {icon:'🏭', title:'ERP', desc:'تدارکات، بازرگانی، مالی، ردیابی محموله'},
   crm:      {icon:'📞', title:'CRM فروش', desc:'پیجویی و ثبت تماس با مشتری'},
@@ -389,7 +391,7 @@ async function init(){
   document.getElementById('userInfoText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
   // ⚠️ (۱۴۰۵/۰۷/۰۸) رفعِ باگ: نقش‌هایِ جدید (owner، sup_sales، sales_expert، accounting…) در ROLE_TILES نبودن
   //   → مثلاً مدیر با نقشِ owner هیچ کاشی‌ای نمی‌دید. حالا هر نقش به گروهش نگاشت می‌شه؛ نقشِ ناشناخته هم حداقل «سازمان» و «راهنما» رو می‌بینه.
-  const allowedTiles=ROLE_TILES[ROLE_GROUP[userInfo.role]||userInfo.role]||['org','reminders','guide'];
+  const allowedTiles=ROLE_TILES[ROLE_GROUP[userInfo.role]||userInfo.role]||['attendance','org','reminders','guide'];
   const isMob = isMobileDevice();
   document.getElementById('tilesContainer').innerHTML=allowedTiles.map(key=>{
     const m=TILE_META[key];

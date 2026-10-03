@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🕘 حضور و غیاب — مدار</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ccircle cx='32' cy='33' r='18' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M32 22v12l8 5' stroke='%23fff' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f1117">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+/* ═══ 🕘 حضور و غیاب (۱۴۰۵/۰۷/۱۰) ═══ */
+:root{--bg:#0f1117;--surface:#1a1e2a;--card:#232838;--border:#323952;--accent:#f0a500;--text:#f4f5f8;--muted:#9aa2bd;--faint:#6b7390;--green:#22c55e;--red:#ef4444;--blue:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Vazirmatn',Tahoma,sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.top{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface)}
+.top b{font-size:17px;font-weight:900}.top a{font-size:12px;color:var(--muted);text-decoration:none;margin-right:auto}
+.wrap{max-width:980px;margin:0 auto;padding:18px 16px 70px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card h3{font-size:14px;font-weight:800;margin-bottom:8px}
+.today{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.today .d{font-size:13px;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;border:1px solid var(--border);border-radius:14px;padding:3px 10px;background:var(--card)}
+.chip.in{border-color:rgba(34,197,94,.5)}.chip.out{border-color:rgba(96,165,250,.5)}.chip.review{border-color:rgba(240,165,0,.6);color:var(--accent)}
+.tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
+.tab{border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;font-weight:700;border-radius:10px;padding:8px 14px;cursor:pointer}
+.tab.on{background:rgba(240,165,0,.14);border-color:var(--accent);color:var(--accent)}
+.qrbox{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
+.qrbox canvas,.qrbox img{background:#fff;padding:14px;border-radius:14px;width:min(320px,80vw);height:auto;image-rendering:pixelated}
+.bar{width:min(320px,80vw);height:6px;background:var(--card);border-radius:3px;overflow:hidden}.bar span{display:block;height:100%;background:var(--accent);transition:width 1s linear}
+.big{font-size:22px;font-weight:900}
+.hint{font-size:12.5px;color:var(--muted);line-height:2;text-align:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;font-weight:700;border-radius:10px;padding:9px 14px;cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#141821}.btn.sm{font-size:11.5px;padding:4px 9px}
+.btn.ok{border-color:rgba(34,197,94,.5);color:var(--green)}.btn.no{border-color:rgba(239,68,68,.5);color:var(--red)}
+video{width:min(360px,90vw);border-radius:14px;background:#000}
+.res{margin-top:10px;border-radius:12px;padding:12px 14px;font-size:14px;line-height:2;display:none}
+.res.ok{display:block;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.45)}
+.res.warn{display:block;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.5)}
+.res.err{display:block;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.5)}
+.flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12px}
+.flags span{border:1px solid var(--border);border-radius:8px;padding:1px 8px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{border-bottom:1px solid var(--border);padding:6px 8px;text-align:right}th{color:var(--muted);font-size:11.5px;background:var(--card)}
+.tblw{overflow-x:auto}
+.inp{border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;border-radius:9px;padding:7px 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.muted{color:var(--muted);font-size:12px}
+.warnbox{border:1px solid rgba(240,165,0,.45);background:rgba(240,165,0,.07);border-radius:12px;padding:10px 12px;font-size:13px;line-height:2;margin-bottom:10px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:9px 16px;border-radius:10px;font-size:13px;z-index:60;display:none}
+</style>
+</head>
+<body>
+<div class="top"><span style="font-size:22px">🕘</span><b>حضور و غیاب</b><a href="index.html">‹ صفحه‌ی اصلیِ مدار</a></div>
+<div class="wrap" id="app"><div class="hint" style="padding:40px">در حالِ بارگذاری…</div></div>
+<div class="toast" id="toast"></div>
+<script>
+const API = 'https://api.smartchipelec.com/api/org/att/';
+const LIB_QR = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+const LIB_SCAN = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+const $ = id => document.getElementById(id);
+const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const S = {st:null, tab:null, qrTimer:null, cam:null, admin:null, atab:'today'};
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',3000); }
+function loadLib(src, name){ return window[name] ? Promise.resolve() : new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>no(new Error('کتابخانه بارگذاری نشد — اینترنت رو چک کنید')); document.head.appendChild(s); }); }
+// شناسه‌ی ثابتِ این دستگاه (جایگزینِ MAC — مرورگر MAC رو نمی‌ده). فقط هشش رویِ سرور نگه داشته می‌شه.
+function deviceKey(){ let k = localStorage.getItem('madar_att_device'); if(!k){ const a=new Uint8Array(24); crypto.getRandomValues(a); k=[...a].map(b=>b.toString(16).padStart(2,'0')).join(''); localStorage.setItem('madar_att_device', k); } return k; }
+function deviceLabel(){ const u=navigator.userAgent; const o=/Android/.test(u)?'Android':/iPhone|iPad/.test(u)?'iPhone':/Windows/.test(u)?'Windows':/Mac OS/.test(u)?'Mac':'دستگاه'; const b=/Edg\//.test(u)?'Edge':/Chrome\//.test(u)?'Chrome':/Safari\//.test(u)?'Safari':/Firefox\//.test(u)?'Firefox':''; return o+(b?' / '+b:''); }
+const isPhone = () => matchMedia('(pointer:coarse)').matches || innerWidth < 820;
+async function api(path, body){
+  const r = await fetch(API + path, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {cache:'no-store'});
+  const d = await r.json().catch(()=>({ok:false, error:'پاسخِ نامعتبر'}));
+  if(r.status === 401){ MadarAuth.require(true); throw new Error('ورود لازم است'); }
+  if(!r.ok || d.ok === false) throw new Error(d.error || ('HTTP '+r.status));
+  return d;
+}
+function getGeo(){ return new Promise(res => { if(!navigator.geolocation) return res(null); navigator.geolocation.getCurrentPosition(p => res({lat:p.coords.latitude, lng:p.coords.longitude, accuracy:p.coords.accuracy}), () => res(null), {enableHighAccuracy:true, timeout:8000, maximumAge:0}); }); }
+
+async function loadState(){ S.st = await api('state/?device=' + encodeURIComponent(deviceKey())); }
+function render(){
+  const st = S.st, d = st.day;
+  const pun = st.punches.map(p => `<span class="chip ${p.kind} ${p.status==='review'?'review':''}">${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ${fa(p.time)}${p.status==='review'?' · ⚠ بررسی':''}${p.source==='manual'?' · دستی':''}</span>`).join('') || '<span class="muted">هنوز ثبتی نیست</span>';
+  if(!S.tab) S.tab = isPhone() ? 'scan' : 'qr';
+  const dev = st.device;
+  const devBox = !dev.status ? `<div class="warnbox">📱 <b>این گوشی هنوز «گوشیِ حضورِ» شما نیست.</b> اگه این گوشیِ شخصیِ خودتونه، ثبتش کنید تا مدیر تأیید کنه. تا تأیید، ورودها «نیاز به بررسی» می‌خورن.<div class="row"><button class="btn pri" onclick="regDevice()">📱 ثبتِ این گوشی به‌عنوانِ گوشیِ حضورِ من</button></div></div>`
+    : dev.status === 'pending' ? `<div class="warnbox">⏳ این گوشی ثبت شده و <b>منتظرِ تأییدِ مدیر</b> است.</div>` : '';
+  $('app').innerHTML = `
+    <div class="card"><div class="today"><div><div class="big">${d.work ? 'امروز روزِ کاریه' : '🌙 امروز تعطیله'}</div><div class="d">${fa(st.today.replace(/-/g,'/'))} · ${d.work ? `شروع ${fa(st.settings.start)} (فرجه تا ${fa(st.settings.grace)}) · پایان ${fa(d.end)}` : esc(d.why)}</div></div>
+      <div style="margin-right:auto" class="chips">${pun}</div></div></div>
+    <div class="tabs"><button class="tab ${S.tab==='qr'?'on':''}" onclick="setTab('qr')">🖥️ کیوآرکدِ من (رویِ کامپیوتر)</button><button class="tab ${S.tab==='scan'?'on':''}" onclick="setTab('scan')">📷 اسکن با گوشی</button><button class="tab ${S.tab==='mine'?'on':''}" onclick="setTab('mine')">📊 گزارشِ من</button>${st.is_mgmt?`<button class="tab ${S.tab==='admin'?'on':''}" onclick="setTab('admin')">🛠️ مدیریت</button>`:''}</div>
+    <div id="pane"></div>`;
+  const pane = $('pane');
+  stopQr(); stopCam();
+  if(S.tab === 'qr'){
+    pane.innerHTML = `<div class="card"><div class="qrbox"><div class="big">${st.next==='in'?'🟢 ورود':'🔵 خروج'}</div><div id="qr"></div><div class="bar"><span id="qrbar" style="width:100%"></span></div>
+      <div class="hint">با <b>گوشیِ حضورِ</b> خودتون این کد رو اسکن کنید (در همین صفحه رویِ گوشی ← «📷 اسکن»، یا با دوربینِ گوشی).<br>کد <b>هر ۱۰ ثانیه</b> عوض می‌شه و فقط برایِ شما کار می‌کنه.</div></div></div>`;
+    startQr();
+  } else if(S.tab === 'scan'){
+    pane.innerHTML = devBox + `<div class="card"><div class="qrbox"><div class="big">${st.next==='in'?'🟢 ثبتِ ورود':'🔵 ثبتِ خروج'}</div>
+      <video id="cam" playsinline muted hidden></video><button class="btn pri" id="camBtn" onclick="startCam()">📷 باز کردنِ دوربین و اسکن</button>
+      <div class="hint">کیوآرکدِ رویِ صفحه‌ی <b>کامپیوترِ خودتون</b> رو اسکن کنید. لحظه‌ی اسکن، موقعیتِ گوشی فقط یک بار خونده می‌شه (اجازه بدید).</div>
+      <div id="res" class="res"></div>
+      <button class="btn sm" onclick="manualDlg()">گوشی همراهم نبود / مشکل دارم — درخواستِ ثبتِ دستی</button></div></div>`;
+  } else if(S.tab === 'mine'){ pane.innerHTML = '<div class="card"><div class="hint">در حالِ بارگذاری…</div></div>'; myReport(); }
+  else if(S.tab === 'admin'){ pane.innerHTML = '<div class="card"><div class="hint">در حالِ بارگذاری…</div></div>'; adminView(); }
+}
+function setTab(t){ S.tab = t; render(); }
+
+// ── 🖥️ کیوآرکدِ چرخان ──
+async function startQr(){
+  try{ await loadLib(LIB_QR, 'qrcode'); }catch(e){ $('qr').innerHTML = esc(e.message); return; }
+  const tick = async () => {
+    try{
+      const d = await api('qr/');
+      const link = location.href.split('#')[0] + '#p=' + d.payload;   // لینک ← دوربینِ معمولیِ گوشی هم کار می‌کنه
+      const q = qrcode(0, 'M'); q.addData(link); q.make();
+      $('qr') && ($('qr').innerHTML = q.createImgTag(6, 0));
+      const left = d.expires_in, bar = $('qrbar');
+      if(bar){ bar.style.transition='none'; bar.style.width = (left*10)+'%'; requestAnimationFrame(()=>{ bar.style.transition='width '+left+'s linear'; bar.style.width='0%'; }); }
+      S.qrTimer = setTimeout(tick, left*1000 + 150);
+    }catch(e){ $('qr') && ($('qr').innerHTML = '<div class="hint">'+esc(e.message)+'</div>'); S.qrTimer = setTimeout(tick, 5000); }
+  };
+  tick();
+}
+function stopQr(){ clearTimeout(S.qrTimer); S.qrTimer = null; }
+
+// ── 📷 اسکن ──
+async function startCam(){
+  try{ await loadLib(LIB_SCAN, 'jsQR'); }catch(e){ toast('❌ '+e.message); return; }
+  const v = $('cam'); v.hidden = false; $('camBtn').hidden = true;
+  try{ S.cam = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
+  catch(e){ toast('❌ اجازه‌ی دوربین داده نشد — از دوربینِ معمولیِ گوشی هم می‌شه کد رو اسکن کرد'); v.hidden = true; $('camBtn').hidden = false; return; }
+  v.srcObject = S.cam; await v.play();
+  const c = document.createElement('canvas'), ctx = c.getContext('2d', {willReadFrequently:true});
+  const loop = () => {
+    if(!S.cam) return;
+    if(v.readyState === v.HAVE_ENOUGH_DATA){
+      c.width = v.videoWidth; c.height = v.videoHeight; ctx.drawImage(v, 0, 0);
+      const img = ctx.getImageData(0, 0, c.width, c.height), code = jsQR(img.data, img.width, img.height);
+      if(code && code.data){ const m = /#p=(MATT1\.[\w.]+)/.exec(code.data) || /^(MATT1\.[\w.]+)$/.exec(code.data); if(m){ stopCam(); doPunch(m[1]); return; } }
+    }
+    requestAnimationFrame(loop);
+  };
+  loop();
+}
+function stopCam(){ if(S.cam){ S.cam.getTracks().forEach(t=>t.stop()); S.cam = null; } }
+async function doPunch(payload){
+  const res = $('res'); if(res){ res.className='res warn'; res.innerHTML='در حالِ ثبت…'; }
+  const geo = await getGeo();
+  try{
+    const d = await api('punch/', Object.assign({payload, device:deviceKey()}, geo||{}));
+    const p = d.punch, f = p.flags || {};
+    const fl = k => f[k]===true?'✅':f[k]===false?'❌':'—';
+    const html = `<b>${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ثبت شد — ساعت ${fa(p.time)}</b>${d.duplicate?' (قبلاً ثبت شده بود)':''}
+      <div class="flags"><span>${fl('qr')} کیوآرکد</span><span>${fl('device')} گوشیِ من</span><span>${fl('network')} اینترنتِ شرکت</span><span>${fl('gps')} موقعیت</span></div>
+      ${(d.review_reasons||[]).length ? '<div style="margin-top:6px">⚠ برایِ بررسیِ مدیر ثبت شد: '+d.review_reasons.map(esc).join('، ')+'</div>' : ''}`;
+    await loadState(); render();
+    const r2 = $('res'); if(r2){ r2.className = 'res ' + (p.status==='ok'?'ok':'warn'); r2.innerHTML = html; }
+    if(location.hash.startsWith('#p=')) history.replaceState(null,'',location.pathname);
+  }catch(e){ const r2=$('res'); if(r2){ r2.className='res err'; r2.innerHTML='❌ '+esc(e.message); } else toast('❌ '+e.message); }
+}
+async function regDevice(){ try{ const d = await api('device/', {device:deviceKey(), label:deviceLabel()}); toast(d.status==='approved'?'✅ این گوشی تأییدشده است':'⏳ ثبت شد — منتظرِ تأییدِ مدیر'); await loadState(); render(); }catch(e){ toast('❌ '+e.message); } }
+function manualDlg(){
+  const kind = S.st.next, now = new Date(), hm = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const reason = prompt(`درخواستِ ثبتِ دستیِ ${kind==='in'?'ورود':'خروج'} — ساعت ${hm}\nدلیل رو بنویسید (مثلاً: گوشی شارژ نداشت):`);
+  if(!reason) return;
+  api('manual/', {kind, time:hm, reason}).then(async ()=>{ toast('✅ درخواست به مدیرتون فرستاده شد'); await loadState(); render(); }).catch(e=>toast('❌ '+e.message));
+}
+
+// ── 📊 گزارش ──
+const hmn = m => m ? fa(Math.floor(m/60)) + ':' + fa(String(m%60).padStart(2,'0')) : '—';
+function monthNow(){ return S.st.today.slice(0,7); }
+async function myReport(month){
+  month = month || monthNow();
+  try{
+    const d = await api('report/?mine=1&month=' + month), r = d.rows[0], t = r.total;
+    $('pane').innerHTML = `<div class="card"><div class="row"><b>📊 گزارشِ ماهِ ${fa(month.replace('-','/'))}</b><input class="inp" id="mon" value="${month}" style="width:110px;direction:ltr;text-align:center"><button class="btn sm" onclick="myReport($('mon').value)">نمایش</button></div>
+      <div class="chips" style="margin:8px 0">${chipsTot(t)}</div>${daysTable(r.days)}</div>`;
+  }catch(e){ $('pane').innerHTML = '<div class="card hint">❌ '+esc(e.message)+'</div>'; }
+}
+function chipsTot(t){ return `<span class="chip">حضور ${fa(t.present)} روز</span><span class="chip">غیبت ${fa(t.absent)}</span><span class="chip">کار ${hmn(t.work_min)}</span><span class="chip">تأخیر ${hmn(t.late_min)}</span><span class="chip">تعجیل ${hmn(t.early_min)}</span><span class="chip">اضافه‌کار ${hmn(t.over_min)}</span>${t.review?`<span class="chip review">⚠ ${fa(t.review)} روز بررسی</span>`:''}`; }
+function daysTable(days){ return `<div class="tblw"><table><thead><tr><th>تاریخ</th><th>ورود</th><th>خروج</th><th>کار</th><th>تأخیر</th><th>تعجیل</th><th>اضافه‌کار</th><th></th></tr></thead><tbody>${days.map(x=>`<tr style="${!x.work_day?'opacity:.55':''}"><td>${fa(x.date.slice(5).replace('-','/'))}${!x.work_day?' · '+esc(x.why):''}</td><td>${x.in?fa(x.in):(x.absent?'<b style="color:var(--red)">غیبت</b>':'—')}</td><td>${x.out?fa(x.out):'—'}</td><td>${hmn(x.work_min)}</td><td>${x.late_min?'<b style="color:var(--accent)">'+hmn(x.late_min)+'</b>':'—'}</td><td>${hmn(x.early_min)}</td><td>${hmn(x.over_min)}</td><td>${x.review?'⚠':''}</td></tr>`).join('')}</tbody></table></div>`; }
+
+// ── 🛠️ مدیریت ──
+async function adminView(){
+  try{ S.admin = await api('admin/'); }catch(e){ $('pane').innerHTML='<div class="card hint">❌ '+esc(e.message)+'</div>'; return; }
+  const a = S.admin, s = a.settings;
+  const sub = [['today','امروز'],['review','بررسی‌ها ('+fa(a.review.length)+')'],['devices','گوشی‌ها ('+fa(a.devices.filter(x=>x.status==='pending').length)+')'],['report','گزارشِ ماهانه'],['settings','تنظیمات']];
+  const hashSub = (location.hash.match(/#admin:(\w+)/)||[])[1]; if(hashSub) { S.atab = hashSub; history.replaceState(null,'',location.pathname); }
+  let body = '';
+  if(S.atab==='today') body = `<div class="tblw"><table><thead><tr><th>کارمند</th><th>ورود</th><th>وضعیت</th><th>تأخیر</th></tr></thead><tbody>${a.board.map(b=>`<tr><td>${esc(b.name)}${b.review?' ⚠':''}</td><td>${b.in?fa(b.in):'—'}</td><td>${b.state==='در شرکت'?'🟢 ':b.state==='خارج شده'?'🔵 ':'⚪ '}${b.state}</td><td>${b.late?'<b style="color:var(--accent)">'+fa(b.late)+' دقیقه</b>':'—'}</td></tr>`).join('')}</tbody></table></div>`;
+  if(S.atab==='review') body = a.review.length ? a.review.map(p=>`<div class="row" style="border-bottom:1px solid var(--border);padding:6px 0"><b>${esc(p.staff.name)}</b> · ${p.kind==='in'?'ورود':'خروج'} ${fa(p.time)} · ${fa(p.date.replace(/-/g,'/'))} <span class="muted">${p.source==='manual'?'دستی: '+esc(p.note):['device','network','gps'].filter(k=>p.flags[k]===false).map(k=>({device:'❌ گوشی',network:'❌ اینترنت',gps:'❌ موقعیت'+(p.flags.gps_dist?' ('+fa(p.flags.gps_dist)+' متر)':'')})[k]).join(' ')}</span><span style="margin-right:auto"></span><button class="btn sm ok" onclick="act('punch',${p.id},'approve')">تأیید</button><button class="btn sm no" onclick="act('punch',${p.id},'reject')">رد</button></div>`).join('') : '<div class="hint">موردی برایِ بررسی نیست ✨</div>';
+  if(S.atab==='devices') body = a.devices.length ? a.devices.map(d=>`<div class="row" style="border-bottom:1px solid var(--border);padding:6px 0"><b>${esc(d.staff)}</b> · ${esc(d.label||'—')} · <span class="muted">${esc(d.status_label)} · ${fa(d.created)}</span><span style="margin-right:auto"></span>${d.status==='pending'?`<button class="btn sm ok" onclick="act('device',${d.id},'approve')">تأیید</button>`:''}<button class="btn sm no" onclick="act('device',${d.id},'revoke')">لغو</button></div>`).join('') + '<div class="muted" style="margin-top:8px">هر نفر یک گوشیِ حضور داره؛ تأییدِ گوشیِ جدید، قبلی رو لغو می‌کنه.</div>' : '<div class="hint">هنوز گوشی‌ای ثبت نشده</div>';
+  if(S.atab==='report'){ body = `<div class="row"><input class="inp" id="amon" value="${monthNow()}" style="width:110px;direction:ltr;text-align:center"><button class="btn sm" onclick="adminReport()">نمایش</button><button class="btn sm" onclick="adminExcel()">⬇ Excel</button></div><div id="arep"></div>`; }
+  if(S.atab==='settings'){
+    body = `<h3>🌐 اینترنتِ شرکت</h3><div class="muted">آی‌پیِ همین الانِ شما: <b dir="ltr">${esc(a.my_ip)}</b> — اگه الان در شرکتید و به وای‌فایِ شرکت وصلید، تأییدش کنید.</div>
+      <div class="row"><button class="btn sm pri" onclick="act('ip',null,'add',{ip:'${esc(a.my_ip)}'})">✅ این اینترنتِ شرکته</button></div>
+      <div class="muted">ثبت‌شده: ${s.office_ips.length?s.office_ips.map(ip=>`<span class="chip" dir="ltr">${esc(ip)} <a href="#" onclick="act('ip',null,'remove',{ip:'${esc(ip)}'});return false">✕</a></span>`).join(' '):'— هنوز ثبت نشده (لایه‌ی اینترنت فعلاً «نامشخص»)'}</div>
+      ${a.ip_candidates.length?`<div class="muted" style="margin-top:6px">پیشنهادِ خودکار (از ورودهایِ ۱۴ روزِ اخیر): ${a.ip_candidates.map(c=>`<span class="chip" dir="ltr">${esc(c.ip)} · ${fa(c.share)}٪ · ${fa(c.people)} نفر ${s.office_ips.includes(c.ip)?'✅':`<a href="#" onclick="act('ip',null,'add',{ip:'${esc(c.ip)}'});return false">تأیید</a>`}</span>`).join(' ')}</div>`:''}
+      <div class="muted" style="margin-top:4px">اگه اینترنتِ شرکت عوض شد، آی‌پیِ جدید با همین دکمه ثبت می‌شه.</div>
+      <h3 style="margin-top:14px">📍 موقعیتِ شرکت</h3><div class="muted">${s.office_lat!=null?`ثبت شده · شعاع ${fa(s.radius_m)} متر`:'هنوز ثبت نشده (لایه‌ی موقعیت فعلاً «نامشخص»)'}</div>
+      <div class="row"><input class="inp" id="rad" value="${s.radius_m}" style="width:80px;text-align:center"> متر <button class="btn sm pri" onclick="setLoc()">📍 موقعیتِ همین الانِ من = شرکت</button></div>
+      <h3 style="margin-top:14px">⏰ ساعتِ کاری</h3>
+      <div class="row">شروع <input class="inp" id="s1" value="${s.start}" style="width:70px;direction:ltr"> فرجه تا <input class="inp" id="s2" value="${s.grace}" style="width:70px;direction:ltr"> یادآوری <input class="inp" id="s3" value="${s.remind}" style="width:70px;direction:ltr"></div>
+      <div class="row">پایان شنبه–چهارشنبه <input class="inp" id="s4" value="${s.end}" style="width:70px;direction:ltr"> پنجشنبه <input class="inp" id="s5" value="${s.end_thu}" style="width:70px;direction:ltr"> <button class="btn sm pri" onclick="act('settings',null,null,{start:$('s1').value,grace:$('s2').value,remind:$('s3').value,end:$('s4').value,end_thu:$('s5').value})">ذخیره</button></div>
+      <div class="muted">جمعه و تعطیلاتِ رسمی و اعلامی خودکار غیرِکاری حساب می‌شن.</div>`;
+  }
+  $('pane').innerHTML = `<div class="card"><div class="tabs">${sub.map(([k,l])=>`<button class="tab ${S.atab===k?'on':''}" onclick="S.atab='${k}';adminView()">${l}</button>`).join('')}</div>${body}</div>`;
+  if(S.atab==='report') adminReport();
+}
+async function act(what, id, action, extra){ try{ await api('admin/action/', Object.assign({what, id, action}, extra||{})); toast('✅ انجام شد'); adminView(); }catch(e){ toast('❌ '+e.message); } }
+async function setLoc(){ const g = await getGeo(); if(!g){ toast('❌ موقعیت خونده نشد — اجازه‌ی موقعیت رو بدید'); return; } act('location', null, null, {lat:g.lat, lng:g.lng, radius_m:+$('rad').value||250}); }
+async function adminReport(){
+  const month = ($('amon')||{}).value || monthNow();
+  try{ const d = await api('report/?month=' + month); S.rep = d;
+    $('arep').innerHTML = `<div class="tblw"><table><thead><tr><th>کارمند</th><th>حضور</th><th>غیبت</th><th>کار</th><th>تأخیر</th><th>تعجیل</th><th>اضافه‌کار</th><th>بررسی</th></tr></thead><tbody>${d.rows.map(r=>{const t=r.total;return `<tr><td>${esc(r.staff.name)}</td><td>${fa(t.present)}</td><td>${fa(t.absent)}</td><td>${hmn(t.work_min)}</td><td>${hmn(t.late_min)}</td><td>${hmn(t.early_min)}</td><td>${hmn(t.over_min)}</td><td>${t.review?'⚠ '+fa(t.review):'—'}</td></tr>`;}).join('')}</tbody></table></div>`;
+  }catch(e){ $('arep').innerHTML = '<div class="hint">❌ '+esc(e.message)+'</div>'; }
+}
+async function adminExcel(){
+  if(!S.rep) return;
+  try{ await loadLib('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','XLSX'); }catch(e){ toast('❌ '+e.message); return; }
+  const wb = XLSX.utils.book_new();
+  const sum = [['کارمند','روزِ حضور','غیبت','ساعتِ کار (دقیقه)','تأخیر (دقیقه)','تعجیل (دقیقه)','اضافه‌کار (دقیقه)']].concat(S.rep.rows.map(r=>[r.staff.name,r.total.present,r.total.absent,r.total.work_min,r.total.late_min,r.total.early_min,r.total.over_min]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), 'خلاصه');
+  const det = [['کارمند','تاریخ','روزِ کاری','ورود','خروج','کار (دقیقه)','تأخیر','تعجیل','اضافه‌کار','بررسی']];
+  S.rep.rows.forEach(r=>r.days.forEach(x=>det.push([r.staff.name,x.date,x.work_day?'بله':'خیر — '+x.why,x.in||'',x.out||'',x.work_min,x.late_min,x.early_min,x.over_min,x.review?'بله':''])));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(det), 'جزئیات');
+  XLSX.writeFile(wb, 'حضور-و-غیاب-' + S.rep.month + '.xlsx');
+}
+
+(async function init(){
+  if(!MadarAuth.token()){ MadarAuth.require(true); $('app').innerHTML = '<div class="hint" style="padding:40px">برایِ حضور و غیاب با ورودِ امن وارد شوید.</div>'; return; }
+  try{ await loadState(); }catch(e){ $('app').innerHTML = '<div class="hint" style="padding:40px">⚠️ '+esc(e.message)+'</div>'; return; }
+  if(/^#admin:/.test(location.hash) && S.st.is_mgmt) S.tab = 'admin';
+  render();
+  const m = /^#p=(MATT1\.[\w.]+)/.exec(location.hash);       // از دوربینِ معمولیِ گوشی اومده
+  if(m){ S.tab = 'scan'; render(); doPunch(m[1]); }
+  // اگه صفحه از قبل باز بود و لینکِ کیوآرکد در همین صفحه باز شد (فقط # عوض می‌شه)
+  window.addEventListener('hashchange', () => {
+    const k = /^#p=(MATT1\.[\w.]+)/.exec(location.hash);
+    if(k && S.st){ S.tab = 'scan'; render(); doPunch(k[1]); }
+  });
+})();
+</script>
+</body>
+</html>
