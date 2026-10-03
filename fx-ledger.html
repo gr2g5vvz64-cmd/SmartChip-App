@@ -1608,7 +1608,7 @@ async function renderCustomerLedger(main, cachedData){
             <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
             <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
             <td>${o.isLocked
-              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-order="'+o.id+'" style="font-size:10px">بازکردن</button>'
+              ? '<span class="status-chip closed" data-locked-row="order-'+o.id+'">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-order="'+o.id+'" style="font-size:10px">بازکردن</button><div class="fx-lockinfo" data-lockinfo="order-'+o.id+'"></div>'
               : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-order="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
             <td><button class="icon-btn" data-edit-order="${o.id}">ویرایش</button> <button class="icon-btn" data-del-order="${o.id}">حذف</button> <button class="icon-btn" data-hist-order="${o.id}">📜</button></td>
           </tr>`).join('');
@@ -1750,14 +1750,12 @@ async function renderCustomerLedger(main, cachedData){
     xlsxDownload(`دفتر-کامل-${currentCustomer}.xlsx`, 'دفتر کامل', rows);
   });
   wireRateBasisToggle(main, ()=>renderCustomerLedger(main));
-  main.querySelectorAll('[data-lock-order]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(!confirm('این نرخ رو الان تو هلو ثبت کردید؟ بعد از قفل‌کردن، این عدد دیگه با تغییرِ پرداخت‌های قدیمی خودکار عوض نمی‌شه.')) return;
-    const res = await fetch(FX_API+'orders/'+b.dataset.lockOrder+'/lock/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({basis, today:todayShamsi()})});
-    const d = await res.json();
-    if(!res.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
-    showToast('✅ فاکتور قفل شد');
-    renderCustomerLedger(main);
+  main.querySelectorAll('[data-lock-order]').forEach(b=>b.addEventListener('click', ()=>{
+    // ⚠️ (۱۴۰۵/۰۷/۰۹) قفل با «نرخی که در هلو ثبت کردید» — نه لزوماً نرخِ همین الانِ مدار
+    const o = data.orderStatus.find(x=>x.id==b.dataset.lockOrder);
+    fxLockDialog({kind:'order', id:o.id, computed:o.weightedAvgRate, yuan:o.yuanAmount, label:`فاکتورِ ${o.invoiceNo||o.date} — ${currentCustomer}`, basis, done:()=>renderCustomerLedger(main)});
   }));
+  fxDecorateLocked(main, 'customer', currentCustomer, basis);
   main.querySelectorAll('[data-unlock-order]').forEach(b=>b.addEventListener('click', async ()=>{
     if(!confirm('⚠️ مطمئنید می‌خواید قفل رو باز کنید؟ این کارو فقط وقتی بکنید که واقعاً اشتباه قفل کرده باشید.')) return;
     const res = await fetch(FX_API+'orders/'+b.dataset.unlockOrder+'/unlock/', {method:'POST'});
@@ -1790,6 +1788,76 @@ async function renderCustomerLedger(main, cachedData){
     data.orderStatus.forEach(o=>rows.push([o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور', o.invoiceNo||'', o.date, o.yuanAmount, o.remainingYuan, o.closed?'تسویه‌شده':'باز', o.weightedAvgRate||'', o.rialEquivalentForAccounting||'']));
     xlsxDownload(`فاکتورهای-${currentCustomer}.xlsx`, 'فاکتورها', rows);
   });
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 🔒 (۱۴۰۵/۰۷/۰۹) قفل با «نرخی که در هلو ثبت کردید»
+//   مشکلِ واقعیِ کاربر: فاکتور با نرخِ پایین‌تر در هلو ثبت شد، قفل نشد، بعداً با تغییرِ تخصیصِ پرداخت‌ها
+//   نرخِ مدار بالا رفت. قفلِ قبلی همیشه نرخِ «همین الان» رو ثابت می‌کرد ← حالا نرخ قابلِ ویرایشه.
+//   اگه با محاسبه‌ی مدار فرق داشت: دلیلِ اجباری، ثبت در تاریخچه، برچسبِ «✋ نرخِ هلو» و نمایشِ اختلافِ ریالی.
+// ══════════════════════════════════════════════════════════════
+const FX_LOCK_API = 'https://api.smartchipelec.com/api/worklog/fx-lock/';
+function fxNum(v){ return Number(String(v||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬,\s]/g,'').replace('٫','.')) || 0; }
+function fxLockDialog(o){
+  const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
+  const comp = o.computed ? Number(o.computed) : 0;
+  backdrop.innerHTML = `<div class="modal" style="max-width:520px">
+    <h3>🔒 قفلِ فاکتور — ثبت در هلو</h3>
+    <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">${o.label} · ${fmtYuan(o.yuan)}</div>
+    <div class="field"><label>نرخی که در هلو ثبت کردید (ریال به ازایِ هر یوان)</label>
+      <input id="lkRate" type="text" inputmode="decimal" style="font-size:18px;font-weight:800;text-align:center;direction:ltr" value="${comp ? Math.round(comp) : ''}"></div>
+    <div style="font-size:12px;margin:6px 0 10px;line-height:2">نرخِ محاسبه‌شده‌ی مدار (الان): <b>${comp ? fmt(comp,0) : '—'}</b></div>
+    <div id="lkDiff" style="font-size:12.5px;line-height:2;border-radius:8px;padding:8px 10px;background:var(--surface);margin-bottom:10px"></div>
+    <div class="field" id="lkReasonBox" style="display:none"><label>دلیلِ تفاوت با محاسبه‌ی مدار (اجباری)</label>
+      <input id="lkReason" type="text" placeholder="مثلاً: با این نرخ در هلو ثبت شده بود، قبل از تغییرِ پرداخت‌ها"></div>
+    <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.9">بعد از قفل، این عدد با تغییرِ پرداخت‌ها یا حواله‌هایِ قدیمی دیگه عوض نمی‌شه و صورت‌حساب و معادلِ ریالیِ حسابداری با همین نرخ حساب می‌شن.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn" data-x>انصراف</button><button class="btn btn-primary" data-ok>🔒 قفل کن</button></div></div>`;
+  document.body.appendChild(backdrop);
+  const rate = backdrop.querySelector('#lkRate'), diffBox = backdrop.querySelector('#lkDiff'), rBox = backdrop.querySelector('#lkReasonBox');
+  const upd = () => {
+    const r = fxNum(rate.value), y = Number(o.yuan||0);
+    const manual = !comp || Math.abs(r - comp) >= 1;
+    rBox.style.display = (r && manual) ? '' : 'none';
+    if(!r){ diffBox.innerHTML = 'نرخ رو وارد کنید'; return; }
+    let h = `معادلِ ریالیِ حسابداری با این نرخ: <b>${fmtRial(r*y)}</b>`;
+    if(comp && manual){ const d = (r-comp)*y; h += `<br>با نرخِ محاسبه‌شده: ${fmtRial(comp*y)}<br><b style="color:${d<0?'#b45309':'#15803d'}">اختلاف: ${d>0?'+':''}${fmtRial(d)}</b> — این اختلاف در حسابداری باید جدا (سود/زیانِ تسعیر) دیده بشه.`; }
+    diffBox.innerHTML = h;
+  };
+  rate.addEventListener('input', upd); upd(); setTimeout(()=>rate.select(), 30);
+  backdrop.querySelector('[data-x]').onclick = () => backdrop.remove();
+  backdrop.querySelector('[data-ok]').onclick = async () => {
+    const r = fxNum(rate.value);
+    if(!r){ showToast('⚠️ نرخ رو وارد کنید'); return; }
+    const reason = backdrop.querySelector('#lkReason').value.trim();
+    if((!comp || Math.abs(r-comp) >= 1) && !reason){ showToast('⚠️ دلیلِ تفاوت رو بنویسید'); return; }
+    try{
+      const res = await fetch(FX_LOCK_API, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({kind:o.kind, id:o.id, rate:r, reason, basis:o.basis||'hawale', today:todayShamsi()})});
+      const d = await res.json();
+      if(!res.ok || !d.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
+      backdrop.remove(); showToast(d.manual ? '✅ با نرخِ هلو قفل شد' : '✅ فاکتور قفل شد'); o.done && o.done();
+    }catch(e){ showToast('❌ سرور جواب نداد'); }
+  };
+}
+async function fxDecorateLocked(main, side, name, basis){
+  // کنارِ فاکتورهایِ قفل‌شده: «✋ نرخِ هلو» + نرخِ محاسبه‌شده‌ی امروز و اختلافِ ریالی
+  if(!main.querySelector('[data-lockinfo]') || !name) return;
+  try{
+    const q = side === 'customer' ? `customer=${encodeURIComponent(name)}&basis=${encodeURIComponent(basis||'hawale')}` : `supplier=${encodeURIComponent(name)}`;
+    const r = await fetch(FX_LOCK_API + 'compare/?' + q); if(!r.ok) return;
+    const d = await r.json(); if(!d.ok) return;
+    const kind = side === 'customer' ? 'order' : 'expense';
+    Object.entries(d.rows||{}).forEach(([id, x]) => {
+      const el = main.querySelector(`[data-lockinfo="${kind}-${id}"]`); if(!el) return;
+      let h = x.manual ? `<span style="color:#7c3aed;font-weight:800" title="${(x.reason||'').replace(/"/g,'&quot;')}">✋ نرخِ هلو</span>` : '';
+      if(x.computed_now && x.locked && Math.abs(x.computed_now - x.locked) >= 1){
+        h += `<div style="font-size:10.5px;color:var(--ink-soft);line-height:1.7">محاسبه‌ی امروز: ${fmt(x.computed_now,0)} · اختلاف: ${x.rial_diff_now>0?'+':''}${fmtRial(x.rial_diff_now)}</div>`;
+      }
+      el.innerHTML = h;
+    });
+  }catch(e){}
 }
 
 function openOrderModal(existing, presetCustomer){
@@ -2826,7 +2894,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
             <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
             <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
             <td>${o.isLocked
-              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button>' + (prov ? '<div class="fx-prov-chip">⚠️ با قیمتِ موقت قفل شده — باز کنید و اصلاح کنید</div>' : '')
+              ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button><div class="fx-lockinfo" data-lockinfo="expense-'+o.id+'"></div>' + (prov ? '<div class="fx-prov-chip">⚠️ با قیمتِ موقت قفل شده — باز کنید و اصلاح کنید</div>' : '')
               : (prov ? '<span style="color:#7a4f00;font-size:11px;font-weight:700">اول قیمتِ واقعی رو وارد کنید</span>'
                 : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>'))}</td>
           </tr>`; }).join('')}
@@ -3095,15 +3163,12 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   main.querySelectorAll('[data-hist-exp]').forEach(b=>b.addEventListener('click', ()=>{
     showHistoryModal(data.invoiceStatus.find(x=>x.id==b.dataset.histExp) || state.expenses.find(x=>x.id==b.dataset.histExp));
   }));
-  main.querySelectorAll('[data-lock-exp]').forEach(b=>b.addEventListener('click', async ()=>{
+  main.querySelectorAll('[data-lock-exp]').forEach(b=>b.addEventListener('click', ()=>{
     if(fxIsProvisionalId(b.dataset.lockExp)){ showToast('⚠️ قیمتِ این قلم هنوز موقته (۱ یوان) — اول قیمتِ واقعی رو وارد کنید'); return; }
-    if(!confirm('این نرخ رو الان تو هلو ثبت کردید؟ بعد از قفل‌کردن، این عدد دیگه با تغییرِ حواله‌های قدیمی خودکار عوض نمی‌شه.')) return;
-    const res = await fetch(FX_API+'expenses/'+b.dataset.lockExp+'/lock/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({today:todayShamsi()})});
-    const d = await res.json();
-    if(!res.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
-    showToast('✅ فاکتورِ خرید قفل شد');
-    renderSupplierLedger(main);
+    const o = data.invoiceStatus.find(x=>x.id==b.dataset.lockExp);
+    fxLockDialog({kind:'expense', id:o.id, computed:o.weightedAvgRate, yuan:o.yuanAmount, label:`فاکتورِ خرید ${o.partNumber||o.date} — ${sName}`, done:()=>renderSupplierLedger(main)});
   }));
+  fxDecorateLocked(main, 'supplier', sName);
   main.querySelectorAll('[data-unlock-exp]').forEach(b=>b.addEventListener('click', async ()=>{
     if(!confirm('⚠️ مطمئنید می‌خواید قفل رو باز کنید؟')) return;
     const res = await fetch(FX_API+'expenses/'+b.dataset.unlockExp+'/unlock/', {method:'POST'});
