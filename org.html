@@ -99,6 +99,20 @@ h1{font-size:20px;font-weight:900;margin-bottom:4px}
 .inbox-it .t{font-weight:800;font-size:13px}
 .inbox-it .s{font-size:11.5px;color:var(--muted)}
 .inbox-it .go{margin-right:auto;font-size:11.5px;color:var(--accent);font-weight:700}
+.ib{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
+.ib-cats{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px;position:sticky;top:12px}
+.ib-cat{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--text);font:inherit;font-size:13px;padding:9px 10px;border-radius:9px;cursor:pointer;text-align:right}
+.ib-cat:hover{background:var(--card)}
+.ib-cat.on{background:rgba(240,165,0,.13);color:var(--accent);font-weight:800}
+.ib-cat .n{margin-right:auto;min-width:24px;height:22px;border-radius:11px;background:var(--red);color:#fff;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 7px}
+.ib-cat .n.z{background:var(--card);color:var(--faint);font-weight:600}
+.ib-cat .sn{margin-right:auto;font-size:9.5px;color:var(--faint);border:1px solid var(--border);border-radius:6px;padding:0 5px}
+.ib-cat.dim{opacity:.55}
+.ib-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ib-head b{font-size:15px}
+.ib-head a{margin-right:auto;font-size:12px;color:var(--accent);text-decoration:none;font-weight:700}
+.pr3{border-right:3px solid var(--red)!important}.pr2{border-right:3px solid var(--accent)!important}
+@media(max-width:820px){.ib{grid-template-columns:1fr}.ib-cats{position:static;display:flex;flex-wrap:wrap;gap:4px}.ib-cat{width:auto;padding:6px 9px;font-size:12px}}
 .soon-card{border:1px dashed var(--border);border-radius:14px;padding:28px;text-align:center;color:var(--muted);font-size:13px;line-height:2}
 .soon-card b{color:var(--text);font-size:15px}
 .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
@@ -160,7 +174,7 @@ async function api(path, body){
 // ─────────── ناوبری ───────────
 document.querySelectorAll('.nav').forEach(b => b.onclick = () => go(b.dataset.v));
 function go(v){
-  S.view = v; history.replaceState(null, '', '#' + v);
+  S.view = v; if((location.hash||'').slice(1).split(':')[0] !== v) history.replaceState(null, '', '#' + v);
   document.querySelectorAll('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   ({dash: viewDash, units: viewUnits, mine: viewMine, staff: viewStaff, inbox: viewInbox, closure: viewClosure,
     leave: () => viewSoon('🏖️ مرخصی و مأموریت', 'درخواستِ مرخصی یا مأموریت از موبایل ← خودکار به کارتابلِ مدیرِ مستقیم (سرپرستِ واحد، یا مدیریت) ← تأیید با یک دکمه (حتی از بله) ← مانده‌ی مرخصی و تقویمِ تعطیلات خودکار.'),
@@ -180,7 +194,7 @@ async function viewDash(){
       <div class="kpi"><div class="v">${fa(d.units.length)}</div><div class="l">واحد</div></div>
       <div class="kpi ${d.multi_role.length ? 'warn' : ''}"><div class="v">${fa(d.multi_role.length)}</div><div class="l">نفر با چند سِمَت</div></div>
       <div class="kpi ${d.missing_heads.length ? 'warn' : 'good'}"><div class="v">${fa(d.missing_heads.length)}</div><div class="l">واحدِ بدونِ سرپرست</div></div>
-      <div class="kpi ${S.inbox.length ? 'warn' : 'good'}"><div class="v">${fa(S.inbox.length)}</div><div class="l">موردِ منتظرِ من (کارتابل)</div></div>
+      <div class="kpi ${S.inboxCount ? 'warn' : 'good'}"><div class="v">${fa(S.inboxCount||0)}</div><div class="l">موردِ منتظرِ من (کارتابل)</div></div>
     </div>
     ${d.unassigned.length ? `<div class="alert">👤 هنوز سِمَتی ندارن: <b>${d.unassigned.map(esc).join('، ')}</b> — در «واحدها و سِمَت‌ها» انتساب بدید.</div>` : ''}
     ${d.missing_heads.length ? `<div class="alert">🧭 واحدهایِ بدونِ سرپرست: <b>${d.missing_heads.map(esc).join('، ')}</b> — تا تعیینِ سرپرست، درخواست‌هایِ این واحدها مستقیم به مدیریت می‌ره.</div>` : '<div class="alert ok">✅ همه‌ی واحدها سرپرست دارن.</div>'}
@@ -294,15 +308,39 @@ function viewStaff(){
 
 // ─────────── 📥 کارتابلِ من ───────────
 async function loadInbox(){
-  try{ const d = await api('/api/org/inbox/'); S.inbox = d.items || []; }catch(e){ S.inbox = []; }
-  const b = $('inboxBd'); b.hidden = !S.inbox.length; b.textContent = fa(S.inbox.length);
+  try{ const d = await api('/api/org/inbox/'); S.inbox = d.items || []; S.inboxCats = d.categories || []; S.inboxCount = d.count || 0; }
+  catch(e){ S.inbox = []; S.inboxCats = []; S.inboxCount = 0; }
+  const b = $('inboxBd'); b.hidden = !S.inboxCount; b.textContent = fa(S.inboxCount);
 }
 async function viewInbox(){
+  // ⚠️ (۱۴۰۵/۰۷/۰۹) کارتابلِ کامل: دسته‌ها کنارِ صفحه با شمارنده‌ی کارهایِ بازِ همین شخص؛
+  //   کلیک رویِ دسته ← فهرستش ؛ کلیک رویِ هر مورد ← همون صفحه‌ای که کار اونجا انجام می‌شه.
   const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
   await loadInbox();
-  m.innerHTML = `<h1>📥 کارتابلِ من</h1><div class="sub">هر چیزی که در کلِ مدار منتظرِ شماست — با یک کلیک به همون صفحه‌ای که کار اونجا انجام می‌شه.</div>
-    ${S.inbox.length ? S.inbox.map(it => `<a class="inbox-it" href="${esc(it.link || '#')}"><span class="ic">${esc(it.icon)}</span><span><div class="t">${esc(it.title)}</div><div class="s">${esc(it.sub)}</div></span><span class="go">برو ›</span></a>`).join('')
-      : '<div class="soon-card">✨ <b>چیزی منتظرِ شما نیست</b><br>تأییدها، وعده‌هایِ پرداخت، یادآوری‌هایِ امروز و نتیجه‌ی درخواست‌هاتون اینجا جمع می‌شن.</div>'}`;
+  const cats = S.inboxCats || [];
+  const want = (location.hash.split(':')[1] || sessionStorage.getItem('madar_inbox_cat') || 'all');
+  const sel = (want === 'all' || cats.some(c => c.key === want)) ? want : 'all';
+  const total = S.inboxCount || 0;
+  const catBtn = c => `<button class="ib-cat ${sel===c.key?'on':''} ${c.soon||!c.count?'dim':''}" data-cat="${c.key}"><span>${c.icon}</span>${esc(c.label)}${c.soon ? '<span class="sn">به‌زودی</span>' : `<span class="n ${c.count?'':'z'}">${fa(c.count)}</span>`}</button>`;
+  const cur = sel === 'all' ? null : cats.find(c => c.key === sel);
+  const items = cur ? cur.items : (S.inbox || []);
+  const itemHTML = it => `<a class="inbox-it pr${it.priority||1}" href="${esc(it.link || '#')}"><span class="ic">${esc(it.icon)}</span><span><div class="t">${esc(it.title)}</div><div class="s">${esc(it.sub)}</div></span><span class="go">برو ›</span></a>`;
+  m.innerHTML = `<h1>📥 کارتابلِ من</h1><div class="sub">هر چیزی که در کلِ مدار به شما مربوطه — شمارنده‌ی هر دسته = کارهایِ بازِ شما. رویِ هر مورد بزنید تا به همون صفحه برید.</div>
+    <div class="ib">
+      <div class="ib-cats" role="tablist" aria-label="دسته‌هایِ کارتابل">
+        <button class="ib-cat ${sel==='all'?'on':''}" data-cat="all"><span>📥</span>همه‌ی کارهایِ باز<span class="n ${total?'':'z'}">${fa(total)}</span></button>
+        ${cats.filter(c => !c.soon).map(catBtn).join('')}
+        <div style="height:1px;background:var(--border);margin:6px 4px"></div>
+        ${cats.filter(c => c.soon).map(catBtn).join('')}
+      </div>
+      <div>
+        ${cur ? `<div class="ib-head"><span style="font-size:20px">${cur.icon}</span><b>${esc(cur.label)}</b><a href="${esc(cur.link)}">باز کردنِ صفحه‌ی این بخش ›</a></div>` : ''}
+        ${cur && cur.soon ? `<div class="soon-card"><b>به‌زودی</b><br>با ساختِ این بخش در «سازمان»، درخواست‌ها و نامه‌هایِ مربوط به شما همین‌جا میان.</div>`
+          : items.length ? items.map(itemHTML).join('') + (cur && cur.count > cur.items.length ? `<div class="sub" style="margin-top:8px">${fa(cur.items.length)} مورد از ${fa(cur.count)} نمایش داده شد — بقیه در <a href="${esc(cur.link)}">صفحه‌ی این بخش</a>.</div>` : '')
+          : '<div class="soon-card">✨ <b>چیزی اینجا منتظرِ شما نیست</b></div>'}
+      </div>
+    </div>`;
+  m.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { sessionStorage.setItem('madar_inbox_cat', b.dataset.cat); history.replaceState(null, '', '#inbox:' + b.dataset.cat); viewInbox(); });
 }
 
 // ─────────── 📢 تعطیلیِ اعلامی (مدیریت) ───────────
@@ -337,7 +375,7 @@ function viewSoon(title, text){
   try{ S.me = await api('/api/org/me/'); }catch(e){ $('main').innerHTML = `<div class="loading">⚠️ ${esc(e.message)}<br><br>اگه سرور تازه به‌روز شده، چند دقیقه‌ی دیگه دوباره امتحان کنید.</div>`; return; }
   if(S.me.is_mgmt) $('navClosure').hidden = false;
   await loadInbox();
-  const v = (location.hash || '').slice(1);
+  const v = (location.hash || '').slice(1).split(':')[0];
   go(['dash','units','mine','staff','inbox','closure','leave','requests','letters'].includes(v) ? v : 'dash');
   setInterval(() => { if(document.visibilityState === 'visible') loadInbox(); }, 120000);
 })();

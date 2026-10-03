@@ -474,6 +474,27 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .ec-row{cursor:pointer}
 .ec-row:hover td{background:rgba(240,165,0,.06)}
 @media(max-width:640px){.ec-grid{grid-template-columns:1fr}}
+
+/* ── (۱۴۰۵/۰۷/۰۹) ورودِ لیستِ قطعات از اکسل ── */
+.qx-btn{font-family:Vazirmatn,sans-serif;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:7px;border:1px solid rgba(96,165,250,.45);background:rgba(96,165,250,.12);color:#93c5fd;cursor:pointer}
+.qx-btn.ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.qx-btn:hover{border-color:#60a5fa}
+.qx-ov{position:fixed;inset:0;background:rgba(8,10,16,.72);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px}
+.qx-box{width:min(820px,100%);max-height:90vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.qx-h{padding:14px 16px;border-bottom:1px solid var(--border)}
+.qx-h b{font-size:14px}
+.qx-h .s{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.8}
+.qx-tools{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);align-items:center}
+.qx-body{overflow:auto;padding:0 6px}
+.qx-body table{width:100%;border-collapse:collapse;font-size:12px}
+.qx-body th{position:sticky;top:0;background:var(--card);padding:6px 8px;font-size:11px;color:var(--muted);text-align:center}
+.qx-body td{padding:4px 8px;border-bottom:1px solid var(--border);text-align:center}
+.qx-body td input[type=text]{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;font-size:12px;padding:4px 7px;direction:ltr}
+.qx-body td input.q{width:80px;text-align:center}
+.qx-body tr.bad td{background:rgba(239,68,68,.08)}
+.qx-body input[type=checkbox]{width:16px;height:16px;cursor:pointer}
+.qx-f{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--border)}
+.qx-f .s{font-size:11.5px;color:var(--muted);margin-left:auto}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -1739,7 +1760,13 @@ function renderToolbar(){
         </div>
       </div>
       <div id="qf_purchaseBox" style="display:none;border:1px solid rgba(96,165,250,.3);border-radius:10px;padding:12px;margin-bottom:8px;background:rgba(96,165,250,.04)">
-        <div style="font-size:11px;font-weight:800;color:#60a5fa;margin-bottom:8px">📋 پارت‌نامبر و تعداد</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <div style="font-size:11px;font-weight:800;color:#60a5fa">📋 پارت‌نامبر و تعداد</div>
+          <!-- ⚠️ (۱۴۰۵/۰۷/۰۹) لیستِ قطعاتِ مشتری از اکسل — فقط در مرورگر خونده می‌شه، جایی ذخیره نمی‌شه -->
+          <button type="button" class="qx-btn" onclick="qxPick()" title="لیستِ قطعاتِ مشتری رو از فایلِ اکسل (یا CSV) وارد کنید">📥 از اکسل</button>
+          <button type="button" class="qx-btn ghost" onclick="qxTemplate()" title="دانلودِ قالبِ استانداردِ مدار">⬇ قالب</button>
+          <input type="file" id="qxFile" accept=".xlsx,.xls,.csv" hidden onchange="qxRead(this.files[0]);this.value=''">
+        </div>
         <div id="qf_partRows"></div>
         <button onclick="qfAddPartRow()" style="width:100%;margin-top:6px;padding:6px;background:rgba(96,165,250,.08);border:1px dashed rgba(96,165,250,.25);border-radius:7px;color:#60a5fa;font-family:Vazirmatn,sans-serif;font-size:11px;cursor:pointer">+ پارت جدید</button>
       </div>
@@ -9103,6 +9130,115 @@ function toShamsiCompact(dateStr){
 // فرم ثبت تماس سریع
 // ══════════════════════════════════════════════════════════════
 let qfPartRows = [];
+
+// ══════════════════════════════════════════════════════════════
+// 📥 (۱۴۰۵/۰۷/۰۹) لیستِ قطعاتِ مشتری از اکسل → ردیف‌هایِ استعلامِ همین تماس
+//   طبقِ خواسته‌ی کاربر: فایل فقط در مرورگر خونده می‌شه و هیچ‌جا ذخیره نمی‌شه؛ فقط ردیف‌هاش وارد
+//   استعلامِ تماس می‌شن و در پیش‌نمایش برایِ هر ردیف مشخص می‌شه «داخلی» یا «خارجی» (یا هر دو).
+//   قالبِ مدار: Part Number | تعداد | بازار (داخلی/خارجی/هر دو) | توضیح
+//   اکسلِ خودِ مشتری هم قبوله: ستون‌هایی با عنوانِ Part / P/N / MPN / پارت / قطعه و Qty / Quantity / تعداد خودکار پیدا می‌شن.
+// ══════════════════════════════════════════════════════════════
+const QX_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+let qxRows = [];
+function qxLoadLib(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = QX_LIB; sc.onload = ok; sc.onerror = () => no(new Error('کتابخانه‌ی اکسل بارگذاری نشد — اینترنت رو چک کنید')); document.head.appendChild(sc); });
+}
+function qxPick(){ document.getElementById('qxFile').click(); }
+async function qxTemplate(){
+  try{
+    await qxLoadLib();
+    const ws = XLSX.utils.aoa_to_sheet([['Part Number','تعداد','بازار (داخلی/خارجی/هر دو)','توضیح'],['STM32F103C8T6','100','خارجی','LQFP-48'],['RES 10K 0603','5000','داخلی','']]);
+    ws['!cols'] = [{wch:26},{wch:10},{wch:24},{wch:24}];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'قطعات');
+    XLSX.writeFile(wb, 'قالب-لیست-قطعات-مدار.xlsx');
+  }catch(e){ toast('❌ ' + e.message); }
+}
+function qxNum(v){ return String(v==null?'':v).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,٬\s]/g,'').replace(/[^\d.]/g,''); }
+function qxNormPart(v){ return String(v==null?'':v).replace(/\u200c/g,'').replace(/\s+/g,' ').trim(); }
+function qxParse(aoa){
+  const isPart = t => /part|p\/n|^pn$|mpn|model|item|پارت|قطعه|کد\s*کالا|شرح\s*کالا/i.test(t);
+  const isQty = t => /qty|q'ty|quantity|count|تعداد|مقدار/i.test(t);
+  const isMkt = t => /بازار|market|نوع|داخلی|خارجی|type/i.test(t);
+  let hr = -1, cp = 0, cq = 1, cm = -1;
+  for(let r = 0; r < Math.min(aoa.length, 12); r++){
+    const row = (aoa[r]||[]).map(x => String(x==null?'':x).trim());
+    const p = row.findIndex(isPart);
+    if(p >= 0){ hr = r; cp = p; const q = row.findIndex(isQty); cq = q >= 0 ? q : (p + 1); cm = row.findIndex((t,i) => i !== cp && i !== cq && isMkt(t)); break; }
+  }
+  const out = [], seen = new Map();
+  for(let r = hr + 1; r < aoa.length; r++){
+    const row = aoa[r] || [];
+    const name = qxNormPart(row[cp]);
+    if(!name || name.length < 2 || isPart(name) && r === hr) continue;
+    const qty = qxNum(row[cq]);
+    const mk = cm >= 0 ? String(row[cm]||'') : '';
+    const m = /هر\s*دو|both/i.test(mk) ? 'both' : /خارج|foreign|china|چین/i.test(mk) ? 'f' : /داخل|ایران|local|domestic/i.test(mk) ? 'm' : '';
+    const key = name.toUpperCase().replace(/\s/g,'');
+    if(seen.has(key)){ const o = seen.get(key); o.qty = String((Number(o.qty)||0) + (Number(qty)||0) || o.qty); o.dup = true; continue; }
+    const o = {name, qty, needMarket: m === 'm' || m === 'both', needForeign: m === 'f' || m === 'both', fromCol: !!m};
+    seen.set(key, o); out.push(o);
+  }
+  return {rows: out, header: hr >= 0};
+}
+async function qxRead(file){
+  if(!file) return;
+  try{
+    await qxLoadLib();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type: 'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header: 1, raw: false, defval: ''});
+    const res = qxParse(aoa);
+    if(!res.rows.length){ toast('⚠ ردیفی با پارت‌نامبر در این فایل پیدا نشد — از «⬇ قالب» استفاده کنید'); return; }
+    const dm = document.getElementById('qf_hasDomestic').checked, fr = document.getElementById('qf_hasForeign').checked;
+    res.rows.forEach(r => { if(!r.fromCol){ r.needMarket = dm; r.needForeign = fr; } });
+    qxRows = res.rows; qxPreview(file.name, res.header);
+  }catch(e){ toast('❌ فایل خونده نشد: ' + e.message); }
+}
+function qxPreview(fname, header){
+  document.querySelectorAll('.qx-ov').forEach(x => x.remove());
+  const ov = document.createElement('div'); ov.className = 'qx-ov';
+  ov.innerHTML = `<div class="qx-box" role="dialog" aria-label="پیش‌نمایشِ لیستِ قطعات">
+    <div class="qx-h"><b>📥 لیستِ قطعات از «${fname.replace(/</g,'&lt;')}»</b>
+      <div class="s">برایِ هر ردیف مشخص کنید <b>🇮🇷 داخلی</b> (تدارکات، کدِ ‎-I) یا <b>🌏 خارجی</b> (بازرگانی، کدِ ‎-C) یا هر دو. فایل جایی ذخیره نمی‌شه؛ فقط این ردیف‌ها به استعلامِ همین تماس اضافه می‌شن.${header ? '' : ' (سطرِ عنوان پیدا نشد: ستونِ اول = پارت‌نامبر، دوم = تعداد)'}</div></div>
+    <div class="qx-tools"><span style="font-size:11.5px;color:var(--muted)">همه:</span>
+      <button class="qx-btn" data-all="m">🇮🇷 داخلی</button><button class="qx-btn" data-all="f">🌏 خارجی</button><button class="qx-btn" data-all="b">هر دو</button><button class="qx-btn ghost" data-all="n">پاک</button></div>
+    <div class="qx-body"><table><thead><tr><th>#</th><th>پارت‌نامبر</th><th>تعداد</th><th>🇮🇷 داخلی</th><th>🌏 خارجی</th><th></th></tr></thead><tbody id="qxBody"></tbody></table></div>
+    <div class="qx-f"><button class="btn btn-ghost" data-x>انصراف</button><button class="btn btn-primary" data-add>➕ افزودن به استعلام</button><span class="s" id="qxSum"></span></div></div>`;
+  document.body.appendChild(ov);
+  const body = ov.querySelector('#qxBody');
+  const draw = () => {
+    body.innerHTML = qxRows.map((r,i) => `<tr class="${r.needMarket||r.needForeign?'':'bad'}"><td>${fn(i+1)}</td>
+      <td><input type="text" value="${r.name.replace(/"/g,'&quot;')}" data-i="${i}" data-f="name"></td>
+      <td><input type="text" class="q" value="${r.qty}" data-i="${i}" data-f="qty" inputmode="numeric"></td>
+      <td><input type="checkbox" ${r.needMarket?'checked':''} data-i="${i}" data-f="needMarket"></td>
+      <td><input type="checkbox" ${r.needForeign?'checked':''} data-i="${i}" data-f="needForeign"></td>
+      <td><button class="qx-btn ghost" data-del="${i}" title="حذفِ این ردیف">✕</button></td></tr>`).join('');
+    const m = qxRows.filter(r => r.needMarket).length, f = qxRows.filter(r => r.needForeign).length, none = qxRows.filter(r => !r.needMarket && !r.needForeign).length;
+    ov.querySelector('#qxSum').innerHTML = `${fn(qxRows.length)} ردیف · 🇮🇷 ${fn(m)} · 🌏 ${fn(f)}` + (none ? ` · <b style="color:var(--red)">${fn(none)} بدونِ بازار</b>` : '') + (qxRows.some(r=>r.dup) ? ' · تکراری‌ها ادغام شدن' : '');
+  };
+  draw();
+  body.addEventListener('input', e => { const t = e.target, i = +t.dataset.i; if(isNaN(i)) return; if(t.dataset.f === 'name') qxRows[i].name = t.value; if(t.dataset.f === 'qty') qxRows[i].qty = qxNum(t.value); });
+  body.addEventListener('change', e => { const t = e.target, i = +t.dataset.i; if(t.type === 'checkbox'){ qxRows[i][t.dataset.f] = t.checked; draw(); } });
+  body.addEventListener('click', e => { const d = e.target.closest('[data-del]'); if(d){ qxRows.splice(+d.dataset.del, 1); draw(); } });
+  ov.querySelectorAll('[data-all]').forEach(b => b.onclick = () => { const v = b.dataset.all; qxRows.forEach(r => { r.needMarket = v === 'm' || v === 'b'; r.needForeign = v === 'f' || v === 'b'; }); draw(); });
+  ov.querySelector('[data-x]').onclick = () => ov.remove();
+  ov.querySelector('[data-add]').onclick = () => {
+    const none = qxRows.filter(r => !r.needMarket && !r.needForeign).length;
+    if(none){ toast(`⚠ برایِ ${fn(none)} ردیف «داخلی» یا «خارجی» رو مشخص کنید`); return; }
+    const have = new Set(qfPartRows.filter(p => p.name).map(p => p.name.toUpperCase().replace(/\s/g,'')));
+    qfPartRows = qfPartRows.filter(p => (p.name||'').trim());
+    let added = 0, skipped = 0;
+    qxRows.forEach(r => { const k = r.name.toUpperCase().replace(/\s/g,''); if(!r.name.trim()) return; if(have.has(k)){ skipped++; return; } have.add(k); qfPartRows.push({name: r.name.trim(), qty: r.qty, needMarket: r.needMarket, needForeign: r.needForeign}); added++; });
+    if(qxRows.some(r => r.needMarket)) document.getElementById('qf_hasDomestic').checked = true;
+    if(qxRows.some(r => r.needForeign)) document.getElementById('qf_hasForeign').checked = true;
+    document.getElementById('qf_hasPurchase').checked = true;
+    document.getElementById('qf_purchaseBox').style.display = 'block';
+    qfRenderPartRows(); ov.remove();
+    toast(`✅ ${fn(added)} قلم به استعلام اضافه شد` + (skipped ? ` (${fn(skipped)} قلمِ تکراری قبلاً بود)` : '') + ' — حالا تماس رو ثبت کنید');
+  };
+}
 
 // ══════════════════════════════════════════════════════════════
 // 🏅 کارنامه‌ی کارشناس (۱۴۰۵/۰۷/۰۸) — عملکردِ هر نفر یکجا، با تفکیکِ روشن:

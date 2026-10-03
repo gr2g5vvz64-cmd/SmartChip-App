@@ -210,15 +210,21 @@
     '#madarInbox .mi-ic{font-size:16px;line-height:1.4}' +
     '#madarInbox .mi-t{font-size:12.5px;font-weight:700;line-height:1.6}' +
     '#madarInbox .mi-s{font-size:11px;color:#9aa2bd;line-height:1.6}' +
-    '#madarInbox .mi-empty{padding:22px 14px;text-align:center;color:#9aa2bd;font-size:12px}';
+    '#madarInbox .mi-empty{padding:22px 14px;text-align:center;color:#9aa2bd;font-size:12px}' +
+    '#madarInbox .mi-cats{display:flex;flex-wrap:wrap;gap:5px;padding:9px 12px;border-bottom:1px solid #323952}' +
+    '#madarInbox .mi-cat{font-size:11px;color:#f4f5f8;text-decoration:none;border:1px solid #323952;border-radius:14px;padding:2px 9px;background:#232838}' +
+    '#madarInbox .mi-cat:hover{border-color:#f0a500}' +
+    '#madarInbox .mi-cat b{color:#ff8080;margin-right:3px}';
   var inbox = {el: null, items: [], open: false};
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
   function inboxRender() {
     if (!inbox.el) return;
-    var n = inbox.items.length;
+    var n = inbox.count != null ? inbox.count : inbox.items.length;
+    var cats = (inbox.cats || []).filter(function (c) { return c.count && !c.soon; });
     var fa = function (x) { return String(x).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); };
     inbox.el.innerHTML = '<button type="button" class="mi-btn" aria-expanded="' + inbox.open + '" title="کارتابلِ من — هر چیزی که منتظرِ شماست">📥 کارتابل <span class="mi-n' + (n ? '' : ' zero') + '">' + fa(n) + '</span></button>' +
       (inbox.open ? '<div class="mi-panel" role="dialog" aria-label="کارتابلِ من"><div class="mi-h"><span>📥 کارتابلِ من</span><a href="org.html#inbox">صفحه‌ی کامل ›</a></div>' +
+        (cats.length ? '<div class="mi-cats">' + cats.map(function (c) { return '<a class="mi-cat" href="org.html#inbox:' + c.key + '">' + c.icon + ' ' + esc(c.label) + ' <b>' + fa(c.count) + '</b></a>'; }).join('') + '</div>' : '') +
         (n ? inbox.items.slice(0, 30).map(function (it) {
           return '<a class="mi-it" href="' + esc(it.link || '#') + '"><span class="mi-ic">' + esc(it.icon) + '</span><span><div class="mi-t">' + esc(it.title) + '</div><div class="mi-s">' + esc(it.sub) + '</div></span></a>';
         }).join('') : '<div class="mi-empty">✨ چیزی منتظرِ شما نیست</div>') + '</div>' : '');
@@ -238,7 +244,7 @@
         var rb = document.getElementById('roadmapBtn'); if (rb) inbox.el.style.bottom = '76px';   // دکمه‌ی نقشه‌ی راهِ صفحه‌ی اصلی
         document.addEventListener('click', function () { if (inbox.open && inbox.el) { inbox.open = false; inboxRender(); } });
       }
-      inbox.items = d.items || []; inboxRender();
+      inbox.items = d.items || []; inbox.cats = d.categories || []; inbox.count = d.count; inboxRender();
       if (typeof window.onMadarInbox === 'function') { try { window.onMadarInbox(inbox.items); } catch (e) {} }
     }).catch(function () {});
   }
