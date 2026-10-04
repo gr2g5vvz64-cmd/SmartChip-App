@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141821'/%3E%3Cpath d='M16 18h14a6 6 0 0 1 6 6v26a5 5 0 0 0-5-5H16zM48 18H38a6 6 0 0 0-6 6v26a5 5 0 0 1 5-5h11z' fill='%23F0A500'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0f1117">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+@import url('./vendor-fonts.css');
 :root{--bg:#0f1117;--surface:#1a1e2a;--card:#232838;--border:#323952;--accent:#f0a500;--hi:#ffcf5a;--text:#f4f5f8;--muted:#9aa2bd;--faint:#6b7390;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--teal:#2dd4bf}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;scroll-padding-top:16px}
@@ -109,7 +109,7 @@ pre{background:var(--card);border:1px solid var(--border);border-radius:9px;padd
 <tr><td>cron-job.org</td><td>صدا زدنِ زمان‌بندی‌شده‌ی سرور</td><td>با تغییرِ کلیدِ کرون، همه‌ی جاب‌ها عوض بشن</td></tr>
 <tr><td>تلگرام (BotFather)</td><td>توکنِ باتِ تلگرام</td><td>توکن فقط در Render</td></tr>
 <tr><td>بله (سازنده‌ی بات)</td><td>توکنِ باتِ بله — کانالِ اصلیِ کدِ ورود</td><td>توکن فقط در Render</td></tr>
-<tr><td>Google</td><td>Apps Scriptِ تقویم، گوگل کلندر؛ (قدیمی) گوگل‌شیت و Apps Scriptِ CRMِ اولیه</td><td>هر کاربر اسکریپتِ تقویمِ خودش رو داره</td></tr>
+<tr><td>Google</td><td>فقط Apps Scriptِ تقویم و گوگل کلندر (گوگل‌شیت و Apps Scriptِ CRM کاملاً حذف شد)</td><td>هر کاربر اسکریپتِ تقویمِ خودش رو داره</td></tr>
 <tr><td>OpenAI</td><td>کلید برایِ قابلیت‌هایِ هوشمندِ بات</td><td>کلید فقط در Render؛ سقفِ هزینه تنظیم بشه</td></tr>
 <tr><td>Claude (Anthropic)</td><td>توسعه‌ی مدار — پروژه‌ی «نرم افزار هوشمند»</td><td>فایل‌ها و تاریخچه‌ی کار همین‌جاست</td></tr>
 <tr><td>واتس‌اپ</td><td>دعوتِ کارمند/مشتری به بات، Broadcast List</td><td>API نداره؛ همه‌چیز با لینکِ آماده و دستی</td></tr>
@@ -207,7 +207,7 @@ pre{background:var(--card);border:1px solid var(--border);border-radius:9px;padd
 <ul>
 <li><b>Apps Scriptِ تقویم</b>: هر کاربر از «⏰ یادآوری‌ها ← 📅 تقویم» کدِ اختصاصیِ خودش رو می‌گیره و در script.google.com اجرا می‌کنه (هر ۵ دقیقه همگام می‌شه). سه تقویم: 🔵 یادآوری‌ها، 🟠 کارهای روز، 🔴 مدار — تعطیلات.</li>
 <li>بعد از تغییرِ اسکریپت در مدار، کاربرها کدِ جدید رو جایگزین و <code>setup</code> رو یک بار اجرا کنن.</li>
-<li><b>گوگل‌شیت (۱۴۰۵/۰۷/۱۱):</b> از همه‌ی صفحه‌ها کنار گذاشته شد — هیچ داده‌ای دیگه از شیت خونده یا به شیت نوشته نمی‌شه (fallbackهایِ قدیمی که در قطعیِ سرور داده‌ی کهنه از شیت می‌آوردن هم حذف شدن). اعلانِ ارجاع در CRM حالا با بله/تلگرام از سرور (<code>/api/org/notify/referral/</code>)، و یادداشت/سطحِ مشتری در ERP رویِ سرور (<code>/api/org/customer-notes/</code>). <b>تنها استثنا: پیامکِ صدورِ فاکتور</b> در CRM که هنوز از Apps Script می‌ره — برایِ انتقال به سرور، مشخصاتِ سامانه‌ی پیامک (مثلاً کاوه‌نگار/sms.ir) و کلیدِ API لازمه.</li>
+<li><b>گوگل‌شیت (۱۴۰۵/۰۷/۱۱):</b> از همه‌ی صفحه‌ها کنار گذاشته شد — هیچ داده‌ای دیگه از شیت خونده یا به شیت نوشته نمی‌شه (fallbackهایِ قدیمی که در قطعیِ سرور داده‌ی کهنه از شیت می‌آوردن هم حذف شدن). اعلانِ ارجاع در CRM حالا با بله/تلگرام از سرور (<code>/api/org/notify/referral/</code>)، و یادداشت/سطحِ مشتری در ERP رویِ سرور (<code>/api/org/customer-notes/</code>). <b>از ۱۴۰۵/۰۷/۱۲ استثنایی هم نمونده:</b> کدِ اتصال به Apps Script و آدرسِ Web App از <code>crm.html</code>، <code>erp.html</code>، <code>index.html</code> و <code>staff-admin.html</code> برداشته شد، و دکمه‌ی «پیامک» در لیستِ «آماده‌ی تسویه»ِ CRM هم حذف شد (واتس‌اپ سر جاشه). <b>پیشنهاد:</b> در حسابِ گوگل، Deployِ قدیمیِ Apps Scriptِ CRM/ERP را هم غیرفعال کنید (Deploy ← Manage deployments ← Archive).</li>
 </ul>
 </section>
 
@@ -428,13 +428,14 @@ findstr /s /n "متن" *.py                        # جستجو در کدها</p
 <li>📱 چیپ‌هایِ جدیدِ تماس در نسخه‌ی موبایل.</li>
 <li>🗣️ یکپارچه‌سازیِ بازخوردها و CEM (نقشه‌ی راه).</li>
 <li>🧾 اتصال به هلو (منتظرِ پاسخِ پشتیبانیِ هلو درباره‌ی وب‌سرویس).</li>
-<li>📱 انتقالِ پیامکِ فاکتور از Apps Script به سرور (نیاز به مشخصاتِ سامانه‌ی پیامک و کلید API).</li>
+<li>📱 پیامکِ فاکتور از CRM برداشته شد؛ اگه دوباره لازم شد، باید مستقیم از سرور بره (نیاز به نامِ سامانه‌ی پیامک و کلید API).</li>
 </ul>
 </section>
 
 <section data-g="روال‌ها" id="changes">
 <h2>🆕 تاریخچه‌ی نسخه‌ها</h2>
 <table><tr><th>تاریخ</th><th>تغییر</th></tr>
+<tr><td>۱۴۰۵/۰۷/۱۲</td><td>🧹 حذفِ کاملِ گوگل‌شیت/Apps Script از CRM/ERP/index/staff-admin (به‌همراهِ دکمه‌ی پیامکِ CRM) · 🔤 فونتِ وزیرمتن و کتابخانه‌هایِ اکسل و html2canvas داخلِ خودِ مدار (<code>vendor-fonts.css</code>، <code>fonts/Vazirmatn-VF.woff2</code>، <code>vendor-xlsx.js</code>، <code>vendor-html2canvas.js</code>) — دیگه هیچ صفحه‌ای به Google Fonts، unpkg، cdnjs یا jsDelivr وابسته نیست</td></tr>
 <tr><td>۱۴۰۵/۰۷/۱۱</td><td>🎯 جذب در مدار موبایل (crm.html?m=tab) · mobile.html ← m.html · حذفِ گوگل‌شیت از CRM/ERP/index/staff-admin/fx-ledger (به‌جز پیامک) · org_app: CustomerNote (migration 0006)، notify/referral، customer-notes</td></tr>
 <tr><td>۱۴۰۵/۰۷/۱۱</td><td>📱 m.html (مدار موبایل)، crm.html?m=compose، org_app/mobile_api.py، نمایشِ ۱۲۸۰ برایِ CRM/ERP رویِ گوشی، پس‌زمینه‌ی index</td></tr>
 <tr><td>۱۴۰۵/۰۷/۱۱</td><td>📥 کارتابلِ سازمانی (org_app/workdesk.py، migration 0005): ارجاعِ شخص‌به‌شخص، نامه‌هایِ اداری، تشویق و تنبیه، فعالیت‌هایِ اخیر</td></tr>

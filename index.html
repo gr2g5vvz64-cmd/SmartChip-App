@@ -61,7 +61,7 @@
 -->
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
+@import url('./vendor-fonts.css');
 /* ═══ مدار — صفحه‌ی اصلی (۱۴۰۵/۰۷/۰۷) ═══ */
 :root {
   --bg:#0f1117; --surface:#1a1e2a; --card:#232838; --border:#323952;
@@ -216,8 +216,6 @@ body > *{position:relative;z-index:1}
 <div class="foot">MADAR · v3.0</div>
 
 <script>
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxGpCDZQcaoTTw-QEAv0E_r_lgYSjVlgdGwb8J2TKcV3PzOo9pSeG3Nm_iwEb9FD52A/exec';
-
 // ── حالت شب/روز ──
 function applyThemeButtonLabel(){
   const isLight=document.documentElement.getAttribute('data-theme')==='light';
@@ -304,25 +302,11 @@ if(isMobileDevice()){
 }
 
 async function sheetCall(action, data={}){
-  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
-  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
-  if(action !== 'sendSMS'){
-    return action === 'getCurrentUserInfo'
-      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
-      : null;
-  }
-
-  try{
-    const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(JSON.stringify(data))+'&t='+Date.now();
-    // ⚠️ (۱۴۰۵/۰۶/۲۷) همون فیکس — این fallback هم قبلاً بدونِ مهلتِ
-    // زمانی بود؛ اگه این‌یکی هم گیر می‌کرد، صفحه دیگه هیچ راهِ برگشتی
-    // نداشت. الان بعدِ ۱۰ ثانیه خودکار قطع می‌شه (و catch نال برمی‌گردونه).
-    const controller = new AbortController();
-    const timeoutId = setTimeout(()=>controller.abort(), 10000);
-    const res=await fetch(url,{method:'GET', signal: controller.signal});
-    clearTimeout(timeoutId);
-    return await res.json();
-  }catch(e){ return null; }
+  // ⚠️ (۱۴۰۵/۰۷/۱۲) گوگل‌شیت و Apps Script به‌طورِ کامل از مدار حذف شد (دستورِ صریحِ مدیریت).
+  //   این تابع هیچ تماسِ شبکه‌ای نمی‌گیره؛ فقط برایِ اینکه فراخوانی‌هایِ قدیمی (که از قبل جواب «هیچ» می‌گرفتن) نشکنن نگه داشته شده.
+  return action === 'getCurrentUserInfo'
+    ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+    : null;
 }
 function roleLabel(role){
   return (typeof ROLE_LABEL!=='undefined' && ROLE_LABEL[role]) || {admin:'مدیر', sales:'فروش', ops:'تدارکات/بازرگانی', finance:'مالی'}[role] || role || '—';

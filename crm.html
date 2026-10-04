@@ -118,7 +118,7 @@
 -->
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+@import url('./vendor-fonts.css');
 :root {
   --bg:#0f1117; --surface:#1d212e; --card:#262b3d; --border:#363c54;
   --accent:#f0a500; --accent2:#e8630a; --text:#f7f8fb; --muted:#a3aac4;
@@ -919,8 +919,6 @@ html.m-compose .qf2-tgl{height:42px}
 <div class="toast" id="toastBox"></div>
 
 <script>
-// ▼▼▼ همان آدرس Web App که در ERP استفاده می‌شود ▼▼▼
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec';
 // ─── توابع تبدیل اعداد (برای تقویم) ───
 
 function en2fa(n){ return String(n).replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]); }
@@ -974,46 +972,11 @@ async function fetchJsonWithRetry(url, timeoutMs){
 }
 
 async function sheetCall(action, data={}){
-  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
-  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
-  if(action !== 'sendSMS'){
-    return action === 'getCurrentUserInfo'
-      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
-      : null;
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(()=>controller.abort(), 15000); // ۱۵ ثانیه سقف — قبلاً هیچ سقفی نداشت
-  try{
-    document.getElementById('syncDot').style.background='var(--yellow)';
-    const payloadStr=JSON.stringify(data);
-    let res;
-    // payload بزرگ (مثلاً کنسل کامل یه سفارش پرآیتم) از حد مجاز طول URL رد میشه و
-    // با GET همیشه شکست می‌خوره — با POST فرم-انکود (نه JSON خام) می‌فرستیمش که هم
-    // مشکل طول نداره هم با CORS اپ‌اسکریپت مشکلی نداره (چون preflight نمی‌خواد)
-    if(encodeURIComponent(payloadStr).length > 6000){
-      const body=new URLSearchParams();
-      body.set('action', action);
-      body.set('payload', payloadStr);
-      res=await fetch(SHEET_URL, {method:'POST', body, signal: controller.signal});
-    } else {
-      const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(payloadStr)+'&t='+Date.now();
-      res=await fetch(url,{method:'GET', signal: controller.signal});
-    }
-    clearTimeout(timeoutId);
-    const json=await res.json();
-    isConnected=true;
-    document.getElementById('syncDot').style.background='var(--green)';
-    return json;
-  }catch(e){
-    clearTimeout(timeoutId);
-    // ⚠️ (۱۴۰۵/۰۷/۰۶) فیکسِ حیاتی: قبلاً اینجا isConnected=false می‌شد. یعنی هر بار که یک فراخوانیِ
-    // گوگل‌شیت (مثلاً fallbackِ شماره‌ی پیگیری یا انبار) شکست می‌خورد — که از ایران زیاد پیش میاد —
-    // از اون لحظه به بعد همه‌ی ذخیره‌هایِ لید بی‌صدا skip می‌شدن و پیامِ «✅ ثبت شد» هم نشون داده
-    // می‌شد. گوگل‌شیت دیگه ربطی به اتصالِ Django نداره، پس این پرچم اینجا دست نمی‌خوره.
-    document.getElementById('syncDot').style.background='var(--red)';
-    return null;
-  }
+  // ⚠️ (۱۴۰۵/۰۷/۱۲) گوگل‌شیت و Apps Script به‌طورِ کامل از مدار حذف شد (دستورِ صریحِ مدیریت).
+  //   این تابع هیچ تماسِ شبکه‌ای نمی‌گیره؛ فقط برایِ اینکه فراخوانی‌هایِ قدیمی (که از قبل جواب «هیچ» می‌گرفتن) نشکنن نگه داشته شده.
+  return action === 'getCurrentUserInfo'
+    ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+    : null;
 }
 function toast(msg){
   const t=document.getElementById('toastBox');
@@ -8992,18 +8955,9 @@ function cancelRecurring(id){
 function crmNotifyWA(customerName, proforma){
   const cm = customerMaster.find(x=>x.name===customerName);
   const phone = cm?(cm.mobile||''):'';
-  if(!phone){ toast('⚠️ شماره موبایل '+customerName+' در شیت نیست (ستون Y)'); return; }
+  if(!phone){ toast('⚠️ شماره موبایل '+customerName+' در پروفایلِ مشتری ثبت نشده'); return; }
   const msg = `شرکت ${customerName} گرامی\nفاکتور شماره ${proforma||'—'} صادر شد.\nجهت تسویه و دریافت کالا هماهنگی نمایید.\nبا تشکر — اسمارت‌چیپ`;
   window.open(`https://wa.me/${phone.replace(/\D/g,'').replace(/^0/,'98')}?text=${encodeURIComponent(msg)}`,'_blank');
-}
-async function crmNotifySMS(customerName, proforma){
-  const cm = customerMaster.find(x=>x.name===customerName);
-  const phone = cm?(cm.mobile||''):'';
-  if(!phone){ toast('⚠️ شماره موبایل '+customerName+' در شیت نیست'); return; }
-  const msg = `شرکت ${customerName} گرامی\nفاکتور شماره ${proforma||'—'} صادر شد.\nجهت تسویه و دریافت کالا هماهنگی نمایید.\nبا تشکر — اسمارت‌چیپ`;
-  toast('⏳ در حال ارسال...');
-  const res = await sheetCall('sendSMS',{phone, message:msg});
-  toast(res&&res.ok?'✅ پیامک ارسال شد':'❌ خطا در ارسال');
 }
 
 function renderReadyToInvoice(){
@@ -9034,9 +8988,6 @@ function renderReadyToInvoice(){
         <span class="notify-pair">
           <button class="notify-btn notify-btn-wa" onclick="crmNotifyWA('${customer.replace(/'/g,"\\'")}','${proforma}')" title="واتساپ — جهت تسویه">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.527 5.845L0 24l6.338-1.506A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.822 9.822 0 01-5.012-1.376l-.36-.214-3.732.887.935-3.63-.234-.374A9.818 9.818 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-          </button>
-          <button class="notify-btn notify-btn-sms" onclick="crmNotifySMS('${customer.replace(/'/g,"\\'")}','${proforma}')" title="پیامک — جهت تسویه">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
           </button>
         </span>
       </div>
@@ -9213,7 +9164,7 @@ let qfPartRows = [];
 //   قالبِ مدار: Part Number | تعداد | بازار (داخلی/خارجی/هر دو) | توضیح
 //   اکسلِ خودِ مشتری هم قبوله: ستون‌هایی با عنوانِ Part / P/N / MPN / پارت / قطعه و Qty / Quantity / تعداد خودکار پیدا می‌شن.
 // ══════════════════════════════════════════════════════════════
-const QX_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const QX_LIB = './vendor-xlsx.js';
 let qxRows = [];
 function qxLoadLib(){
   if(window.XLSX) return Promise.resolve();

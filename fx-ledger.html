@@ -39,15 +39,13 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='#F5E65A'/%3E%3Ctext x='32' y='50' font-family='Arial,Helvetica,sans-serif' font-size='46' font-weight='900' text-anchor='middle' fill='#111'%3E%C2%A5%3C/text%3E%3C/svg%3E">
 <link rel="alternate icon" type="image/png" href="./icons/fxledger-192.png">
 <title>¥ دفتر ارزی اسمارت‌چیپ</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ باگِ واقعیِ کندیِ لود: فونت قبلاً به‌صورتِ
      render-blocking (<link rel="stylesheet"> ساده) لود می‌شد — یعنی
      صفحه تا دانلودِ کاملِ فونت از fonts.googleapis.com (که ممکنه از
      ایران کند/غیرقابل‌دسترس باشه) معلق می‌موند. الان با الگوی استاندارد
      preload+onload، فونت در پس‌زمینه لود می‌شه بدونِ معطل‌کردنِ رندرِ
      اولیه‌ی صفحه. -->
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="./vendor-fonts.css">
 <style>
   :root{
     /* ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ ناهماهنگیِ رنگی — طبقِ گزارشِ کاربر: این پالت
@@ -2024,7 +2022,7 @@ function loadXlsxLib(){
   if(_xlsxLibPromise) return _xlsxLibPromise;
   _xlsxLibPromise = new Promise((resolve, reject)=>{
     const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.src = './vendor-xlsx.js';
     s.onload = resolve;
     s.onerror = reject;
     document.head.appendChild(s);
@@ -3305,7 +3303,7 @@ function openExpenseModalSingle(existing, presetSupplier){
         <table>
           <tr><th>فیلد</th><th>توضیح</th></tr>
           <tr><td>تأمین‌کننده</td><td>نام تأمین‌کننده — ممکن است چند تأمین‌کننده‌ی مختلف داشته باشید، هرکدام مانده‌ی یوانیِ جدای خودشان را دارند</td></tr>
-          <tr><td>پارت‌نامبر</td><td>هر خرید یک قلمِ مشخص است — پارت‌نامبرش را تایپ کنید تا از گوگل‌شیت پیشنهاد بیاید</td></tr>
+          <tr><td>پارت‌نامبر</td><td>هر خرید یک قلمِ مشخص است — پارت‌نامبرش را تایپ کنید تا از وزن‌نامه پیشنهاد بیاید</td></tr>
           <tr><td>خرید کالا / جابجایی جنس / کارمزد حواله</td><td>همه یوانی‌اند — اگر یکی از این‌ها را ندارید، صفر بگذارید</td></tr>
           <tr><td>هزینه‌ی حمل</td><td>ریالی است، و اختیاری — فقط اگر این خرید هزینه‌ی حمل دارد پر کنید</td></tr>
           <tr><td>وضعیت پرداخت حمل</td><td>اگر هزینه‌ی حمل را هنوز پرداخت نکرده‌اید (مثلاً یک ماه بعد پرداخت می‌شود)، تیک نزنید</td></tr>

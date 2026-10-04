@@ -1,0 +1,9 @@
+/* فونت وزیرمتن — داخلِ خودِ مدار (بدونِ نیاز به Google Fonts / jsDelivr)
+   نسخه‌ی متغیر: همه‌ی وزن‌های ۱۰۰ تا ۹۰۰ در یک فایل. Vazirmatn v33.0.3 — SIL OFL 1.1 */
+@font-face{
+  font-family:'Vazirmatn';
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+  src:url('./fonts/Vazirmatn-VF.woff2') format('woff2');
+}

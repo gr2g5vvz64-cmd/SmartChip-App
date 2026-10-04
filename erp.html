@@ -634,7 +634,7 @@
 -->
 <html lang="fa" dir="rtl">
 <head>
-<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<script src="./vendor-xlsx.js" defer></script>
 <meta charset="UTF-8">
 <script>
 /* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
@@ -681,7 +681,7 @@
 <link rel="apple-touch-icon" href="./icons/erp-192.png">
 <title>📊 SmartChip ERP</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+@import url('./vendor-fonts.css');
 :root {
   --bg:#0f1117; --surface:#1d212e; --card:#262b3d; --border:#363c54;
   --accent:#f0a500; --accent2:#e8630a; --text:#f7f8fb; --muted:#a3aac4;
@@ -2529,12 +2529,6 @@ textarea.form-control{resize:vertical;min-height:70px;}
 <script>
 
 
-// ══════════════════════════════════════════════════════════════════
-// GOOGLE SHEETS CONNECTION
-// ══════════════════════════════════════════════════════════════════
-// ▼▼▼ آدرس Web App خودت رو اینجا بذار بعد از Deploy ▼▼▼
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec';
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 let isConnected = false;
 let currentUserEmail = '';
@@ -2687,51 +2681,12 @@ applyThemeButtonLabel();
 let isSyncing = false;
 let pendingWriteCount = 0; // تعداد عملیات نوشتنی در حال انجام — جلوگیری از رفرش خودکار وسط ثبت تغییرات
 
-async function sheetCall(action, data = {}) {
-  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
-  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
-  if(action !== 'sendSMS'){
-    return action === 'getCurrentUserInfo'
-      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
-      : null;
-  }
-
-  if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return null;
-  const isWriteAction = !action.startsWith('get') && action !== 'searchCustomerMaster';
-  if (isWriteAction) pendingWriteCount++;
-  try {
-    isSyncing = true;
-    updateSyncIndicator(true);
-    const payloadStr = JSON.stringify(data);
-    let res;
-    // اگه payload خیلی بزرگ باشه (مثل کنسل کامل یه سفارش با آیتم‌های زیاد)، آدرس GET
-    // از حد مجاز طول URL رد می‌شه و همیشه شکست می‌خوره — نه یه بار، هر بار.
-    // برای همین چنین موردی رو با POST (فرم-انکود، نه JSON خام) می‌فرستیم — این با
-    // CORS اپ‌اسکریپت مشکلی نداره چون preflight نمی‌خواد، برخلاف POST با بدنه‌ی JSON.
-    if (encodeURIComponent(payloadStr).length > 6000) {
-      const body = new URLSearchParams();
-      body.set('action', action);
-      body.set('payload', payloadStr);
-      res = await fetch(SHEET_URL, { method: 'POST', body });
-    } else {
-      const url = SHEET_URL + '?action=' + encodeURIComponent(action) + '&payload=' + encodeURIComponent(payloadStr) + '&t=' + Date.now();
-      res = await fetch(url, { method: 'GET', redirect: 'follow' });
-    }
-    const json = await res.json();
-    isConnected = true;
-    // لود مشتریان در background
-    if(!customerMaster.length) loadCustomerMaster();
-    updateSyncIndicator(false);
-    isSyncing = false;
-    if (isWriteAction) setTimeout(()=>{ pendingWriteCount=Math.max(0,pendingWriteCount-1); }, 1500);
-    return json;
-  } catch(e) {
-    isConnected = false;
-    updateSyncIndicator(false, true);
-    isSyncing = false;
-    if (isWriteAction) pendingWriteCount--;
-    return null;
-  }
+async function sheetCall(action, data={}){
+  // ⚠️ (۱۴۰۵/۰۷/۱۲) گوگل‌شیت و Apps Script به‌طورِ کامل از مدار حذف شد (دستورِ صریحِ مدیریت).
+  //   این تابع هیچ تماسِ شبکه‌ای نمی‌گیره؛ فقط برایِ اینکه فراخوانی‌هایِ قدیمی (که از قبل جواب «هیچ» می‌گرفتن) نشکنن نگه داشته شده.
+  return action === 'getCurrentUserInfo'
+    ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+    : null;
 }
 
 function updateSyncIndicator(syncing, error = false) {
@@ -2744,12 +2699,6 @@ function updateSyncIndicator(syncing, error = false) {
 
 async function loadFromSheet() {
   const statusEl = document.getElementById('connStatus');
-  if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
-    if (statusEl) statusEl.textContent = '⚠️ URL تنظیم نشده — حالت آفلاین';
-    isConnected = false;
-    renderDash();
-    return;
-  }
   if (statusEl) statusEl.textContent = '🔄 در حالِ اتصال به سرورِ مدار...';
 
   // ── بارگذاری فوری از localStorage cache ──
@@ -4722,11 +4671,11 @@ function reqProgressChips(r){
   return `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span title="وضعیت کلی پروژه" style="font-size:11px">${overallDot}</span>${chips.join('')}</div>`;
 }
 function emptyTr(){
-  if(!isConnected) return `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">در حال بارگذاری از Google Sheets...</div></div></td></tr>`;
+  if(!isConnected) return `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">در حال بارگذاری از سرورِ مدار...</div></div></td></tr>`;
   return `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">همه چیز روبراهه!</div></div></td></tr>`;
 }
 function emptyBox(icon, emptyMsg){
-  if(!isConnected) return `<div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">در حال بارگذاری از Google Sheets...</div></div>`;
+  if(!isConnected) return `<div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">در حال بارگذاری از سرورِ مدار...</div></div>`;
   return `<div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-text">${emptyMsg}</div></div>`;
 }
 function renderReqs(){
@@ -7954,7 +7903,7 @@ async function notifyWhatsApp(shipId, msgType){
   const s = await findShipment(shipId);
   if(!s){ toast('سفارش پیدا نشد'); return; }
   const phone = getCustomerMobile(s.customer).replace(/\D/g,'').replace(/^0/,'98');
-  if(!phone){ toast('⚠️ شماره موبایل '+s.customer+' در شیت مشتریان نیست (ستون Y)'); return; }
+  if(!phone){ toast('⚠️ شماره موبایل '+s.customer+' در پروفایلِ مشتری ثبت نشده'); return; }
   const msg = MSG_TEMPLATES[msgType](s);
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   window.open(url,'_blank');
@@ -8039,7 +7988,7 @@ function showOrderConfirmPopup(ship){
     <div style="background:var(--card);border-radius:10px;padding:12px;font-size:11px;
       line-height:1.9;color:var(--text);margin-bottom:14px;white-space:pre-wrap;">${msg}</div>
     ${!phoneOk?`<div style="color:var(--red);font-size:11px;margin-bottom:12px;">
-      ⚠️ شماره موبایل ${ship.customer} در شیت مشتریان نیست (ستون Y)</div>`:''}
+      ⚠️ شماره موبایل ${ship.customer} در پروفایلِ مشتری ثبت نشده</div>`:''}
     <div style="display:flex;gap:8px;">
       <button onclick="orderPopupWA()" ${!phoneOk?'disabled':''} style="
         flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;
@@ -8155,7 +8104,7 @@ function printAddress(id){
   const w = window.open('','_blank','width=400,height=300');
   w.document.write(`<!DOCTYPE html><html dir="rtl"><head>
     <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    <link href="${new URL('vendor-fonts.css',location.href).href}" rel="stylesheet">
     <style>body{font-family:'Vazirmatn',sans-serif;padding:24px;direction:rtl;font-size:13px;line-height:2}
     .lbl{font-weight:700;color:#555} .box{border:2px solid #000;padding:16px;border-radius:8px;margin:12px 0}
     h3{margin:0 0 12px;font-size:15px}</style></head>
@@ -8264,7 +8213,7 @@ function printMihanTour(){
   const w = window.open('','_blank','width=760,height=560');
   w.document.write(`<!DOCTYPE html><html dir="rtl"><head>
     <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    <link href="${new URL('vendor-fonts.css',location.href).href}" rel="stylesheet">
     <style>
       @page{size:A5 landscape;margin:8mm}
       html,body{font-family:'Vazirmatn',sans-serif;direction:rtl;margin:0;padding:0;}
@@ -9713,7 +9662,7 @@ function printAddressSheet(id,forceType){
   var page_hp=buildPage(SD[1]);
 
   var fullHTML='<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">'
-    +'<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800;900&display=swap" rel="stylesheet">'
+    +'<link href="'+new URL('vendor-fonts.css',location.href).href+'" rel="stylesheet">'
     +'<style>'+css+'</style></head><body>'
     +'<div class="tb"><strong>'+lbl+'</strong>'
     +'<div style="display:flex;gap:5px">'+btnsCh+btnsHp+'</div>'
@@ -9819,7 +9768,7 @@ function printEstelamatFull(){
   }).join('');
   const css='@page{size:A4 landscape;margin:8mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Vazirmatn,sans-serif;direction:rtl}.tb{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}@media print{.tb{display:none}}table{width:100%;border-collapse:collapse}th{background:#1a1a2e;color:#f0a500;font-size:10px;padding:5px 7px;border:1px solid #444;text-align:right}';
   w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">'
-    +'<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800&display=swap" rel="stylesheet">'
+    +'<link href="'+new URL('vendor-fonts.css',location.href).href+'" rel="stylesheet">'
     +'<style>'+css+'</style></head><body>'
     +'<div class="tb">'
     +'<div><strong style="font-size:14px">\u0627\u0633\u062a\u0639\u0644\u0627\u0645\u0627\u062a \u062f\u0627\u062e\u0644\u06cc'+(custName?' \u2014 '+custName:'')+'</strong> <span style="font-size:10px;color:#888">'+nowStr+'</span></div>'
@@ -9937,8 +9886,8 @@ async function saveChequeReceived(){
         dateReceived:dateRec, dueDate:dueDt, sayyadNumber:sayyadNum, transferor,
         sayyadRegistered:sayyadRegistered, returned:returnedChecked};
       var rUp=await updateChequeReceivedInDjangoERP(pUp);
-      if(rUp&&rUp.updated) toast('✅ در شیت هم ویرایش شد');
-      else if(rUp&&rUp.error) toast('❌ خطای شیت: '+rUp.error);
+      if(rUp&&rUp.updated) toast('✅ در سرور هم ذخیره شد');
+      else if(rUp&&rUp.error) toast('❌ خطای سرور: '+rUp.error);
     }catch(errUp){
       toast('❌ خطا در ذخیره ویرایش: '+errUp.message);
       console.error('cheque update error:', errUp);
@@ -11317,9 +11266,9 @@ async function cancelRequest(id){
       // آپدیت status به canceled
       var res1 = await updateRequestInDjango(r.id, {id:r.id, field:'status', value:'canceled', cancelReason:r.cancelReason});
       if(res1 && res1.success){
-        toast('✅ در شیت ذخیره شد — درخواست کنسل');
+        toast('✅ در سرور ذخیره شد — درخواست کنسل');
       } else {
-        toast('⚠️ در حافظه کنسل شد ولی ذخیره در شیت ناموفق بود: '+(res1&&res1.error?res1.error:'خطای نامشخص'));
+        toast('⚠️ در حافظه کنسل شد ولی ذخیره در سرور ناموفق بود: '+(res1&&res1.error?res1.error:'خطای نامشخص'));
       }
       // آپدیت parts (marketItems, foreignItems, items) به عنوان partsJson —
       // این مهم‌ترین بخشه چون وضعیت واقعی کنسلی آیتم‌ها رو ذخیره می‌کنه؛
@@ -11349,15 +11298,15 @@ async function cancelRequest(id){
       }
       // (حلقه‌ی ذخیره‌ی کنسلی صورتحساب‌های مستقل حذف شد — دیگر چنین صفحه‌ای وجود ندارد)
       if(res1 && !res1.error){
-        toast('✅ کنسلی در شیت ثبت شد');
+        toast('✅ کنسلی در سرور ثبت شد');
       } else {
-        toast('⚠ مشکل در ذخیره شیت: '+(res1&&res1.error||'نامشخص'));
+        toast('⚠ مشکل در ذخیره روی سرور: '+(res1&&res1.error||'نامشخص'));
       }
     }catch(err){
-      toast('⚠ ذخیره در شیت ناموفق: '+err.message);
+      toast('⚠ ذخیره روی سرور ناموفق: '+err.message);
     }
   } else {
-    toast('⚠ اتصال به شیت نیست — فقط در حافظه کنسل شد');
+    toast('⚠ اتصال به سرور نیست — فقط در حافظه کنسل شد');
   }
 }
 
@@ -11806,7 +11755,7 @@ async function sendSupplierBotInviteWhatsApp(supplierName){
   // اونی که واقعاً موبایل داره رو ترجیح بده — نه صرفاً اولین match رو
   var matches=(customerMaster||[]).filter(function(c){return c.name===supplierName;});
   var cm=matches.find(function(c){return c.mobile;}) || matches[0] || {};
-  if(!cm.mobile){ toast('⚠️ موبایل تأمین‌کننده در شیت مشتریان نیست'); return; }
+  if(!cm.mobile){ toast('⚠️ موبایل تأمین‌کننده در پروفایلِ مشتری ثبت نشده'); return; }
   var existing = (botInvites||[]).find(function(b){return b.customer===supplierName;});
   var inviteId = existing && existing.id;
   if(!inviteId){
@@ -11850,7 +11799,7 @@ function resendSupplierBotInvite(supplierName){
 }
 async function sendBotInviteWhatsApp(customerName){
   var cm=(customerMaster||[]).find(function(c){return c.name===customerName;})||{};
-  if(!cm.mobile){ toast('⚠️ موبایل مشتری در شیت نیست (ستون Y)'); return; }
+  if(!cm.mobile){ toast('⚠️ موبایل مشتری در پروفایلِ مشتری ثبت نشده'); return; }
   // شناسه‌ی دعوت‌نامه رو بگیر: اگه قبلاً دعوتی برای این مشتری ثبت شده از همون id استفاده کن
   // (وگرنه با هر بار ارسال، ردیف تکراری ساخته می‌شد و اتصال هم match نمی‌شد)
   var existing = (botInvites||[]).find(function(b){return b.customer===customerName;});

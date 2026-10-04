@@ -42,7 +42,7 @@
       (نه فقط نمونه‌ی کوچک) قبل از سرچ پارت‌نامبر لود می‌شود
 -->
 
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="./vendor-fonts.css" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -344,7 +344,7 @@ td.tp{color:var(--green);font-weight:700;direction:ltr;font-size:12px}
 
     <div class="right-col">
       <div class="card flex1">
-        <div class="sec">اطلاعات وزن از شیت</div>
+        <div class="sec">اطلاعات وزن از وزن‌نامه</div>
         <div id="weightSection"><div class="empty">ابتدا کالا را انتخاب کنید</div></div>
         <div class="carton-box" id="cartonBox">
           <div class="carton-t">➕ وزن کارتن اضافی (kg)</div>
@@ -1118,6 +1118,6 @@ setInterval(() => {
   if(el) el.textContent = 'همگام‌سازی بعدی: ' + nextSyncMin + ' دقیقه دیگر';
 }, 60 * 1000);
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="./vendor-html2canvas.js"></script>
 </body>
 </html>

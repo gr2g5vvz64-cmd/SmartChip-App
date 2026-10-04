@@ -29,7 +29,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ccircle cx='32' cy='33' r='18' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M32 22v12l8 5' stroke='%23fff' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#0f1117">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+@import url('./vendor-fonts.css');
 /* ═══ 🕘 حضور و غیاب (۱۴۰۵/۰۷/۱۰) ═══ */
 :root{--bg:#0f1117;--surface:#1a1e2a;--card:#232838;--border:#323952;--accent:#f0a500;--text:#f4f5f8;--muted:#9aa2bd;--faint:#6b7390;--green:#22c55e;--red:#ef4444;--blue:#60a5fa}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -359,7 +359,7 @@ async function aAll(month){
 }
 async function allExcel(){
   if(!S.rep) return;
-  try{ await new Promise((ok,no)=>{ if(window.XLSX) return ok(); const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=ok; s.onerror=()=>no(new Error('کتابخانه‌ی Excel بارگذاری نشد')); document.head.appendChild(s); }); }catch(e){ toast('❌ '+e.message); return; }
+  try{ await new Promise((ok,no)=>{ if(window.XLSX) return ok(); const s=document.createElement('script'); s.src='./vendor-xlsx.js'; s.onload=ok; s.onerror=()=>no(new Error('کتابخانه‌ی Excel بارگذاری نشد')); document.head.appendChild(s); }); }catch(e){ toast('❌ '+e.message); return; }
   const wb = XLSX.utils.book_new();
   const sum = [['کارمند','واحد','روزهایِ موظفی','حضور','غیبت','مرخصی (روز)','مأموریت','تردد ناقص','ساعاتِ موظفی (دقیقه)','کارکرد (دقیقه)','اضافه‌کار (دقیقه)','کسرکار (دقیقه)','تأخیر (دقیقه)','تعجیل (دقیقه)','مرخصیِ ساعتی (دقیقه)']]
     .concat(S.rep.rows.map(r=>{const t=r.total; return [r.staff.name,r.staff.unit,t.required_days,t.present_days,t.absent_days,t.leave_days,t.mission_days,t.incomplete_days,t.required_min,t.worked_min,t.overtime_min,t.deficit_min,t.late_min,t.early_min,t.hourly_leave_min];}));
