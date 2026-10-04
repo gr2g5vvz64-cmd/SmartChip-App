@@ -134,6 +134,44 @@ textarea.inp{min-height:92px;line-height:1.9;resize:vertical}
   .pos{grid-template-columns:1fr}
   .acts{justify-content:flex-start}
 }
+
+/* ═══ 📥 کارتابلِ سازمانی (۱۴۰۵/۰۷/۱۱) ═══ */
+.dk-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.dk-top h1{margin:0}.dk-clock{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.dk-grid{display:grid;grid-template-columns:1fr 250px;gap:14px;align-items:start}
+.dk-cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.dk-card{flex:1 0 118px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s}
+.dk-card:hover{border-color:var(--accent)}
+.dk-card.on{background:linear-gradient(160deg,#2563eb,#1d4ed8);border-color:#3b82f6}
+.dk-card .i{font-size:22px}.dk-card .l{font-size:12px;font-weight:700;margin:4px 0}.dk-card .n{font-size:20px;font-weight:900}
+.dk-card .n.z{color:var(--faint)}
+.dk-now{background:linear-gradient(90deg,rgba(239,68,68,.12),rgba(240,165,0,.06));border:1px solid rgba(239,68,68,.35);border-radius:14px;padding:10px 12px;margin-bottom:12px}
+.dk-now h3{font-size:13.5px;margin:0 0 6px}
+.dk-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.dk-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 12px;min-height:120px}
+.dk-box-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.dk-box-h b{font-size:14px}.dk-box-h a{margin-right:auto;font-size:11.5px;color:var(--accent);cursor:pointer;text-decoration:none}
+.dk-row{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid #262c3d;cursor:pointer;text-decoration:none;color:inherit}
+.dk-row:last-child{border-bottom:0}.dk-row:hover{background:rgba(255,255,255,.03)}
+.dk-av{width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:0 0 32px}
+.dk-row .t{font-size:12.5px;font-weight:700;line-height:1.6}.dk-row .s{font-size:11px;color:var(--muted);line-height:1.6}
+.dk-row .r{margin-right:auto;display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.pill{font-size:10.5px;font-weight:800;border-radius:10px;padding:1px 9px;white-space:nowrap}
+.p-urgent{background:rgba(239,68,68,.16);color:#f87171}.p-high{background:rgba(240,165,0,.16);color:#fbbf24}
+.p-normal{background:rgba(96,165,250,.14);color:#93c5fd}.p-low{background:rgba(34,197,94,.14);color:#4ade80}
+.p-ok{background:rgba(34,197,94,.14);color:#4ade80}.p-wait{background:rgba(96,165,250,.14);color:#93c5fd}.p-no{background:rgba(239,68,68,.14);color:#f87171}
+.late{color:#f87171!important}
+.dk-side .card{padding:10px 12px}
+.dk-sum{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 2px;border-bottom:1px solid #262c3d;cursor:pointer}
+.dk-sum:last-child{border:0}.dk-sum b{color:var(--accent)}
+.dk-sub{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.dk-sub button{border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:12.5px;border-radius:9px;padding:6px 12px;cursor:pointer}
+.dk-sub button.on{border-color:var(--accent);color:var(--accent);font-weight:800}
+.dk-sub button .c{background:var(--red);color:#fff;border-radius:8px;font-size:10px;padding:0 6px;margin-right:4px}
+.dk-hist{font-size:11.5px;color:var(--muted);border-right:2px solid var(--border);padding-right:10px;margin:6px 0}
+@media(max-width:980px){.dk-grid{grid-template-columns:1fr}.dk-side{order:-1}}
+.main,.wrap>*,.dk-grid>*{min-width:0}   /* ستونِ گرید از محتوا پهن‌تر نشه — کارت‌ها داخلِ ردیفِ خودشون اسکرول می‌خورن */
+@media(max-width:600px){.dk-boxes{grid-template-columns:1fr}.dk-card{flex:0 0 104px}}
 </style>
 </head>
 <body>
@@ -149,9 +187,11 @@ textarea.inp{min-height:92px;line-height:1.9;resize:vertical}
     <div class="grp">اتوماسیونِ اداری</div>
     <button class="nav" data-v="inbox"><span class="ic">📥</span>کارتابلِ من<span class="bd" id="inboxBd" hidden>0</span></button>
     <button class="nav" data-v="closure" id="navClosure" hidden><span class="ic">📢</span>تعطیلیِ اعلامی</button>
-    <button class="nav" data-v="leave"><span class="ic">🏖️</span>مرخصی و مأموریت<span class="soon">به‌زودی</span></button>
+    <button class="nav" data-v="leave"><span class="ic">🏖️</span>مرخصی و مأموریت<span class="bd" id="leaveBd" hidden>0</span></button>
+    <a class="nav" href="attendance.html" style="text-decoration:none"><span class="ic">🕘</span>حضور و غیاب</a>
     <button class="nav" data-v="requests"><span class="ic">🧾</span>درخواست‌هایِ اداری<span class="soon">به‌زودی</span></button>
-    <button class="nav" data-v="letters"><span class="ic">✉️</span>نامه‌ها و دبیرخانه<span class="soon">به‌زودی</span></button>
+    <button class="nav" data-v="letters"><span class="ic">✉️</span>نامه‌ها و دبیرخانه</button>
+    <button class="nav" data-v="hrcom"><span class="ic">⭐</span>تشویق و تنبیه</button>
   </aside>
   <main class="main" id="main"><div class="loading">در حالِ بارگذاری…</div></main>
 </div>
@@ -176,10 +216,10 @@ document.querySelectorAll('.nav').forEach(b => b.onclick = () => go(b.dataset.v)
 function go(v){
   S.view = v; if((location.hash||'').slice(1).split(':')[0] !== v) history.replaceState(null, '', '#' + v);
   document.querySelectorAll('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-  ({dash: viewDash, units: viewUnits, mine: viewMine, staff: viewStaff, inbox: viewInbox, closure: viewClosure,
-    leave: () => viewSoon('🏖️ مرخصی و مأموریت', 'درخواستِ مرخصی یا مأموریت از موبایل ← خودکار به کارتابلِ مدیرِ مستقیم (سرپرستِ واحد، یا مدیریت) ← تأیید با یک دکمه (حتی از بله) ← مانده‌ی مرخصی و تقویمِ تعطیلات خودکار.'),
+  ({dash: viewDash, units: viewUnits, mine: viewMine, staff: viewStaff, inbox: () => viewInbox(false), closure: viewClosure,
+    leave: viewLeave,
     requests: () => viewSoon('🧾 درخواست‌هایِ اداری', 'خریدِ اداری، تنخواه، تجهیزات، پیش‌پرداختِ حقوق — همه با یک مسیرِ تأییدِ یکسان و قابلِ پیگیری، در کارتابلِ مدیرِ مستقیم.'),
-    letters: () => viewSoon('✉️ نامه‌ها و دبیرخانه', 'شماره‌گذاریِ خودکارِ نامه‌هایِ وارده و صادره، ارجاع به همکار (در کارتابلِ اون)، بایگانیِ قابلِ جستجو.')}[v] || viewDash)();
+    letters: () => { D.sec='letters'; D.sub='in'; viewInbox(true); }, hrcom: () => { D.sec='hr'; D.sub='com'; viewInbox(true); }}[v] || viewDash)();
 }
 
 // ─────────── 📊 نمایِ کلی ───────────
@@ -312,35 +352,227 @@ async function loadInbox(){
   catch(e){ S.inbox = []; S.inboxCats = []; S.inboxCount = 0; }
   const b = $('inboxBd'); b.hidden = !S.inboxCount; b.textContent = fa(S.inboxCount);
 }
-async function viewInbox(){
-  // ⚠️ (۱۴۰۵/۰۷/۰۹) کارتابلِ کامل: دسته‌ها کنارِ صفحه با شمارنده‌ی کارهایِ بازِ همین شخص؛
-  //   کلیک رویِ دسته ← فهرستش ؛ کلیک رویِ هر مورد ← همون صفحه‌ای که کار اونجا انجام می‌شه.
-  const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
-  await loadInbox();
-  const cats = S.inboxCats || [];
-  const want = (location.hash.split(':')[1] || sessionStorage.getItem('madar_inbox_cat') || 'all');
-  const sel = (want === 'all' || cats.some(c => c.key === want)) ? want : 'all';
-  const total = S.inboxCount || 0;
-  const catBtn = c => `<button class="ib-cat ${sel===c.key?'on':''} ${c.soon||!c.count?'dim':''}" data-cat="${c.key}"><span>${c.icon}</span>${esc(c.label)}${c.soon ? '<span class="sn">به‌زودی</span>' : `<span class="n ${c.count?'':'z'}">${fa(c.count)}</span>`}</button>`;
-  const cur = sel === 'all' ? null : cats.find(c => c.key === sel);
-  const items = cur ? cur.items : (S.inbox || []);
-  const itemHTML = it => `<a class="inbox-it pr${it.priority||1}" href="${esc(it.link || '#')}"><span class="ic">${esc(it.icon)}</span><span><div class="t">${esc(it.title)}</div><div class="s">${esc(it.sub)}</div></span><span class="go">برو ›</span></a>`;
-  m.innerHTML = `<h1>📥 کارتابلِ من</h1><div class="sub">هر چیزی که در کلِ مدار به شما مربوطه — شمارنده‌ی هر دسته = کارهایِ بازِ شما. رویِ هر مورد بزنید تا به همون صفحه برید.</div>
-    <div class="ib">
-      <div class="ib-cats" role="tablist" aria-label="دسته‌هایِ کارتابل">
-        <button class="ib-cat ${sel==='all'?'on':''}" data-cat="all"><span>📥</span>همه‌ی کارهایِ باز<span class="n ${total?'':'z'}">${fa(total)}</span></button>
-        ${cats.filter(c => !c.soon).map(catBtn).join('')}
-        <div style="height:1px;background:var(--border);margin:6px 4px"></div>
-        ${cats.filter(c => c.soon).map(catBtn).join('')}
-      </div>
-      <div>
-        ${cur ? `<div class="ib-head"><span style="font-size:20px">${cur.icon}</span><b>${esc(cur.label)}</b><a href="${esc(cur.link)}">باز کردنِ صفحه‌ی این بخش ›</a></div>` : ''}
-        ${cur && cur.soon ? `<div class="soon-card"><b>به‌زودی</b><br>با ساختِ این بخش در «سازمان»، درخواست‌ها و نامه‌هایِ مربوط به شما همین‌جا میان.</div>`
-          : items.length ? items.map(itemHTML).join('') + (cur && cur.count > cur.items.length ? `<div class="sub" style="margin-top:8px">${fa(cur.items.length)} مورد از ${fa(cur.count)} نمایش داده شد — بقیه در <a href="${esc(cur.link)}">صفحه‌ی این بخش</a>.</div>` : '')
-          : '<div class="soon-card">✨ <b>چیزی اینجا منتظرِ شما نیست</b></div>'}
-      </div>
+// ─────────── 📥 کارتابلِ سازمانی (۱۴۰۵/۰۷/۱۱) ───────────
+// سطحِ ۱: کارت‌هایِ موضوع (عدد = کارهایِ باز و نیازمندِ اقدام) · 🔥 نیازمندِ اقدامِ من · کادرها
+// سطحِ ۲: داخلِ هر موضوع، زیربخش‌ها · فیلترِ سریع (واحد، وضعیت، اولویت، جستجو)
+const D = {data:null, sec:null, sub:null, f:{unit:'', status:'', pri:'', q:''}};
+const PRI = {urgent:'فوری', high:'بالا', normal:'معمولی', low:'کم'};
+const PRI_N = {4:'urgent', 3:'high', 2:'normal', 1:'low'};
+const pill = (cls, txt) => `<span class="pill p-${cls}">${esc(txt)}</span>`;
+const av = (w, icon) => `<div class="dk-av">${w ? esc(w.initial || '?') : esc(icon || '•')}</div>`;
+const fdate = d => d ? fa(String(d).replace(/-/g,'/')) : '';
+const stCls = st => ({approved:'ok', done:'ok', pending:'wait', open:'wait', in_progress:'wait', rejected:'no', canceled:'no'}[st] || 'normal');
+// ── نرمال‌سازیِ همه‌ی ردیف‌ها (برایِ نمایش و فیلتر)
+function rowGeneric(it){ const p = it.pri || PRI_N[it.priority] || 'normal'; return {icon:it.icon, title:it.title, sub:it.sub, pri:p, late:it.late, unit:'', status:'open', link:it.link, click: it.ref_id ? `refOpen(${it.ref_id})` : it.letter_id ? `letterOpen(${it.letter_id})` : null, q:it.title+' '+it.sub}; }
+function rowRef(r, mode){
+  const w = mode === 'by_me' ? r.holder : r.from;
+  const sub = mode === 'by_me' ? `پیشِ ${w ? w.name : '—'}${w && w.unit && !w.is_unit ? ' ('+w.unit+')' : ''}${r.held_for ? ' · '+fa(r.held_for) : ''}` : `از: ${r.from.name}${r.from.unit ? ' ('+r.from.unit+')' : ''}`;
+  return {av:w, title:r.title, sub:sub + (r.due_date ? ' · مهلت '+fdate(r.due_date) : '') + (r.customer ? ' · '+r.customer : ''), pri:r.priority, late:r.late,
+          unit:(w && w.unit) || '', status:r.status, statusLabel:r.status==='done'?'انجام شد':null, click:`refOpen(${r.id})`, q:r.title+' '+(r.customer||'')+' '+(w?w.name:'')};
+}
+function rowLeave(l, mine){ return {icon:l.icon, av:mine?null:l.staff&&{initial:l.staff.name[0]}, title:(mine?'':l.staff.name+' — ')+l.kind_label, sub:lvWhen(l)+(l.reason?' · '+l.reason:''), pri:'normal', statusOnly:true, status:l.status, statusLabel:l.status_label, unit:'', link:'org.html#leave', q:l.kind_label+' '+l.staff.name}; }
+function rowLetter(L, sent){ const w = sent ? null : L.sender; return {av:w || {initial:'✉'}, title:L.subject, sub:`${fa(L.number)} · ${sent ? 'به: '+L.recipients.map(x=>x.name).join('، ') : 'از: '+(w?w.name:L.external_party)}${!sent && L.role==='cc' ? ' (رونوشت)' : ''} · ${fdate(L.date)}`,
+  pri:L.priority, unread:!sent && !L.read, unit:(w&&w.unit)||'', status:'open', click:`letterOpen(${L.id})`, q:L.subject+' '+L.number}; }
+function rowCom(c){ return {icon:c.positive?'⭐':'⚠️', title:c.title, sub:`${c.kind_label} · ${fdate(c.date)} · ثبت: ${c.created_by}`, pri:c.positive?'low':'urgent', tagCls:c.positive?'ok':'no', tag:c.kind_label, unread:!c.acknowledged, status:'open', click:`comOpen(${c.id})`, q:c.title}; }
+function rowHTML(r){
+  const right = r.statusOnly ? pill(stCls(r.status), r.statusLabel) : r.tag ? pill(r.tagCls, r.tag) : r.statusLabel ? pill('ok', r.statusLabel) : pill(r.pri, PRI[r.pri]||'معمولی');
+  const open = r.click ? `onclick="${r.click}"` : `href="${esc(r.link||'#')}"`;
+  const sub = fa(String(r.sub||'').replace(/(\d{4})-(\d{2})-(\d{2})/g,'$1/$2/$3'));
+  return `<${r.click?'div':'a'} class="dk-row" ${open}>${r.av ? av(r.av) : av(null, r.icon)}<div><div class="t">${r.unread?'● ':''}${esc(r.title)}</div><div class="s ${r.late?'late':''}">${r.late?'⚠ ':''}${esc(sub)}</div></div><div class="r">${right}<span style="color:var(--faint)">‹</span></div></${r.click?'div':'a'}>`;
+}
+function applyFilter(rows){
+  const f = D.f, q = f.q.trim();
+  return rows.filter(r => (!f.unit || r.unit === f.unit) && (!f.pri || r.pri === f.pri) && (!f.status || (f.status==='late' ? r.late : f.status==='open' ? !['done','approved','rejected','canceled'].includes(r.status) : ['done','approved'].includes(r.status))) && (!q || (r.q||'').includes(q)));
+}
+// ── زیربخش‌ها
+function subsFor(sec){
+  const x = D.data.sections;
+  if(sec==='desk'){ const it = x.desk.items.map(rowGeneric); return [['all','همه',it],['urgent','فوری',it.filter(r=>r.pri==='urgent'||r.pri==='high')],['late','عقب‌افتاده',it.filter(r=>r.late)]]; }
+  if(sec==='refs'){ const tm=x.refs.to_me.map(r=>rowRef(r,'to_me')), bm=x.refs.by_me.map(r=>rowRef(r,'by_me')), dn=x.refs.done.map(r=>rowRef(r,'by_me'));
+    return [['to_me','ارجاع به من',tm],['by_me','ارجاع‌هایِ من',bm],['done','تکمیل‌شده',dn,true],['late','عقب‌افتاده',[...tm,...bm].filter(r=>r.late)]]; }
+  if(sec==='customers'){ const it = x.customers.items, g = k => it.filter(i=>k.includes(i.sub_kind)).map(rowGeneric);
+    return [['all','همه',it.map(rowGeneric)],['inq','پیش‌فاکتورها و استعلام',g(['inquiries'])],['debt','وصولِ مطالبات',g(['debts'])],['prom','وعده‌هایِ پرداخت',g(['promises'])],['other','بازخورد، نمونه، پیشنهاد',g(['feedback','samples','suggestions'])]]; }
+  if(sec==='leave'){ const m = x.leave.mine.map(l=>rowLeave(l,true));
+    return [['mine','درخواست‌هایِ من',m.filter(r=>r.status==='pending')],['approve','در انتظارِ تأییدِ من',x.leave.approve.map(l=>rowLeave(l,false))],['ok','تأییدشده',m.filter(r=>r.status==='approved'),true],['no','ردشده',m.filter(r=>r.status==='rejected'),true],['hist','تاریخچه',m,true]]; }
+  if(sec==='letters'){ return [['in','دریافتی',x.letters.in.map(L=>rowLetter(L,false))],['sent','ارسالی',x.letters.sent.map(L=>rowLetter(L,true)),true],['archive','بایگانی',x.letters.archive.map(L=>rowLetter(L,false)),true]]; }
+  if(sec==='hr'){ return [['com','تشویق و تنبیه',x.hr.com.map(rowCom)],['attendance','حضور و غیاب',x.hr.attendance.map(rowGeneric)]]; }
+  return [];
+}
+const SEC = {desk:['📥','کارتابلِ من'], refs:['↔️','ارجاعات'], customers:['👤','پرونده‌هایِ مشتری'], leave:['🏖️','مرخصی'], letters:['✉️','نامه‌هایِ اداری'], hr:['⭐','منابعِ انسانی']};
+function cardToSec(key){ const [a,b] = key.split(':'); return [a, b || null]; }
+async function viewInbox(keep){
+  const m = $('main');
+  if(!keep){ const h = (location.hash.split(':').slice(1)); D.sec = SEC[h[0]] ? h[0] : null; D.sub = h[1] || null; }
+  if(!D.data) m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
+  try{ D.data = await api('/api/org/desk/'); }catch(e){ m.innerHTML = `<div class="loading">⚠️ ${esc(e.message)}</div>`; return; }
+  S.inboxCount = D.data.cards.reduce((t,c)=>t+c.count,0); const bd = $('inboxBd'); bd.hidden = !S.inboxCount; bd.textContent = fa(S.inboxCount);
+  renderDesk();
+}
+function deskNav(sec, sub){ D.sec = sec; D.sub = sub; history.replaceState(null,'','#inbox' + (sec ? ':'+sec+(sub?':'+sub:'') : '')); renderDesk(); window.scrollTo(0,0); }
+function renderDesk(){
+  const d = D.data, m = $('main');
+  const now = new Date(), clock = now.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'}), wd = now.toLocaleDateString('fa-IR',{weekday:'long'});
+  const activeKey = D.sec ? (D.sec + (D.sub && ['refs','leave','letters','hr'].includes(D.sec) ? ':'+D.sub : '')) : '';
+  const cards = d.cards.map(c=>`<div class="dk-card ${c.key===activeKey || (!D.sub && c.key===D.sec) ? 'on' : ''}" onclick="deskNav('${cardToSec(c.key)[0]}', ${cardToSec(c.key)[1] ? `'${cardToSec(c.key)[1]}'` : 'null'})"><div class="i">${c.icon}</div><div class="l">${esc(c.label)}</div><div class="n ${c.count?'':'z'}">${fa(c.count)}</div></div>`).join('');
+  const nowBox = d.action_now.length ? `<div class="dk-now"><h3>🔥 نیازمندِ اقدامِ من — ${fa(d.action_now.length)} مورد</h3>${d.action_now.map(it=>rowHTML(rowGeneric(Object.assign({}, it)))).join('')}</div>` : '';
+  const actions = `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" onclick="refNew()">↗️ ارجاعِ جدید</button><button class="btn sm" onclick="letterNew()">✉️ نامه‌ی جدید</button><a class="btn sm" href="#leave" onclick="go('leave');return false">🏖️ درخواستِ مرخصی</a>${d.can_commend?'<button class="btn sm" onclick="comNew()">⭐ تشویق / تنبیه</button>':''}</div>`;
+  let body = '';
+  if(!D.sec){
+    const x = d.sections;
+    const box = (sec, sub, title, icon, rows, empty) => `<div class="dk-box"><div class="dk-box-h"><span style="font-size:18px">${icon}</span><b>${title}</b><a onclick="deskNav('${sec}', ${sub?`'${sub}'`:'null'})">مشاهده‌ی همه ›</a></div>${rows.length ? rows.slice(0,5).map(rowHTML).join('') : `<div class="sub" style="margin:8px 2px">${empty}</div>`}</div>`;
+    body = `<div class="dk-boxes">
+      ${box('desk', null, 'کارتابلِ من', '📥', x.desk.items.map(rowGeneric).sort((a,b)=>(b.late-a.late)), 'کارِ بازی ندارید ✨')}
+      ${box('refs', 'by_me', 'ارجاع‌هایِ من', '↗️', x.refs.by_me.map(r=>rowRef(r,'by_me')), 'ارجاعِ بازی ندارید')}
+      ${box('refs', 'to_me', 'ارجاع به من', '↩️', x.refs.to_me.map(r=>rowRef(r,'to_me')), 'کسی کاری به شما ارجاع نداده')}
+      ${box('leave', 'mine', 'مرخصیِ من', '🏖️', x.leave.mine.map(l=>rowLeave(l,true)), 'درخواستی ثبت نکردید')}
+      ${box('leave', 'approve', 'مرخصی‌هایِ منتظرِ تأیید', '⏳', x.leave.approve.map(l=>rowLeave(l,false)), 'درخواستی منتظرِ شما نیست')}
+      ${box('letters', 'in', 'نامه‌هایِ اداری', '✉️', x.letters.in.map(L=>rowLetter(L,false)), 'نامه‌ای ندارید')}
+      ${box('hr', 'com', 'تشویق و تنبیه', '⭐', x.hr.com.map(rowCom), 'موردی ثبت نشده')}
+      ${box('customers', null, 'پرونده‌هایِ مشتری', '👤', x.customers.items.map(rowGeneric), 'پرونده‌ی بازی ندارید')}
+      <div class="dk-box"><div class="dk-box-h"><span style="font-size:18px">🕒</span><b>فعالیت‌هایِ اخیر</b></div>${d.activity.length ? d.activity.map(a=>`<a class="dk-row" href="${esc(a.link||'#')}"><span>${a.icon}</span><div class="t" style="font-weight:500">${esc(a.text)}</div><div class="r s">${fa(a.ago)} پیش</div></a>`).join('') : '<div class="sub">هنوز فعالیتی ثبت نشده</div>'}</div>
     </div>`;
-  m.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { sessionStorage.setItem('madar_inbox_cat', b.dataset.cat); history.replaceState(null, '', '#inbox:' + b.dataset.cat); viewInbox(); });
+  } else {
+    const subs = subsFor(D.sec);
+    if(!D.sub || !subs.some(x=>x[0]===D.sub)) D.sub = subs[0] && subs[0][0];
+    const cur = subs.find(x=>x[0]===D.sub);
+    const rows = applyFilter(cur ? cur[2] : []);
+    body = `<div class="card"><div class="dk-box-h" style="margin-bottom:10px"><span style="font-size:20px">${SEC[D.sec][0]}</span><b style="font-size:16px">${SEC[D.sec][1]}</b><a onclick="deskNav(null,null)">‹ همه‌ی کارتابل</a></div>
+      <div class="dk-sub">${subs.map(([k,l,list,noCount])=>`<button class="${k===D.sub?'on':''}" onclick="deskNav('${D.sec}','${k}')">${esc(l)}${!noCount && list.length ? `<span class="c">${fa(list.length)}</span>` : ''}</button>`).join('')}</div>
+      ${rows.length ? rows.map(rowHTML).join('') : '<div class="soon-card">✨ <b>موردی نیست</b></div>'}</div>`;
+  }
+  const units = [...new Set(d.units.map(u=>u.name))];
+  const side = `<div class="dk-side"><div class="card"><h3>📋 خلاصه‌ی کارتابل</h3>${d.cards.map(c=>`<div class="dk-sum" onclick="deskNav('${cardToSec(c.key)[0]}', ${cardToSec(c.key)[1]?`'${cardToSec(c.key)[1]}'`:'null'})"><span>${c.icon} ${esc(c.label)}</span><b>${fa(c.count)}</b></div>`).join('')}</div>
+    <div class="card"><h3>🔎 فیلترِ سریع</h3>
+      <select class="inp" id="fUnit"><option value="">همه‌ی واحدها</option>${units.map(u=>`<option ${D.f.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>
+      <select class="inp" id="fStatus"><option value="">همه‌ی وضعیت‌ها</option><option value="open" ${D.f.status==='open'?'selected':''}>باز</option><option value="late" ${D.f.status==='late'?'selected':''}>عقب‌افتاده</option><option value="done" ${D.f.status==='done'?'selected':''}>انجام / تأییدشده</option></select>
+      <select class="inp" id="fPri"><option value="">همه‌ی اولویت‌ها</option>${Object.entries(PRI).map(([k,v])=>`<option value="${k}" ${D.f.pri===k?'selected':''}>${v}</option>`).join('')}</select>
+      <input class="inp" id="fQ" placeholder="جستجو…" value="${esc(D.f.q)}">
+      <button class="btn pri" style="width:100%;margin-top:8px" onclick="D.f={unit:$('fUnit').value,status:$('fStatus').value,pri:$('fPri').value,q:$('fQ').value}; if(!D.sec) D.sec='desk'; renderDesk()">اعمالِ فیلتر</button>
+      ${D.f.unit||D.f.status||D.f.pri||D.f.q ? '<button class="btn sm" style="width:100%;margin-top:6px" onclick="D.f={unit:\'\',status:\'\',pri:\'\',q:\'\'};renderDesk()">پاک کردنِ فیلتر</button>' : ''}</div></div>`;
+  m.innerHTML = `<div class="dk-top"><div><h1>📥 کارتابلِ من</h1><div class="sub" style="margin:0">همه‌ی کارها و ارجاع‌ها در یک نگاه</div></div><div class="dk-clock">📅 ${esc(wd)} ${fdate(d.today)} · ${esc(clock)}</div></div>
+    <div class="dk-cards">${cards}</div>${nowBox}<div style="margin-bottom:12px">${actions}</div>
+    <div class="dk-grid"><div>${body}</div>${side}</div>`;
+}
+async function loadInbox(){
+  try{ const d = await api('/api/org/inbox/'); S.inbox = d.items || []; S.inboxCats = d.categories || []; S.inboxCount = d.count || 0; }catch(e){ S.inbox = []; S.inboxCount = 0; }
+  const b = $('inboxBd'); b.hidden = !S.inboxCount; b.textContent = fa(S.inboxCount);
+}
+// ── ↔️ ارجاع
+function pickTarget(){
+  const d = D.data;
+  return `<div class="form-row"><div><label class="f">به شخص<select class="inp" id="rTo"><option value="">— انتخاب —</option>${d.people.map(p=>`<option value="${esc(p.email)}">${esc(p.name)}</option>`).join('')}</select></label></div>
+    <div><label class="f">یا به واحد<select class="inp" id="rUnit"><option value="">—</option>${d.units.map(u=>`<option value="${u.code}">${u.icon} ${esc(u.name)}</option>`).join('')}</select></label></div></div>`;
+}
+function refNew(prefill){
+  const o = modal(`<h3>↗️ ارجاعِ جدید</h3>${pickTarget()}
+    <label class="f">موضوع<input class="inp" id="rTitle" value="${esc(prefill&&prefill.title||'')}"></label>
+    <label class="f">شرح<textarea class="inp" id="rDesc">${esc(prefill&&prefill.description||'')}</textarea></label>
+    <div class="form-row"><div><label class="f">اولویت<select class="inp" id="rPri">${Object.entries(PRI).map(([k,v])=>`<option value="${k}" ${k==='normal'?'selected':''}>${v}</option>`).join('')}</select></label></div>
+      <div><label class="f">مهلت (شمسی)<input class="inp" id="rDue" dir="ltr" placeholder="۱۴۰۵/۰۷/۲۰"></label></div><div><label class="f">مشتری / پرونده<input class="inp" id="rCust"></label></div></div>
+    <div class="acts" style="margin-top:12px"><button class="btn" data-x>انصراف</button><button class="btn pri" data-s>ارجاع</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelector('[data-s]').onclick = async () => {
+    try{ await api('/api/org/ref/', {to_email:$('rTo').value, to_unit:$('rUnit').value, title:$('rTitle').value, description:$('rDesc').value, priority:$('rPri').value, due_date:$('rDue').value, customer:$('rCust').value});
+         o.remove(); toast('✅ ارجاع شد — در بله هم خبر داده شد'); D.sec='refs'; D.sub='by_me'; viewInbox(true); }catch(e){ toast('❌ '+e.message); }
+  };
+}
+function refFind(id){ const r = D.data.sections.refs; return [...r.to_me, ...r.by_me, ...r.done].find(x=>x.id===id); }
+function refOpen(id){
+  const r = refFind(id); if(!r) return;
+  const me = D.data.me.email, isSender = r.from.email === me;
+  const hist = r.history.map(h=>`<div>• ${new Date(h.at).toLocaleString('fa-IR',{dateStyle:'short',timeStyle:'short'})} — ${esc(h.by)}: <b>${esc(h.action)}</b>${h.to?' ← '+esc(h.to):''}${h.note?' — '+esc(h.note):''}</div>`).join('');
+  const reps = r.replies.map(x=>`<div class="dk-hist"><b>${esc(x.by)}</b> · ${new Date(x.at).toLocaleString('fa-IR',{dateStyle:'short',timeStyle:'short'})}<br>${esc(x.text)}</div>`).join('');
+  const open = ['open','in_progress'].includes(r.status);
+  const o = modal(`<h3>${esc(r.title)}</h3>
+    <div class="sub" style="margin:0 0 8px">از <b>${esc(r.from.name)}</b>${r.from.unit?' ('+esc(r.from.unit)+')':''} · ${pill(r.priority, r.priority_label)} ${pill(stCls(r.status), r.status_label)}${r.due_date?' · مهلت '+fdate(r.due_date):''}${r.late?' <b class="late">⚠ گذشته</b>':''}</div>
+    ${r.holder ? `<div class="alert ${open?'':'ok'}">📍 ${open?'الان پیشِ':'آخرین دارنده:'} <b>${esc(r.holder.name)}</b>${r.holder.unit && !r.holder.is_unit?' ('+esc(r.holder.unit)+')':''}${r.held_for?' · '+fa(r.held_for):''}</div>` : ''}
+    ${r.customer?`<div class="sub">👤 ${esc(r.customer)}</div>`:''}${r.description?`<div class="jd">${esc(r.description)}</div>`:''}${r.link?`<a class="btn sm" href="${esc(r.link)}">باز کردنِ صفحه‌ی مربوط ›</a>`:''}
+    ${reps ? '<div class="jd-l">پاسخ‌ها</div>'+reps : ''}${r.done_note?`<div class="alert ok">✅ ${esc(r.done_note)}</div>`:''}
+    <div class="jd-l">تاریخچه</div><div class="dk-hist">${hist}</div>
+    ${open ? `<textarea class="inp" id="rTxt" placeholder="پاسخ / توضیح…" style="min-height:60px"></textarea>` : ''}
+    <div class="acts" style="margin-top:10px">
+      ${open && r.mine_to_act && r.holder && r.holder.is_unit ? '<button class="btn" data-a="take">✋ برمی‌دارم</button>' : ''}
+      ${open ? '<button class="btn" data-a="reply">💬 پاسخ</button>' : ''}
+      ${open && r.mine_to_act ? '<button class="btn" data-fw>↪️ ارجاعِ دوباره</button>' : ''}
+      ${open && (r.mine_to_act || isSender) ? '<button class="btn pri" data-a="done">✅ انجام شد</button>' : ''}
+      ${!open && isSender && r.status==='done' ? '<button class="btn" data-a="reopen">بازگشایی</button>' : ''}
+      ${open && isSender ? '<button class="btn" data-a="cancel">لغو</button>' : ''}<button class="btn" data-x>بستن</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelectorAll('[data-a]').forEach(b=>b.onclick = async () => {
+    try{ await api(`/api/org/ref/${r.id}/action/`, {action:b.dataset.a, text:($('rTxt')||{}).value||''}); o.remove(); toast('✅ انجام شد'); viewInbox(true); }catch(e){ toast('❌ '+e.message); }
+  });
+  const fw = o.querySelector('[data-fw]'); if(fw) fw.onclick = () => {
+    const o2 = modal(`<h3>↪️ ارجاعِ دوباره — ${esc(r.title)}</h3>${pickTarget()}<input class="inp" id="rTxt2" placeholder="توضیح (اختیاری)"><div class="acts" style="margin-top:10px"><button class="btn" data-x>انصراف</button><button class="btn pri" data-s>ارجاع</button></div>`);
+    o2.querySelector('[data-x]').onclick = () => o2.remove();
+    o2.querySelector('[data-s]').onclick = async () => { try{ await api(`/api/org/ref/${r.id}/action/`, {action:'forward', to_email:$('rTo').value, to_unit:$('rUnit').value, text:$('rTxt2').value}); o2.remove(); o.remove(); toast('✅ سپرده شد'); viewInbox(true); }catch(e){ toast('❌ '+e.message); } };
+  };
+}
+// ── ✉️ نامه
+function letterNew(replyTo){
+  const d = D.data, opts = d.people.map(p=>`<option value="${esc(p.email)}">${esc(p.name)}</option>`).join('');
+  const o = modal(`<h3>✉️ ${replyTo?'پاسخ به نامه':'نامه‌ی جدید'}</h3>
+    <div class="form-row"><div><label class="f">نوع<select class="inp" id="lKind"><option value="internal">داخلی</option><option value="incoming">وارده (از بیرون)</option><option value="outgoing">صادره (به بیرون)</option></select></label></div>
+      <div><label class="f">اولویت<select class="inp" id="lPri">${Object.entries(PRI).map(([k,v])=>`<option value="${k}" ${k==='normal'?'selected':''}>${v}</option>`).join('')}</select></label></div></div>
+    <label class="f">گیرنده(ها) — با Ctrl چندتا<select class="inp" id="lTo" multiple size="4">${opts}</select></label>
+    <label class="f">رونوشت<select class="inp" id="lCc" multiple size="3">${opts}</select></label>
+    <label class="f" id="lExtBox" hidden>طرفِ بیرونی (فرستنده/گیرنده)<input class="inp" id="lExt"></label>
+    <label class="f">موضوع<input class="inp" id="lSub" value="${replyTo?esc('پاسخ: '+replyTo.subject):''}"></label>
+    <label class="f">متن<textarea class="inp" id="lBody" style="min-height:140px"></textarea></label>
+    <label class="f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="lConf"> محرمانه</label>
+    <div class="acts" style="margin-top:10px"><button class="btn" data-x>انصراف</button><button class="btn pri" data-s>ارسال</button></div>`);
+  if(replyTo && replyTo.sender) [...$('lTo').options].forEach(op=>{ if(op.value===replyTo.sender.email) op.selected = true; });
+  $('lKind').onchange = () => { $('lExtBox').hidden = $('lKind').value === 'internal'; };
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelector('[data-s]').onclick = async () => {
+    const sel = id => [...$(id).selectedOptions].map(x=>x.value);
+    try{ const r = await api('/api/org/letters/', {kind:$('lKind').value, priority:$('lPri').value, to:sel('lTo'), cc:sel('lCc'), external_party:$('lExt').value, subject:$('lSub').value, body:$('lBody').value, confidential:$('lConf').checked, reply_to:replyTo?replyTo.id:null});
+         o.remove(); toast('✅ نامه‌ی '+fa(r.letter.number)+' فرستاده شد'); D.sec='letters'; D.sub='sent'; viewInbox(true); }catch(e){ toast('❌ '+e.message); }
+  };
+}
+function letterFind(id){ const x = D.data.sections.letters; return [...x.in, ...x.archive, ...x.sent].find(L=>L.id===id); }
+async function letterOpen(id){
+  const L = letterFind(id); if(!L) return;
+  if(L.role && !L.read){ try{ await api(`/api/org/letters/${id}/action/`, {action:'read'}); L.read = true; }catch(e){} }
+  const o = modal(`<h3>✉️ ${esc(L.subject)}</h3>
+    <div class="sub" style="margin:0 0 8px">شماره ${fa(L.number)} · ${esc(L.kind_label)} · ${fdate(L.date)} · ${pill(L.priority, L.priority_label)}${L.confidential?' · 🔒 محرمانه':''}</div>
+    <div class="sub">از: <b>${esc(L.sender?L.sender.name:L.external_party)}</b> · به: ${L.recipients.filter(x=>x.role==='to').map(x=>esc(x.name)+(x.read?' ✓':'')).join('، ')||esc(L.external_party)}${L.recipients.some(x=>x.role==='cc')?' · رونوشت: '+L.recipients.filter(x=>x.role==='cc').map(x=>esc(x.name)).join('، '):''}</div>
+    <div class="jd" style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:10px">${esc(L.body)||'—'}</div>
+    <div class="acts" style="margin-top:10px">${L.role?`<button class="btn" data-rep>↩️ پاسخ</button><button class="btn" data-ref>↗️ ارجاعِ این نامه</button><button class="btn" data-arch>${L.archived?'خروج از بایگانی':'🗄️ بایگانی'}</button>`:''}<button class="btn" data-pr>🖨️ چاپ</button><button class="btn" data-x>بستن</button></div>`);
+  o.querySelector('[data-x]').onclick = () => { o.remove(); viewInbox(true); };
+  const q = s2 => o.querySelector(s2);
+  if(q('[data-rep]')) q('[data-rep]').onclick = () => { o.remove(); letterNew(L); };
+  if(q('[data-ref]')) q('[data-ref]').onclick = () => { o.remove(); refNew({title:'نامه‌ی '+L.number+': '+L.subject, description:L.body}); };
+  if(q('[data-arch]')) q('[data-arch]').onclick = async () => { await api(`/api/org/letters/${id}/action/`, {action:L.archived?'unarchive':'archive'}); o.remove(); toast('✅ انجام شد'); viewInbox(true); };
+  q('[data-pr]').onclick = () => letterPrint(L);
+}
+function letterPrint(L){
+  const w = window.open('', '_blank', 'width=760,height=900'); if(!w) return;
+  w.document.write(`<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>نامه ${L.number}</title><style>@page{size:A4;margin:18mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:12pt;line-height:2.1;color:#111}
+  .h{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.h b{font-size:17pt}.meta{text-align:left;font-size:10pt;line-height:1.8}.body{white-space:pre-line;min-height:300px}.sig{margin-top:40px;text-align:left}</style></head><body>
+  <div class="h"><div><b>اسمارت‌چیپ</b><div style="font-size:10pt">نامه‌ی ${L.kind_label}${L.confidential?' — محرمانه':''}</div></div><div class="meta">شماره: ${L.number}<br>تاریخ: ${L.date.replace(/-/g,'/')}<br>پیوست: ندارد</div></div>
+  <div>${L.recipients.filter(x=>x.role==='to').map(x=>'به: '+x.name).join('<br>')||(L.external_party?'به: '+L.external_party:'')}<br>از: ${L.sender?L.sender.name:L.external_party}<br><b>موضوع: ${L.subject}</b></div><hr>
+  <div class="body">${String(L.body||'').replace(/</g,'&lt;')}</div><div class="sig">${L.sender?L.sender.name:''}<br>امضا</div>
+  ${L.recipients.some(x=>x.role==='cc')?'<div style="font-size:10pt;margin-top:20px">رونوشت: '+L.recipients.filter(x=>x.role==='cc').map(x=>x.name).join('، ')+'</div>':''}
+  <script>setTimeout(function(){window.print()},300)<\/script></body></html>`); w.document.close();
+}
+// ── ⭐ تشویق و تنبیه
+function comNew(){
+  const d = D.data;
+  const o = modal(`<h3>⭐ ثبتِ تشویق / تنبیه</h3>
+    <label class="f">کارمند<select class="inp" id="cEmail">${d.people.map(p=>`<option value="${esc(p.email)}">${esc(p.name)}</option>`).join('')}</select></label>
+    <label class="f">نوع<select class="inp" id="cKind"><option value="praise">⭐ تقدیر</option><option value="reward">🎁 پاداش / تشویقی</option><option value="notice">⚠️ تذکر</option><option value="warning">⛔ اخطارِ کتبی</option></select></label>
+    <label class="f">عنوان<input class="inp" id="cTitle"></label><label class="f">شرح<textarea class="inp" id="cDesc"></textarea></label>
+    <div class="sub" style="margin:6px 0 0">فقط مدیریت یا سرپرستِ مستقیمِ همون شخص می‌تونه ثبت کنه. شخص در بله خبردار می‌شه.</div>
+    <div class="acts" style="margin-top:10px"><button class="btn" data-x>انصراف</button><button class="btn pri" data-s>ثبت</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelector('[data-s]').onclick = async () => { try{ await api('/api/org/commend/', {email:$('cEmail').value, kind:$('cKind').value, title:$('cTitle').value, description:$('cDesc').value}); o.remove(); toast('✅ ثبت شد'); viewInbox(true); }catch(e){ toast('❌ '+e.message); } };
+}
+function comOpen(id){
+  const c = D.data.sections.hr.com.find(x=>x.id===id); if(!c) return;
+  const o = modal(`<h3>${c.positive?'⭐':'⚠️'} ${esc(c.kind_label)}: ${esc(c.title)}</h3><div class="sub">${fdate(c.date)} · ثبت توسطِ ${esc(c.created_by)}</div>${c.description?`<div class="jd">${esc(c.description)}</div>`:''}
+    <div class="acts" style="margin-top:10px">${!c.acknowledged?'<button class="btn pri" data-ack>👁️ دیدم</button>':''}<button class="btn" data-x>بستن</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  const ak = o.querySelector('[data-ack]'); if(ak) ak.onclick = async () => { await api(`/api/org/commend/${id}/ack/`, {}); o.remove(); viewInbox(true); };
 }
 
 // ─────────── 📢 تعطیلیِ اعلامی (مدیریت) ───────────
@@ -364,6 +596,70 @@ async function viewClosure(){
   };
 }
 
+
+// ─────────── 🏖️ مرخصی و مأموریت (۱۴۰۵/۰۷/۱۰) ───────────
+// انواع: ساعتی، روزانه، تشویقی، استحقاقی + مأموریت · چاپِ A5 · ثبتِ فوری در بله («مرخصی») · همیشه تأییدِ سرپرست
+const LV_STATUS_COL = {pending:'var(--accent)', approved:'var(--green)', rejected:'var(--red)', canceled:'var(--faint)'};
+function lvWhen(l){ return l.kind==='hourly' ? `${fa(l.start_date.replace(/-/g,'/'))} از ${fa(l.start_time)} تا ${fa(l.end_time)}` : (l.start_date===l.end_date ? fa(l.start_date.replace(/-/g,'/')) : `${fa(l.start_date.replace(/-/g,'/'))} تا ${fa(l.end_date.replace(/-/g,'/'))}`) + (l.days ? ` (${fa(l.days)} روزِ کاری)` : ''); }
+async function viewLeave(){
+  const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
+  let d; try{ d = await api('/api/org/leave/'); }catch(e){ m.innerHTML = `<div class="loading">⚠️ ${esc(e.message)}</div>`; return; }
+  S.leave = d;
+  const b = $('leaveBd'); b.hidden = !d.to_approve.length; b.textContent = fa(d.to_approve.length);
+  const kinds = d.kinds.map(k=>`<option value="${k.key}">${k.icon} ${esc(k.label)}</option>`).join('');
+  const item = (l, mine) => `<div class="inbox-it" style="cursor:default"><span class="ic">${l.icon}</span><span><div class="t">${esc(l.kind_label)}${mine?'':' — '+esc(l.staff.name)} <span style="font-size:11px;color:${LV_STATUS_COL[l.status]}">● ${esc(l.status_label)}</span></div>
+      <div class="s">${lvWhen(l)}${l.place?' · 📍 '+esc(l.place):''}${l.reason?' · '+esc(l.reason):''}${l.decided_by?' · تصمیم: '+esc(l.decided_by):''}${l.source!=='web'?' · ثبت از '+(l.source==='bale'?'بله':'تلگرام'):''}</div></span>
+      <span class="go" style="display:flex;gap:6px">${mine ? `<button class="btn sm" onclick="lvPrint(${l.id})">🖨️ A5</button>${['pending','approved'].includes(l.status)?`<button class="btn sm" onclick="lvDo(${l.id},'cancel')">لغو</button>`:''}`
+        : `<button class="btn sm pri" onclick="lvDo(${l.id},'approve')">✅ تأیید</button><button class="btn sm" onclick="lvDo(${l.id},'reject')">❌ رد</button>`}</span></div>`;
+  m.innerHTML = `<h1>🏖️ مرخصی و مأموریت</h1>
+    <div class="sub">درخواست ← <b>تأییدِ سرپرستِ مستقیمتون</b> (${d.managers.length?esc(d.managers.join('، ')):'مدیریت'}) ← نتیجه در بله و کارتابل. ثبتِ فوری از بله/تلگرام: پیامِ «مرخصی» رو بفرستید.</div>
+    <div class="kpis"><div class="kpi"><div class="v">${fa(d.balance.entitled_left)}</div><div class="l">مانده‌ی مرخصیِ استحقاقی ${fa(d.balance.year)} (روز)</div></div>
+      <div class="kpi"><div class="v">${fa(d.balance.entitled_used)}</div><div class="l">استفاده‌شده (ساعتی ÷ ۸ ساعت)</div></div>
+      <div class="kpi ${d.to_approve.length?'warn':''}"><div class="v">${fa(d.to_approve.length)}</div><div class="l">منتظرِ تأییدِ من</div></div></div>
+    ${d.to_approve.length ? `<div class="card"><h3>🔔 منتظرِ تأییدِ شما</h3>${d.to_approve.map(l=>item(l,false)).join('')}</div>` : ''}
+    <div class="card"><h3>➕ درخواستِ جدید</h3>
+      <div class="form-row"><div><label class="f">نوع<select class="inp" id="lvKind">${kinds}</select></label></div>
+        <div><label class="f">از تاریخ (شمسی)<input class="inp" id="lvStart" dir="ltr" style="text-align:center" value="${fa(S.me && S.me.today || '')}" placeholder="۱۴۰۵/۰۷/۱۵"></label></div>
+        <div id="lvEndBox"><label class="f">تا تاریخ<input class="inp" id="lvEnd" dir="ltr" style="text-align:center" placeholder="همون روز"></label></div>
+        <div id="lvTimeBox" hidden><label class="f">از ساعت — تا ساعت<div style="display:flex;gap:6px"><input class="inp" id="lvT1" dir="ltr" style="text-align:center" placeholder="10:00"><input class="inp" id="lvT2" dir="ltr" style="text-align:center" placeholder="12:00"></div></label></div></div>
+      <div id="lvPlaceBox" hidden><label class="f">محلِ مأموریت / مشتری<input class="inp" id="lvPlace"></label></div>
+      <label class="f">دلیل / توضیح<input class="inp" id="lvReason"></label>
+      <div style="margin-top:10px"><button class="btn pri" id="lvSend">ارسال برایِ تأییدِ سرپرست</button></div></div>
+    <div class="card"><h3>📋 درخواست‌هایِ من</h3>${d.mine.length ? d.mine.map(l=>item(l,true)).join('') : '<div class="sub">هنوز درخواستی ثبت نکردید</div>'}</div>`;
+  const kindSel = $('lvKind');
+  const sync = () => { const k = kindSel.value; $('lvTimeBox').hidden = k!=='hourly'; $('lvEndBox').hidden = k==='hourly'; $('lvPlaceBox').hidden = k!=='mission'; };
+  kindSel.onchange = sync; sync();
+  $('lvSend').onclick = async () => {
+    const body = {kind:kindSel.value, start_date:$('lvStart').value, end_date:$('lvEnd').value, start_time:$('lvT1').value, end_time:$('lvT2').value, place:$('lvPlace').value, reason:$('lvReason').value};
+    try{ const r = await api('/api/org/leave/', body); toast('✅ ثبت شد و برایِ سرپرست فرستاده شد'); viewLeave(); lvPrint(r.leave.id, r.leave); }catch(e){ toast('❌ '+e.message); }
+  };
+}
+async function lvDo(id, action){
+  let note = '';
+  if(action==='reject'){ note = prompt('دلیلِ رد (اختیاری):') ?? null; if(note === null) return; }
+  if(action==='cancel' && !confirm('این درخواست لغو بشه؟')) return;
+  try{ await api('/api/org/leave/'+id+'/action/', {action, note}); toast('✅ انجام شد'); viewLeave(); loadInbox(); }catch(e){ toast('❌ '+e.message); }
+}
+function lvPrint(id, given){
+  const l = given || (S.leave && [...S.leave.mine, ...S.leave.to_approve].find(x=>x.id===id)); if(!l) return;
+  const w = window.open('', '_blank', 'width=620,height=860'); if(!w){ toast('پنجره‌ی چاپ باز نشد — اجازه‌ی پنجره‌ی جدید رو بدید'); return; }
+  const row = (k,v) => `<tr><th>${k}</th><td>${v||'—'}</td></tr>`;
+  w.document.write(`<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>فرمِ ${l.kind_label} — ${l.staff.name}</title>
+  <style>@page{size:A5;margin:10mm}*{box-sizing:border-box}body{font-family:Vazirmatn,Tahoma,sans-serif;color:#111;margin:0;font-size:11.5pt}
+  .h{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:10px}.h b{font-size:15pt}
+  table{width:100%;border-collapse:collapse;margin-bottom:10px}th,td{border:1px solid #444;padding:6px 8px;text-align:right}th{width:34%;background:#f1f1f1}
+  .sig{display:flex;gap:8px;margin-top:14px}.sig div{flex:1;border:1px solid #444;height:80px;padding:6px;font-size:10pt}.st{font-weight:bold}
+  .ft{font-size:8.5pt;color:#555;margin-top:8px}</style></head><body>
+  <div class="h"><div><b>اسمارت‌چیپ</b><div style="font-size:9.5pt">فرمِ ${l.kind==='mission'?'مأموریت':'درخواستِ مرخصی'}</div></div><div style="font-size:9.5pt;text-align:left">شماره: ${l.id}<br>تاریخِ ثبت: ${new Date(l.created_at).toLocaleDateString('fa-IR')}</div></div>
+  <table>${row('نام و نام خانوادگی', l.staff.name)}${row('نوع', l.kind_label)}${row(l.kind==='hourly'?'تاریخ و ساعت':'تاریخ', lvWhen(l))}
+  ${l.kind==='hourly'?row('مدت', Math.floor(l.minutes/60)+' ساعت '+(l.minutes%60?(l.minutes%60)+' دقیقه':'')):''}${l.kind==='mission'?row('محلِ مأموریت', l.place):''}${row('دلیل / توضیح', l.reason)}
+  ${row('وضعیت', '<span class="st">'+l.status_label+'</span>'+(l.decided_by?' — '+l.decided_by:''))}</table>
+  <div class="sig"><div>امضایِ متقاضی</div><div>سرپرستِ مستقیم${l.status==='approved'?'<br><b>تأیید شد: '+l.decided_by+'</b>':''}</div><div>مدیریت</div></div>
+  <div class="ft">ثبت‌شده در سامانه‌ی مدار${l.source!=='web'?' (ثبتِ فوری از '+(l.source==='bale'?'بله':'تلگرام')+')':''}</div>
+  <script>setTimeout(function(){window.print()},300)<\/script></body></html>`);
+  w.document.close();
+}
+
 function viewSoon(title, text){
   $('main').innerHTML = `<h1>${title}</h1><div class="sub">مرحله‌ی بعدیِ ساختِ «سازمان»</div>
     <div class="soon-card"><b>به‌زودی</b><br>${esc(text)}</div>`;
@@ -374,9 +670,10 @@ function viewSoon(title, text){
   if(!MadarAuth.token()){ MadarAuth.require(true); $('main').innerHTML = '<div class="loading">برایِ «سازمان» با ورودِ امن وارد شوید.</div>'; return; }
   try{ S.me = await api('/api/org/me/'); }catch(e){ $('main').innerHTML = `<div class="loading">⚠️ ${esc(e.message)}<br><br>اگه سرور تازه به‌روز شده، چند دقیقه‌ی دیگه دوباره امتحان کنید.</div>`; return; }
   if(S.me.is_mgmt) $('navClosure').hidden = false;
+  try{ const t = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); S.me.today = t; }catch(e){}
   await loadInbox();
   const v = (location.hash || '').slice(1).split(':')[0];
-  go(['dash','units','mine','staff','inbox','closure','leave','requests','letters'].includes(v) ? v : 'dash');
+  go(['dash','units','mine','staff','inbox','closure','leave','requests','letters','hrcom'].includes(v) ? v : 'dash');
   setInterval(() => { if(document.visibilityState === 'visible') loadInbox(); }, 120000);
 })();
 </script>

@@ -70,6 +70,31 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{border-bottom:1
 .muted{color:var(--muted);font-size:12px}
 .warnbox{border:1px solid rgba(240,165,0,.45);background:rgba(240,165,0,.07);border-radius:12px;padding:10px 12px;font-size:13px;line-height:2;margin-bottom:10px}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:9px 16px;border-radius:10px;font-size:13px;z-index:60;display:none}
+
+.kx-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.kx-head b{font-size:16px}.kx-nav{display:flex;gap:6px;align-items:center}
+.kx td,.kx th{white-space:nowrap;text-align:center}
+.kx td.l{text-align:right}
+.kx tr.inc td{background:rgba(239,68,68,.10)}
+.kx tr.off td{opacity:.5}
+.kx tr.abs td{background:rgba(239,68,68,.06)}
+.sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:12px}
+.sum div{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.sum b{display:block;font-size:17px;color:var(--text)}
+.kind-btns{display:flex;gap:10px;width:min(360px,90vw)}
+.kind-btns button{flex:1;height:64px;font-size:18px;font-weight:900;border-radius:14px;border:2px solid var(--border);background:var(--card);color:var(--text);font-family:inherit;cursor:pointer;position:relative}
+.kind-btns button.sug{border-color:var(--accent)}
+.kind-btns button.sug::after{content:'پیشنهاد';position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--accent);color:#141821;font-size:10px;padding:0 8px;border-radius:8px}
+.ov{position:fixed;inset:0;background:rgba(8,10,16,.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:14px}
+.modal{width:min(560px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}
+.modal h3{margin-bottom:8px}
+.rv{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:start}
+.rv-c{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--text);font:inherit;font-size:13px;padding:8px 10px;border-radius:9px;cursor:pointer;text-align:right}
+.rv-c.on{background:rgba(240,165,0,.13);color:var(--accent);font-weight:800}
+.rv-c .n{margin-right:auto;background:var(--red);color:#fff;border-radius:10px;font-size:11px;padding:0 7px;min-width:22px;text-align:center}
+.rv-c .n.z{background:var(--card);color:var(--faint)}
+.rrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);padding:7px 2px;font-size:12.5px}
+@media(max-width:760px){.rv{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -77,69 +102,63 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{border-bottom:1
 <div class="wrap" id="app"><div class="hint" style="padding:40px">در حالِ بارگذاری…</div></div>
 <div class="toast" id="toast"></div>
 <script>
-const API = 'https://api.smartchipelec.com/api/org/att/';
-const LIB_QR = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-const LIB_SCAN = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+const API = 'https://api.smartchipelec.com/api/org/';
+const ATT = API + 'att/';
 const $ = id => document.getElementById(id);
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const S = {st:null, tab:null, qrTimer:null, cam:null, admin:null, atab:'today'};
-function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',3000); }
-function loadLib(src, name){ return window[name] ? Promise.resolve() : new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>no(new Error('کتابخانه بارگذاری نشد — اینترنت رو چک کنید')); document.head.appendChild(s); }); }
-// شناسه‌ی ثابتِ این دستگاه (جایگزینِ MAC — مرورگر MAC رو نمی‌ده). فقط هشش رویِ سرور نگه داشته می‌شه.
+const hm = m => m ? fa(String(Math.floor(m/60)).padStart(2,'0')) + ':' + fa(String(m%60).padStart(2,'0')) : '—';
+const mins = m => m ? fa(m) + ' دقیقه' : '—';
+const S = {st:null, mode:null, tab:null, kind:null, qrTimer:null, cam:null, detector:null, kxMonth:null, admin:null, atab:'review', person:null, pMonth:null, rvSel:null, pendingPayload:null};
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',3200); }
+// ⚠️ (۱۴۰۵/۰۷/۱۰) کتابخانه‌هایِ کیوآرکد داخلِ خودِ مدار (vendor-qr.js) — دیگه به CDN وابسته نیست
+let qrLibPromise = null;
+function loadQrLib(){ if(window.jsQR && window.qrcode) return Promise.resolve(); return qrLibPromise || (qrLibPromise = new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='./vendor-qr.js'; s.onload=ok; s.onerror=()=>{ qrLibPromise=null; no(new Error('فایلِ vendor-qr.js پیدا نشد — به مدیریت خبر بدید')); }; document.head.appendChild(s); })); }
 function deviceKey(){ let k = localStorage.getItem('madar_att_device'); if(!k){ const a=new Uint8Array(24); crypto.getRandomValues(a); k=[...a].map(b=>b.toString(16).padStart(2,'0')).join(''); localStorage.setItem('madar_att_device', k); } return k; }
 function deviceLabel(){ const u=navigator.userAgent; const o=/Android/.test(u)?'Android':/iPhone|iPad/.test(u)?'iPhone':/Windows/.test(u)?'Windows':/Mac OS/.test(u)?'Mac':'دستگاه'; const b=/Edg\//.test(u)?'Edge':/Chrome\//.test(u)?'Chrome':/Safari\//.test(u)?'Safari':/Firefox\//.test(u)?'Firefox':''; return o+(b?' / '+b:''); }
 const isPhone = () => matchMedia('(pointer:coarse)').matches || innerWidth < 820;
-async function api(path, body){
-  const r = await fetch(API + path, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {cache:'no-store'});
+async function api(path, body, base){
+  const r = await fetch((base||ATT) + path, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {cache:'no-store'});
   const d = await r.json().catch(()=>({ok:false, error:'پاسخِ نامعتبر'}));
   if(r.status === 401){ MadarAuth.require(true); throw new Error('ورود لازم است'); }
   if(!r.ok || d.ok === false) throw new Error(d.error || ('HTTP '+r.status));
   return d;
 }
 function getGeo(){ return new Promise(res => { if(!navigator.geolocation) return res(null); navigator.geolocation.getCurrentPosition(p => res({lat:p.coords.latitude, lng:p.coords.longitude, accuracy:p.coords.accuracy}), () => res(null), {enableHighAccuracy:true, timeout:8000, maximumAge:0}); }); }
+function shiftMonth(m, d){ let [y,mo] = m.split('-').map(Number); mo += d; if(mo<1){mo=12;y--;} if(mo>12){mo=1;y++;} return y+'-'+String(mo).padStart(2,'0'); }
+function modal(html){ const o=document.createElement('div'); o.className='ov'; o.innerHTML=`<div class="modal">${html}</div>`; o.onclick=e=>{ if(e.target===o) o.remove(); }; document.body.appendChild(o); return o; }
 
 async function loadState(){ S.st = await api('state/?device=' + encodeURIComponent(deviceKey())); }
 function render(){
   const st = S.st, d = st.day;
-  const pun = st.punches.map(p => `<span class="chip ${p.kind} ${p.status==='review'?'review':''}">${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ${fa(p.time)}${p.status==='review'?' · ⚠ بررسی':''}${p.source==='manual'?' · دستی':''}</span>`).join('') || '<span class="muted">هنوز ثبتی نیست</span>';
-  if(!S.tab) S.tab = isPhone() ? 'scan' : 'qr';
-  const dev = st.device;
-  const devBox = !dev.status ? `<div class="warnbox">📱 <b>این گوشی هنوز «گوشیِ حضورِ» شما نیست.</b> اگه این گوشیِ شخصیِ خودتونه، ثبتش کنید تا مدیر تأیید کنه. تا تأیید، ورودها «نیاز به بررسی» می‌خورن.<div class="row"><button class="btn pri" onclick="regDevice()">📱 ثبتِ این گوشی به‌عنوانِ گوشیِ حضورِ من</button></div></div>`
-    : dev.status === 'pending' ? `<div class="warnbox">⏳ این گوشی ثبت شده و <b>منتظرِ تأییدِ مدیر</b> است.</div>` : '';
+  if(!S.mode) S.mode = isPhone() ? 'phone' : 'pc';
+  if(!S.tab) S.tab = S.mode === 'phone' ? 'scan' : 'qr';
+  const pun = st.punches.map(p => `<span class="chip ${p.kind} ${p.status==='review'?'review':''}">${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ${fa(p.time)}${p.status==='review'?' · ⚠ بررسی':''}${p.status==='pending'?' · ✏️ منتظرِ تأیید':''}</span>`).join('') || '<span class="muted">امروز هنوز ثبتی نیست</span>';
+  const first = S.mode === 'phone' ? `<button class="tab ${S.tab==='scan'?'on':''}" onclick="setTab('scan')">📷 ثبتِ ورود / خروج</button>` : `<button class="tab ${S.tab==='qr'?'on':''}" onclick="setTab('qr')">🖥️ کدِ من</button>`;
   $('app').innerHTML = `
     <div class="card"><div class="today"><div><div class="big">${d.work ? 'امروز روزِ کاریه' : '🌙 امروز تعطیله'}</div><div class="d">${fa(st.today.replace(/-/g,'/'))} · ${d.work ? `شروع ${fa(st.settings.start)} (فرجه تا ${fa(st.settings.grace)}) · پایان ${fa(d.end)}` : esc(d.why)}</div></div>
       <div style="margin-right:auto" class="chips">${pun}</div></div></div>
-    <div class="tabs"><button class="tab ${S.tab==='qr'?'on':''}" onclick="setTab('qr')">🖥️ کیوآرکدِ من (رویِ کامپیوتر)</button><button class="tab ${S.tab==='scan'?'on':''}" onclick="setTab('scan')">📷 اسکن با گوشی</button><button class="tab ${S.tab==='mine'?'on':''}" onclick="setTab('mine')">📊 گزارشِ من</button>${st.is_mgmt?`<button class="tab ${S.tab==='admin'?'on':''}" onclick="setTab('admin')">🛠️ مدیریت</button>`:''}</div>
+    <div class="tabs">${first}<button class="tab ${S.tab==='mine'?'on':''}" onclick="setTab('mine')">📅 کارکردِ من</button>${st.is_mgmt?`<button class="tab ${S.tab==='admin'?'on':''}" onclick="setTab('admin')">🛠️ مدیریت</button>`:''}
+      <button class="tab" style="margin-right:auto;font-size:11px;font-weight:500" onclick="S.mode=S.mode==='phone'?'pc':'phone';S.tab=null;render()">${S.mode==='phone'?'🖥️ نمایشِ کد رویِ این دستگاه':'📱 حالتِ گوشی'}</button></div>
     <div id="pane"></div>`;
-  const pane = $('pane');
   stopQr(); stopCam();
-  if(S.tab === 'qr'){
-    pane.innerHTML = `<div class="card"><div class="qrbox"><div class="big">${st.next==='in'?'🟢 ورود':'🔵 خروج'}</div><div id="qr"></div><div class="bar"><span id="qrbar" style="width:100%"></span></div>
-      <div class="hint">با <b>گوشیِ حضورِ</b> خودتون این کد رو اسکن کنید (در همین صفحه رویِ گوشی ← «📷 اسکن»، یا با دوربینِ گوشی).<br>کد <b>هر ۱۰ ثانیه</b> عوض می‌شه و فقط برایِ شما کار می‌کنه.</div></div></div>`;
-    startQr();
-  } else if(S.tab === 'scan'){
-    pane.innerHTML = devBox + `<div class="card"><div class="qrbox"><div class="big">${st.next==='in'?'🟢 ثبتِ ورود':'🔵 ثبتِ خروج'}</div>
-      <video id="cam" playsinline muted hidden></video><button class="btn pri" id="camBtn" onclick="startCam()">📷 باز کردنِ دوربین و اسکن</button>
-      <div class="hint">کیوآرکدِ رویِ صفحه‌ی <b>کامپیوترِ خودتون</b> رو اسکن کنید. لحظه‌ی اسکن، موقعیتِ گوشی فقط یک بار خونده می‌شه (اجازه بدید).</div>
-      <div id="res" class="res"></div>
-      <button class="btn sm" onclick="manualDlg()">گوشی همراهم نبود / مشکل دارم — درخواستِ ثبتِ دستی</button></div></div>`;
-  } else if(S.tab === 'mine'){ pane.innerHTML = '<div class="card"><div class="hint">در حالِ بارگذاری…</div></div>'; myReport(); }
-  else if(S.tab === 'admin'){ pane.innerHTML = '<div class="card"><div class="hint">در حالِ بارگذاری…</div></div>'; adminView(); }
+  if(S.tab === 'qr') paneQr(); else if(S.tab === 'scan') paneScan(); else if(S.tab === 'mine') paneMine(); else if(S.tab === 'admin') adminView();
 }
 function setTab(t){ S.tab = t; render(); }
 
-// ── 🖥️ کیوآرکدِ چرخان ──
-async function startQr(){
-  try{ await loadLib(LIB_QR, 'qrcode'); }catch(e){ $('qr').innerHTML = esc(e.message); return; }
+// ── 🖥️ کامپیوتر: فقط کد ──
+async function paneQr(){
+  $('pane').innerHTML = `<div class="card"><div class="qrbox"><div id="qr"></div><div class="bar"><span id="qrbar" style="width:100%"></span></div>
+    <div class="hint">این <b>کدِ شخصیِ شماست</b> و <b>هر ۱۰ ثانیه</b> عوض می‌شه.<br>با <b>گوشیِ حضورِ</b> خودتون اسکنش کنید — <b>رویِ گوشی</b> انتخاب می‌کنید «ورود» یا «خروج».<br>کامپیوتر فقط کد رو نشون می‌ده؛ ثبت با گوشی انجام می‌شه.</div></div></div>`;
+  try{ await loadQrLib(); }catch(e){ $('qr').innerHTML = '<div class="hint">❌ '+esc(e.message)+'</div>'; return; }
   const tick = async () => {
     try{
       const d = await api('qr/');
-      const link = location.href.split('#')[0] + '#p=' + d.payload;   // لینک ← دوربینِ معمولیِ گوشی هم کار می‌کنه
+      const link = location.href.split('#')[0] + '#p=' + d.payload;
       const q = qrcode(0, 'M'); q.addData(link); q.make();
       $('qr') && ($('qr').innerHTML = q.createImgTag(6, 0));
       const left = d.expires_in, bar = $('qrbar');
-      if(bar){ bar.style.transition='none'; bar.style.width = (left*10)+'%'; requestAnimationFrame(()=>{ bar.style.transition='width '+left+'s linear'; bar.style.width='0%'; }); }
+      if(bar){ bar.style.transition='none'; bar.style.width=(left*10)+'%'; requestAnimationFrame(()=>{ bar.style.transition='width '+left+'s linear'; bar.style.width='0%'; }); }
       S.qrTimer = setTimeout(tick, left*1000 + 150);
     }catch(e){ $('qr') && ($('qr').innerHTML = '<div class="hint">'+esc(e.message)+'</div>'); S.qrTimer = setTimeout(tick, 5000); }
   };
@@ -147,121 +166,243 @@ async function startQr(){
 }
 function stopQr(){ clearTimeout(S.qrTimer); S.qrTimer = null; }
 
-// ── 📷 اسکن ──
+// ── 📱 گوشی: انتخابِ ورود/خروج + اسکن ──
+function suggestedKind(){
+  const ps = S.st.punches.filter(p=>p.status!=='pending');
+  if(ps.length) return ps[ps.length-1].kind === 'in' ? 'out' : 'in';
+  const now = new Date(), m = now.getHours()*60 + now.getMinutes();
+  return m >= 12*60 ? 'out' : 'in';      // بعد از ظهر و هنوز هیچ ثبتی نیست ← احتمالاً خروج (ورود فراموش شده)
+}
+function paneScan(){
+  const st = S.st, dev = st.device, sug = suggestedKind();
+  const devBox = !dev.status ? `<div class="warnbox">📱 <b>این گوشی هنوز «گوشیِ حضورِ» شما نیست.</b> اگه گوشیِ شخصیِ خودتونه، ثبتش کنید تا مدیر تأیید کنه. تا تأیید، ثبت‌ها «نیاز به بررسی» می‌خورن.<div class="row"><button class="btn pri" onclick="regDevice()">📱 ثبتِ این گوشی به‌عنوانِ گوشیِ حضورِ من</button></div></div>`
+    : dev.status === 'pending' ? `<div class="warnbox">⏳ این گوشی ثبت شده و <b>منتظرِ تأییدِ مدیر</b> است.</div>` : '';
+  const noIn = sug === 'out' && !st.punches.some(p=>p.kind==='in' && p.status!=='pending');
+  $('pane').innerHTML = devBox + `<div class="card"><div class="qrbox">
+    <div class="hint" style="margin-bottom:4px">۱) انتخاب کنید ← ۲) کدِ رویِ <b>کامپیوترِ خودتون</b> رو اسکن کنید</div>
+    <div class="kind-btns"><button id="kIn" class="${sug==='in'?'sug':''}" onclick="pickKind('in')">🟢 ورود</button><button id="kOut" class="${sug==='out'?'sug':''}" onclick="pickKind('out')">🔵 خروج</button></div>
+    ${noIn ? '<div class="warnbox" style="width:min(360px,90vw);margin:6px 0 0">امروز ورودی ثبت نکردید. اگه الان خروجه، «خروج» رو بزنید — روزِ امروز «تردد ناقص» می‌شه و بعد درخواستِ اصلاحِ ورود می‌دید.</div>' : ''}
+    <video id="cam" playsinline muted hidden></video>
+    <div class="hint">لحظه‌ی اسکن، موقعیتِ گوشی فقط یک بار خونده می‌شه (اجازه بدید).</div>
+    <div id="res" class="res"></div>
+    <button class="btn sm" onclick="corrDlg(S.st.today)">گوشی همراهم نبود / مشکل دارم — درخواستِ اصلاح</button></div></div>`;
+}
+async function pickKind(k){
+  S.kind = k;
+  $('kIn').classList.toggle('sug', k==='in'); $('kOut').classList.toggle('sug', k==='out');
+  if(S.pendingPayload){ const p = S.pendingPayload; S.pendingPayload = null; return doPunch(p, k); }
+  startCam();
+}
 async function startCam(){
-  try{ await loadLib(LIB_SCAN, 'jsQR'); }catch(e){ toast('❌ '+e.message); return; }
-  const v = $('cam'); v.hidden = false; $('camBtn').hidden = true;
+  const v = $('cam'); v.hidden = false;
   try{ S.cam = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
-  catch(e){ toast('❌ اجازه‌ی دوربین داده نشد — از دوربینِ معمولیِ گوشی هم می‌شه کد رو اسکن کرد'); v.hidden = true; $('camBtn').hidden = false; return; }
+  catch(e){ toast('❌ اجازه‌ی دوربین داده نشد — با دوربینِ معمولیِ گوشی هم می‌شه کد رو اسکن کرد'); v.hidden = true; return; }
   v.srcObject = S.cam; await v.play();
+  // ⚠️ خواننده‌ی داخلیِ گوشی (اگه باشه، مثلِ کرومِ اندروید) ← وگرنه کتابخانه‌ی داخلِ مدار
+  let detector = null;
+  if('BarcodeDetector' in window){ try{ detector = new BarcodeDetector({formats:['qr_code']}); }catch(e){} }
+  if(!detector){ try{ await loadQrLib(); }catch(e){ toast('❌ '+e.message); stopCam(); return; } }
   const c = document.createElement('canvas'), ctx = c.getContext('2d', {willReadFrequently:true});
-  const loop = () => {
+  const found = data => { const m = /#p=(MATT1\.[\w.]+)/.exec(data) || /^(MATT1\.[\w.]+)$/.exec(data); if(m){ stopCam(); doPunch(m[1], S.kind); return true; } return false; };
+  const loop = async () => {
     if(!S.cam) return;
     if(v.readyState === v.HAVE_ENOUGH_DATA){
-      c.width = v.videoWidth; c.height = v.videoHeight; ctx.drawImage(v, 0, 0);
-      const img = ctx.getImageData(0, 0, c.width, c.height), code = jsQR(img.data, img.width, img.height);
-      if(code && code.data){ const m = /#p=(MATT1\.[\w.]+)/.exec(code.data) || /^(MATT1\.[\w.]+)$/.exec(code.data); if(m){ stopCam(); doPunch(m[1]); return; } }
+      if(detector){ try{ const r = await detector.detect(v); if(r[0] && found(r[0].rawValue)) return; }catch(e){} }
+      else { c.width=v.videoWidth; c.height=v.videoHeight; ctx.drawImage(v,0,0); const img=ctx.getImageData(0,0,c.width,c.height); const q=jsQR(img.data,img.width,img.height); if(q && q.data && found(q.data)) return; }
     }
     requestAnimationFrame(loop);
   };
   loop();
 }
-function stopCam(){ if(S.cam){ S.cam.getTracks().forEach(t=>t.stop()); S.cam = null; } }
-async function doPunch(payload){
+function stopCam(){ if(S.cam){ S.cam.getTracks().forEach(t=>t.stop()); S.cam = null; } const v=$('cam'); if(v) v.hidden = true; }
+async function doPunch(payload, kind){
+  if(!kind){ S.pendingPayload = payload; S.tab='scan'; render(); toast('کد خونده شد — «ورود» یا «خروج» رو انتخاب کنید'); return; }
   const res = $('res'); if(res){ res.className='res warn'; res.innerHTML='در حالِ ثبت…'; }
   const geo = await getGeo();
   try{
-    const d = await api('punch/', Object.assign({payload, device:deviceKey()}, geo||{}));
+    const d = await api('punch/', Object.assign({payload, kind, device:deviceKey()}, geo||{}));
     const p = d.punch, f = p.flags || {};
     const fl = k => f[k]===true?'✅':f[k]===false?'❌':'—';
-    const html = `<b>${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ثبت شد — ساعت ${fa(p.time)}</b>${d.duplicate?' (قبلاً ثبت شده بود)':''}
-      <div class="flags"><span>${fl('qr')} کیوآرکد</span><span>${fl('device')} گوشیِ من</span><span>${fl('network')} اینترنتِ شرکت</span><span>${fl('gps')} موقعیت</span></div>
-      ${(d.review_reasons||[]).length ? '<div style="margin-top:6px">⚠ برایِ بررسیِ مدیر ثبت شد: '+d.review_reasons.map(esc).join('، ')+'</div>' : ''}`;
-    await loadState(); render();
-    const r2 = $('res'); if(r2){ r2.className = 'res ' + (p.status==='ok'?'ok':'warn'); r2.innerHTML = html; }
+    await loadState(); S.tab='scan'; render();
+    const r2 = $('res'); if(r2){ r2.className = 'res ' + (p.status==='ok' && !d.warning ? 'ok' : 'warn');
+      r2.innerHTML = `<b>${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ثبت شد — ساعت ${fa(p.time)}</b>${d.duplicate?' (قبلاً ثبت شده بود)':''}
+        <div class="flags"><span>${fl('qr')} کیوآرکد</span><span>${fl('device')} گوشیِ من</span><span>${fl('network')} اینترنتِ شرکت</span><span>${fl('gps')} موقعیت</span></div>
+        ${(d.review_reasons||[]).length ? '<div style="margin-top:6px">⚠ برایِ بررسیِ مدیر ثبت شد: '+d.review_reasons.map(esc).join('، ')+'</div>' : ''}
+        ${d.warning ? '<div style="margin-top:6px">🟠 '+esc(d.warning)+'</div>' : ''}`; }
     if(location.hash.startsWith('#p=')) history.replaceState(null,'',location.pathname);
   }catch(e){ const r2=$('res'); if(r2){ r2.className='res err'; r2.innerHTML='❌ '+esc(e.message); } else toast('❌ '+e.message); }
 }
 async function regDevice(){ try{ const d = await api('device/', {device:deviceKey(), label:deviceLabel()}); toast(d.status==='approved'?'✅ این گوشی تأییدشده است':'⏳ ثبت شد — منتظرِ تأییدِ مدیر'); await loadState(); render(); }catch(e){ toast('❌ '+e.message); } }
-function manualDlg(){
-  const kind = S.st.next, now = new Date(), hm = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const reason = prompt(`درخواستِ ثبتِ دستیِ ${kind==='in'?'ورود':'خروج'} — ساعت ${hm}\nدلیل رو بنویسید (مثلاً: گوشی شارژ نداشت):`);
-  if(!reason) return;
-  api('manual/', {kind, time:hm, reason}).then(async ()=>{ toast('✅ درخواست به مدیرتون فرستاده شد'); await loadState(); render(); }).catch(e=>toast('❌ '+e.message));
+
+// ── درخواستِ اصلاحِ تردد ──
+function corrDlg(date, replaces, kind, oldTime){
+  const o = modal(`<h3>✏️ درخواستِ اصلاحِ تردد — ${fa(date.replace(/-/g,'/'))}</h3>
+    <div class="muted" style="margin-bottom:8px">ساعتی بی‌صدا عوض نمی‌شه: درخواست برایِ مدیرتون می‌ره و ثبت می‌شه چه کسی، چه چیزی، کِی، از چه مقداری به چه مقداری، و چه کسی تأیید کرد.</div>
+    <div class="row">نوع: <select class="inp" id="cKind"><option value="in" ${kind==='in'?'selected':''}>ورود</option><option value="out" ${kind==='out'||!kind&&date!==S.st.today?'selected':''}>خروج</option></select>
+      ساعت: <input class="inp" id="cTime" style="width:90px;direction:ltr;text-align:center" placeholder="17:10" value="${oldTime||''}"></div>
+    ${replaces ? `<div class="muted">اصلاحِ ساعتِ ثبت‌شده‌ی <b>${fa(oldTime)}</b></div>` : ''}
+    <div class="row"><input class="inp" id="cReason" style="flex:1" placeholder="دلیل — مثلاً: خروج را فراموش کردم"></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-x>انصراف</button><button class="btn pri" data-s>ارسال برایِ تأییدِ مدیر</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  o.querySelector('[data-s]').onclick = async () => {
+    try{ await api('correction/', {date, kind:$('cKind').value, time:$('cTime').value, reason:$('cReason').value, replaces:replaces||null});
+         o.remove(); toast('✅ درخواست برایِ مدیرتون فرستاده شد'); await loadState(); render(); }catch(e){ toast('❌ '+e.message); }
+  };
 }
 
-// ── 📊 گزارش ──
-const hmn = m => m ? fa(Math.floor(m/60)) + ':' + fa(String(m%60).padStart(2,'0')) : '—';
-function monthNow(){ return S.st.today.slice(0,7); }
-async function myReport(month){
-  month = month || monthNow();
-  try{
-    const d = await api('report/?mine=1&month=' + month), r = d.rows[0], t = r.total;
-    $('pane').innerHTML = `<div class="card"><div class="row"><b>📊 گزارشِ ماهِ ${fa(month.replace('-','/'))}</b><input class="inp" id="mon" value="${month}" style="width:110px;direction:ltr;text-align:center"><button class="btn sm" onclick="myReport($('mon').value)">نمایش</button></div>
-      <div class="chips" style="margin:8px 0">${chipsTot(t)}</div>${daysTable(r.days)}</div>`;
+// ── 📅 کارکرد ──
+const KX_SUM = t => `
+  <div class="sum">
+    <div>روزهایِ موظفی<b>${fa(t.required_days)} روز</b></div><div>روزهایِ حضور<b>${fa(t.present_days)} روز</b></div>
+    <div>غیبت<b style="color:${t.absent_days?'var(--red)':''}">${fa(t.absent_days)} روز</b></div><div>مرخصی<b>${fa(t.leave_days)} روز</b></div>
+    <div>مأموریت<b>${fa(t.mission_days)} روز</b></div><div>ساعاتِ موظفی<b>${hm(t.required_min)}</b></div>
+    <div>کارکردِ واقعی<b>${hm(t.worked_min)}</b></div><div>اضافه‌کاری<b>${hm(t.overtime_min)}</b></div>
+    <div>کسرکار<b>${hm(t.deficit_min)}</b></div><div>تأخیر<b>${hm(t.late_min)}</b></div><div>تعجیلِ خروج<b>${hm(t.early_min)}</b></div>
+    <div>مرخصیِ ساعتی<b>${hm(t.hourly_leave_min)}</b></div><div>تردد ناقص<b style="color:${t.incomplete_days?'var(--red)':''}">${fa(t.incomplete_days)} روز</b></div>
+    ${t.overtime_unapproved_min ? `<div>اضافه‌کاریِ بدونِ مجوز<b style="color:var(--accent)">${hm(t.overtime_unapproved_min)}</b></div>` : ''}
+  </div>`;
+function kxTable(k, admin){
+  return `<div class="kx-head"><div><b>کارکردِ ${esc(k.staff.name)} — ${esc(k.month_label.replace(/\d+/g,x=>fa(x)))}</b><div class="muted">واحد: ${esc(k.staff.unit||'—')} · شیفت: اداری ${fa(k.shift.start)} تا ${fa(k.shift.end)} (پنجشنبه تا ${fa(k.shift.end_thu)})</div></div>
+    <div class="kx-nav"><button class="btn sm" data-mon="-1">← ماهِ قبل</button><button class="btn sm" data-mon="1">ماهِ بعد →</button></div></div>
+    <div class="tblw"><table class="kx"><thead><tr><th>روز</th><th>تاریخ</th><th>ورود</th><th>خروج</th><th>کارکرد</th><th>تأخیر</th><th>تعجیل</th><th>اضافه‌کار</th><th>وضعیت</th><th>توضیحات</th><th></th></tr></thead><tbody>
+    ${k.days.filter(x=>!x.future).map(x=>`<tr class="${x.status==='تردد ناقص'?'inc':!x.work_day?'off':x.status==='غیبت'?'abs':''}">
+      <td>${x.weekday}</td><td>${fa(x.day)}</td><td>${x.in?fa(x.in):'—'}</td><td>${x.out?fa(x.out):'—'}</td><td>${hm(x.work_min)}</td>
+      <td>${mins(x.late_min)}</td><td>${mins(x.early_min)}</td><td>${x.over_min?(x.overtime_flag?'⚠ ':'')+mins(x.over_min):'—'}</td>
+      <td>${x.icon} ${esc(x.status)}${x.pending?' ✏️':''}${x.review?' ⚠':''}</td><td class="l" style="font-size:11.5px;color:var(--muted)">${esc(x.note||x.decision_note||'')}</td>
+      <td><button class="btn sm" data-det="${x.date}">جزئیات</button></td></tr>`).join('')}
+    </tbody></table></div>${KX_SUM(k.total)}`;
+}
+function wireKx(box, k, admin, reload){
+  box.querySelectorAll('[data-mon]').forEach(b=>b.onclick=()=>reload(shiftMonth(k.month, +b.dataset.mon)));
+  box.querySelectorAll('[data-det]').forEach(b=>b.onclick=()=>dayDetail(k, k.days.find(x=>x.date===b.dataset.det), admin, ()=>reload(k.month)));
+}
+function dayDetail(k, x, admin, reload){
+  const ps = x.punches.map(p=>`<div class="rrow"><b>${p.kind==='in'?'🟢 ورود':'🔵 خروج'} ${fa(p.time)}</b><span class="muted">${esc(p.status_label)}${p.source==='correction'?' · درخواستِ اصلاح: '+esc(p.note):''}${p.flags&&p.flags.old_time?' · قبلی '+fa(p.flags.old_time):''}${p.flags&&p.flags.decided_by?' · تصمیم: '+esc(p.flags.decided_by):''}</span>
+    <span style="margin-right:auto"></span>${!admin && ['ok','review','approved'].includes(p.status) ? `<button class="btn sm" data-fix="${p.id}" data-k="${p.kind}" data-t="${p.time}">اصلاحِ این ساعت</button>` : ''}
+    ${admin && p.status==='pending' ? `<button class="btn sm ok" data-ap="${p.id}">تأیید</button><button class="btn sm no" data-rj="${p.id}">رد</button>` : ''}</div>`).join('') || '<div class="muted">ترددی ثبت نشده</div>';
+  const o = modal(`<h3>${x.weekday} ${fa(x.date.replace(/-/g,'/'))}</h3>
+    <div class="sum" style="margin:0 0 10px"><div>ورود<b>${x.in?fa(x.in):'ثبت نشده'}</b></div><div>خروج<b>${x.out?fa(x.out):'ثبت نشده'}</b></div><div>ساعتِ موظفی<b>${hm(x.required_min)}</b></div><div>وضعیت<b>${x.icon} ${esc(x.status)}</b></div></div>
+    ${x.note ? `<div class="warnbox">${esc(x.note)}</div>` : ''}
+    <h3 style="font-size:13px">ترددها</h3>${ps}
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      ${!admin && !x.future ? `<button class="btn pri" data-new>✏️ درخواستِ اصلاحِ تردد</button>` : ''}
+      ${admin && x.over_min ? `<button class="btn ${x.overtime_ok?'':'ok'}" data-ot>${x.overtime_ok?'لغوِ مجوزِ اضافه‌کاری':'✅ مجوزِ اضافه‌کاری ('+mins(x.over_min)+')'}</button>` : ''}
+      ${admin && (x.status==='غیبت' || x.status==='غیبتِ موجه') ? `<button class="btn" data-ex>${x.absence_excused?'لغوِ موجه':'غیبت رو موجه کن'}</button>` : ''}
+      <button class="btn" data-x>بستن</button></div>`);
+  o.querySelector('[data-x]').onclick = () => o.remove();
+  const nw = o.querySelector('[data-new]'); if(nw) nw.onclick = () => { o.remove(); corrDlg(x.date, null, x.in && !x.out ? 'out' : (!x.in ? 'in' : 'out')); };
+  o.querySelectorAll('[data-fix]').forEach(b=>b.onclick=()=>{ o.remove(); corrDlg(x.date, +b.dataset.fix, b.dataset.k, b.dataset.t); });
+  const act = async (body) => { try{ await api('admin/action/', body); toast('✅ انجام شد'); o.remove(); reload(); }catch(e){ toast('❌ '+e.message); } };
+  o.querySelectorAll('[data-ap]').forEach(b=>b.onclick=()=>act({what:'punch', id:+b.dataset.ap, action:'approve'}));
+  o.querySelectorAll('[data-rj]').forEach(b=>b.onclick=()=>act({what:'punch', id:+b.dataset.rj, action:'reject'}));
+  const ot = o.querySelector('[data-ot]'); if(ot) ot.onclick = () => act({what:'day', email:k.staff.email, date:x.date, overtime_ok:!x.overtime_ok});
+  const ex = o.querySelector('[data-ex]'); if(ex) ex.onclick = () => act({what:'day', email:k.staff.email, date:x.date, absence_excused:!x.absence_excused});
+}
+async function paneMine(month){
+  S.kxMonth = month || S.kxMonth || S.st.today.slice(0,7);
+  $('pane').innerHTML = '<div class="card"><div class="hint">در حالِ بارگذاری…</div></div>';
+  try{ const d = await api('report/?mine=1&month=' + S.kxMonth); const k = d.rows[0];
+    $('pane').innerHTML = `<div class="card">${kxTable(k, false)}<div class="muted" style="margin-top:10px">برایِ مرخصی و مأموریت: <a href="org.html#leave">🏢 سازمان ← 🏖️ مرخصی و مأموریت</a> (یا در بله «مرخصی» رو بفرستید).</div></div>`;
+    wireKx($('pane'), k, false, paneMine);
   }catch(e){ $('pane').innerHTML = '<div class="card hint">❌ '+esc(e.message)+'</div>'; }
 }
-function chipsTot(t){ return `<span class="chip">حضور ${fa(t.present)} روز</span><span class="chip">غیبت ${fa(t.absent)}</span><span class="chip">کار ${hmn(t.work_min)}</span><span class="chip">تأخیر ${hmn(t.late_min)}</span><span class="chip">تعجیل ${hmn(t.early_min)}</span><span class="chip">اضافه‌کار ${hmn(t.over_min)}</span>${t.review?`<span class="chip review">⚠ ${fa(t.review)} روز بررسی</span>`:''}`; }
-function daysTable(days){ return `<div class="tblw"><table><thead><tr><th>تاریخ</th><th>ورود</th><th>خروج</th><th>کار</th><th>تأخیر</th><th>تعجیل</th><th>اضافه‌کار</th><th></th></tr></thead><tbody>${days.map(x=>`<tr style="${!x.work_day?'opacity:.55':''}"><td>${fa(x.date.slice(5).replace('-','/'))}${!x.work_day?' · '+esc(x.why):''}</td><td>${x.in?fa(x.in):(x.absent?'<b style="color:var(--red)">غیبت</b>':'—')}</td><td>${x.out?fa(x.out):'—'}</td><td>${hmn(x.work_min)}</td><td>${x.late_min?'<b style="color:var(--accent)">'+hmn(x.late_min)+'</b>':'—'}</td><td>${hmn(x.early_min)}</td><td>${hmn(x.over_min)}</td><td>${x.review?'⚠':''}</td></tr>`).join('')}</tbody></table></div>`; }
 
 // ── 🛠️ مدیریت ──
 async function adminView(){
   try{ S.admin = await api('admin/'); }catch(e){ $('pane').innerHTML='<div class="card hint">❌ '+esc(e.message)+'</div>'; return; }
-  const a = S.admin, s = a.settings;
-  const sub = [['today','امروز'],['review','بررسی‌ها ('+fa(a.review.length)+')'],['devices','گوشی‌ها ('+fa(a.devices.filter(x=>x.status==='pending').length)+')'],['report','گزارشِ ماهانه'],['settings','تنظیمات']];
-  const hashSub = (location.hash.match(/#admin:(\w+)/)||[])[1]; if(hashSub) { S.atab = hashSub; history.replaceState(null,'',location.pathname); }
-  let body = '';
-  if(S.atab==='today') body = `<div class="tblw"><table><thead><tr><th>کارمند</th><th>ورود</th><th>وضعیت</th><th>تأخیر</th></tr></thead><tbody>${a.board.map(b=>`<tr><td>${esc(b.name)}${b.review?' ⚠':''}</td><td>${b.in?fa(b.in):'—'}</td><td>${b.state==='در شرکت'?'🟢 ':b.state==='خارج شده'?'🔵 ':'⚪ '}${b.state}</td><td>${b.late?'<b style="color:var(--accent)">'+fa(b.late)+' دقیقه</b>':'—'}</td></tr>`).join('')}</tbody></table></div>`;
-  if(S.atab==='review') body = a.review.length ? a.review.map(p=>`<div class="row" style="border-bottom:1px solid var(--border);padding:6px 0"><b>${esc(p.staff.name)}</b> · ${p.kind==='in'?'ورود':'خروج'} ${fa(p.time)} · ${fa(p.date.replace(/-/g,'/'))} <span class="muted">${p.source==='manual'?'دستی: '+esc(p.note):['device','network','gps'].filter(k=>p.flags[k]===false).map(k=>({device:'❌ گوشی',network:'❌ اینترنت',gps:'❌ موقعیت'+(p.flags.gps_dist?' ('+fa(p.flags.gps_dist)+' متر)':'')})[k]).join(' ')}</span><span style="margin-right:auto"></span><button class="btn sm ok" onclick="act('punch',${p.id},'approve')">تأیید</button><button class="btn sm no" onclick="act('punch',${p.id},'reject')">رد</button></div>`).join('') : '<div class="hint">موردی برایِ بررسی نیست ✨</div>';
-  if(S.atab==='devices') body = a.devices.length ? a.devices.map(d=>`<div class="row" style="border-bottom:1px solid var(--border);padding:6px 0"><b>${esc(d.staff)}</b> · ${esc(d.label||'—')} · <span class="muted">${esc(d.status_label)} · ${fa(d.created)}</span><span style="margin-right:auto"></span>${d.status==='pending'?`<button class="btn sm ok" onclick="act('device',${d.id},'approve')">تأیید</button>`:''}<button class="btn sm no" onclick="act('device',${d.id},'revoke')">لغو</button></div>`).join('') + '<div class="muted" style="margin-top:8px">هر نفر یک گوشیِ حضور داره؛ تأییدِ گوشیِ جدید، قبلی رو لغو می‌کنه.</div>' : '<div class="hint">هنوز گوشی‌ای ثبت نشده</div>';
-  if(S.atab==='report'){ body = `<div class="row"><input class="inp" id="amon" value="${monthNow()}" style="width:110px;direction:ltr;text-align:center"><button class="btn sm" onclick="adminReport()">نمایش</button><button class="btn sm" onclick="adminExcel()">⬇ Excel</button></div><div id="arep"></div>`; }
-  if(S.atab==='settings'){
-    body = `<h3>🌐 اینترنتِ شرکت</h3><div class="muted">آی‌پیِ همین الانِ شما: <b dir="ltr">${esc(a.my_ip)}</b> — اگه الان در شرکتید و به وای‌فایِ شرکت وصلید، تأییدش کنید.</div>
-      <div class="row"><button class="btn sm pri" onclick="act('ip',null,'add',{ip:'${esc(a.my_ip)}'})">✅ این اینترنتِ شرکته</button></div>
-      <div class="muted">ثبت‌شده: ${s.office_ips.length?s.office_ips.map(ip=>`<span class="chip" dir="ltr">${esc(ip)} <a href="#" onclick="act('ip',null,'remove',{ip:'${esc(ip)}'});return false">✕</a></span>`).join(' '):'— هنوز ثبت نشده (لایه‌ی اینترنت فعلاً «نامشخص»)'}</div>
-      ${a.ip_candidates.length?`<div class="muted" style="margin-top:6px">پیشنهادِ خودکار (از ورودهایِ ۱۴ روزِ اخیر): ${a.ip_candidates.map(c=>`<span class="chip" dir="ltr">${esc(c.ip)} · ${fa(c.share)}٪ · ${fa(c.people)} نفر ${s.office_ips.includes(c.ip)?'✅':`<a href="#" onclick="act('ip',null,'add',{ip:'${esc(c.ip)}'});return false">تأیید</a>`}</span>`).join(' ')}</div>`:''}
-      <div class="muted" style="margin-top:4px">اگه اینترنتِ شرکت عوض شد، آی‌پیِ جدید با همین دکمه ثبت می‌شه.</div>
-      <h3 style="margin-top:14px">📍 موقعیتِ شرکت</h3><div class="muted">${s.office_lat!=null?`ثبت شده · شعاع ${fa(s.radius_m)} متر`:'هنوز ثبت نشده (لایه‌ی موقعیت فعلاً «نامشخص»)'}</div>
-      <div class="row"><input class="inp" id="rad" value="${s.radius_m}" style="width:80px;text-align:center"> متر <button class="btn sm pri" onclick="setLoc()">📍 موقعیتِ همین الانِ من = شرکت</button></div>
-      <h3 style="margin-top:14px">⏰ ساعتِ کاری</h3>
-      <div class="row">شروع <input class="inp" id="s1" value="${s.start}" style="width:70px;direction:ltr"> فرجه تا <input class="inp" id="s2" value="${s.grace}" style="width:70px;direction:ltr"> یادآوری <input class="inp" id="s3" value="${s.remind}" style="width:70px;direction:ltr"></div>
-      <div class="row">پایان شنبه–چهارشنبه <input class="inp" id="s4" value="${s.end}" style="width:70px;direction:ltr"> پنجشنبه <input class="inp" id="s5" value="${s.end_thu}" style="width:70px;direction:ltr"> <button class="btn sm pri" onclick="act('settings',null,null,{start:$('s1').value,grace:$('s2').value,remind:$('s3').value,end:$('s4').value,end_thu:$('s5').value})">ذخیره</button></div>
-      <div class="muted">جمعه و تعطیلاتِ رسمی و اعلامی خودکار غیرِکاری حساب می‌شن.</div>`;
-  }
-  $('pane').innerHTML = `<div class="card"><div class="tabs">${sub.map(([k,l])=>`<button class="tab ${S.atab===k?'on':''}" onclick="S.atab='${k}';adminView()">${l}</button>`).join('')}</div>${body}</div>`;
-  if(S.atab==='report') adminReport();
+  const hs = (location.hash.match(/#admin:(\w+)/)||[])[1]; if(hs){ S.atab = hs; history.replaceState(null,'',location.pathname); }
+  const tabs = [['today','امروز'],['review','🔴 موارد نیازمند بررسی'],['person','📅 کارکردِ پرسنل'],['all','📊 گزارشِ تجمیعی'],['devices','گوشی‌ها'],['settings','تنظیمات']];
+  $('pane').innerHTML = `<div class="card"><div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${S.atab===k?'on':''}" onclick="S.atab='${k}';adminView()">${l}</button>`).join('')}</div><div id="abody"></div></div>`;
+  ({today:aToday, review:aReview, person:aPerson, all:aAll, devices:aDevices, settings:aSettings}[S.atab]||aReview)();
 }
-async function act(what, id, action, extra){ try{ await api('admin/action/', Object.assign({what, id, action}, extra||{})); toast('✅ انجام شد'); adminView(); }catch(e){ toast('❌ '+e.message); } }
-async function setLoc(){ const g = await getGeo(); if(!g){ toast('❌ موقعیت خونده نشد — اجازه‌ی موقعیت رو بدید'); return; } act('location', null, null, {lat:g.lat, lng:g.lng, radius_m:+$('rad').value||250}); }
-async function adminReport(){
-  const month = ($('amon')||{}).value || monthNow();
-  try{ const d = await api('report/?month=' + month); S.rep = d;
-    $('arep').innerHTML = `<div class="tblw"><table><thead><tr><th>کارمند</th><th>حضور</th><th>غیبت</th><th>کار</th><th>تأخیر</th><th>تعجیل</th><th>اضافه‌کار</th><th>بررسی</th></tr></thead><tbody>${d.rows.map(r=>{const t=r.total;return `<tr><td>${esc(r.staff.name)}</td><td>${fa(t.present)}</td><td>${fa(t.absent)}</td><td>${hmn(t.work_min)}</td><td>${hmn(t.late_min)}</td><td>${hmn(t.early_min)}</td><td>${hmn(t.over_min)}</td><td>${t.review?'⚠ '+fa(t.review):'—'}</td></tr>`;}).join('')}</tbody></table></div>`;
-  }catch(e){ $('arep').innerHTML = '<div class="hint">❌ '+esc(e.message)+'</div>'; }
+function aToday(){
+  const a = S.admin;
+  $('abody').innerHTML = `<div class="tblw"><table><thead><tr><th>کارمند</th><th>ورود</th><th>وضعیت</th><th>تأخیر</th><th></th></tr></thead><tbody>${a.board.map(b=>`<tr><td>${esc(b.name)}${b.review?' ⚠':''}</td><td>${b.in?fa(b.in):'—'}</td><td>${b.state==='در شرکت'?'🟢 ':b.state==='خارج شده'?'🔵 ':'⚪ '}${b.state}</td><td>${b.late?'<b style="color:var(--accent)">'+fa(b.late)+' دقیقه</b>':'—'}</td><td><button class="btn sm" onclick="S.person='${esc(b.email)}';S.atab='person';adminView()">کارکرد</button></td></tr>`).join('')}</tbody></table></div>`;
 }
-async function adminExcel(){
+async function aReview(){
+  $('abody').innerHTML = '<div class="hint">در حالِ بارگذاری…</div>';
+  let d; try{ d = await api('review/'); }catch(e){ $('abody').innerHTML = '<div class="hint">❌ '+esc(e.message)+'</div>'; return; }
+  if(!S.rvSel || !d.groups.some(g=>g.key===S.rvSel)) S.rvSel = (d.groups.find(g=>g.count)||d.groups[0]).key;
+  const g = d.groups.find(x=>x.key===S.rvSel);
+  const row = (r) => {
+    if(g.key==='corrections' || g.key==='suspicious') return `<div class="rrow"><b>${esc(r.staff.name)}</b> · ${fa(r.date.replace(/-/g,'/'))} · ${r.kind==='in'?'ورود':'خروج'} ${fa(r.time)}${r.flags&&r.flags.old_time?' (قبلی '+fa(r.flags.old_time)+')':''} <span class="muted">${g.key==='corrections'?esc(r.note):['device','network','gps'].filter(k=>r.flags[k]===false).map(k=>({device:'❌ گوشی',network:'❌ اینترنت',gps:'❌ موقعیت'})[k]).join(' ')}</span><span style="margin-right:auto"></span><button class="btn sm ok" onclick="rvAct({what:'punch',id:${r.id},action:'approve'})">تأیید</button><button class="btn sm no" onclick="rvAct({what:'punch',id:${r.id},action:'reject'})">رد</button></div>`;
+    if(g.key==='leaves') return `<div class="rrow">${r.icon} <b>${esc(r.staff.name)}</b> · ${esc(r.kind_label)} · ${fa(r.start_date.replace(/-/g,'/'))}${r.kind==='hourly'?' '+fa(r.start_time)+'–'+fa(r.end_time):(r.end_date!==r.start_date?' تا '+fa(r.end_date.replace(/-/g,'/')):'')} <span class="muted">${esc(r.reason||r.place||'')}</span><span style="margin-right:auto"></span><button class="btn sm ok" onclick="lvAct(${r.id},'approve')">تأیید</button><button class="btn sm no" onclick="lvAct(${r.id},'reject')">رد</button></div>`;
+    if(g.key==='devices') return `<div class="rrow"><b>${esc(r.staff)}</b> · ${esc(r.label||'—')}<span style="margin-right:auto"></span><button class="btn sm ok" onclick="rvAct({what:'device',id:${r.id},action:'approve'})">تأیید</button><button class="btn sm no" onclick="rvAct({what:'device',id:${r.id},action:'revoke'})">لغو</button></div>`;
+    const extra = g.key==='overtime' ? `<button class="btn sm ok" onclick="rvAct({what:'day',email:'${esc(r.email)}',date:'${r.date}',overtime_ok:true})">مجوز (${mins(r.over_min)})</button>`
+      : g.key==='absence' ? `<button class="btn sm" onclick="rvAct({what:'day',email:'${esc(r.email)}',date:'${r.date}',absence_excused:true})">موجه</button>` : '';
+    return `<div class="rrow"><b>${esc(r.name)}</b> · ${r.weekday} ${fa(r.date.replace(/-/g,'/'))} · ورود ${r.in?fa(r.in):'—'} · خروج ${r.out?fa(r.out):'—'} ${r.note?'<span class="muted">'+esc(r.note)+'</span>':''}<span style="margin-right:auto"></span>${extra}<button class="btn sm" onclick="S.person='${esc(r.email)}';S.pMonth='${r.date.slice(0,7)}';S.atab='person';adminView()">کارکرد</button></div>`;
+  };
+  $('abody').innerHTML = `<div class="rv"><div>${d.groups.map(x=>`<button class="rv-c ${x.key===S.rvSel?'on':''}" onclick="S.rvSel='${x.key}';aReview()"><span>${x.icon}</span>${esc(x.label)}<span class="n ${x.count?'':'z'}">${fa(x.count)}</span></button>`).join('')}</div>
+    <div>${g.rows.length ? g.rows.slice(0,150).map(row).join('') : '<div class="hint">موردی نیست ✨</div>'}</div></div>`;
+}
+async function rvAct(body){ try{ await api('admin/action/', body); toast('✅ انجام شد'); aReview(); }catch(e){ toast('❌ '+e.message); } }
+async function lvAct(id, action){ try{ await api('leave/'+id+'/action/', {action}, API); toast('✅ انجام شد'); aReview(); }catch(e){ toast('❌ '+e.message); } }
+async function aPerson(month){
+  const people = S.admin.board;
+  if(!S.person) S.person = people[0] && people[0].email;
+  S.pMonth = month || S.pMonth || S.st.today.slice(0,7);
+  $('abody').innerHTML = `<div class="row">پرسنل: <select class="inp" id="pSel">${people.map(p=>`<option value="${esc(p.email)}" ${p.email===S.person?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div><div id="pbox"><div class="hint">در حالِ بارگذاری…</div></div>`;
+  $('pSel').onchange = e => { S.person = e.target.value; aPerson(S.pMonth); };
+  try{ const d = await api('report/?email=' + encodeURIComponent(S.person) + '&month=' + S.pMonth); const k = d.rows[0];
+    $('pbox').innerHTML = kxTable(k, true); wireKx($('pbox'), k, true, aPerson);
+  }catch(e){ $('pbox').innerHTML = '<div class="hint">❌ '+esc(e.message)+'</div>'; }
+}
+async function aAll(month){
+  S.aMonth = month || S.aMonth || S.st.today.slice(0,7);
+  $('abody').innerHTML = '<div class="hint">در حالِ بارگذاری…</div>';
+  try{ const d = await api('report/?month=' + S.aMonth); S.rep = d;
+    $('abody').innerHTML = `<div class="kx-head"><b>گزارشِ تجمیعیِ ${fa(S.aMonth.replace('-','/'))}</b><div class="kx-nav"><button class="btn sm" onclick="aAll(shiftMonth(S.aMonth,-1))">← ماهِ قبل</button><button class="btn sm" onclick="aAll(shiftMonth(S.aMonth,1))">ماهِ بعد →</button><button class="btn sm" onclick="allExcel()">⬇ Excel</button></div></div>
+      <div class="tblw"><table class="kx"><thead><tr><th>کارمند</th><th>موظفی</th><th>حضور</th><th>غیبت</th><th>مرخصی</th><th>مأموریت</th><th>ناقص</th><th>کارکرد</th><th>اضافه‌کار</th><th>کسرکار</th><th>تأخیر</th><th>تعجیل</th><th>مرخصیِ ساعتی</th><th></th></tr></thead><tbody>
+      ${d.rows.map(r=>{const t=r.total; return `<tr><td class="l">${esc(r.staff.name)}<div class="muted">${esc(r.staff.unit||'')}</div></td><td>${fa(t.required_days)}</td><td>${fa(t.present_days)}</td><td>${t.absent_days?'<b style="color:var(--red)">'+fa(t.absent_days)+'</b>':'۰'}</td><td>${fa(t.leave_days)}</td><td>${fa(t.mission_days)}</td><td>${t.incomplete_days?'<b style="color:var(--red)">'+fa(t.incomplete_days)+'</b>':'۰'}</td><td>${hm(t.worked_min)}</td><td>${hm(t.overtime_min)}</td><td>${hm(t.deficit_min)}</td><td>${hm(t.late_min)}</td><td>${hm(t.early_min)}</td><td>${hm(t.hourly_leave_min)}</td><td><button class="btn sm" onclick="S.person='${esc(r.staff.email)}';S.pMonth='${S.aMonth}';S.atab='person';adminView()">جزئیات</button></td></tr>`;}).join('')}
+      </tbody></table></div>`;
+  }catch(e){ $('abody').innerHTML = '<div class="hint">❌ '+esc(e.message)+'</div>'; }
+}
+async function allExcel(){
   if(!S.rep) return;
-  try{ await loadLib('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','XLSX'); }catch(e){ toast('❌ '+e.message); return; }
+  try{ await new Promise((ok,no)=>{ if(window.XLSX) return ok(); const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=ok; s.onerror=()=>no(new Error('کتابخانه‌ی Excel بارگذاری نشد')); document.head.appendChild(s); }); }catch(e){ toast('❌ '+e.message); return; }
   const wb = XLSX.utils.book_new();
-  const sum = [['کارمند','روزِ حضور','غیبت','ساعتِ کار (دقیقه)','تأخیر (دقیقه)','تعجیل (دقیقه)','اضافه‌کار (دقیقه)']].concat(S.rep.rows.map(r=>[r.staff.name,r.total.present,r.total.absent,r.total.work_min,r.total.late_min,r.total.early_min,r.total.over_min]));
+  const sum = [['کارمند','واحد','روزهایِ موظفی','حضور','غیبت','مرخصی (روز)','مأموریت','تردد ناقص','ساعاتِ موظفی (دقیقه)','کارکرد (دقیقه)','اضافه‌کار (دقیقه)','کسرکار (دقیقه)','تأخیر (دقیقه)','تعجیل (دقیقه)','مرخصیِ ساعتی (دقیقه)']]
+    .concat(S.rep.rows.map(r=>{const t=r.total; return [r.staff.name,r.staff.unit,t.required_days,t.present_days,t.absent_days,t.leave_days,t.mission_days,t.incomplete_days,t.required_min,t.worked_min,t.overtime_min,t.deficit_min,t.late_min,t.early_min,t.hourly_leave_min];}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), 'خلاصه');
-  const det = [['کارمند','تاریخ','روزِ کاری','ورود','خروج','کار (دقیقه)','تأخیر','تعجیل','اضافه‌کار','بررسی']];
-  S.rep.rows.forEach(r=>r.days.forEach(x=>det.push([r.staff.name,x.date,x.work_day?'بله':'خیر — '+x.why,x.in||'',x.out||'',x.work_min,x.late_min,x.early_min,x.over_min,x.review?'بله':''])));
+  const det = [['کارمند','روز','تاریخ','ورود','خروج','کارکرد','تأخیر','تعجیل','اضافه‌کار','وضعیت','توضیحات']];
+  S.rep.rows.forEach(r=>r.days.filter(x=>!x.future).forEach(x=>det.push([r.staff.name,x.weekday,x.date,x.in||'',x.out||'',x.work_min,x.late_min,x.early_min,x.over_min,x.status,x.note||''])));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(det), 'جزئیات');
-  XLSX.writeFile(wb, 'حضور-و-غیاب-' + S.rep.month + '.xlsx');
+  XLSX.writeFile(wb, 'کارکرد-پرسنل-' + S.rep.month + '.xlsx');
 }
+function aDevices(){
+  const a = S.admin;
+  $('abody').innerHTML = a.devices.length ? a.devices.map(d=>`<div class="rrow"><b>${esc(d.staff)}</b> · ${esc(d.label||'—')} · <span class="muted">${esc(d.status_label)} · ${fa(d.created)}</span><span style="margin-right:auto"></span>${d.status==='pending'?`<button class="btn sm ok" onclick="dAct(${d.id},'approve')">تأیید</button>`:''}<button class="btn sm no" onclick="dAct(${d.id},'revoke')">لغو</button></div>`).join('') + '<div class="muted" style="margin-top:8px">هر نفر یک گوشیِ حضور داره؛ تأییدِ گوشیِ جدید، قبلی رو لغو می‌کنه.</div>' : '<div class="hint">هنوز گوشی‌ای ثبت نشده</div>';
+}
+async function dAct(id, action){ try{ await api('admin/action/', {what:'device', id, action}); toast('✅ انجام شد'); adminView(); }catch(e){ toast('❌ '+e.message); } }
+function aSettings(){
+  const a = S.admin, s = a.settings;
+  $('abody').innerHTML = `<h3>🌐 اینترنتِ شرکت</h3><div class="muted">آی‌پیِ همین الانِ شما: <b dir="ltr">${esc(a.my_ip)}</b> — اگه الان در شرکتید و رویِ وای‌فایِ شرکت، تأییدش کنید.</div>
+    <div class="row"><button class="btn sm pri" onclick="setAct({what:'ip',action:'add',ip:'${esc(a.my_ip)}'})">✅ این اینترنتِ شرکته</button></div>
+    <div class="muted">ثبت‌شده: ${s.office_ips.length?s.office_ips.map(ip=>`<span class="chip" dir="ltr">${esc(ip)} <a href="#" onclick="setAct({what:'ip',action:'remove',ip:'${esc(ip)}'});return false">✕</a></span>`).join(' '):'— هنوز ثبت نشده'}</div>
+    ${a.ip_candidates.length?`<div class="muted" style="margin-top:6px">پیشنهادِ خودکار: ${a.ip_candidates.map(c=>`<span class="chip" dir="ltr">${esc(c.ip)} · ${fa(c.share)}٪ ${s.office_ips.includes(c.ip)?'✅':`<a href="#" onclick="setAct({what:'ip',action:'add',ip:'${esc(c.ip)}'});return false">تأیید</a>`}</span>`).join(' ')}</div>`:''}
+    <h3 style="margin-top:14px">📍 موقعیتِ شرکت</h3><div class="muted">${s.office_lat!=null?`ثبت شده · شعاع ${fa(s.radius_m)} متر`:'هنوز ثبت نشده'}</div>
+    <div class="row"><input class="inp" id="rad" value="${s.radius_m}" style="width:80px;text-align:center"> متر <button class="btn sm pri" onclick="setLoc()">📍 موقعیتِ همین الانِ من = شرکت</button></div>
+    <h3 style="margin-top:14px">⏰ ساعتِ کاری و قوانین</h3>
+    <div class="row">شروع <input class="inp" id="s1" value="${s.start}" style="width:70px;direction:ltr"> فرجه تا <input class="inp" id="s2" value="${s.grace}" style="width:70px;direction:ltr"> یادآوری <input class="inp" id="s3" value="${s.remind}" style="width:70px;direction:ltr"></div>
+    <div class="row">پایان شنبه–چهارشنبه <input class="inp" id="s4" value="${s.end}" style="width:70px;direction:ltr"> پنجشنبه <input class="inp" id="s5" value="${s.end_thu}" style="width:70px;direction:ltr"></div>
+    <div class="row">سقفِ مرخصیِ استحقاقی <input class="inp" id="s6" value="${s.entitled_days}" style="width:60px;text-align:center"> روز در سال · اضافه‌کاریِ بیش از <input class="inp" id="s7" value="${s.overtime_flag}" style="width:60px;text-align:center"> دقیقه نیازِ مجوز داره</div>
+    <div class="row"><button class="btn sm pri" onclick="setAct({what:'settings',start:$('s1').value,grace:$('s2').value,remind:$('s3').value,end:$('s4').value,end_thu:$('s5').value,entitled_days:$('s6').value,overtime_flag:$('s7').value})">ذخیره</button></div>`;
+}
+async function setAct(body){ try{ await api('admin/action/', body); toast('✅ انجام شد'); adminView(); }catch(e){ toast('❌ '+e.message); } }
+async function setLoc(){ const g = await getGeo(); if(!g){ toast('❌ موقعیت خونده نشد — اجازه‌ی موقعیت رو بدید'); return; } setAct({what:'location', lat:g.lat, lng:g.lng, radius_m:+$('rad').value||250}); }
 
 (async function init(){
   if(!MadarAuth.token()){ MadarAuth.require(true); $('app').innerHTML = '<div class="hint" style="padding:40px">برایِ حضور و غیاب با ورودِ امن وارد شوید.</div>'; return; }
   try{ await loadState(); }catch(e){ $('app').innerHTML = '<div class="hint" style="padding:40px">⚠️ '+esc(e.message)+'</div>'; return; }
   if(/^#admin:/.test(location.hash) && S.st.is_mgmt) S.tab = 'admin';
-  render();
-  const m = /^#p=(MATT1\.[\w.]+)/.exec(location.hash);       // از دوربینِ معمولیِ گوشی اومده
-  if(m){ S.tab = 'scan'; render(); doPunch(m[1]); }
-  // اگه صفحه از قبل باز بود و لینکِ کیوآرکد در همین صفحه باز شد (فقط # عوض می‌شه)
+  if(location.hash === '#mine'){ S.tab = 'mine'; history.replaceState(null,'',location.pathname); }
+  const m = /^#p=(MATT1\.[\w.]+)/.exec(location.hash);
+  if(m){ S.mode='phone'; S.tab='scan'; render(); doPunch(m[1], null); } else render();
   window.addEventListener('hashchange', () => {
     const k = /^#p=(MATT1\.[\w.]+)/.exec(location.hash);
-    if(k && S.st){ S.tab = 'scan'; render(); doPunch(k[1]); }
+    if(k && S.st){ S.mode='phone'; doPunch(k[1], null); return; }
+    if(location.hash === '#mine'){ S.tab = 'mine'; history.replaceState(null,'',location.pathname); render(); return; }
+    if(/^#admin:/.test(location.hash) && S.st && S.st.is_mgmt){ S.tab = 'admin'; render(); }
   });
 })();
 </script>
