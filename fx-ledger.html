@@ -948,13 +948,14 @@ function wireRateBasisToggle(container, cb){
 }
 
 // ---------- DASHBOARD ----------
-async function renderDashboard(main){
+async function renderDashboard(main, reuseG){
   const basis = state.settings.rateBasis;
-  let g = await apiGetSummary(basis);
+  let g = reuseG || await apiGetSummary(basis);
   if(g){ fxLastSummary = g; fxSaveCache(); }
   else if(fxLastSummary){ g = fxLastSummary; showToast('⏱ خلاصه‌یِ ذخیره‌شده نشون داده می‌شه — سرور در دسترس نیست'); }
   if(!g){ main.innerHTML = '<div class="page-head"><p class="page-desc">❌ اتصال به سرور برقرار نشد</p></div>'; return; }
   summaryCache = g;
+  fxSyncThenRepaint(g, basis, ()=>currentTab==='dashboard' && document.getElementById('main')===main, ()=>renderDashboard(main, g));
   main.innerHTML = `
     <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between">
       <div>
@@ -1001,7 +1002,7 @@ async function renderDashboard(main){
     <div class="grid grid-3">
       <div class="card stat-card"><div class="stat-label">جمع یوان خریداری‌شده (حواله‌ها)</div><div class="stat-value yuan num">${fmtYuan(g.totalYuanBought)}</div></div>
       <div class="card stat-card"><div class="stat-label">جمع هزینه‌های ثبت‌شده (خرید+جابجایی+کارمزد)</div><div class="stat-value yuan num">${fmtYuan(g.totalExpenseYuan)}</div></div>
-      <div class="card stat-card"><div class="stat-label">موجودی کل یوان دست تأمین‌کنندگان</div><div class="stat-value yuan num">${fmtYuan(g.totalYuanBought - g.totalExpenseYuan)}</div></div>
+      <div class="card stat-card"><div class="stat-label">موجودی کل یوان دست تأمین‌کنندگان</div><div class="stat-value yuan num">${fmtYuan(g.supplierBalanceSum!==undefined ? g.supplierBalanceSum : (g.totalYuanBought - g.totalExpenseYuan))}</div></div>
     </div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
@@ -1508,6 +1509,7 @@ async function renderCustomersList(main, cachedSummary){
   const basis = state.settings.rateBasis;
   const g = cachedSummary || await apiGetSummary(basis);
   if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
+  fxSyncThenRepaint(g, basis, ()=>currentTab==='customers' && !currentCustomer && document.getElementById('main')===main, ()=>renderCustomersList(main, g));
   const filteredCustomers = g.customers.filter(c=>matchesSearch([
     c.name, c.balanceYuan, c.balanceRial, c.unlinkedRial, c.openOrderId?'باز':'تسویه',
   ], customersListSearchQuery));
@@ -2818,6 +2820,7 @@ async function renderSuppliersList(main, cachedSummary){
   const basis = state.settings.rateBasis;
   const g = cachedSummary || await apiGetSummary(basis);
   if(!g){ main.innerHTML = '<p class="page-desc">❌ اتصال به سرور برقرار نشد</p>'; return; }
+  fxSyncThenRepaint(g, basis, ()=>currentTab==='supplier' && !currentSupplier && document.getElementById('main')===main, ()=>renderSuppliersList(main, g));
   const filteredSuppliers = g.suppliers.filter(s=>matchesSearch([
     s.name, s.yuanBought, s.expenseYuan, s.yuanBalance, s.unpaidFreightRial,
   ], suppliersListSearchQuery));
@@ -2858,6 +2861,61 @@ async function apiGetSupplierLedger(supplier){
   try{ const r = await fetchWithRetry(FX_API+'supplier-ledger/?supplier='+encodeURIComponent(supplier)); return r.ok ? r.json() : null; }
   catch(err){ return null; }
 }
+// ⚠️ (۱۴۰۵/۰۷/۱۲) طبق دستورِ کاربر: «داشبورد باید دقیقاً همان عددِ دفترِ کامل را نشان بدهد — خودش چیزی حساب نکند».
+// برایِ هر تأمین‌کننده و هر مشتری، آخرین مانده‌یِ تجمعیِ همان دفتر برداشته می‌شه و جایگزینِ عددِ summary می‌شه.
+//  • تأمین‌کننده: آخرین ردیفِ همان «دفترِ کامل (تاریخچه‌یِ رویدادها)» که کاربر می‌بینه (بعد از ادغامِ اسناد، شاملِ تعدیل‌هایِ یوانی)
+//  • مشتری: آخرین رویدادِ دفترِ مشتری (همون عددی که بالایِ صفحه‌یِ دفترش هست)
+function fxSupplierLastBalance(events){
+  const col = fxCollapseSupplierEvents(events || []);
+  const last = col.length ? col[col.length-1] : null;
+  return { yuan: last ? Number(last.runningYuan)||0 : 0, rial: last ? Number(last.runningRial)||0 : 0 };
+}
+async function fxSyncSummaryFromLedgers(g, basis){
+  if(!g || g.__ledgerSynced) return false;
+  g.__ledgerSynced = true;                       // یک‌بار برایِ هر summary — جلویِ درخواستِ تکراری
+  let changed = false, supOk = true, cusOk = true;
+  const jobs = [];
+  (g.suppliers||[]).forEach(s=>jobs.push(async()=>{
+    const d = await apiGetSupplierLedger(s.name);
+    if(!d || !Array.isArray(d.events)){ supOk = false; return; }
+    const v = fxSupplierLastBalance(d.events).yuan;
+    if(Math.abs(v - Number(s.yuanBalance||0)) > 0.005){ s.yuanBalance = v; changed = true; }
+    s.__ledgerYuan = v;
+  }));
+  (g.customers||[]).forEach(c=>jobs.push(async()=>{
+    const d = await apiGetCustomerLedger(c.name, basis);
+    if(!d || !Array.isArray(d.events)){ cusOk = false; return; }
+    const last = d.events.length ? d.events[d.events.length-1] : null;
+    const v = last ? Number(last.runningYuan)||0 : 0;
+    if(Math.abs(v - Number(c.balanceYuan||0)) > 0.005){
+      // اگه معادلِ ریالیِ این ردیف همان «مانده × نرخِ روز» بود، همراهش به‌روز می‌شه (وگرنه دست‌نخورده می‌ماند)
+      const rate = Number(g.currentRate||0);
+      if(c.balanceRial!==null && c.balanceRial!==undefined && rate && Math.abs(Number(c.balanceRial) - Number(c.balanceYuan||0)*rate) < 1) c.balanceRial = v*rate;
+      c.balanceYuan = v; changed = true;
+    }
+    c.__ledgerYuan = v;
+  }));
+  // حداکثر ۶ درخواستِ هم‌زمان تا سرور فشار نخوره
+  let idx = 0;
+  const worker = async()=>{ while(idx < jobs.length){ const j = jobs[idx++]; try{ await j(); }catch(e){ supOk = cusOk = false; } } };
+  await Promise.all(Array.from({length: Math.min(6, jobs.length)}, worker));
+  // جمع‌ها هم از همان ردیف‌ها (فقط اگه همه‌یِ دفترها با موفقیت خوانده شده باشن)
+  if(supOk && (g.suppliers||[]).length){
+    const sum = g.suppliers.reduce((a,s)=>a+Number(s.yuanBalance||0),0);
+    if(g.supplierBalanceSum===undefined || Math.abs(g.supplierBalanceSum - sum) > 0.005) changed = true;
+    g.supplierBalanceSum = sum;
+  }
+  if(cusOk && (g.customers||[]).length){
+    const sum = g.customers.reduce((a,c)=>a+Number(c.balanceYuan||0),0);
+    if(Math.abs(Number(g.totalCustomerBalanceYuan||0) - sum) > 0.005){ g.totalCustomerBalanceYuan = sum; changed = true; }
+  }
+  if(changed && g === fxLastSummary) fxSaveCache();
+  return changed;
+}
+function fxSyncThenRepaint(g, basis, stillHere, repaint){
+  if(!g || g.__ledgerSynced) return;
+  fxSyncSummaryFromLedgers(g, basis).then(ch=>{ if(ch && stillHere()) repaint(); }).catch(()=>{});
+}
 async function apiGetAccountLedger(accountId){
   try{ const r = await fetchWithRetry(FX_API+'account-ledger/?account='+accountId); return r.ok ? r.json() : null; }
   catch(err){ return null; }
@@ -2870,9 +2928,9 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سؤالِ کاربر: تقارن با سمتِ مشتری — همون مانده‌ی
   // ریالیِ واقعی (فقط اعدادِ مطمئن) + مانده‌ی یوانی، از آخرین رویدادِ دفتر
-  const lastEvent = data.events.length ? data.events[data.events.length-1] : null;
-  const realRialBalance = lastEvent ? lastEvent.runningRial : 0;
-  const realYuanBalance = lastEvent ? lastEvent.runningYuan : 0;
+  const _supBal = fxSupplierLastBalance(data.events);   // ⚠️ (۱۴۰۵/۰۷/۱۲) دقیقاً همان عددِ آخرین ردیفِ «دفترِ کامل» (جدولِ پایین)
+  const realRialBalance = _supBal.rial;
+  const realYuanBalance = _supBal.yuan;
   let expenses = sortByDateDesc(state.expenses.filter(e=>e.supplier_name===sName));
   const totalFreight = expenses.reduce((s,e)=>s+Number(e.freight_rial||0),0);
   const unpaidFreight = expenses.filter(e=>!e.freight_paid).reduce((s,e)=>s+Number(e.freight_rial||0),0);
