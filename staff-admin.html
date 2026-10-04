@@ -131,6 +131,14 @@ const ROLE_LABELS={
 };
 
 async function sheetCall(action, data={}){
+  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
+  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
+  if(action !== 'sendSMS'){
+    return action === 'getCurrentUserInfo'
+      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+      : null;
+  }
+
   try{
     const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(JSON.stringify(data))+'&t='+Date.now();
     const res=await fetch(url,{method:'GET'});
