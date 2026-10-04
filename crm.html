@@ -28,6 +28,23 @@
 
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۱۱) رویِ گوشی: نسخه‌ی کامل به پهنایِ مانیتور (۱۲۸۰) نمایش داده می‌شه — با دو انگشت زوم می‌شه —
+   به‌جایِ اینکه در ۳۹۰ پیکسل له بشه. حالتِ «ثبتِ تماسِ موبایل» (crm.html?m=compose) پهنایِ خودِ گوشی رو نگه می‌داره. */
+(function(){
+  var phone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  var mm = /[?&]m=(compose|tab)\b/.exec(location.search);
+  var compose = !!mm;
+  if(compose){   // پارامترها همین اول نگه داشته می‌شن (بعداً آدرس ممکنه پاک‌سازی بشه)
+    var m = /[?&]customer=([^&]*)/.exec(location.search), t = /[?&]tab=(\w+)/.exec(location.search);
+    window.__MADAR_COMPOSE = {mode: mm[1], tab: t ? t[1] : '', customer: m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : ''};
+    document.documentElement.classList.add(mm[1] === 'tab' ? 'm-tab' : 'm-compose');
+    window.MADAR_NO_INBOX_BUTTON = true;     // در فرمِ ثبت، دکمه‌ی شناورِ کارتابل جا نگیره
+  }
+  if(phone && !compose){ var v = document.querySelector('meta[name="viewport"]'); if(v) v.setAttribute('content', 'width=1280'); }
+})();
+</script>
+
 <meta name="color-scheme" content="light">
 <title>👥 SmartChip CRM</title>
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) فاویکون صریح — قبلاً فقط از ایموجیِ title استفاده می‌شد
@@ -495,6 +512,54 @@ html[data-theme="light"] .crm-pill-select{border-color:var(--border)!important;b
 .qx-body input[type=checkbox]{width:16px;height:16px;cursor:pointer}
 .qx-f{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--border)}
 .qx-f .s{font-size:11.5px;color:var(--muted);margin-left:auto}
+
+
+/* ═══ 📱 (۱۴۰۵/۰۷/۱۱) حالتِ «تک‌تب» برایِ مدار موبایل (crm.html?m=tab&tab=prospQuick) — همون صفحه‌ی CRM، تمام‌عرضِ گوشی ═══ */
+html.m-tab .crm-rail,html.m-tab .crm-panel,html.m-tab .crm-topbar{display:none!important}
+html.m-tab .crm-main{margin:0!important;padding:8px 10px 90px!important;width:100%!important;max-width:100%!important;min-width:0!important;left:0!important;right:0!important;position:static!important}
+html.m-tab body{overflow-x:hidden}
+html.m-tab .crm-main *{max-width:100%;min-width:0}
+html.m-tab .crm-main [style*="grid-template-columns"],html.m-tab .crm-main .form-grid,html.m-tab .crm-main .form-row{grid-template-columns:1fr!important}
+html.m-tab .crm-main [style*="display:flex"],html.m-tab .crm-main [style*="display: flex"]{flex-wrap:wrap}
+html.m-tab .crm-main table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+html.m-tab .crm-main input,html.m-tab .crm-main select,html.m-tab .crm-main textarea{font-size:16px!important;min-height:42px}
+html.m-tab .crm-main .btn{min-height:42px}
+html.m-tab .crm-main [class*="grid"]:not(table *){grid-template-columns:1fr!important}
+html.m-tab .crm-main .card,html.m-tab .crm-main [class*="card"],html.m-tab .crm-main [class*="panel"],html.m-tab .crm-main [class*="box"]{margin-left:0!important;margin-right:0!important;width:100%!important;max-width:100%!important;padding:12px!important;box-sizing:border-box}
+html.m-tab .crm-main [style*="max-width"]{max-width:100%!important}
+html.m-tab .crm-main [style*="width:"]:not(table *):not(input):not(button){width:auto!important}
+html.m-tab .crm-main input:not([type=checkbox]):not([type=radio]),html.m-tab .crm-main select,html.m-tab .crm-main textarea{width:100%!important;box-sizing:border-box}
+html.m-tab .crm-main label{font-size:13px}
+html.m-tab #mTabTop~* .crm-alert,html.m-tab .crm-main>.alert-strip{display:none}
+/* جدول‌ها رویِ گوشی ← کارت: هر ردیف یک کارت، هر خانه زیرِ هم با عنوانِ ستونش */
+html.m-tab #mainContent{padding:6px!important}
+html.m-tab #mainContent>[id$="View"]{padding:4px!important}
+html.m-tab .tbl-wrap{padding:0!important;overflow:visible!important;border:0!important;background:none!important}
+html.m-tab table.m-stack{display:block!important;white-space:normal!important;overflow:visible!important;border:0!important;width:100%!important}
+html.m-tab table.m-stack thead{display:none!important}
+html.m-tab table.m-stack tbody,html.m-tab table.m-stack tfoot{display:block!important}
+html.m-tab table.m-stack tr{display:block!important;width:100%!important;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin:0 0 10px}
+html.m-tab table.m-stack td{display:block!important;width:100%!important;border:0!important;padding:5px 0!important;text-align:right!important;white-space:normal!important}
+html.m-tab table.m-stack td[data-label]:not([data-label=""])::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px}
+html.m-tab table.m-stack td:empty{display:none!important}
+#mTabTop{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--border)}
+#mTabTop a{color:var(--muted);text-decoration:none;font-size:13px}#mTabTop b{font-size:16px;margin-right:auto}
+/* ═══ 📱 (۱۴۰۵/۰۷/۱۱) حالتِ «ثبتِ تماس» برایِ مدار موبایل — همون نوارِ ثبتِ CRM، تمام‌صفحه و ستونی ═══ */
+html.m-compose .crm-rail,html.m-compose .crm-panel,html.m-compose .crm-main,html.m-compose .crm-topbar{display:none!important}
+#mCompose{max-width:640px;margin:0 auto;padding:0 12px 90px}
+#mCompose .mc-top{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:12px}
+#mCompose .mc-top a{color:var(--muted);text-decoration:none;font-size:13px}
+#mCompose .mc-top b{font-size:16px;margin-right:auto}
+html.m-compose #quickContactForm{display:block!important}
+html.m-compose .qf2-bar{flex-direction:column;align-items:stretch;gap:10px}
+html.m-compose .qf2-bar>*{width:100%!important;min-width:0!important;flex:none!important}
+html.m-compose .qf2-cust input,html.m-compose .qf2-wide,html.m-compose .qf2-bar textarea{width:100%!important;font-size:16px!important;min-height:44px}
+html.m-compose .qf2-chips{gap:8px}
+html.m-compose .qf2-chip{height:42px!important;padding:0 12px!important;font-size:13.5px!important}
+html.m-compose .qf2-lbl{display:inline!important}
+html.m-compose .qf2-dir label{height:42px;display:flex;align-items:center;padding:0 14px!important;font-size:14px}
+html.m-compose .qf2-save{height:50px!important;font-size:16px!important;position:sticky;bottom:10px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+html.m-compose .qf2-tgl{height:42px}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -909,6 +974,14 @@ async function fetchJsonWithRetry(url, timeoutMs){
 }
 
 async function sheetCall(action, data={}){
+  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
+  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
+  if(action !== 'sendSMS'){
+    return action === 'getCurrentUserInfo'
+      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+      : null;
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(()=>controller.abort(), 15000); // ۱۵ ثانیه سقف — قبلاً هیچ سقفی نداشت
   try{
@@ -4645,11 +4718,13 @@ async function saveReferral(){
   // ارسال ایمیل نوتیفیکیشن اگر ارجاع به واحد یا همکار داده شد
   const referTo=e.workReferral||e.referralTo;
   if(referTo && e.referralSubject){
-    sheetCall('sendReferralNotification',{
-      to:referTo, customer:l.customer, trackingCode:e.trackingCode,
-      subject:e.referralSubject, orderNumber:e.referralOrderNumber,
-      senderName:currentUser.name||currentUser.email, entryNote:e.note
-    }).then(r=>{ if(r&&r.sent) toast(`✅ ارجاع به ${referTo} ایمیل شد`); });
+    // ⚠️ (۱۴۰۵/۰۷/۱۱) به‌جایِ ایمیل از گوگل‌شیت ← بله/تلگرام از سرورِ مدار
+    fetch('https://api.smartchipelec.com/api/org/notify/referral/', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({to:referTo, customer:l.customer, trackingCode:e.trackingCode, subject:e.referralSubject,
+                            orderNumber:e.referralOrderNumber, senderName:currentUser.name||currentUser.email, entryNote:e.note})})
+      .then(r => r.ok ? r.json() : null)
+      .then(r => { if(r && r.sent) toast(`✅ ارجاع به ${referTo} در بله/تلگرام اطلاع داده شد`); })
+      .catch(() => {});
   }
   document.getElementById('modalReferral').classList.remove('open');
   renderTableView();
@@ -11263,5 +11338,74 @@ async function submitUrgentShipRequest(){
     box.style.display = 'block';
     box.querySelector('button').onclick = () => { w.forEach(p => localStorage.setItem('madar_hol_x_' + p.key + '_' + today, '1')); box.style.display = 'none'; };
   }).catch(() => {});
+})();
+
+// ═══ 📱 (۱۴۰۵/۰۷/۱۱) حالتِ «ثبتِ تماس» برایِ مدار موبایل (crm.html?m=compose[&customer=نام]) ═══
+// هیچ منطقی کپی نمی‌شه: همون نوارِ ثبت و همون submitQuickContact، فقط تمام‌صفحه و ستونی.
+(function(){
+  const MC = window.__MADAR_COMPOSE;
+  if(!MC) return;
+  if(MC.mode === 'tab'){
+    const TITLES = {prospQuick:'📞 فرمِ جذبِ سریع', prospCreate:'🆕 ساختِ مشتری', prospCustomers:'👥 مشتریان', prospTable:'📋 جدولِ ثبت',
+                    prospDecisions:'🗳️ نتیجه‌ی درخواست‌ها', prospApprovals:'✅ تاییدها', prospMgmt:'🔔 تأییدِ مدیریت', prospStats:'📊 داشبوردِ من'};
+    const top = () => { if(document.getElementById('mTabTop')) return; const t = document.createElement('div'); t.id = 'mTabTop';
+      t.innerHTML = '<a href="m.html#jazb">‹ مدار موبایل</a><b>' + (TITLES[MC.tab] || 'CRM') + '</b>'; document.body.insertBefore(t, document.body.firstChild); };
+    const view = () => document.getElementById(MC.tab + 'View');
+    // جدول‌ها ← کارت (هر ثانیه، چون CRM جدول‌ها رو دوباره می‌سازه)
+    const stack = () => {
+      const v = view(); if(!v) return;
+      v.querySelectorAll('table').forEach(tb => {
+        const ths = [...(tb.tHead ? tb.tHead.rows[tb.tHead.rows.length - 1].cells : [])].map(th => th.innerText.trim());
+        tb.classList.add('m-stack');
+        [...tb.tBodies].forEach(bd => [...bd.rows].forEach(tr => [...tr.cells].forEach((td, i) => {
+          if(!td.hasAttribute('data-label') && ths[i]) td.setAttribute('data-label', ths[i]);
+        })));
+      });
+    };
+    setInterval(stack, 1000);
+    let shown = false, n = 0;
+    const iv = setInterval(() => {
+      n++; top();
+      const v = view();
+      if(typeof showCrmTab === 'function' && v){
+        const ready = (typeof leads !== 'undefined' && leads && leads.length) || n >= 8;
+        if(ready && (!shown || getComputedStyle(v).display === 'none')){ try{ showCrmTab(MC.tab); shown = true; }catch(e){} }
+      }
+      if(n > 40) clearInterval(iv);
+    }, 500);
+    return;
+  }
+  const start = () => {
+    const f = document.getElementById('quickContactForm'); if(!f) return;
+    document.documentElement.classList.add('m-compose');
+    const box = document.createElement('div'); box.id = 'mCompose';
+    box.innerHTML = '<div class="mc-top"><a href="m.html">‹ مدار موبایل</a><b>📞 ثبتِ تماس</b></div>';
+    document.body.insertBefore(box, document.body.firstChild);
+    box.appendChild(f); f.style.display = 'block';
+    const cust = MC.customer;
+    if(cust){ const ii = document.getElementById('qf_customer'); if(ii && !ii.value) ii.value = cust; }   // نام همون لحظه
+    if(cust && !window.__mcPrefill){ window.__mcPrefill = true;
+      let tries = 0; const iv = setInterval(() => {
+        tries++;
+        if((typeof leads !== 'undefined' && leads && leads.length) || tries > 40){
+          clearInterval(iv);
+          const inp = document.getElementById('qf_customer'); inp.value = cust;
+          try{ qfSelectCustomer(cust); }catch(e){} try{ qf2OnCustomerChange(); }catch(e){}
+          document.getElementById('qf_note') && document.getElementById('qf_note').focus();
+        }
+      }, 500);
+    } else setTimeout(() => { const i = document.getElementById('qf_customer'); i && i.focus(); }, 600);
+  };
+  // CRM بعد از ورود بخشی از صفحه رو دوباره می‌سازه — تا ۲۰ ثانیه هر نیم‌ثانیه چک کن و اگه حالتِ ثبت از بین رفته بود، دوباره بچسبون
+  let n = 0, prefilled = false;
+  const keep = setInterval(() => {
+    n++;
+    if(!document.getElementById('mCompose') || !document.querySelector('#mCompose #quickContactForm')){
+      const old = document.getElementById('mCompose'); if(old) old.remove();
+      start();
+    }
+    if(n > 40) clearInterval(keep);
+  }, 500);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 </script>

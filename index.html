@@ -80,7 +80,8 @@ body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);m
 /* زمینه: نورِ ملایم بالای صفحه + ردهایِ کم‌رنگِ مدار */
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(900px 420px at 50% -80px,var(--glow),transparent 70%)}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.028;
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.07;   /* ⚠️ (۱۴۰۵/۰۷/۱۱) طرحِ مدار پررنگ‌تر — طبقِ خواسته‌ی کاربر (قبلاً .028) */
+
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='none' stroke='%23f0a500' stroke-width='1.4'%3E%3Cpath d='M0 40h60l20 20h60l20-20h80'/%3E%3Cpath d='M40 240v-70l20-20v-50'/%3E%3Cpath d='M240 150h-50l-20 20h-40'/%3E%3Cpath d='M180 0v30l-20 20'/%3E%3C/g%3E%3Cg fill='%23f0a500'%3E%3Ccircle cx='60' cy='100' r='3'/%3E%3Ccircle cx='130' cy='170' r='3'/%3E%3Ccircle cx='160' cy='50' r='3'/%3E%3C/g%3E%3C/svg%3E")}
 body > *{position:relative;z-index:1}
 
@@ -259,8 +260,9 @@ function isMobileDevice(){
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 if(isMobileDevice()){
-  APP_URLS.erp='mobile.html';
-  APP_URLS.crm='mobile.html';
+  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوشی ← «مدار موبایل» (m.html)؛ نسخه‌ی قبلی (mobile.html) فقط برایِ «جذب» از داخلِ مدار موبایل در دسترسه
+  APP_URLS.erp='m.html';
+  APP_URLS.crm='m.html';
 }
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
@@ -297,11 +299,19 @@ const TILE_META = {
   adminGuide:{icon:'🛠️', title:'راهنمای مدیریتِ مدار', desc:'سایت‌ها، حساب‌ها، تنظیمات و روال‌ها'},
 };
 if(isMobileDevice()){
-  TILE_META.erp.desc='نسخه‌ی موبایل — ثبت سریع و مشاهده وضعیت';
-  TILE_META.crm.desc='نسخه‌ی موبایل — همراه با لیدهای فروش';
+  TILE_META.erp.desc='مدار موبایل — کارتابل، ثبتِ تماس، مشتری';
+  TILE_META.crm.desc='مدار موبایل — ثبتِ تماس، جستجویِ مشتری';
 }
 
 async function sheetCall(action, data={}){
+  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
+  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
+  if(action !== 'sendSMS'){
+    return action === 'getCurrentUserInfo'
+      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+      : null;
+  }
+
   try{
     const url=SHEET_URL+'?action='+encodeURIComponent(action)+'&payload='+encodeURIComponent(JSON.stringify(data))+'&t='+Date.now();
     // ⚠️ (۱۴۰۵/۰۶/۲۷) همون فیکس — این fallback هم قبلاً بدونِ مهلتِ
@@ -396,17 +406,17 @@ async function init(){
   document.getElementById('tilesContainer').innerHTML=allowedTiles.map(key=>{
     const m=TILE_META[key];
     const desktopFallback=(isMob && (key==='erp'||key==='crm'))
-      ? `<a href="${key==='erp'?'erp.html':'crm.html'}" target="_blank" style="display:block;margin-top:4px;font-size:9px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ دسکتاپ</a>`
+      ? `<a href="${key==='erp'?'erp.html':'crm.html'}" style="display:block;margin-top:4px;font-size:10px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ نسخه‌ی کامل</a>`
       : '';
     return `<div>
-      <a class="tile" href="${APP_URLS[key]}" target="_blank" style="display:block;">
+      <a class="tile" href="${APP_URLS[key]}" style="display:block;">
         <div class="tile-icon">${m.icon}</div>
         <div class="tile-title">${m.title}</div>
         <div class="tile-desc">${m.desc}</div>
       </a>
       ${desktopFallback}
     </div>`;
-  }).join('') + (isMob ? `<div style="grid-column:1/-1;text-align:center;padding:14px 0 4px;"><a href="https://gr2g5vvz64-cmd.github.io/smartchip-app/" style="font-size:10px;color:var(--muted);text-decoration:underline;">🖥️ رفتن به نسخه کامل دسکتاپ</a></div>` : '')
+  }).join('') + (isMob ? `<div style="grid-column:1/-1;text-align:center;padding:14px 0 4px;"><a href="m.html" class="tile" style="display:block;border-color:rgba(240,165,0,.5)"><div class="tile-icon">📱</div><div class="tile-title">مدار موبایل</div><div class="tile-desc">کارتابل، ورود/خروج، ثبتِ تماس، مشتری — مخصوصِ گوشی</div></a></div>` : '')
   || `<div style="color:var(--muted);font-size:12px;">برای نقش شما هیچ بخشی فعال نشده — با مدیر تماس بگیر</div>`;
 }
 // ══════════════════════════════════════════════════════════════

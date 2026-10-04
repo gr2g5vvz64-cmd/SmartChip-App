@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۰۸) سرورِ مدار: api.smartchipelec.com (از طریقِ Cloudflare — بدونِ فیلترشکن).
+   اگه این آدرس وصل نشد، همون درخواست خودکار با آدرسِ قدیمیِ Render تکرار می‌شه و تا ۵ دقیقه مستقیم از اون می‌ره. */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.madarApiFallbackActive = function(){ return Date.now() < downUntil; };
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){
+      if(init && init.signal && init.signal.aborted) throw err;
+      downUntil = Date.now() + 5*60*1000;
+      return orig(alt, init);
+    });
+  };
+})();
+window.MADAR_NO_INBOX_BUTTON = true;   // کارتابل در خودِ مدار موبایل هست؛ دکمه‌ی شناور رویِ نوارِ پایین نیاد
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مدار">
+<title>مدار موبایل</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f1117'/%3E%3Cpath d='M12 44V22l10 12 10-12 10 12 10-12v22' fill='none' stroke='%23f0a500' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+/* ═══ 📱 مدار موبایل (۱۴۰۵/۰۷/۱۱) — برایِ کارهایی که واقعاً با گوشی انجام می‌شن ═══ */
+:root{--bg:#0f1117;--surface:#1a1e2a;--card:#232838;--border:#323952;--accent:#f0a500;--text:#f4f5f8;--muted:#9aa2bd;--faint:#6b7390;--green:#22c55e;--red:#ef4444;--blue:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{font-family:'Vazirmatn',Tahoma,sans-serif;color:var(--text);direction:rtl;min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='none' stroke='%23f0a500' stroke-width='1.4'%3E%3Cpath d='M0 40h60l20 20h60l20-20h80'/%3E%3Cpath d='M40 240v-70l20-20v-50'/%3E%3Cpath d='M240 150h-50l-20 20h-40'/%3E%3C/g%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;background:rgba(15,17,23,.92);backdrop-filter:blur(10px);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.hdr .brand{font-size:21px;font-weight:900;color:var(--accent)}
+.hdr .who{font-size:11.5px;color:var(--muted);line-height:1.5}
+.hdr .who b{color:var(--text);font-size:12.5px}
+.hdr .st{margin-right:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}.dot.ok{background:var(--green)}.dot.wait{background:var(--accent);animation:pl 1s infinite}.dot.bad{background:var(--red)}
+@keyframes pl{50%{opacity:.3}}
+.wrap{padding:14px 14px 10px;max-width:640px;margin:0 auto}
+.banner{border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.9;margin-bottom:12px;border:1px solid rgba(240,165,0,.45);background:rgba(240,165,0,.08);display:none}
+.banner.show{display:block}.banner.err{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px}
+.card h3{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h3 a{margin-right:auto;font-size:12px;color:var(--accent);font-weight:600}
+.att{display:flex;align-items:center;gap:12px}
+.att .big{font-size:15px;font-weight:800}.att .s{font-size:12px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px;font-weight:700;border-radius:12px;padding:0 16px;height:46px;cursor:pointer}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#141821}
+.btn.full{width:100%}
+.cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px;scrollbar-width:none}
+.cards::-webkit-scrollbar{display:none}
+.ck{flex:0 0 96px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 6px;text-align:center}
+.ck .i{font-size:20px}.ck .l{font-size:11px;font-weight:700;line-height:1.5;margin:3px 0;min-height:33px}.ck .n{font-size:19px;font-weight:900}.ck .n.z{color:var(--faint)}
+.now{border-color:rgba(239,68,68,.4);background:linear-gradient(160deg,rgba(239,68,68,.10),var(--surface))}
+.row{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid #262c3d;min-height:52px}
+.row:last-child{border-bottom:0}
+.row .ic{width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 36px}
+.row .t{font-size:13.5px;font-weight:700;line-height:1.6}.row .s{font-size:11.5px;color:var(--muted);line-height:1.6}
+.row .go{margin-right:auto;color:var(--faint);font-size:18px}
+.late{color:#f87171!important}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.qa{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 6px;text-align:center;font-size:12.5px;font-weight:700}
+.qa .i{font-size:24px;display:block;margin-bottom:4px}
+.qa.main{background:linear-gradient(160deg,rgba(240,165,0,.22),var(--surface));border-color:rgba(240,165,0,.5)}
+.inp{width:100%;height:48px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:16px;border-radius:12px;padding:0 14px}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:22px 8px;line-height:2}
+.tag{font-size:10.5px;font-weight:800;border-radius:9px;padding:1px 8px;white-space:nowrap}
+.t-urgent{background:rgba(239,68,68,.16);color:#f87171}.t-high{background:rgba(240,165,0,.16);color:#fbbf24}.t-normal{background:rgba(96,165,250,.14);color:#93c5fd}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid #262c3d}.kv:last-child{border:0}
+.acts{display:flex;gap:8px;flex-wrap:wrap}.acts .btn{flex:1 1 30%}
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(26,30,42,.97);backdrop-filter:blur(10px);border-top:1px solid var(--border);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.nav button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-size:10.5px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:10px;cursor:pointer;position:relative}
+.nav button .i{font-size:21px;line-height:1}
+.nav button.on{color:var(--accent)}
+.nav .bd{position:absolute;top:2px;left:calc(50% - 22px);background:var(--red);color:#fff;font-size:9.5px;border-radius:8px;padding:0 5px;min-width:16px}
+.list a.row{color:inherit}
+.sec-h{font-size:11px;font-weight:800;color:var(--faint);margin:14px 4px 6px;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="brand">مدار</div><div class="who" id="who"></div><div class="st"><span class="dot wait" id="dot"></span><span id="stTxt">در حالِ اتصال…</span></div></div>
+<div class="wrap"><div class="banner" id="banner"></div><div id="view"><div class="empty">در حالِ بارگذاری…</div></div></div>
+<nav class="nav" aria-label="ناوبری">
+  <button data-v="home" class="on"><span class="i">🏠</span>خانه</button>
+  <button data-v="desk"><span class="i">📥</span>کارتابل<span class="bd" id="deskBd" hidden></span></button>
+  <button data-v="call"><span class="i">📞</span>ثبتِ تماس</button>
+  <button data-v="cust"><span class="i">🔎</span>مشتری</button>
+  <button data-v="more"><span class="i">☰</span>بیشتر</button>
+</nav>
+<script>
+const API = 'https://api.smartchipelec.com/api/org/';
+const $ = id => document.getElementById(id);
+const fa = n => String(n == null ? '' : n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fdate = d => fa(String(d||'').replace(/(\d{4})-(\d{2})-(\d{2})/g,'$1/$2/$3'));
+const S = {v:'home', desk:null, att:null, cust:null};
+function status(kind, txt){ $('dot').className = 'dot ' + kind; $('stTxt').textContent = txt; }
+function banner(html, err){ const b = $('banner'); b.className = 'banner' + (html ? ' show' : '') + (err ? ' err' : ''); b.innerHTML = html || ''; }
+// ⚠️ تلاشِ دوباره‌ی خودکار: سرور بعد از مدتی بی‌کاری می‌خوابه و بیدار شدنش ۳۰ تا ۶۰ ثانیه طول می‌کشه
+async function api(path, tries){
+  tries = tries || 4;
+  for(let i = 0; i < tries; i++){
+    try{
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 25000);
+      const r = await fetch(API + path, {cache:'no-store', signal:ctl.signal}); clearTimeout(t);
+      if(r.status === 401){ MadarAuth.require(true); throw Object.assign(new Error('برایِ ادامه با ورودِ امن وارد شوید'), {fatal:true}); }
+      const d = await r.json();
+      if(!r.ok || d.ok === false) throw Object.assign(new Error(d.error || ('HTTP ' + r.status)), {fatal: r.status < 500});
+      if(i > 0) S.retrying = Math.max(0, (S.retrying||0) - 1);
+      if(!S.retrying){ status('ok', 'متصل'); banner(''); }     // تا وقتی درخواستی هنوز در حالِ تلاشِ دوباره‌ست، پیام بمونه
+      return d;
+    }catch(e){
+      if(e.fatal || i === tries - 1){ if(i > 0) S.retrying = Math.max(0, (S.retrying||0) - 1); status('bad', 'قطع'); throw e; }
+      if(i === 0) S.retrying = (S.retrying||0) + 1;
+      status('wait', 'سرور در حالِ بیدار شدن…');
+      banner('⏳ سرور در حالِ بیدار شدنه (اولِ روز ۳۰ تا ۶۰ ثانیه طول می‌کشه) — خودکار دوباره تلاش می‌کنم…');
+      await new Promise(r => setTimeout(r, [2000, 5000, 10000][i] || 10000));
+    }
+  }
+}
+function failView(e, retry){ $('view').innerHTML = `<div class="card"><div class="empty">❌ ${esc(e.message)}<br><button class="btn pri" style="margin-top:12px" onclick="${retry}">🔄 دوباره تلاش کن</button></div></div>`; }
+const row = (icon, title, sub, href, extra) => `<a class="row" href="${esc(href||'#')}"><span class="ic">${icon}</span><span><div class="t">${esc(title)}</div><div class="s ${extra&&extra.late?'late':''}">${extra&&extra.late?'⚠ ':''}${fdate(esc(sub||''))}</div></span><span class="go">‹</span></a>`;
+const deskHref = key => 'org.html#inbox:' + key.replace(':', ':');
+
+// ── ناوبری
+document.querySelectorAll('.nav button').forEach(b => b.onclick = () => go(b.dataset.v));
+function go(v){ S.v = v; history.replaceState(null, '', '#' + v); document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); window.scrollTo(0,0);
+  ({home:vHome, desk:vDesk, call:vCall, cust:vCust, more:vMore, jazb:vJazb}[v] || vHome)(); }
+
+// ── 🏠 خانه
+async function vHome(){
+  if(!S.desk) $('view').innerHTML = '<div class="empty">در حالِ بارگذاری…</div>';
+  try{ [S.desk, S.att] = await Promise.all([api('desk/'), api('att/state/?device=' + encodeURIComponent(localStorage.getItem('madar_att_device')||'')).catch(()=>null)]); }
+  catch(e){ return failView(e, 'vHome()'); }
+  const d = S.desk, a = S.att;
+  $('who').innerHTML = `<b>${esc(d.me ? d.me.name : '')}</b><br>${new Date().toLocaleDateString('fa-IR',{weekday:'long', day:'numeric', month:'long'})}`;
+  const total = d.cards.reduce((t,c)=>t+c.count,0); const bd = $('deskBd'); bd.hidden = !total; bd.textContent = fa(total);
+  const ps = a ? a.punches.filter(p => p.status !== 'pending') : [];
+  const last = ps[ps.length-1];
+  const attTxt = !a ? 'وضعیتِ حضور در دسترس نیست' : !a.day.work ? '🌙 امروز تعطیله' : last ? (last.kind === 'in' ? `🟢 در شرکت — ورود ${fa(ps.find(p=>p.kind==='in').time)}` : `🔵 خروج ثبت شد — ${fa(last.time)}`) : '⚪ ورودِ امروز هنوز ثبت نشده';
+  $('view').innerHTML = `
+    <div class="card"><div class="att"><div style="font-size:30px">🕘</div><div><div class="big">${attTxt}</div><div class="s">${a && a.day.work ? 'شروع '+fa(a.settings.start)+' · پایان '+fa(a.day.end) : ''}</div></div></div>
+      <a class="btn pri full" style="margin-top:12px" href="attendance.html">🕘 ثبتِ ورود / خروج</a></div>
+    <div class="cards">${d.cards.map(c=>`<a class="ck" href="${deskHref(c.key)}"><div class="i">${c.icon}</div><div class="l">${esc(c.label)}</div><div class="n ${c.count?'':'z'}">${fa(c.count)}</div></a>`).join('')}</div>
+    ${d.action_now.length ? `<div class="card now"><h3>🔥 نیازمندِ اقدامِ من <span class="tag t-urgent">${fa(d.action_now.length)}</span></h3>${d.action_now.slice(0,6).map(it=>row(it.icon, it.title, it.sub, it.ref_id ? 'org.html#inbox:refs:to_me' : it.letter_id ? 'org.html#inbox:letters:in' : it.link, it)).join('')}</div>` : '<div class="card"><div class="empty">✨ کارِ فوری‌ای منتظرِ شما نیست</div></div>'}
+    <div class="quick">
+      <a class="qa main" href="crm.html?m=compose"><span class="i">📞</span>ثبتِ تماس</a>
+      <a class="qa" href="#" onclick="go('cust');return false"><span class="i">🔎</span>مشتری</a>
+      <a class="qa" href="reminders.html"><span class="i">⏰</span>یادآوری‌ها</a>
+      <a class="qa" href="#" onclick="go('jazb');return false"><span class="i">🎯</span>جذبِ مشتری</a>
+      <a class="qa" href="org.html#leave"><span class="i">🏖️</span>مرخصی</a>
+      <a class="qa" href="org.html#inbox:letters:in"><span class="i">✉️</span>نامه‌ها</a>
+    </div>`;
+}
+// ── 📥 کارتابل
+async function vDesk(){
+  if(!S.desk){ $('view').innerHTML = '<div class="empty">در حالِ بارگذاری…</div>'; try{ S.desk = await api('desk/'); }catch(e){ return failView(e, 'vDesk()'); } }
+  const d = S.desk, x = d.sections;
+  const sec = (title, items) => items.length ? `<div class="sec-h">${title}</div><div class="card list" style="padding:4px 12px">${items.join('')}</div>` : '';
+  $('view').innerHTML = `
+    ${sec('🔥 نیازمندِ اقدامِ من', d.action_now.map(it=>row(it.icon, it.title, it.sub, it.ref_id ? 'org.html#inbox:refs:to_me' : it.letter_id ? 'org.html#inbox:letters:in' : it.link, it)))}
+    ${sec('↩️ ارجاع به من', x.refs.to_me.map(r=>row('↩️', r.title, 'از: '+r.from.name+(r.due_date?' · مهلت '+r.due_date:''), 'org.html#inbox:refs:to_me', r)))}
+    ${sec('↗️ ارجاع‌هایِ من — پیشِ کیه', x.refs.by_me.map(r=>row('↗️', r.title, 'پیشِ '+(r.holder?r.holder.name:'—')+(r.held_for?' · '+r.held_for:''), 'org.html#inbox:refs:by_me', r)))}
+    ${sec('📥 کارهایِ من', x.desk.items.map(it=>row(it.icon, it.title, it.sub, it.link, it)))}
+    ${sec('👤 پرونده‌هایِ مشتری', x.customers.items.map(it=>row(it.icon, it.title, it.sub, it.link, it)))}
+    ${sec('⏳ مرخصی‌هایِ منتظرِ تأییدِ من', x.leave.approve.map(l=>row(l.icon, l.staff.name+' — '+l.kind_label, l.start_date, 'org.html#inbox:leave:approve')))}
+    ${sec('✉️ نامه‌هایِ خوانده‌نشده', x.letters.in.filter(L=>!L.read).map(L=>row('✉️', L.subject, L.number+' · از '+(L.sender?L.sender.name:L.external_party), 'org.html#inbox:letters:in')))}
+    <a class="btn full" href="org.html#inbox">📥 کارتابلِ کامل (با فیلتر و همه‌ی بخش‌ها)</a>`;
+  if(!$('view').querySelector('.row')) $('view').insertAdjacentHTML('afterbegin', '<div class="card"><div class="empty">✨ کارتابلِ شما خالیه</div></div>');
+}
+// ── 📞 ثبتِ تماس
+function vCall(){
+  $('view').innerHTML = `<div class="card"><h3>📞 ثبتِ تماس</h3><div style="font-size:12.5px;color:var(--muted);line-height:2;margin-bottom:12px">همون فرمِ ثبتِ CRM (چیپ‌هایِ داخلی/خارجی/وعده/مالی، «چه کسی زنگ زد»، قطعات و اکسل) — مخصوصِ صفحه‌ی گوشی.</div>
+    <a class="btn pri full" href="crm.html?m=compose">➕ ثبتِ تماسِ جدید</a></div>
+    <div class="card"><h3>🔎 اول مشتری رو پیدا کنید</h3><input class="inp" id="cq" placeholder="نام یا تلفنِ مشتری…" oninput="custSearch(this.value,'call')"><div id="cres" class="list"></div></div>`;
+}
+// ── 🔎 مشتری
+let cTimer = null;
+function vCust(){
+  $('view').innerHTML = `<div class="card"><h3>🔎 جستجویِ مشتری</h3><input class="inp" id="cq" placeholder="نام یا تلفنِ مشتری…" oninput="custSearch(this.value,'card')" autofocus><div id="cres" class="list"></div></div><div id="ccard"></div>`;
+  setTimeout(() => $('cq') && $('cq').focus(), 200);
+}
+function custSearch(q, mode){
+  clearTimeout(cTimer);
+  if(q.trim().length < 2){ $('cres').innerHTML = ''; return; }
+  cTimer = setTimeout(async () => {
+    try{ const d = await api('m/customers/?q=' + encodeURIComponent(q.trim()), 2);
+      $('cres').innerHTML = d.rows.length ? d.rows.map(r => mode === 'call'
+        ? `<a class="row" href="crm.html?m=compose&customer=${encodeURIComponent(r.name)}"><span class="ic">👤</span><span><div class="t">${esc(r.name)}</div><div class="s">${fa(esc(r.phone||''))}${r.assignee?' · '+esc(r.assignee):''}</div></span><span class="go">📞</span></a>`
+        : `<div class="row" onclick="custOpen('${esc(r.name).replace(/'/g,"\\'")}')"><span class="ic">👤</span><span><div class="t">${esc(r.name)}</div><div class="s">${fa(esc(r.phone||''))}${r.assignee?' · '+esc(r.assignee):''}</div></span><span class="go">‹</span></div>`).join('')
+        : '<div class="empty">مشتری‌ای پیدا نشد</div>';
+    }catch(e){ $('cres').innerHTML = '<div class="empty">❌ '+esc(e.message)+'</div>'; }
+  }, 350);
+}
+async function custOpen(name){
+  $('cres').innerHTML = ''; $('cq').value = name;
+  $('ccard').innerHTML = '<div class="empty">در حالِ بارگذاری…</div>';
+  try{
+    const c = (await api('m/customer/?name=' + encodeURIComponent(name))).customer;
+    const tel = (c.phones[0] || '').replace(/[^\d+]/g,'');
+    const wa = tel ? 'https://wa.me/' + (tel.startsWith('0') ? '98' + tel.slice(1) : tel.replace('+','')) : '';
+    $('ccard').innerHTML = `<div class="card"><h3>👤 ${esc(c.name)}</h3>
+      ${c.phones.map(p=>`<div class="kv"><span>تلفن</span><b dir="ltr">${fa(esc(p))}</b></div>`).join('')}${c.assignees.length?`<div class="kv"><span>کارشناس</span><b>${esc(c.assignees.join('، '))}</b></div>`:''}
+      ${c.debt?`<div class="kv"><span>مانده‌ی وصول</span><b class="late">${fa(Number(c.debt.remaining).toLocaleString('en'))} تومان</b></div>`:''}
+      ${c.promises.map(p=>`<div class="kv"><span>وعده‌ی پرداخت</span><b>${fa(Number(p.amount).toLocaleString('en'))} ریال · ${fdate(p.due||'—')}${p.status==='reported'?' · اعلامِ واریز':''}</b></div>`).join('')}
+      <div class="acts" style="margin-top:12px"><a class="btn pri" href="crm.html?m=compose&customer=${encodeURIComponent(c.name)}">📞 ثبتِ تماس</a>${tel?`<a class="btn" href="tel:${tel}">☎️ تماس</a><a class="btn" href="${wa}" target="_blank">💬 واتس‌اپ</a>`:''}</div></div>
+      ${c.requests.length?`<div class="card"><h3>📋 درخواست‌هایِ باز</h3>${c.requests.map(r=>`<div class="kv"><span>${fa(esc(r.code||'—'))}</span><b>${esc(r.status)}</b></div>`).join('')}</div>`:''}
+      <div class="card"><h3>📜 آخرین تماس‌ها</h3>${c.calls.length ? c.calls.map(h=>`<div class="row" style="align-items:flex-start"><span class="ic">${h.direction==='customer'||h.direction==='in'?'📲':'📞'}</span><span><div class="t" style="font-weight:500">${esc(h.note||h.type)}</div><div class="s">${h.date?new Date(h.date).toLocaleDateString('fa-IR'):''}${h.by?' · '+esc(h.by):''}${h.done?' · ✅':''}</div></span></div>`).join('') : '<div class="empty">تماسی ثبت نشده</div>'}</div>`;
+  }catch(e){ $('ccard').innerHTML = '<div class="card"><div class="empty">❌ '+esc(e.message)+'</div></div>'; }
+}
+
+// ── 🎯 جذبِ مشتری (۱۴۰۵/۰۷/۱۱) — همون صفحه‌هایِ جذبِ CRM، در حالتِ گوشی (crm.html?m=tab) — هیچ منطقی کپی نشده
+async function vJazb(){
+  if(!S.desk){ try{ S.desk = await api('desk/'); }catch(e){} }
+  const role = (S.desk && S.desk.me && S.desk.me.role) || '', mg = S.desk && S.desk.is_mgmt, sup = role === 'sup_sales' || mg;
+  const T = (tab, i, t, s) => `<a class="row" href="crm.html?m=tab&tab=${tab}"><span class="ic">${i}</span><span><div class="t">${t}</div>${s?`<div class="s">${s}</div>`:''}</span><span class="go">‹</span></a>`;
+  $('view').innerHTML = `
+    <div class="card"><h3>🎯 جذبِ مشتری</h3><div style="font-size:12.5px;color:var(--muted);line-height:2">همون صفحه‌هایِ جذبِ CRM، مخصوصِ گوشی — هر چی اینجا ثبت کنید، دقیقاً مثلِ دسکتاپ ذخیره می‌شه.</div></div>
+    <div class="quick" style="margin-bottom:12px">
+      <a class="qa main" href="crm.html?m=tab&tab=prospQuick"><span class="i">📞</span>جذبِ سریع</a>
+      <a class="qa" href="crm.html?m=tab&tab=prospCreate"><span class="i">🆕</span>ساختِ مشتری</a>
+      <a class="qa" href="crm.html?m=tab&tab=prospCustomers"><span class="i">👥</span>مشتریان</a></div>
+    <div class="card list" style="padding:4px 12px">
+      ${T('prospQuick','📞','فرمِ جذبِ سریع','ثبتِ تماس/فعالیت، رزرو یا جذب (با «من تماس گرفتم / مشتری زنگ زد»)')}
+      ${T('prospCreate','🆕','ساختِ مشتری','مشتریِ بالقوه‌ی جدید — تکراری بودن خودکار چک می‌شه')}
+      ${T('prospCustomers','👥','مشتریان','فهرستِ مشتریان با فیلترِ استان، صنف، قدیمی/جدید')}
+      ${T('prospDecisions','🗳️','نتیجه‌ی درخواست‌ها','تأییدشده‌ها ← «ادامه‌ی فعالیت»')}
+      ${T('prospStats','📊','داشبوردِ من','آمارِ جذبِ خودتون')}
+      ${T('prospTable','📋','جدولِ ثبت','همه‌ی ثبت‌هایِ جذب')}
+      ${sup ? T('prospApprovals','✅','تاییدها','تعیینِ اولویت و سقفِ اعتبار (سرپرستِ فروش)') : ''}
+      ${mg ? T('prospMgmt','🔔','تأییدِ مدیریت','کار رویِ مشتریانِ قدیمیِ بدونِ اولویت') : ''}
+    </div>`;
+}
+
+// ── ☰ بیشتر
+function vMore(){
+  const mg = S.desk && S.desk.is_mgmt;
+  const L = (i, t, h, s) => `<a class="row" href="${h}"><span class="ic">${i}</span><span><div class="t">${t}</div>${s?`<div class="s">${s}</div>`:''}</span><span class="go">‹</span></a>`;
+  $('view').innerHTML = `
+    <div class="sec-h">کار با گوشی</div><div class="card list" style="padding:4px 12px">
+      ${L('📥','کارتابلِ کامل','org.html#inbox','ارجاع، نامه، مرخصی، تشویق و تنبیه')}${L('🕘','حضور و غیاب','attendance.html','ورود/خروج، کارکردِ من')}
+      ${L('⏰','یادآوری‌ها','reminders.html')}${L('🏖️','مرخصی و مأموریت','org.html#leave')}${L('🏢','سازمان','org.html','پرونده‌ی من، شرحِ وظایف')}
+      ${L('🎯','جذبِ مشتری','#jazb" onclick="go(\'jazb\');return false','فرمِ جذبِ سریع، ساختِ مشتری، مشتریان، داشبورد')}${L('↗️','ارجاعِ کار','org.html#inbox:refs:by_me')}</div>
+    <div class="sec-h">نسخه‌ی کامل (به پهنایِ مانیتور — با دو انگشت زوم کنید)</div><div class="card list" style="padding:4px 12px">
+      ${L('📞','CRM کامل','crm.html')}${L('🏭','ERP کامل','erp.html')}${L('⚖️','وزن‌نامه','weights.html')}${L('💰','Price List','pricelist.html')}
+      ${mg ? L('💱','دفترِ ارزی','fx-ledger.html') + L('👥','مدیریتِ کارمندان','staff-admin.html') : ''}</div>
+    <div class="sec-h">راهنما</div><div class="card list" style="padding:4px 12px">${L('📖','راهنمایِ کارکنان','guide-staff.html')}${L('🏠','صفحه‌ی اصلیِ مدار','index.html')}</div>
+    <div class="card" style="font-size:12px;color:var(--muted);line-height:2">📲 برایِ نصب: در Safari دکمه‌ی اشتراک‌گذاری ← Add to Home Screen ؛ در Chrome منویِ ⋮ ← Add to Home screen.</div>`;
+}
+
+(async function init(){
+  if(!MadarAuth.token()){ MadarAuth.require(true); $('view').innerHTML = '<div class="empty">برایِ مدار موبایل با ورودِ امن وارد شوید.</div>'; status('bad','ورود لازم است'); return; }
+  const v = (location.hash || '').slice(1);
+  go(['home','desk','call','cust','more','jazb'].includes(v) ? v : 'home');
+  window.addEventListener('hashchange', () => { const h = (location.hash||'').slice(1); if(h !== S.v && ['home','desk','call','cust','more','jazb'].includes(h)) go(h); });
+  setInterval(() => { if(document.visibilityState === 'visible' && (S.v === 'home' || S.v === 'desk')) api('desk/', 1).then(d => { S.desk = d; const t = d.cards.reduce((a,c)=>a+c.count,0); $('deskBd').hidden = !t; $('deskBd').textContent = fa(t); }).catch(()=>{}); }, 120000);
+})();
+</script>
+</body>
+</html>

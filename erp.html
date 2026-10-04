@@ -662,6 +662,16 @@
 
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+/* ⚠️ (۱۴۰۵/۰۷/۱۱) رویِ گوشی: نسخه‌ی کامل به پهنایِ مانیتور (۱۲۸۰) نمایش داده می‌شه — با دو انگشت زوم می‌شه —
+   به‌جایِ اینکه در ۳۹۰ پیکسل له بشه. حالتِ «ثبتِ تماسِ موبایل» (crm.html?m=compose) پهنایِ خودِ گوشی رو نگه می‌داره. */
+(function(){
+  var phone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  var compose = /[?&]m=compose\b/.test(location.search);
+  if(phone && !compose){ var v = document.querySelector('meta[name="viewport"]'); if(v) v.setAttribute('content', 'width=1280'); }
+})();
+</script>
+
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) تگ‌های PWA -->
 <link rel="manifest" href="./manifest-erp.json">
 <meta name="theme-color" content="#1e40af">
@@ -2678,6 +2688,14 @@ let isSyncing = false;
 let pendingWriteCount = 0; // تعداد عملیات نوشتنی در حال انجام — جلوگیری از رفرش خودکار وسط ثبت تغییرات
 
 async function sheetCall(action, data = {}) {
+  // ⚠️ (۱۴۰۵/۰۷/۱۱) گوگل‌شیت کنار گذاشته شد: همه‌ی داده‌ها از سرورِ مدار میاد و fallback به شیتِ قدیمی (داده‌ی کهنه + ۱۰ ثانیه انتظار)
+  //   حذف شد. فقط «پیامک» (sendSMS) تا انتقال به سرویسِ پیامک رویِ سرور، هنوز از Apps Script می‌ره. پرچمِ isConnected دست نمی‌خوره.
+  if(action !== 'sendSMS'){
+    return action === 'getCurrentUserInfo'
+      ? {email: (data && data.email) || '', isStaff: false, error: 'سرورِ مدار در دسترس نیست — اینترنت رو چک کنید و چند ثانیه بعد صفحه رو تازه کنید'}
+      : null;
+  }
+
   if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return null;
   const isWriteAction = !action.startsWith('get') && action !== 'searchCustomerMaster';
   if (isWriteAction) pendingWriteCount++;
@@ -2721,7 +2739,7 @@ function updateSyncIndicator(syncing, error = false) {
   if (!el) return;
   if (error) { el.style.background = '#ef4444'; el.title = 'خطا در اتصال'; }
   else if (syncing) { el.style.background = '#f59e0b'; el.title = 'در حال همگام‌سازی...'; }
-  else { el.style.background = '#22c55e'; el.title = 'متصل به Google Sheets'; }
+  else { el.style.background = '#22c55e'; el.title = 'متصل به سرورِ مدار'; }
 }
 
 async function loadFromSheet() {
@@ -2732,7 +2750,7 @@ async function loadFromSheet() {
     renderDash();
     return;
   }
-  if (statusEl) statusEl.textContent = '🔄 در حال اتصال به Google Sheets...';
+  if (statusEl) statusEl.textContent = '🔄 در حالِ اتصال به سرورِ مدار...';
 
   // ── بارگذاری فوری از localStorage cache ──
   try{
@@ -2855,7 +2873,8 @@ async function loadFromSheet() {
 
     setBadge('warehouseBadge', warehouseItems.length);
     // داده‌ها از getStartupData لود شدند
-    if (statusEl) statusEl.textContent = '✅ متصل به Google Sheets';
+    if (statusEl) statusEl.textContent = '✅ متصل به سرورِ مدار';
+    loadCustomerNotesERP();
     isConnected = true;
     // مخفی کردن gate اگه هنوز نمایش است
     const gate=document.getElementById('accessGateOverlay');
@@ -2911,7 +2930,7 @@ async function loadFromSheet() {
     if (statusEl) statusEl.textContent = '❌ خطا در اتصال — اطلاعات نمایش داده نمی‌شود';
     isConnected = false;
     renderDash();
-    toast('⚠️ اتصال به Google Sheets برقرار نشد — Apps Script را دوباره Deploy کن');
+    toast('⚠️ سرورِ مدار جواب نداد — چند ثانیه بعد صفحه رو تازه کنید');
   }
 }
 
@@ -6257,17 +6276,26 @@ function openCProfile(name){
   showPage('cprofile');
   document.getElementById('pageTitle').textContent=`پروفایل — ${name}`;
 }
+// ⚠️ (۱۴۰۵/۰۷/۱۱) یادداشت و سطحِ مشتری رویِ سرورِ مدار (قبلاً فقط به گوگل‌شیت نوشته می‌شد و هیچ‌وقت خونده نمی‌شد)
+const CUSTOMER_NOTES_API = 'https://api.smartchipelec.com/api/org/customer-notes/';
+async function loadCustomerNotesERP(){
+  try{ const r = await fetch(CUSTOMER_NOTES_API); if(r.ok){ const d = await r.json(); Object.entries(d.rows||{}).forEach(([n,v])=>{ custStore[n] = {vip: v.vip||'normal', note: v.note||''}; }); } }catch(e){}
+}
+async function saveCustomerNoteERP(name, body){
+  try{ const r = await fetch(CUSTOMER_NOTES_API, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(Object.assign({name}, body))});
+       if(!r.ok) toast('⚠️ ذخیره رویِ سرور انجام نشد — دوباره امتحان کنید'); }catch(e){ toast('⚠️ سرور در دسترس نیست — ذخیره نشد'); }
+}
 async function saveCNote(name){
   if(!custStore[name])custStore[name]={vip:'normal',note:''};
   custStore[name].note=document.getElementById('cnote').value;
   toast('✅ یادداشت ذخیره شد');
-  if(isConnected) await sheetCall('updateCustomer',{name,field:'note',value:custStore[name].note});
+  await saveCustomerNoteERP(name, {note: custStore[name].note});
 }
 async function setCVip(name,v,btn){
   if(!custStore[name])custStore[name]={vip:'normal',note:''};
   custStore[name].vip=v;
   toast('✅ سطح مشتری آپدیت شد');
-  if(isConnected) await sheetCall('updateCustomer',{name,field:'vip',value:v});
+  await saveCustomerNoteERP(name, {vip: v});
 }
 
 // ══════════════════════════════════════════
