@@ -632,7 +632,7 @@ async function searchCrmPriorityCustomers(q){
 // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر — بازاستفاده‌ی عیناً از دو endpoint
 // واقعی که از قبل تو ERP/CRM کار می‌کنن (نه چیزِ جدید): همگام‌سازیِ
 // پارت‌نامبرها از گوگل‌شیتِ Verified_Weights + سرچِ آیتم.
-const FX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWpAoaeh3P7vgez6EZiPMvzCO2V9USoepWBagiH-KQ32l_mNi82o/exec';
+// ⚠️ (۱۴۰۵/۰۷/۱۱) اتصالِ قدیمیِ گوگل‌شیت (استفاده‌نشده) حذف شد
 // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده توسطِ کاربر: این fetch به
 // گوگل‌اپس‌اسکریپت قبلاً هیچ مهلتِ زمانی نداشت — اگه Apps Script کند
 // می‌شد یا گیر می‌کرد، این تابع *بی‌نهایت* معلق می‌موند (نه خطا می‌داد
@@ -640,17 +640,6 @@ const FX_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyz1l8LxL4urZ_OGWp
 // از این گیرکردن نمی‌دید — دقیقاً حالتی که گزارش شد («۲ دقیقه صبر
 // کردم، هیچی نیومد»). الان بعدِ ۶۰ ثانیه خودکار قطع می‌شه و catch
 // می‌ره، پس همیشه به مودالِ نتیجه (موفق یا خطا) می‌رسه.
-async function fxSheetCall(action, data = {}){
-  try{
-    const payloadStr = JSON.stringify(data);
-    const url = FX_SHEET_URL + '?action=' + encodeURIComponent(action) + '&payload=' + encodeURIComponent(payloadStr) + '&t=' + Date.now();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(()=>controller.abort(), 60000);
-    const res = await fetch(url, { method:'GET', redirect:'follow', signal: controller.signal });
-    clearTimeout(timeoutId);
-    return await res.json();
-  }catch(e){ return null; }
-}
 // ⚠️ (۱۴۰۵/۰۶/۲۹) فیکسِ باگِ واقعیِ گزارش‌شده توسطِ کاربر: قبلاً نتیجه‌ی
 // sync (چه موفق، چه ناموفق) فقط ۲.۵ ثانیه تویِ یه توستِ گذرا نشون داده
 // می‌شد و بعد گم می‌شد — برایِ عملیاتی به این حیاتی (که کارِ روزمره
@@ -850,6 +839,7 @@ const NAV_STRUCTURE = [
   ]},
   {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
     {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
+    {id:'stock', label:'📦 موجودیِ یوانِ شرکت'},
     {id:'supplier', label:'دفتر تأمین‌کننده'},
     {id:'action-add-hawale', label:'+ ثبت حواله', action:'add-hawale'},
     {id:'action-add-expense', label:'+ ثبت فاکتورِ خرید/هزینه', action:'add-expense'},
@@ -935,6 +925,7 @@ async function renderMain(){
   if(currentTab === 'payments') return renderPayments(main);
   if(currentTab === 'incomes') return renderIncomes(main);
   if(currentTab === 'capital-advances') return renderCapitalAdvances(main);
+  if(currentTab === 'stock') return renderStock(main);
   if(currentTab === 'hawales') return renderHawales(main);
   if(currentTab === 'supplier') return renderSupplier(main);
   if(currentTab === 'accounts') return currentAccount ? renderAccountLedger(main) : renderAccounts(main);
@@ -2562,6 +2553,14 @@ function openHawaleModal(existing){
         <div class="field"><label>تاریخ حواله (شمسی)</label><input id="hDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-06-18"></div>
         <div class="field"><label>توضیح (اختیاری)</label><input id="hNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       </div>
+      <!-- ⚠️ (۱۴۰۵/۰۷/۱۰) تقسیمِ یوانِ حواله بینِ چند تأمین‌کننده — مابقی مالِ تأمین‌کننده‌ی بالا -->
+      <div style="border:1px dashed var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px">🏭 تقسیمِ یوانِ این حواله بینِ چند تأمین‌کننده (اختیاری)</div>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px">مثلاً «۴٬۰۰۰ یوان برایِ الف، ۳٬۰۰۰ برایِ ب» — <b>مابقی</b> خودکار مالِ تأمین‌کننده‌ی بالا می‌شه. اگه همه‌ش مالِ یک نفره، خالی بذارید.</div>
+        <div id="hShareRows"></div>
+        <button class="btn btn-ghost btn-sm" id="hAddShare" type="button">+ تأمین‌کننده‌ی دیگه</button>
+        <div id="hShareSum" style="font-size:11.5px;margin-top:6px;line-height:1.9"></div>
+      </div>
       <div class="form-row">
         <div class="field"><label>نرخِ خریدِ حواله (ریال به ازای هر یوان)</label><input id="hRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_hawale,0) : ''}"></div>
         <div class="field"><label>نرخ در تاریخِ واریزِ مشتری (اختیاری)</label><input id="hRateAtDeposit" type="text" class="num" value="${existing && existing.rate_at_customer_deposit ? fmt(existing.rate_at_customer_deposit,0) : ''}"></div>
@@ -2588,12 +2587,16 @@ function openHawaleModal(existing){
           <tr><td>تخصیصِ خودکار (FIFO)</td><td>وقتی مبلغِ حواله دقیقاً رو مرزِ یه واریزی تموم نمی‌شه — سیستم از قدیمی‌ترین واریزیِ هنوز-آزادِ این مشتری شروع می‌کنه و تا مبلغِ حواله رو کامل بپوشونه پیش می‌ره، حتی اگه لازم باشه یه واریزی رو بینِ این حواله و حواله‌ی بعدی تقسیم کنه</td></tr>
         </table>
       </div>
-      <div class="form-row">
-        <div class="field"><label>نامِ مشتری (برای تخصیصِ خودکار)</label>
-          <input id="hAutoSplitCustomer" type="text" list="knownCustomersListH" placeholder="مثلاً: ویراتدبیر">
-          <datalist id="knownCustomersListH">${[...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name)])].map(n=>`<option value="${n}">`).join('')}</datalist>
-        </div>
-        <div class="field"><label>مبلغی که باید پوشش داده بشه (ریال)</label><input id="hAutoSplitAmount" type="text" class="num"></div>
+      <!-- ⚠️ (۱۴۰۵/۰۷/۱۰) منبعِ ریالِ حواله: پولِ چند مشتری (از واریزی‌هایِ آزادِ خودشون، FIFO) + پولِ مازادِ خودمون -->
+      <div style="border:1px dashed var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px">👥 منبعِ ریالِ این حواله</div>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px">برایِ هر مشتری بنویسید چقدر از این حواله پولِ اونه (از واریزی‌هایِ آزادِ خودش، قدیمی‌ترین اول). بقیه رو می‌تونید از «پولِ مازادِ خودمون» بزنید — اون بخش «موجودیِ یوانِ شرکت» می‌شه و بعداً با فرمول به مشتری فروخته می‌شه.</div>
+        <datalist id="knownCustomersListH">${[...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name)])].map(n=>`<option value="${n}">`).join('')}</datalist>
+        <div id="hSplitRows"></div>
+        <button class="btn btn-ghost btn-sm" id="hAddSplit" type="button">+ مشتریِ دیگه</button>
+        <div class="field" style="margin-top:10px"><label>💼 از پولِ مازادِ خودمون (ریال) — موجودیِ یوانِ شرکت</label>
+          <input id="hOwnRial" type="text" class="num" value="${existing && Number(existing.own_rial) ? fmt(existing.own_rial,0) : ''}" placeholder="۰"></div>
+        <div id="hRialSum" style="font-size:11.5px;line-height:1.9"></div>
       </div>
       <button class="btn btn-ghost btn-sm" id="hAutoSplitBtn" style="margin-bottom:10px">🔄 محاسبه‌ی خودکار (FIFO)</button>
       <div id="hAutoSplitResultBox" style="margin-bottom:14px"></div>
@@ -2608,7 +2611,7 @@ function openHawaleModal(existing){
   wireShamsiDatePicker(backdrop.querySelector('#hDate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRate'));
   wireLiveNumberFormat(backdrop.querySelector('#hRateAtDeposit'));
-  wireLiveNumberFormat(backdrop.querySelector('#hAutoSplitAmount'));
+  wireLiveNumberFormat(backdrop.querySelector('#hOwnRial'));
 
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق سناریوی دقیقِ کاربر: لیستِ پرداخت‌هایی که هنوز به
   // هیچ حواله‌ای وصل نشدن (payment.hawale===null) — قابلِ فیلتر با نامِ
@@ -2635,38 +2638,77 @@ function openHawaleModal(existing){
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبقِ سناریوی دقیقِ کاربر: تخصیصِ خودکار (FIFO) —
   // از قدیمی‌ترین واریزیِ هنوز-آزادِ این مشتری شروع می‌کنه، با تقسیمِ
   // آخرین واریزی در صورتِ نیاز، تا مبلغِ خواسته‌شده رو کامل بپوشونه.
-  let autoSplitResult = null; // {allocations:[{payment_id, amount, date, paymentTotalRial}], uncovered}
+  // ⚠️ (۱۴۰۵/۰۷/۱۰) چند مشتری در یک حواله + پولِ مازادِ خودمون + سهمِ چند تأمین‌کننده
+  let autoSplitResult = null;   // {allocations:[{payment_id, amount, date, paymentTotalRial, customer}], perCustomer:[{customer, amount, covered, uncovered}]}
+  let splitRows = [{customer:'', amount:''}];
+  const existingShares = existing && existing.supplierSharesInfo ? existing.supplierSharesInfo : [];
+  let shareRows = existingShares.map(x=>({supplier:x.supplierName, yuan:String(x.yuanAmount)}));
+  let sharesTouched = false;
+  const num = v => Number(String(v||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[,٬\s]/g,'')) || 0;
+  const hawaleRial = () => contribRows.reduce((t,r)=>t+num(r.rial_amount),0);
+  const hawaleRate = () => num(backdrop.querySelector('#hRate').value);
+  const hawaleYuan = () => hawaleRate() ? hawaleRial()/hawaleRate() : 0;
+  function drawShares(){
+    const box = backdrop.querySelector('#hShareRows');
+    box.innerHTML = shareRows.map((r,i)=>`<div class="contrib-row"><input data-sh-sup="${i}" type="text" list="knownSuppliersListH" placeholder="تأمین‌کننده" value="${r.supplier||''}"><input data-sh-yuan="${i}" type="text" class="num" placeholder="یوان" value="${r.yuan?fmt(num(r.yuan),2):''}"><button class="icon-btn" data-sh-del="${i}" type="button">✕</button></div>`).join('');
+    box.querySelectorAll('[data-sh-sup]').forEach(x=>x.addEventListener('input',()=>{ shareRows[+x.dataset.shSup].supplier = x.value; sharesTouched = true; sumShares(); }));
+    box.querySelectorAll('[data-sh-yuan]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ shareRows[+x.dataset.shYuan].yuan = x.value; sharesTouched = true; sumShares(); }); });
+    box.querySelectorAll('[data-sh-del]').forEach(x=>x.addEventListener('click',()=>{ shareRows.splice(+x.dataset.shDel,1); sharesTouched = true; drawShares(); }));
+    sumShares();
+  }
+  function sumShares(){
+    const el = backdrop.querySelector('#hShareSum'); if(!el) return;
+    const tot = hawaleYuan(), used = shareRows.reduce((t,r)=>t+num(r.yuan),0), main = backdrop.querySelector('#hSupplier').value.trim() || 'تأمین‌کننده‌ی بالا';
+    if(!shareRows.length){ el.innerHTML = tot ? `کلِ ${fmtYuan(tot)} مالِ <b>${main}</b>` : ''; return; }
+    const rest = tot - used;
+    el.innerHTML = `یوانِ کلِ حواله: <b>${fmtYuan(tot)}</b> · سهم‌ها: ${fmtYuan(used)} · مابقی برایِ <b>${main}</b>: <b style="color:${rest< -0.5?'var(--danger)':'inherit'}">${fmtYuan(rest)}</b>` + (rest < -0.5 ? ' — ⚠️ جمعِ سهم‌ها از یوانِ حواله بیشتره' : '');
+  }
+  function drawSplits(){
+    const box = backdrop.querySelector('#hSplitRows');
+    box.innerHTML = splitRows.map((r,i)=>`<div class="contrib-row"><input data-sp-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${r.customer||''}"><input data-sp-amt="${i}" type="text" class="num" placeholder="مبلغِ ریال" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" data-sp-del="${i}" type="button" ${splitRows.length<=1?'disabled':''}>✕</button></div>`).join('');
+    box.querySelectorAll('[data-sp-cust]').forEach(x=>x.addEventListener('input',()=>{ splitRows[+x.dataset.spCust].customer = x.value; autoSplitResult = null; sumRial(); }));
+    box.querySelectorAll('[data-sp-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ splitRows[+x.dataset.spAmt].amount = x.value; autoSplitResult = null; sumRial(); }); });
+    box.querySelectorAll('[data-sp-del]').forEach(x=>x.addEventListener('click',()=>{ if(splitRows.length<=1) return; splitRows.splice(+x.dataset.spDel,1); autoSplitResult = null; drawSplits(); }));
+    sumRial();
+  }
+  function sumRial(){
+    const el = backdrop.querySelector('#hRialSum'); if(!el) return;
+    const tot = hawaleRial(), cust = splitRows.reduce((t,r)=>t+num(r.amount),0), own = num(backdrop.querySelector('#hOwnRial').value);
+    if(!tot){ el.innerHTML = ''; return; }
+    const rest = tot - cust - own;
+    el.innerHTML = `ریالِ کلِ حواله: <b>${fmtRial(tot)}</b> · مشتری‌ها: ${fmtRial(cust)} · مازادِ خودمون: ${fmtRial(own)}` + (own && hawaleRate() ? ` (= ${fmtYuan(own/hawaleRate())} موجودیِ شرکت)` : '') +
+      (Math.abs(rest) > 1 ? ` · <b style="color:${rest<0?'var(--danger)':'var(--ink-soft)'}">${rest<0?'⚠️ بیشتر از حواله: ':'تعیین‌نشده: '}${fmtRial(Math.abs(rest))}</b>` : ' · ✅ کامل');
+  }
+  backdrop.querySelector('#hAddShare').addEventListener('click', ()=>{ shareRows.push({supplier:'', yuan:''}); sharesTouched = true; drawShares(); });
+  backdrop.querySelector('#hAddSplit').addEventListener('click', ()=>{ splitRows.push({customer:'', amount:''}); drawSplits(); });
+  backdrop.querySelector('#hOwnRial').addEventListener('input', sumRial);
+  backdrop.querySelector('#hRate').addEventListener('input', ()=>{ sumShares(); sumRial(); });
+  backdrop.querySelector('#hSupplier').addEventListener('input', sumShares);
+  backdrop.addEventListener('input', e => { if(e.target.matches('[data-contrib-amount]')) setTimeout(()=>{ sumShares(); sumRial(); }, 0); });
+  drawShares(); drawSplits();
+
   backdrop.querySelector('#hAutoSplitBtn').addEventListener('click', async ()=>{
-    const customerName = backdrop.querySelector('#hAutoSplitCustomer').value.trim();
-    const amountStr = backdrop.querySelector('#hAutoSplitAmount').value.replace(/,/g,'').trim();
-    if(!customerName || !amountStr){ showToast('نامِ مشتری و مبلغ را وارد کنید'); return; }
+    const rows = splitRows.filter(r=>r.customer.trim() && num(r.amount) > 0);
+    if(!rows.length){ showToast('حداقل یک مشتری و مبلغ وارد کنید'); return; }
+    const merged = {};
+    rows.forEach(r => { const k = r.customer.trim(); merged[k] = (merged[k]||0) + num(r.amount); });
     const excludeParam = isEdit ? `&exclude_hawale_id=${existing.id}` : '';
-    const res = await fetch(FX_API+`hawales/auto_split_preview/?customer=${encodeURIComponent(customerName)}&amount=${amountStr}${excludeParam}`);
-    if(!res.ok){ showToast('❌ محاسبه ناموفق بود'); return; }
-    autoSplitResult = await res.json();
-    const box = backdrop.querySelector('#hAutoSplitResultBox');
-    if(autoSplitResult.allocations.length===0){
-      box.innerHTML = `<div style="padding:10px;border-radius:8px;background:var(--paper)"><div style="font-size:11.5px;color:var(--danger)">⚠️ هیچ واریزیِ آزادی برای <strong>${customerName}</strong> پیدا نشد — کلِ مبلغِ <strong>${fmtRial(autoSplitResult.uncovered)}</strong> از <strong>سرمایه/حسابِ خودِ شرکت</strong> برداشته می‌شه. این مبلغ خودکار تو صفحه‌ی «پیش‌پرداخت‌های سرمایه‌ای» ثبت می‌شه.</div></div>`;
-      return;
+    const result = {allocations: [], perCustomer: []};
+    for(const [cust, amt] of Object.entries(merged)){
+      const res = await fetch(FX_API+`hawales/auto_split_preview/?customer=${encodeURIComponent(cust)}&amount=${Math.round(amt)}${excludeParam}`);
+      if(!res.ok){ showToast('❌ محاسبه برایِ «'+cust+'» ناموفق بود'); return; }
+      const r = await res.json();
+      r.allocations.forEach(a => result.allocations.push(Object.assign({customer: cust}, a)));
+      const covered = r.allocations.reduce((t,a)=>t+Number(a.amount||0),0);
+      result.perCustomer.push({customer: cust, amount: amt, covered, uncovered: r.uncovered || 0});
     }
-    box.innerHTML = `
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>تاریخِ واریزی</th><th>مبلغِ کلِ واریزی</th><th>مقدارِ تخصیص‌یافته به این حواله</th></tr></thead>
-          <tbody>
-            ${autoSplitResult.allocations.map(a=>`<tr>
-              <td class="date-cell">${a.date}</td>
-              <td class="num">${fmtRial(a.paymentTotalRial)}</td>
-              <td class="num" style="font-weight:700">${fmtRial(a.amount)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div style="margin-top:8px;padding:10px;border-radius:8px;background:var(--paper)">
-        <div style="font-size:11.5px">✅ از واریزیِ راکدِ خودِ <strong>${customerName}</strong> پوشش داده شد: <strong>${fmtRial(autoSplitResult.allocations.reduce((s,a)=>s+Number(a.amount||0),0))}</strong></div>
-        ${autoSplitResult.uncovered>0.01 ? `<div style="font-size:11.5px;color:var(--danger);margin-top:4px">⚠️ باقیِ مبلغ — <strong>${fmtRial(autoSplitResult.uncovered)}</strong> — چون واریزیِ آزادِ این مشتری کافی نبود، از <strong>سرمایه/حسابِ خودِ شرکت</strong> برداشته می‌شه. این مبلغ خودکار تو صفحه‌ی «پیش‌پرداخت‌های سرمایه‌ای» ثبت می‌شه تا وقتی این مشتری بعداً پول داد، خودکار تسویه بشه.</div>` : ''}
-      </div>
-    `;
+    autoSplitResult = result;
+    const box = backdrop.querySelector('#hAutoSplitResultBox');
+    box.innerHTML = `<div class="table-wrap"><table><thead><tr><th>مشتری</th><th>تاریخِ واریزی</th><th>مبلغِ کلِ واریزی</th><th>از این واریزی برایِ این حواله</th></tr></thead><tbody>
+      ${result.allocations.map(a=>`<tr><td>${a.customer}</td><td class="date-cell">${a.date}</td><td class="num">${fmtRial(a.paymentTotalRial)}</td><td class="num" style="font-weight:700">${fmtRial(a.amount)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div style="margin-top:8px;padding:10px;border-radius:8px;background:var(--paper);font-size:11.5px;line-height:2">
+      ${result.perCustomer.map(c=>`✅ <b>${c.customer}</b>: ${fmtRial(c.covered)} از واریزی‌هایِ خودش` + (c.uncovered>0.5 ? ` — <span style="color:var(--danger)">⚠️ ${fmtRial(c.uncovered)} کم داشت؛ از سرمایه‌ی شرکت برداشته و در «پیش‌پرداخت‌هایِ سرمایه‌ای» ثبت می‌شه</span>` : '')).join('<br>')}</div>`;
   });
 
   function wireContribRows(){
@@ -2729,14 +2771,24 @@ function openHawaleModal(existing){
     // `is not None`) دست‌نخورده نگهش داره.
     const body = {supplier_name:supplierName, date, rate_at_hawale:rate, rate_at_customer_deposit:rateAtDeposit, manual_expense:manualExpense, note, contributions:validContribs};
     if(autoSplitResult){
-      body.paymentAllocations = autoSplitResult.allocations.map(a=>({payment: a.payment_id, rial_amount: a.amount}));
-      // ⚠️ (۱۴۰۵/۰۶/۲۳) طبق طراحیِ دقیقِ کاربر: اگه واریزیِ آزادِ این
-      // مشتری کافی نبود، مابه‌التفاوت از سرمایه/حسابِ خودِ شرکت برداشته
-      // شده — خودکار یه رکوردِ «پیش‌پرداختِ سرمایه‌ای» ثبت می‌شه.
-      if(autoSplitResult.uncovered > 0.01){
-        const custName = backdrop.querySelector('#hAutoSplitCustomer').value.trim();
-        body.capitalAdvance = {customerName: custName, rialAmount: autoSplitResult.uncovered};
-      }
+      body.paymentAllocations = autoSplitResult.allocations.map(a=>({payment: a.payment_id, rial_amount: Math.round(a.amount)}));
+      // ⚠️ (۱۴۰۵/۰۶/۲۳ ← ۱۴۰۵/۰۷/۱۰ چند مشتری) هر مشتری‌ای که واریزیِ آزادش کافی نبود → پیش‌پرداختِ سرمایه‌ای
+      const adv = autoSplitResult.perCustomer.filter(c=>c.uncovered > 0.5).map(c=>({customerName: c.customer, rialAmount: Math.round(c.uncovered)}));
+      if(adv.length) body.capitalAdvances = adv;
+    } else if(splitRows.some(r=>r.customer.trim() && num(r.amount)>0)){
+      showToast('⚠️ برایِ مشتری‌ها اول «🔄 محاسبه‌ی خودکار (FIFO)» رو بزنید'); return;
+    }
+    // ⚠️ (۱۴۰۵/۰۷/۱۰) پولِ مازادِ خودمون (موجودیِ یوانِ شرکت)
+    const ownRial = num(backdrop.querySelector('#hOwnRial').value);
+    const totalRialNow = validContribs.reduce((t,c)=>t+c.rial_amount,0);
+    if(ownRial > totalRialNow + 1){ showToast('پولِ مازادِ خودمون از ریالِ کلِ حواله بیشتره'); return; }
+    body.own_rial = Math.round(ownRial);
+    // ⚠️ سهمِ تأمین‌کننده‌ها — فقط اگه دست خورده (نفرستادن = دست نزن)
+    if(sharesTouched){
+      const sh = shareRows.filter(r=>r.supplier.trim() && num(r.yuan)>0).map(r=>({supplier_name: r.supplier.trim(), yuan_amount: num(r.yuan).toFixed(4)}));
+      const used = sh.reduce((t,x)=>t+Number(x.yuan_amount),0), tot = rate ? totalRialNow/rate : 0;
+      if(used > tot + 0.5){ showToast('جمعِ سهمِ تأمین‌کننده‌ها از یوانِ کلِ حواله بیشتره'); return; }
+      body.supplierShares = sh;
     }
     const d = isEdit ? await apiUpdate('hawales', existing.id, body) : await apiCreate('hawales', body);
     if(!d) return;
@@ -4263,6 +4315,78 @@ async function renderAccountLedger(main, skipLoad, cachedData){
 // سرمایه‌ای» — کاملاً موازی و بی‌اثر رو محاسباتِ اصلی؛ فقط برایِ شفافیت
 // که «الان چقدر از پولِ خودم، بدونِ برگشت، بیرونه».
 let capitalAdvancesSearchQuery = '';
+
+// ══════════════════════════════════════════════════════════════
+// 📦 (۱۴۰۵/۰۷/۱۰) موجودیِ یوانِ شرکت — یوانی که با «پولِ مازادِ خودمون» در حواله‌ها خریده شده،
+//   و فروشش به مشتری با فرمولِ از پیش تعیین‌شده: نرخِ فروش = نرخِ خرید × (۱ + درصد ÷ ۱۰۰) + مبلغِ ثابت
+// ══════════════════════════════════════════════════════════════
+async function renderStock(main){
+  main.innerHTML = '<div class="empty">در حالِ بارگذاری…</div>';
+  let d;
+  try{ const r = await fetch(FX_API+'stock/'); d = await r.json(); }catch(e){ main.innerHTML = '<div class="empty">❌ بارگذاری نشد</div>'; return; }
+  const customers = [...new Set(state.payments.map(p=>p.customer_name))];
+  main.innerHTML = `
+    <div class="page-head"><h2>📦 موجودیِ یوانِ شرکت</h2><div class="sub">یوانی که با «پولِ مازادِ خودمون» در حواله‌ها خریده شده و هنوز به مشتری فروخته نشده.</div></div>
+    <div class="cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div class="card" style="flex:1;min-width:180px"><div class="card-label">موجودیِ فعلی</div><div class="card-value">${fmtYuan(d.totalRemainingYuan)}</div></div>
+      <div class="card" style="flex:1;min-width:180px"><div class="card-label">سودِ فروش‌هایِ انجام‌شده</div><div class="card-value">${fmtRial(d.totalProfitRial)}</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:700;margin-bottom:6px">🧮 فرمولِ نرخِ فروش</div>
+      <div class="form-row"><div class="field"><label>درصدِ افزایش رویِ نرخِ خرید</label><input id="stkPct" type="text" class="num" value="${d.markupPercent}"></div>
+        <div class="field"><label>+ مبلغِ ثابت (ریال به ازایِ هر یوان)</label><input id="stkFix" type="text" class="num" value="${fmt(d.markupFixed,0)}"></div>
+        <div class="field" style="align-self:end"><button class="btn btn-primary btn-sm" id="stkSave">ذخیره‌ی فرمول</button></div></div>
+      <div style="font-size:11.5px;color:var(--ink-soft)">نرخِ فروش = نرخِ خریدِ همون حواله × (۱ + درصد ÷ ۱۰۰) + مبلغِ ثابت. مثال: خرید ۱۰٬۰۰۰ با ۲٪ و ۵۰ ریال ← ۱۰٬۲۵۰.</div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:700;margin-bottom:6px">💱 فروش از موجودی به مشتری</div>
+      <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:8px">از <b>واریزی‌هایِ آزادِ</b> مشتری (قدیمی‌ترین اول) و <b>قدیمی‌ترین موجودی</b> برداشته می‌شه؛ نرخِ مشتری برایِ این مبلغ = نرخِ فروش (نه نرخِ روزِ واریزش).</div>
+      <div class="form-row"><div class="field"><label>مشتری</label><input id="stkCust" type="text" list="stkCustList"><datalist id="stkCustList">${customers.map(n=>`<option value="${n}">`).join('')}</datalist></div>
+        <div class="field"><label>مبلغِ ریال (از واریزی‌هایِ آزادش)</label><input id="stkRial" type="text" class="num"></div>
+        <div class="field"><label>نرخِ فروشِ دستی (اختیاری — خالی = فرمول)</label><input id="stkRate" type="text" class="num"></div></div>
+      <button class="btn btn-ghost btn-sm" id="stkPrev">🔎 پیش‌نمایش</button> <button class="btn btn-primary btn-sm" id="stkSell" disabled>✅ فروش</button>
+      <div id="stkPrevBox" style="margin-top:10px"></div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>حواله</th><th>تأمین‌کننده(ها)</th><th>نرخِ خرید</th><th>خریده‌شده با پولِ خودمون</th><th>فروخته</th><th>مانده</th><th>نرخِ فروشِ الان</th><th>سود</th></tr></thead><tbody>
+      ${d.lots.length ? d.lots.map(l=>`<tr><td class="date-cell">#${l.hawaleId} · ${l.date}</td><td>${l.suppliers.join('، ')}</td><td class="num">${fmt(l.costRate,0)}</td><td class="num">${fmtYuan(l.stockYuan)}</td><td class="num">${fmtYuan(l.soldYuan)}</td><td class="num" style="font-weight:700">${fmtYuan(l.remainingYuan)}</td><td class="num">${fmt(l.saleRateNow,0)}</td><td class="num">${fmtRial(l.profitRial)}</td></tr>
+        ${l.sales.map(x=>`<tr style="font-size:11px;color:var(--ink-soft)"><td></td><td colspan="5">↳ فروش به <b>${x.customer}</b> · واریزیِ ${x.paymentDate} · ${fmtYuan(x.yuan)} × ${fmt(x.saleRate,0)} = ${fmtRial(x.rial)}</td><td class="num">${fmtRial(x.profitRial)}</td><td><button class="icon-btn" data-stk-undo="${x.allocationId}" title="برگرداندنِ این فروش">↩</button></td></tr>`).join('')}`).join('')
+        : '<tr><td colspan="8" class="empty">هنوز حواله‌ای با «پولِ مازادِ خودمون» ثبت نشده — در فرمِ حواله، فیلدِ «💼 از پولِ مازادِ خودمون» رو پر کنید.</td></tr>'}
+    </tbody></table></div>`;
+  ['#stkFix','#stkRial','#stkRate'].forEach(q=>wireLiveNumberFormat(main.querySelector(q)));
+  const nm = v => Number(String(v||'').replace(/[۰-۹]/g,x=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(x)).replace(/[,٬\s]/g,'')) || 0;
+  main.querySelector('#stkSave').onclick = async ()=>{
+    const r = await fetch(FX_API+'settings/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stock_markup_percent: String(nm(main.querySelector('#stkPct').value)), stock_markup_fixed: String(nm(main.querySelector('#stkFix').value))})});
+    if(r.ok){ showToast('✅ فرمول ذخیره شد'); renderStock(main); } else showToast('❌ ذخیره نشد');
+  };
+  let plan = null;
+  main.querySelector('#stkPrev').onclick = async ()=>{
+    const cust = main.querySelector('#stkCust').value.trim(), rial = nm(main.querySelector('#stkRial').value), rate = nm(main.querySelector('#stkRate').value);
+    if(!cust || !rial){ showToast('مشتری و مبلغ رو وارد کنید'); return; }
+    const r = await fetch(FX_API+`stock/preview/?customer=${encodeURIComponent(cust)}&rial=${Math.round(rial)}${rate?'&sale_rate='+Math.round(rate):''}`);
+    const x = await r.json(); plan = x;
+    const box = main.querySelector('#stkPrevBox');
+    if(!r.ok || !x.plan || !x.plan.length){ box.innerHTML = `<div style="color:var(--danger);font-size:12px">⚠️ ${x.error || 'واریزیِ آزادِ این مشتری یا موجودیِ شرکت کافی نیست'} (واریزیِ آزاد: ${fmtRial(x.customerFreeRial||0)} · موجودی: ${fmtYuan(x.stockYuan||0)})</div>`; main.querySelector('#stkSell').disabled = true; return; }
+    const y = x.plan.reduce((t,p)=>t+p.yuan,0), pr = x.plan.reduce((t,p)=>t+p.profitRial,0), rl = x.plan.reduce((t,p)=>t+p.rial,0);
+    box.innerHTML = `<div class="table-wrap"><table><thead><tr><th>واریزیِ مشتری</th><th>از حواله</th><th>ریال</th><th>یوان</th><th>نرخِ خرید</th><th>نرخِ فروش</th><th>سود</th></tr></thead><tbody>
+      ${x.plan.map(p=>`<tr><td class="date-cell">${p.paymentDate}</td><td>#${p.hawaleId} · ${p.hawaleDate}</td><td class="num">${fmtRial(p.rial)}</td><td class="num">${fmtYuan(p.yuan)}</td><td class="num">${fmt(p.costRate,0)}</td><td class="num" style="font-weight:700">${fmt(p.saleRate,0)}</td><td class="num">${fmtRial(p.profitRial)}</td></tr>`).join('')}
+      </tbody></table></div><div style="font-size:12px;margin-top:6px">جمع: ${fmtRial(rl)} ← ${fmtYuan(y)} · سود: <b>${fmtRial(pr)}</b>${x.uncoveredRial>0.5?` · <span style="color:var(--danger)">${fmtRial(x.uncoveredRial)} پوشش داده نشد</span>`:''}</div>`;
+    main.querySelector('#stkSell').disabled = false;
+  };
+  main.querySelector('#stkSell').onclick = async ()=>{
+    if(!plan || !plan.plan.length) return;
+    const cust = main.querySelector('#stkCust').value.trim(), rial = nm(main.querySelector('#stkRial').value), rate = nm(main.querySelector('#stkRate').value);
+    if(!confirm(`فروش از موجودیِ شرکت به «${cust}» انجام بشه؟`)) return;
+    const r = await fetch(FX_API+'stock/sell/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:cust, rial:Math.round(rial), sale_rate: rate?Math.round(rate):null})});
+    const x = await r.json();
+    if(r.ok){ showToast('✅ فروخته شد'); await loadAll?.(); renderStock(main); } else showToast('❌ '+(x.error||'ناموفق'));
+  };
+  main.querySelectorAll('[data-stk-undo]').forEach(b=>b.onclick = async ()=>{
+    if(!confirm('این فروش برگردونده بشه؟ (یوان به موجودیِ شرکت برمی‌گرده و واریزیِ مشتری آزاد می‌شه)')) return;
+    const r = await fetch(FX_API+'stock/undo/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({allocation_id:+b.dataset.stkUndo})});
+    if(r.ok){ showToast('↩ برگردونده شد'); renderStock(main); } else showToast('❌ ناموفق');
+  });
+}
+
 async function renderCapitalAdvances(main, skipLoad){
   if(!skipLoad) await loadAll();
   let filtered = sortByDateDesc(state.capitalAdvances);
