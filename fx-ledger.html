@@ -220,6 +220,10 @@
   .form-grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
   @media(max-width:700px){ .modal.modal-landscape{ max-width:420px; } .modal.modal-xl{ max-width:96vw; } .form-grid-3{ grid-template-columns:1fr; } }
   .contrib-row{ display:grid; grid-template-columns:2fr 1fr auto; gap:8px; align-items:center; margin-bottom:6px; }
+  /* ⚠️ (۱۴۰۵/۰۷/۱۴) ردیفِ «منبعِ ریالِ حواله»: مشتری | مانده‌یِ ریاليِ دستِ ما | مبلغِ این حواله | ✕ */
+  .split-row{ display:grid; grid-template-columns:2fr 1.5fr 1.4fr auto; gap:8px; align-items:center; margin-bottom:6px; }
+  .split-head{ font-size:10.5px; font-weight:700; color:var(--ink-soft); margin-bottom:2px; }
+  .split-free{ font-size:12px; line-height:1.5; }
   .status-chip{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; }
   .status-chip.closed{ background:var(--rial-soft); color:var(--rial); }
   .status-chip.open{ background:var(--yuan-soft); color:var(--yuan); }
@@ -2688,12 +2692,35 @@ function openHawaleModal(existing){
     const rest = tot - used;
     el.innerHTML = `یوانِ کلِ حواله: <b>${fmtYuan(tot)}</b> · سهم‌ها: ${fmtYuan(used)} · مابقی برایِ <b>${main}</b>: <b style="color:${rest< -0.5?'var(--danger)':'inherit'}">${fmtYuan(rest)}</b>` + (rest < -0.5 ? ' — ⚠️ جمعِ سهم‌ها از یوانِ حواله بیشتره' : '');
   }
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: کنارِ نامِ هر مشتری، «مانده‌یِ ریاليِ دستِ ما» (واریزی‌هایِ هنوز
+  // حواله‌نشده‌یِ او) نشان داده می‌شه و در ستونِ بعدی مبلغِ این حواله نوشته می‌شه. عددِ مانده از سرور میاد
+  // (/accounts/customer-free-rial/ — با کنارگذاشتنِ تخصیص‌هایِ خودِ همین حواله موقعِ ویرایش). فقط نمایشی و هشدار است؛
+  // اگه مبلغ بیشتر از مانده باشه، همان رفتارِ قبلی (پیش‌پرداختِ سرمایه‌ای برایِ مابه‌التفاوت) اجرا می‌شه.
+  let freeMap = null;   // {نامِ مشتری: ریالِ آزاد} — تا وقتی null است «در حال بارگذاری»
+  function updateFreeCell(i){
+    const cell = backdrop.querySelector(`[data-sp-free="${i}"]`); if(!cell) return;
+    const name = (splitRows[i].customer||'').trim();
+    if(freeMap === null){ cell.innerHTML = '<span style="color:var(--ink-soft)">…</span>'; return; }
+    if(!name){ cell.innerHTML = '<span style="color:var(--ink-soft)">—</span>'; return; }
+    if(!(name in freeMap)){ cell.innerHTML = '<span style="color:var(--ink-soft)" title="این نام در واریزی‌ها نیست">— (واریزی ندارد)</span>'; return; }
+    const free = Number(freeMap[name]||0), want = num(splitRows[i].amount);
+    cell.innerHTML = `<b>${fmtRial(free)}</b>` + (free > 0.5 ? ` <button class="icon-btn" type="button" data-sp-fill="${i}" title="مبلغ را با کلِ این مانده پر کن" style="font-size:10px">همه</button>` : '')
+      + (want > free + 0.5 ? `<div style="font-size:10.5px;color:var(--danger)">⚠️ ${fmtRial(want-free)} بیشتر از مانده — مابه‌التفاوت «پیش‌پرداختِ سرمایه‌ای» می‌شه</div>` : '');
+    const fb = cell.querySelector('[data-sp-fill]');
+    if(fb) fb.addEventListener('click', ()=>{
+      splitRows[i].amount = String(Math.round(free)); autoSplitResult = null;
+      const inp = backdrop.querySelector(`[data-sp-amt="${i}"]`); if(inp) inp.value = fmt(free,0);
+      sumRial(); updateFreeCell(i);
+    });
+  }
   function drawSplits(){
     const box = backdrop.querySelector('#hSplitRows');
-    box.innerHTML = splitRows.map((r,i)=>`<div class="contrib-row"><input data-sp-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${r.customer||''}"><input data-sp-amt="${i}" type="text" class="num" placeholder="مبلغِ ریال" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" data-sp-del="${i}" type="button" ${splitRows.length<=1?'disabled':''}>✕</button></div>`).join('');
-    box.querySelectorAll('[data-sp-cust]').forEach(x=>x.addEventListener('input',()=>{ splitRows[+x.dataset.spCust].customer = x.value; autoSplitResult = null; sumRial(); }));
-    box.querySelectorAll('[data-sp-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ splitRows[+x.dataset.spAmt].amount = x.value; autoSplitResult = null; sumRial(); }); });
+    box.innerHTML = `<div class="split-row split-head"><span>مشتری</span><span>مانده‌یِ ریاليِ دستِ ما (واریزیِ حواله‌نشده)</span><span>مبلغِ این حواله (ریال)</span><span></span></div>` +
+      splitRows.map((r,i)=>`<div class="split-row"><input data-sp-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${fxc_esc(r.customer||'')}"><div class="split-free" data-sp-free="${i}"></div><input data-sp-amt="${i}" type="text" class="num" placeholder="مبلغِ ریال" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" data-sp-del="${i}" type="button" ${splitRows.length<=1?'disabled':''}>✕</button></div>`).join('');
+    box.querySelectorAll('[data-sp-cust]').forEach(x=>x.addEventListener('input',()=>{ const i=+x.dataset.spCust; splitRows[i].customer = x.value; autoSplitResult = null; sumRial(); updateFreeCell(i); }));
+    box.querySelectorAll('[data-sp-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ const i=+x.dataset.spAmt; splitRows[i].amount = x.value; autoSplitResult = null; sumRial(); updateFreeCell(i); }); });
     box.querySelectorAll('[data-sp-del]').forEach(x=>x.addEventListener('click',()=>{ if(splitRows.length<=1) return; splitRows.splice(+x.dataset.spDel,1); autoSplitResult = null; drawSplits(); }));
+    splitRows.forEach((_,i)=>updateFreeCell(i));
     sumRial();
   }
   function sumRial(){
@@ -2711,6 +2738,15 @@ function openHawaleModal(existing){
   backdrop.querySelector('#hSupplier').addEventListener('input', sumShares);
   backdrop.addEventListener('input', e => { if(e.target.matches('[data-contrib-amount]')) setTimeout(()=>{ sumShares(); sumRial(); }, 0); });
   drawShares(); drawSplits();
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) مانده‌یِ ریاليِ آزادِ مشتری‌ها را در پس‌زمینه بگیر (فرم منتظرش نمی‌مونه)؛ موقعِ ویرایش، تخصیص‌هایِ خودِ همین حواله حساب نمی‌شن
+  (async()=>{
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/customer-free-rial/' + (isEdit ? ('?exclude_hawale_id='+existing.id) : ''));
+      if(r.ok){ const d = await r.json(); freeMap = d.customers || {}; }
+      else { freeMap = {}; }
+    }catch(e){ freeMap = {}; }
+    if(document.body.contains(backdrop)) splitRows.forEach((_,i)=>updateFreeCell(i));
+  })();
 
   backdrop.querySelector('#hAutoSplitBtn').addEventListener('click', async ()=>{
     const rows = splitRows.filter(r=>r.customer.trim() && num(r.amount) > 0);
