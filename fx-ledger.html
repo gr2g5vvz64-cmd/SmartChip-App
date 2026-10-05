@@ -1570,7 +1570,7 @@ async function renderCustomerLedger(main, cachedData){
     <div class="page-head">
       <button class="btn btn-ghost btn-sm" id="backBtn" style="margin-bottom:10px">‹ بازگشت به لیست مشتریان</button>
       <h1 class="page-title">${data.customer}</h1>
-      <p class="page-desc">دفترِ کامل تسویه — هر ردیف یک فاکتور یا واریزی، با مانده‌ی تجمعیِ ریالی و یوانی</p>
+      <p class="page-desc">دفترِ کامل تسویه — هر ردیف یک فاکتور یا واریزی، با مانده‌ی تجمعیِ ریالی و یوانی<br><span style="font-size:11.5px">ℹ️ واریزیِ «هنوز حواله‌نشده» تا وقتی به حواله وصل نشده <b>یوانی اعتبار نمی‌گیره</b> — نرخِ روزِ واریز فقط برایِ اطلاع نمایش داده می‌شه و ملاکِ محاسبه نیست؛ یوانِ مشتری با نرخِ همان حواله‌ای که واقعاً زده می‌شه حساب می‌شه.</span></p>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
@@ -1652,7 +1652,7 @@ async function renderCustomerLedger(main, cachedData){
             <td class="num col-group-rial">${e.type==='order' ? '—' : ((e.type==='opening' && e.rial_credit==null) ? '—' : fmtRial(e.rial_credit))}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
             <td class="num">${(e.type==='order' || (e.type==='opening' && e.yuan_debit!=null)) ? fmtYuan(e.yuan_debit) : '—'}</td>
-            <td class="num">${(e.type==='payment' || (e.type==='opening' && e.yuan_credit!=null)) ? fmtYuan(e.yuan_credit) : '—'}</td>
+            <td class="num">${(e.type==='payment' || (e.type==='opening' && e.yuan_credit!=null)) ? (e.yuan_credit ? fmtYuan(e.yuan_credit) : (e.type==='payment' && e.pending ? '<span title="هنوز حواله نشده — یوانی اعتبار داده نمی‌شه" style="font-size:10.5px;color:var(--ink-soft)">⏳ منتظرِ حواله</span>' : '—')) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${(e.type==='order' || e.type==='opening') ? '—' : (e.hawaleRate ? fmt(e.hawaleRate,0)+(e.rateBreakdown ? ` <button class="icon-btn" data-show-rate-breakdown='${JSON.stringify(e.rateBreakdown)}' style="font-size:9.5px;padding:1px 5px">🔀 ${e.rateBreakdown.length} نرخ</button>` : '') : '⏳ هنوز حواله نشده')}${e.pendingRial>0.01 ? `<div style="font-size:9.5px;color:var(--danger)">⚠️ ${fmtRial(e.pendingRial)} هنوز لینک نشده</div>` : ''}</td>
             <td class="num" style="max-width:80px;font-size:10.5px">${e.type==='payment' && e.depositRate ? fmt(e.depositRate,0) : '—'}</td>
