@@ -3005,6 +3005,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     <div class="toolbar" style="margin-bottom:10px"><div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div></div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
+      ${(()=>{ const hv = data.events.filter(x=>x.type==='hold').reduce((s,x)=>s+Number(x.heldYuan||0),0); return hv>0.005 ? `<div class="card stat-card"><div class="stat-label">🔒 نگه‌داری‌شده برایِ مشتری‌ها</div><div class="stat-value yuan num">${fmtYuan(hv)}</div><div class="stat-hint">پولِ ما نزدِ این تأمین‌کننده، مالِ مشتری — در مانده‌یِ بدهیِ فاکتورها نمی‌آید</div></div>` : ''; })()}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — ما به تأمین‌کننده یوان بدهکاریم (باید حواله بزنیم)' : (realYuanBalance < -0.01 ? '🟢 منفی — تأمین‌کننده به ما بدهکار است (بیش از فاکتورهایش حواله زده‌ایم)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
@@ -3084,7 +3085,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
               <td class="num">${fmtYuan(bd.totalYuan)}</td>
               <td class="num">${fmtYuan(bd.spentYuan)}</td>
               <td class="num" style="font-weight:700">${fmtYuan(bd.remainingYuan)}</td>
-              <td>${fullySpent ? '<span class="status-chip closed">✅ کامل خرج شده</span>' : (bd.spentYuan>0.01 ? '<span class="status-chip open">⏳ بخشی خرج شده</span>' : '<span class="status-chip open">⏳ هنوز خرج نشده</span>')}</td>
+              <td>${(bd.heldYuan>0.01) ? '<span class="status-chip closed">🔒 '+fmtYuan(bd.heldYuan)+' نگه‌داری برایِ مشتری</span> ' : ''}${(bd.heldYuan>0.01 && bd.totalYuan<=0.01) ? '' : (fullySpent ? '<span class="status-chip closed">✅ کامل خرج شده</span>' : (bd.spentYuan>0.01 ? '<span class="status-chip open">⏳ بخشی خرج شده</span>' : '<span class="status-chip open">⏳ هنوز خرج نشده</span>'))}</td>
               <td>${bd.spentItems.length ? `<button class="icon-btn" data-show-breakdown="${h.id}">📋 جزئیات</button>` : '—'}</td>
             </tr>`;
           }).join('')}
@@ -3178,13 +3179,13 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
             <td class="num">${e.docNumber}</td>
             <td class="col-right" style="text-align:center;max-width:150px;font-size:11px${e.provisional?';color:#8a5a00;font-weight:700':''}">${e.type==='invoice'?'📄 ':(e.type==='yuan_adjustment'?'⚙️ ':(e.type==='opening'?'🏁 ':'💰 '))}${e.desc}</td>
             <td class="num col-group-rial">${(e.type==='invoice' || e.type==='opening') && e.rial_debit!==null && e.rial_debit!==undefined ? fmtRial(e.rial_debit) + (e.partialRial ? '<div style="font-size:10px;color:var(--ink-soft)">فقط بخشِ تسویه‌شده</div>' : '') : '—'}</td>
-            <td class="num col-group-rial">${(e.type==='hawale' || (e.type==='opening' && e.rial_credit!==null && e.rial_credit!==undefined)) ? fmtRial(e.rial_credit) : '—'}</td>
+            <td class="num col-group-rial">${e.type==='hold' ? `<span style="opacity:.7" title="نگه‌داری برایِ مشتری — در مانده‌یِ فاکتورها نمی‌آید">🔒 ${fmtRial(e.heldRial)}</span>` : ((e.type==='hawale' || (e.type==='opening' && e.rial_credit!==null && e.rial_credit!==undefined)) ? fmtRial(e.rial_credit) : '—')}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
             <td class="num">${e.yuan_debit!==null && e.yuan_debit!==undefined ? fmtYuan(e.yuan_debit) : '—'}</td>
-            <td class="num">${e.yuan_credit!==null && e.yuan_credit!==undefined ? fmtYuan(e.yuan_credit) : '—'}</td>
+            <td class="num">${e.type==='hold' ? `<span style="opacity:.7" title="نگه‌داری برایِ مشتری — در مانده‌یِ فاکتورها نمی‌آید">🔒 ${fmtYuan(e.heldYuan)}</span>` : (e.yuan_credit!==null && e.yuan_credit!==undefined ? fmtYuan(e.yuan_credit) : '—')}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : '—'}</td>
-            <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span>${e.type==='yuan_adjustment' ? ` <button class="icon-btn" data-edit-yuan-adj="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-yuan-adj="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
+            <td>${e.type==='hold' ? `<span class="status-chip closed">🔒 نگه‌داری</span> <button class="icon-btn" data-hold-hawale="${e.hawaleId}" style="font-size:9.5px">ویرایش/برداشتن</button>` : `<span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span>`}${(e.type==='hawale' && e.isMainSlice && !e.heldRial) ? ` <button class="icon-btn" data-hold-hawale="${e.id}" title="این یوان پولِ تأمین‌کننده نیست؛ فقط نزدِ او نگه‌داری می‌شه و مالِ مشتری است" style="font-size:9.5px">🔒 نگه‌داری برایِ مشتری</button>` : ''}${e.type==='yuan_adjustment' ? ` <button class="icon-btn" data-edit-yuan-adj="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-yuan-adj="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
           </tr>`).join('')}
         </tbody>
         ${filteredSupplierEvents.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
@@ -3203,6 +3204,12 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
   main.querySelector('#addYuanAdjBtn').addEventListener('click', ()=>openYuanAdjustmentModal(sName));
   main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('supplier', sName));
+  main.querySelectorAll('[data-hold-hawale]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = +b.dataset.holdHawale;
+    const ev = data.events.find(x=>x.type==='hawale' && x.id===id && x.isMainSlice);
+    if(!ev){ showToast('این حواله پیدا نشد'); return; }
+    openHawaleHoldModal(id, ev, sName);
+  }));
   main.querySelectorAll('[data-edit-opening]').forEach(b=>b.addEventListener('click', ()=>{
     const ev = data.events.find(x=>x.type==='opening' && x.id==b.dataset.editOpening);
     if(!ev){ showToast('این مانده‌ی اولیه پیدا نشد'); return; }
@@ -4485,7 +4492,7 @@ async function renderYuanPosition(main){
   const T = d.totals || {};
   const gapOk = Math.abs(T.gap||0) < 1;
   const card = (label, val, hint) => `<div class="card" style="flex:1;min-width:190px"><div class="card-label">${label}</div><div class="card-value">${fmtYuan(val||0)}</div>${hint?`<div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">${hint}</div>`:''}</div>`;
-  const supRows = (d.suppliers||[]).map(s=>`<tr><td>${fxc_esc(s.name)}</td><td class="num" style="font-weight:700;color:${s.yuan>0?'#1e8449':'#c0392b'}">${fmtYuan(Math.abs(s.yuan))}</td><td>${s.yuan>0?'🟢 یوانِ ما نزدِ اوست (پیش‌پرداخت)':'🟠 ما به او بدهکاریم'}</td></tr>`).join('');
+  const supRows = (d.suppliers||[]).map(s=>`<tr><td>${fxc_esc(s.name)}</td><td class="num">${s.deposit>0.005 ? '🔒 '+fmtYuan(s.deposit) : '—'}</td><td class="num" style="font-weight:700;color:${s.yuan>0?'#1e8449':'#c0392b'}">${Math.abs(s.yuan)>0.005 ? fmtYuan(Math.abs(s.yuan)) : '—'}</td><td>${Math.abs(s.yuan)<=0.005 ? '' : (s.yuan>0 ? '🟢 پیش‌پرداختِ بدونِ فاکتور' : '🟠 ما به او بابتِ فاکتورها بدهکاریم')}</td></tr>`).join('');
   const custHtml = (d.customers||[]).map(c=>{
     const opts = (oid)=> `<option value="">— بدونِ رزرو (FIFO) —</option>` + c.orders.map(o=>`<option value="${o.id}" ${oid===o.id?'selected':''}>${fxc_esc(o.date)} — ${o.type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoiceNo?(' '+fxc_esc(o.invoiceNo)):''} — ${fmtYuan(o.yuan)}</option>`).join('');
     const linkRows = c.links.map(l=>`<tr>
@@ -4520,7 +4527,7 @@ async function renderYuanPosition(main){
       <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">${gapOk ? 'یوانِ نزدِ تأمین‌کننده‌ها دقیقاً با مالکانش (مشتری‌ها + شرکت) می‌خواند.' : 'یعنی بخشی از یوانِ نزدِ تأمین‌کننده‌ها مالکِ ثبت‌شده ندارد. دلایلِ رایج: حواله‌ای که نامِ مشتری در «منبعِ ریال»ش نیست، فروشِ ثبت‌شده‌ای که هنوز فاکتورِ خریدش ثبت نشده، مانده‌یِ اولیه یا تعدیلِ یوانی. این عدد «ایراد» نیست؛ راهنماست.'}</div>
     </div>
     <div style="font-weight:700;margin:6px 0">نزدِ تأمین‌کننده‌ها</div>
-    <div class="table-wrap" style="margin-bottom:16px"><table><thead><tr><th>تأمین‌کننده</th><th>یوان</th><th>وضعیت</th></tr></thead><tbody>${supRows || '<tr class="empty-row"><td colspan="3">هیچ تأمین‌کننده‌ای مانده‌ی یوانی ندارد</td></tr>'}</tbody></table></div>
+    <div class="table-wrap" style="margin-bottom:16px"><table><thead><tr><th>تأمین‌کننده</th><th>🔒 نگه‌داری‌شده برایِ مشتری‌ها</th><th>یوان (پیش‌پرداخت یا بدهیِ فاکتور)</th><th>وضعیت</th></tr></thead><tbody>${supRows || '<tr class="empty-row"><td colspan="4">هیچ تأمین‌کننده‌ای مانده‌ی یوانی ندارد</td></tr>'}</tbody></table></div>
     <div style="font-weight:700;margin:6px 0">به تفکیکِ مشتری</div>
     ${custHtml || '<div class="empty">هنوز مشتری‌ای با یوان یا واریزی نیست</div>'}`;
   main.querySelectorAll('details[data-yp-cust]').forEach(dt=>dt.addEventListener('toggle', ()=>{
@@ -4857,6 +4864,53 @@ function openOpeningBalanceModal(partyType, name, existing){
     fxLastSummary = null;   // خلاصه‌یِ کش‌شده کهنه شد
     renderMain();
   });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 🔒 نگه‌داری برایِ مشتری (۱۴۰۵/۰۷/۱۴) — طبقِ درخواستِ صریحِ کاربر: حواله‌ایی که به تأمین‌کننده‌یِ واقعی زده شده ولی
+// یوانش «پولِ تأمین‌کننده» نیست و فاکتورهایِ او را تسویه نمی‌کنه — فقط نزدِ او نگه‌داری می‌شه و مالِ مشتری است.
+// این بخش از مانده‌یِ بدهیِ فاکتورهایِ تأمین‌کننده کنار گذاشته می‌شه؛ سمتِ مشتری (اعتبارِ یوانی) و بانک تغییر نمی‌کنه.
+// سرور: POST /api/ledger/accounts/hawale-holds/  {hawale, held_rial, note}   (held_rial=0 → برداشتن)
+// ══════════════════════════════════════════════════════════════
+function openHawaleHoldModal(hawaleId, ev, supplierName){
+  const full = Number(ev.fullRial||0), cur = Number(ev.heldRial||0);
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>🔒 نگه‌داری برایِ مشتری — حواله #${hawaleId}</h3>
+      <p class="page-desc">این حواله به <b>${fxc_esc(supplierName)}</b> زده شده. اگر یوانِ آن (یا بخشی از آن) <b>پولِ تأمین‌کننده نیست</b> و فقط نزدِ او نگه‌داری می‌شه تا مشتری بعداً خرید کند، آن بخش را اینجا مشخص کنید: از «مانده‌یِ بدهیِ فاکتورهایِ ${fxc_esc(supplierName)}» کنار گذاشته می‌شه و جدا (🔒) نمایش داده می‌شه. اعتبارِ یوانیِ مشتری و بانک تغییر نمی‌کنه.</p>
+      <div class="form-row">
+        <div class="field"><label>کلِ مبلغِ این حواله (ریال)</label><input type="text" class="num" value="${fmt(full,0)}" disabled></div>
+        <div class="field"><label>چقدرش نگه‌داری برایِ مشتری است؟ (ریال)</label><input id="hhRial" type="text" class="num" value="${fmt(cur || full,0)}"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>توضیح (اختیاری)</label><input id="hhNote" type="text" value="" placeholder="مثلاً: پیش‌پرداختِ خریدِ آینده"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="hhSave">ذخیره</button>
+        ${cur>0 ? '<button class="btn btn-ghost" id="hhRemove">برداشتنِ نگه‌داری</button>' : ''}
+        <button class="btn btn-ghost" id="hhCancel">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const post = async (heldRial)=>{
+    let ok=false, msg='';
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/hawale-holds/', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({hawale:hawaleId, held_rial:String(Math.round(heldRial)), note: backdrop.querySelector('#hhNote').value.trim()})});
+      ok = r.ok; if(!ok){ try{ msg = (await r.json()).error || ''; }catch(e){} }
+    }catch(e){ msg = 'اتصال به سرور برقرار نشد'; }
+    if(!ok){ showToast('❌ ' + (msg || 'ثبت نشد')); return; }
+    showToast(heldRial>0 ? '🔒 ثبت شد' : 'نگه‌داری برداشته شد');
+    backdrop.remove(); fxLastSummary = null; renderMain();
+  };
+  backdrop.querySelector('#hhCancel').addEventListener('click', ()=>backdrop.remove());
+  backdrop.querySelector('#hhSave').addEventListener('click', ()=>{
+    const v = parseFloat(backdrop.querySelector('#hhRial').value.replace(/[,،\s]/g,''));
+    if(isNaN(v) || v <= 0){ showToast('مبلغِ مثبت وارد کنید'); return; }
+    if(v > full + 0.5){ showToast('از کلِ مبلغِ حواله بیشتر است'); return; }
+    post(v);
+  });
+  const rm = backdrop.querySelector('#hhRemove'); if(rm) rm.addEventListener('click', ()=>post(0));
 }
 
 // ---- Boot ----
