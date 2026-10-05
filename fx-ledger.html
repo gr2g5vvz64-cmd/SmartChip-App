@@ -1591,6 +1591,7 @@ async function renderCustomerLedger(main, cachedData){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
+      ${(data.companyMoney && data.companyMoney.yuan > 0.005) ? `<div class="card stat-card"><div class="stat-label">💼 پولِ شرکت برایِ او (منتظرِ پرداختِ مشتری)</div><div class="stat-value yuan num">${fmtYuan(data.companyMoney.yuan)}</div><div class="stat-hint">≈ ${fmtRial(data.companyMoney.rial)} — در حواله‌هایِ ${data.companyMoney.items.map(i=>'#'+i.hawaleId).join('، ')} از جیبِ شرکت برایِ او گذاشته شده؛ وقتی پرداخت کرد از «📦 موجودیِ یوانِ شرکت» به او فروخته می‌شه</div></div>` : ''}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور">💱 یوان و رزرو برایِ پیش‌فاکتور</button></div>
@@ -2633,6 +2634,14 @@ function openHawaleModal(existing){
         <button class="btn btn-ghost btn-sm" id="hAddSplit" type="button">+ مشتریِ دیگه</button>
         <div class="field" style="margin-top:10px"><label>💼 از پولِ مازادِ خودمون (ریال) — موجودیِ یوانِ شرکت</label>
           <input id="hOwnRial" type="text" class="num" value="${existing && Number(existing.own_rial) ? fmt(existing.own_rial,0) : ''}" placeholder="۰"></div>
+        <!-- ⚠️ (۱۴۰۵/۰۷/۱۴) پولِ شرکت برایِ کدام مشتری؟ (اختیاری) -->
+        <div id="hOwnTagBox" style="margin-top:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px">
+          <div style="font-size:11.5px;font-weight:700">🔖 این پولِ شرکت برایِ کدام مشتری است؟ (اختیاری)</div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin:2px 0 6px">اگه این بخش جبرانِ کمبودِ پولِ یک مشتری است، نامش و مبلغ را بنویسید. در «موجودیِ یوانِ شرکت» به نامِ او رزرو می‌شه و فقط به همان مشتری فروخته می‌شه؛ در دفترِ او هم «پولِ شرکت برایِ او (منتظرِ پرداخت)» دیده می‌شه. خالی بگذارید = موجودیِ عمومی.</div>
+          <div id="hOwnTagRows"></div>
+          <button class="btn btn-ghost btn-sm" id="hAddOwnTag" type="button">+ مشتری</button>
+          <div id="hOwnTagSum" style="font-size:11.5px;line-height:1.8;margin-top:4px"></div>
+        </div>
         <div id="hRialSum" style="font-size:11.5px;line-height:1.9"></div>
       </div>
       <button class="btn btn-ghost btn-sm" id="hAutoSplitBtn" style="margin-bottom:10px">🔄 محاسبه‌ی خودکار (FIFO)</button>
@@ -2768,6 +2777,44 @@ function openHawaleModal(existing){
   backdrop.querySelector('#hSupplier').addEventListener('input', sumShares);
   backdrop.addEventListener('input', e => { if(e.target.matches('[data-contrib-amount]')) setTimeout(()=>{ sumShares(); sumRial(); }, 0); });
   drawShares(); drawSplits();
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) پولِ شرکت برایِ کدام مشتری؟ — هر ردیف: مشتری + ریال (جمعِ ردیف‌ها ≤ «پولِ مازادِ خودمون»).
+  // بعد از ذخیره‌یِ حواله با POST /accounts/own-tags/ ثبت می‌شه؛ موقعِ ویرایش، رزروهایِ قبلی از سرور پر می‌شن.
+  let ownTags = [];            // [{customer, amount}]
+  let ownTagsLoaded = !isEdit; // در ویرایش تا وقتی از سرور نیامده، دست‌نخورده می‌ماند
+  const ownRialNow = ()=> num(backdrop.querySelector('#hOwnRial').value);
+  function drawOwnTags(){
+    const box = backdrop.querySelector('#hOwnTagRows');
+    box.innerHTML = ownTags.map((r,i)=>`<div class="contrib-row" style="grid-template-columns:2fr 1.4fr auto auto"><input data-ot-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${fxc_esc(r.customer||'')}"><input data-ot-amt="${i}" type="text" class="num" placeholder="ریالِ پولِ شرکت برایِ او" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" type="button" data-ot-rest="${i}" title="مبلغ را با باقی‌مانده‌یِ «پولِ مازادِ خودمون» پر کن" style="font-size:10px">باقی‌مانده</button><button class="icon-btn" type="button" data-ot-del="${i}">✕</button></div>`).join('');
+    box.querySelectorAll('[data-ot-cust]').forEach(x=>x.addEventListener('input',()=>{ ownTags[+x.dataset.otCust].customer = x.value; sumOwnTags(); }));
+    box.querySelectorAll('[data-ot-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ ownTags[+x.dataset.otAmt].amount = x.value; sumOwnTags(); }); });
+    box.querySelectorAll('[data-ot-del]').forEach(x=>x.addEventListener('click',()=>{ ownTags.splice(+x.dataset.otDel,1); drawOwnTags(); }));
+    box.querySelectorAll('[data-ot-rest]').forEach(x=>x.addEventListener('click',()=>{
+      const i=+x.dataset.otRest; const others = ownTags.reduce((s,r,j)=>j===i?s:s+num(r.amount),0);
+      const rest = Math.max(ownRialNow() - others, 0); ownTags[i].amount = String(Math.round(rest));
+      const inp = box.querySelector(`[data-ot-amt="${i}"]`); if(inp) inp.value = fmt(rest,0); sumOwnTags();
+    }));
+    sumOwnTags();
+  }
+  function sumOwnTags(){
+    const el = backdrop.querySelector('#hOwnTagSum'); if(!el) return;
+    const own = ownRialNow(), used = ownTags.reduce((s,r)=>s+num(r.amount),0), rate = hawaleRate();
+    if(!ownTags.length){ el.innerHTML = own>0 ? '<span style="color:var(--ink-soft)">بدونِ رزرو — کلِ پولِ مازاد «موجودیِ عمومیِ شرکت» است.</span>' : ''; return; }
+    const rest = own - used;
+    el.innerHTML = `رزروشده برایِ مشتری‌ها: <b>${fmtRial(used)}</b>${rate?` (≈ ${fmtYuan(used/rate)})`:''} از ${fmtRial(own)}` +
+      (rest < -0.5 ? ` · <b style="color:var(--danger)">⚠️ بیشتر از «پولِ مازادِ خودمون»: ${fmtRial(-rest)}</b>` : (rest > 0.5 ? ` · باقی‌مانده (عمومی): ${fmtRial(rest)}` : ' · ✅ کامل'));
+  }
+  backdrop.querySelector('#hAddOwnTag').addEventListener('click', ()=>{ ownTags.push({customer:'', amount:''}); drawOwnTags(); });
+  backdrop.querySelector('#hOwnRial').addEventListener('input', sumOwnTags);
+  backdrop.querySelector('#hRate').addEventListener('input', sumOwnTags);
+  drawOwnTags();
+  if(isEdit){
+    (async()=>{
+      try{
+        const r = await fetchWithRetry(FX_API+'accounts/own-tags/?hawale='+existing.id);
+        if(r.ok){ const d = await r.json(); ownTags = (d.tags||[]).map(x=>({customer:x.customer, amount:String(Math.round(x.rial))})); ownTagsLoaded = true; if(document.body.contains(backdrop)) drawOwnTags(); }
+      }catch(e){}
+    })();
+  }
   // ⚠️ (۱۴۰۵/۰۷/۱۴) مانده‌یِ ریاليِ آزادِ مشتری‌ها + مانده‌یِ بانک‌ها را در پس‌زمینه بگیر (فرم منتظرشون نمی‌مونه).
   // اگه سرور (فایلِ views.py جدید) جواب نداد: برایِ مشتری‌ها از «آخرین خلاصه» (همان عددِ ستونِ «ریالِ واریزی‌شده — هنوز
   // حواله نشده» در لیستِ مشتریان) استفاده می‌شه؛ و اگه آن هم نبود، به‌جایِ «واریزی ندارد» صریح می‌گه که مانده نیامده.
@@ -2912,6 +2959,10 @@ function openHawaleModal(existing){
     const totalRialNow = validContribs.reduce((t,c)=>t+c.rial_amount,0);
     if(ownRial > totalRialNow + 1){ showToast('پولِ مازادِ خودمون از ریالِ کلِ حواله بیشتره'); return; }
     body.own_rial = Math.round(ownRial);
+    // ⚠️ (۱۴۰۵/۰۷/۱۴) رزروِ پولِ شرکت برایِ مشتری‌ها: اعتبارسنجی پیش از ذخیره
+    const tagsClean = ownTags.filter(r=>r.customer.trim() && num(r.amount)>0).map(r=>({customer:r.customer.trim(), rial_amount:Math.round(num(r.amount))}));
+    if(ownTags.some(r=>num(r.amount)>0 && !r.customer.trim())){ showToast('برایِ هر مبلغِ رزرو نامِ مشتری را بنویسید'); return; }
+    if(tagsClean.reduce((s,x)=>s+x.rial_amount,0) > ownRial + 1){ showToast('جمعِ رزروِ مشتری‌ها از «پولِ مازادِ خودمون» بیشتره'); return; }
     // ⚠️ سهمِ تأمین‌کننده‌ها — فقط اگه دست خورده (نفرستادن = دست نزن)
     if(sharesTouched){
       const sh = shareRows.filter(r=>r.supplier.trim() && num(r.yuan)>0).map(r=>({supplier_name: r.supplier.trim(), yuan_amount: num(r.yuan).toFixed(4)}));
@@ -2924,6 +2975,14 @@ function openHawaleModal(existing){
 
     // ⚠️ (۱۴۰۵/۰۶/۱۸) لینک‌کردنِ گروهیِ پرداخت‌های انتخاب‌شده به این حواله
     const newHawaleId = d.id;
+    // ⚠️ (۱۴۰۵/۰۷/۱۴) ثبتِ «پولِ شرکت برایِ مشتری» (بعد از اینکه حواله ذخیره شد و id دارد). در ویرایش، فقط اگه رزروهایِ قبلی از سرور
+    // آمده بودند (یا کاربر چیزی نوشته) ارسال می‌شه — تا با یک قطعیِ شبکه رزروهایِ موجود ناخواسته پاک نشن.
+    if(tagsClean.length || (isEdit && ownTagsLoaded)){
+      try{
+        const rt = await fetchWithRetry(FX_API+'accounts/own-tags/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({hawale:newHawaleId, tags:tagsClean})});
+        if(!rt.ok){ let m=''; try{ m=(await rt.json()).error||''; }catch(e){} showToast('⚠️ حواله ثبت شد ولی رزروِ پولِ شرکت برایِ مشتری ثبت نشد' + (m?(' — '+m):'')); }
+      }catch(e){ showToast('⚠️ حواله ثبت شد ولی رزروِ پولِ شرکت برایِ مشتری ثبت نشد (اتصال)'); }
+    }
     const previouslyLinked = isEdit ? new Set(state.payments.filter(p=>p.hawale==existing.id).map(p=>p.id)) : new Set();
     const toLink = [...selectedPaymentIds].filter(pid => !previouslyLinked.has(pid));
     const toUnlink = [...previouslyLinked].filter(pid => !selectedPaymentIds.has(pid));
@@ -4615,6 +4674,8 @@ async function renderYuanPosition(main){
         ${c.links.length ? `<div style="font-weight:700;margin:6px 0">حواله‌هایی که با پولِ این مشتری زده شده — و رزرو برایِ پیش‌فاکتور</div>
           <div class="table-wrap"><table><thead><tr><th>تاریخِ واریز</th><th>تاریخِ حواله</th><th>تأمین‌کننده</th><th>نرخ</th><th>ریال</th><th>یوان</th><th>رزرو برایِ…</th></tr></thead><tbody>${linkRows}</tbody></table></div>`
           : '<div style="font-size:12px;color:var(--ink-soft);margin:6px 0">هنوز هیچ حواله‌ای با پولِ این مشتری زده نشده.</div>'}
+        ${(c.companyMoney||[]).length ? `<div style="font-weight:700;margin:12px 0 6px">💼 پولِ شرکت که برایِ این مشتری گذاشته شده (منتظرِ پرداختِ او)</div>
+          <div class="table-wrap"><table><thead><tr><th>تاریخِ حواله</th><th>تأمین‌کننده</th><th>نرخ</th><th>ریال</th><th>یوان</th></tr></thead><tbody>${c.companyMoney.map(x=>`<tr><td class="date-cell">${fxc_esc(x.date)} (#${x.hawaleId})</td><td>${fxc_esc(x.supplier)}</td><td class="num">${fmt(x.rate,0)}</td><td class="num">${fmtRial(x.rial)}</td><td class="num">${fmtYuan(x.yuan)}</td></tr>`).join('')}</tbody></table></div>` : ''}
         ${(c.holds||[]).length ? `<div style="font-weight:700;margin:12px 0 6px">🔒 نگه‌داری‌شده برایِ این مشتری نزدِ تأمین‌کننده‌ها (پولِ تأمین‌کننده نیست)</div>
           <div class="table-wrap"><table><thead><tr><th>تاریخِ حواله</th><th>تأمین‌کننده</th><th>نرخ</th><th>ریال</th><th>یوان</th></tr></thead><tbody>${c.holds.map(x=>`<tr><td class="date-cell">${fxc_esc(x.hawaleDate)}</td><td>${fxc_esc(x.supplier)}</td><td class="num">${fmt(x.rate,0)}</td><td class="num">${fmtRial(x.rial)}</td><td class="num">${fmtYuan(x.yuan)}</td></tr>`).join('')}</tbody></table></div>` : ''}
         ${c.orders.length ? `<div style="font-weight:700;margin:12px 0 6px">پیش‌فاکتورها و فاکتورها</div>
@@ -4683,6 +4744,7 @@ async function renderStock(main){
     </div>
     <div class="table-wrap"><table><thead><tr><th>حواله</th><th>تأمین‌کننده(ها)</th><th>نرخِ خرید</th><th>خریده‌شده با پولِ خودمون</th><th>فروخته</th><th>مانده</th><th>نرخِ فروشِ الان</th><th>سود</th></tr></thead><tbody>
       ${d.lots.length ? d.lots.map(l=>`<tr><td class="date-cell">#${l.hawaleId} · ${l.date}</td><td>${l.suppliers.join('، ')}</td><td class="num">${fmt(l.costRate,0)}</td><td class="num">${fmtYuan(l.stockYuan)}</td><td class="num">${fmtYuan(l.soldYuan)}</td><td class="num" style="font-weight:700">${fmtYuan(l.remainingYuan)}</td><td class="num">${fmt(l.saleRateNow,0)}</td><td class="num">${fmtRial(l.profitRial)}</td></tr>
+        ${(l.reservedFor||[]).map(x=>`<tr style="font-size:11px"><td></td><td colspan="7">🔖 رزرو برایِ <b>${fxc_esc(x.customer)}</b> · ${fmtYuan(x.yuan)} (${fmtRial(x.rial)}) · فروخته به او: ${fmtYuan(x.soldYuan)} · <b>مانده‌یِ رزروِ او: ${fmtYuan(x.remainingYuan)}</b> — فقط به همین مشتری فروخته می‌شه</td></tr>`).join('')}${(l.reservedFor||[]).length ? `<tr style="font-size:11px;color:var(--ink-soft)"><td></td><td colspan="7">بخشِ عمومی (قابلِ فروش به هر مشتری): ${fmtYuan(l.generalYuan||0)}</td></tr>` : ''}
         ${l.sales.map(x=>`<tr style="font-size:11px;color:var(--ink-soft)"><td></td><td colspan="5">↳ فروش به <b>${x.customer}</b> · واریزیِ ${x.paymentDate} · ${fmtYuan(x.yuan)} × ${fmt(x.saleRate,0)} = ${fmtRial(x.rial)}</td><td class="num">${fmtRial(x.profitRial)}</td><td><button class="icon-btn" data-stk-undo="${x.allocationId}" title="برگرداندنِ این فروش">↩</button></td></tr>`).join('')}`).join('')
         : '<tr><td colspan="8" class="empty">هنوز حواله‌ای با «پولِ مازادِ خودمون» ثبت نشده — در فرمِ حواله، فیلدِ «💼 از پولِ مازادِ خودمون» رو پر کنید.</td></tr>'}
     </tbody></table></div>`;
