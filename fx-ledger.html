@@ -5117,7 +5117,8 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
     backdrop.querySelector('#hhTotal').innerHTML = `جمعِ نگه‌داری: ${fmtRial(tot)} از ${fmtRial(full)}` + (bad ? ' <span style="color:var(--danger)">⚠️ از سقفِ سهمِ یک مشتری یا کلِ حواله بیشتر است</span>' : '');
     return !bad;
   };
-  backdrop.querySelectorAll('input[data-hh-cust], #hhUnassigned').forEach(i=>i.addEventListener('input', refreshTotal));
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) جداکننده‌یِ سه‌رقمیِ زنده هنگامِ تایپ (مثلِ بقیه‌یِ فرم‌ها)
+  backdrop.querySelectorAll('input[data-hh-cust], #hhUnassigned').forEach(i=>{ wireLiveNumberFormat(i); i.addEventListener('input', refreshTotal); });
   backdrop.querySelectorAll('[data-hh-full]').forEach(b=>b.addEventListener('click', ()=>{
     const c = custs[+b.dataset.hhFull]; backdrop.querySelector(`[data-hh-cust="${b.dataset.hhFull}"]`).value = fmt(c.capRial,0); refreshTotal();
   }));
