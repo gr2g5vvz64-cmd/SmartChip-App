@@ -2784,24 +2784,36 @@ function openHawaleModal(existing){
   const ownRialNow = ()=> num(backdrop.querySelector('#hOwnRial').value);
   function drawOwnTags(){
     const box = backdrop.querySelector('#hOwnTagRows');
-    box.innerHTML = ownTags.map((r,i)=>`<div class="contrib-row" style="grid-template-columns:2fr 1.4fr auto auto"><input data-ot-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${fxc_esc(r.customer||'')}"><input data-ot-amt="${i}" type="text" class="num" placeholder="ریالِ پولِ شرکت برایِ او" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" type="button" data-ot-rest="${i}" title="مبلغ را با باقی‌مانده‌یِ «پولِ مازادِ خودمون» پر کن" style="font-size:10px">باقی‌مانده</button><button class="icon-btn" type="button" data-ot-del="${i}">✕</button></div>`).join('');
+    box.innerHTML = ownTags.map((r,i)=>`<div class="contrib-row" style="grid-template-columns:2fr 1.4fr auto auto"><input data-ot-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${fxc_esc(r.customer||'')}"><input data-ot-amt="${i}" type="text" class="num" placeholder="ریالِ پولِ شرکت برایِ او" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" type="button" data-ot-rest="${i}" title="مبلغ را با سهمِ شرکت از این حواله پر کن (کلِ حواله − پولِ مشتری‌ها − رزروهایِ دیگر)" style="font-size:10px">باقی‌مانده</button><button class="icon-btn" type="button" data-ot-del="${i}">✕</button></div>`).join('');
     box.querySelectorAll('[data-ot-cust]').forEach(x=>x.addEventListener('input',()=>{ ownTags[+x.dataset.otCust].customer = x.value; sumOwnTags(); }));
-    box.querySelectorAll('[data-ot-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ ownTags[+x.dataset.otAmt].amount = x.value; sumOwnTags(); }); });
+    box.querySelectorAll('[data-ot-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ ownTags[+x.dataset.otAmt].amount = x.value; raiseOwnToTags(); sumOwnTags(); }); });
     box.querySelectorAll('[data-ot-del]').forEach(x=>x.addEventListener('click',()=>{ ownTags.splice(+x.dataset.otDel,1); drawOwnTags(); }));
     box.querySelectorAll('[data-ot-rest]').forEach(x=>x.addEventListener('click',()=>{
       const i=+x.dataset.otRest; const others = ownTags.reduce((s,r,j)=>j===i?s:s+num(r.amount),0);
-      const rest = Math.max(ownRialNow() - others, 0); ownTags[i].amount = String(Math.round(rest));
-      const inp = box.querySelector(`[data-ot-amt="${i}"]`); if(inp) inp.value = fmt(rest,0); sumOwnTags();
+      const custSum = splitRows.reduce((s,r)=>s+num(r.amount),0);
+      // سهمِ شرکت از این حواله = کلِ حواله − پولِ مشتری‌ها − رزروهایِ ردیف‌هایِ دیگر
+      const rest = Math.max(hawaleRial() - custSum - others, 0); ownTags[i].amount = String(Math.round(rest));
+      const inp = box.querySelector(`[data-ot-amt="${i}"]`); if(inp) inp.value = fmt(rest,0); raiseOwnToTags(); sumOwnTags();
     }));
     sumOwnTags();
+  }
+  // رزرو برایِ مشتری یعنی «بخشی از پولِ مازادِ خودمون»؛ پس اگه رزرو بزرگ‌تر از فیلدِ «پولِ مازادِ خودمون» شد، آن فیلد خودکار بالا می‌رود
+  let ownAutoRaised = false;
+  function raiseOwnToTags(){
+    const used = ownTags.reduce((s,r)=>s+num(r.amount),0), inp = backdrop.querySelector('#hOwnRial');
+    if(used > ownRialNow() + 0.5){ inp.value = fmt(used,0); ownAutoRaised = true; sumRial(); }
   }
   function sumOwnTags(){
     const el = backdrop.querySelector('#hOwnTagSum'); if(!el) return;
     const own = ownRialNow(), used = ownTags.reduce((s,r)=>s+num(r.amount),0), rate = hawaleRate();
     if(!ownTags.length){ el.innerHTML = own>0 ? '<span style="color:var(--ink-soft)">بدونِ رزرو — کلِ پولِ مازاد «موجودیِ عمومیِ شرکت» است.</span>' : ''; return; }
     const rest = own - used;
-    el.innerHTML = `رزروشده برایِ مشتری‌ها: <b>${fmtRial(used)}</b>${rate?` (≈ ${fmtYuan(used/rate)})`:''} از ${fmtRial(own)}` +
-      (rest < -0.5 ? ` · <b style="color:var(--danger)">⚠️ بیشتر از «پولِ مازادِ خودمون»: ${fmtRial(-rest)}</b>` : (rest > 0.5 ? ` · باقی‌مانده (عمومی): ${fmtRial(rest)}` : ' · ✅ کامل'));
+    el.innerHTML = `رزروشده برایِ مشتری‌ها: <b>${fmtRial(used)}</b>${rate?` (≈ ${fmtYuan(used/rate)})`:''}` +
+      (ownAutoRaised && rest >= -0.5 ? ' <span style="color:var(--ink-soft)">— «پولِ مازادِ خودمون» (فیلدِ بالا) خودکار به همین مبلغ رسید</span>' : '') +
+      (rest < -0.5
+        ? `<div style="color:var(--danger)">⚠️ فیلدِ «💼 از پولِ مازادِ خودمون» (${fmtRial(own)}) از جمعِ رزروها کمتر است — رزرو بخشی از همان پولِ مازاد است، پس آن فیلد باید حداقل ${fmtRial(used)} باشد. <button class="icon-btn" type="button" id="hOwnFix" style="font-size:10px">تنظیم خودکار</button></div>`
+        : (rest > 0.5 ? ` · از پولِ مازاد هنوز ${fmtRial(rest)} برایِ مشتریِ مشخصی نیست (موجودیِ عمومی)` : ' · ✅ کلِ پولِ مازاد به مشتری‌ها اختصاص یافت'));
+    const fx = el.querySelector('#hOwnFix'); if(fx) fx.addEventListener('click', ()=>{ backdrop.querySelector('#hOwnRial').value = fmt(used,0); sumRial(); sumOwnTags(); });
   }
   backdrop.querySelector('#hAddOwnTag').addEventListener('click', ()=>{ ownTags.push({customer:'', amount:''}); drawOwnTags(); });
   backdrop.querySelector('#hOwnRial').addEventListener('input', sumOwnTags);
