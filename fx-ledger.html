@@ -83,6 +83,9 @@
     min-height:100vh;
   }
   .num{ font-feature-settings:"tnum" 1, "lnum" 1; direction:ltr; unicode-bidi:isolate; }
+  /* ⚠️ (۱۴۰۵/۰۷/۱۴) یوان: قبلِ اعشار Bold و دو درجه بزرگ‌تر، بعد از اعشار معمولی و هم‌اندازه با اطراف */
+  fx-i{ font-weight:800; font-size:calc(1em + 2px); }
+  fx-d{ font-weight:400; }
   /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ صریحِ کاربر: در کلِ دفترِ ارزی، همه‌ی
      ستون‌ها به‌جز «تاریخ» و «شرح/توضیح» باید وسط‌چین باشن */
   table td, table th{ text-align:center; }
@@ -485,7 +488,15 @@ function fmtBoldInt(s){
   return parts.length===1 ? `<b>${parts[0]}</b>` : `<b>${parts[0]}</b>.${parts[1]}`;
 }
 function fmtRial(n){ return fmtBoldInt(fmt(n,0)) + ' ریال'; }
-function fmtYuan(n){ return fmtBoldInt(fmt(n,4)) + ' ¥'; }
+// ⚠️ (۱۴۰۵/۰۷/۱۴) طبق درخواستِ صریحِ کاربر: در همه‌یِ صفحه‌هایِ دفترِ ارزی، «قبلِ اعشارِ یوان» Bold و دو درجه
+// بزرگ‌تر (+۲px) نمایش داده می‌شه و «بعد از اعشار» معمولی (غیرBold) و با همان اندازه‌یِ اطرافش. عمداً از
+// تگ‌هایِ سفارشی بدونِ attribute استفاده شده (<fx-i>/<fx-d>) تا داخلِ هر attribute یا متنی امن باشه.
+function fmtYuanBig(s){
+  if(s === '—') return s;
+  const i = s.indexOf('.');
+  return i < 0 ? `<fx-i>${s}</fx-i>` : `<fx-i>${s.slice(0,i)}</fx-i><fx-d>${s.slice(i)}</fx-d>`;
+}
+function fmtYuan(n){ return fmtYuanBig(fmt(n,4)) + ' ¥'; }
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -1258,7 +1269,7 @@ function mgmtMonthLabel(k){
   const [y,m] = String(k).split('-').map(Number);
   return (JALALI_MONTH_NAMES[m-1]||k) + ' ' + y;
 }
-function mgmtY(n){ return (n==null) ? '—' : fmtBoldInt(fmt(n,2)) + ' ¥'; }
+function mgmtY(n){ return (n==null) ? '—' : fmtYuanBig(fmt(n,2)) + ' ¥'; }
 function mgmtPct(n){ return (n==null) ? '—' : fmt(n,1) + '٪'; }
 function mgmtChart(monthly){
   const rows = monthly.slice(-12);
