@@ -2550,17 +2550,25 @@ function openHawaleModal(existing){
   const today = todayShamsi();
   const isEdit = !!existing;
   let contribRows = existing ? existing.contributions.map(c=>({account:c.account, rial_amount:c.rial_amount})) : [{account:state.accounts[0]?.id||'', rial_amount:''}];
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: مانده‌یِ بانکِ هر حساب کنارِ همان حساب نشان داده بشه.
+  // فوراً از آخرین خلاصه (اگه هست) و بعد با عددِ تازه از سرور. موقعِ ویرایش، مانده‌یِ فعلی شاملِ خودِ همین حواله است.
+  let bankBal = (typeof fxLastSummary !== 'undefined' && fxLastSummary && Array.isArray(fxLastSummary.accounts))
+    ? Object.fromEntries(fxLastSummary.accounts.map(a=>[String(a.id), Number(a.balance)])) : null;
+  const origByAccount = {};
+  if(existing) existing.contributions.forEach(c=>{ const k = String(c.account); origByAccount[k] = (origByAccount[k]||0) + Number(c.rial_amount||0); });
   const backdrop = document.createElement('div');
   backdrop.className='modal-backdrop';
 
+  const accountOptionText = (a)=> a.displayName + ((bankBal && bankBal[String(a.id)] !== undefined) ? ` — مانده: ${fmt(bankBal[String(a.id)],0)} ریال` : '');
   function renderContribRows(){
     return contribRows.map((r,i)=>`
       <div class="contrib-row" data-contrib-row="${i}">
         <select data-contrib-account="${i}">
-          ${state.accounts.map(a=>`<option value="${a.id}" ${r.account==a.id?'selected':''}>${a.displayName}</option>`).join('')}
+          ${state.accounts.map(a=>`<option value="${a.id}" ${r.account==a.id?'selected':''}>${accountOptionText(a)}</option>`).join('')}
         </select>
         <input data-contrib-amount="${i}" type="text" class="num" placeholder="مبلغ ریالی" value="${r.rial_amount?fmt(r.rial_amount,0):''}">
         <button class="icon-btn" data-remove-contrib="${i}" ${contribRows.length<=1?'disabled':''}>✕</button>
+        <div data-contrib-bal="${i}" style="grid-column:1/-1;font-size:11px;color:var(--ink-soft);line-height:1.6"></div>
       </div>`).join('');
   }
 
@@ -2620,7 +2628,7 @@ function openHawaleModal(existing){
       <div style="border:1px dashed var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px">
         <div style="font-size:12px;font-weight:700;margin-bottom:4px">👥 منبعِ ریالِ این حواله</div>
         <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:6px">برایِ هر مشتری بنویسید چقدر از این حواله پولِ اونه (از واریزی‌هایِ آزادِ خودش، قدیمی‌ترین اول). بقیه رو می‌تونید از «پولِ مازادِ خودمون» بزنید — اون بخش «موجودیِ یوانِ شرکت» می‌شه و بعداً با فرمول به مشتری فروخته می‌شه.</div>
-        <datalist id="knownCustomersListH">${[...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name)])].map(n=>`<option value="${n}">`).join('')}</datalist>
+        <datalist id="knownCustomersListH">${[...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name), ...((typeof fxLastSummary !== 'undefined' && fxLastSummary && fxLastSummary.customers) ? fxLastSummary.customers.map(c=>c.name) : [])])].map(n=>`<option value="${n}">`).join('')}</datalist>
         <div id="hSplitRows"></div>
         <button class="btn btn-ghost btn-sm" id="hAddSplit" type="button">+ مشتریِ دیگه</button>
         <div class="field" style="margin-top:10px"><label>💼 از پولِ مازادِ خودمون (ریال) — موجودیِ یوانِ شرکت</label>
@@ -2696,18 +2704,37 @@ function openHawaleModal(existing){
   // حواله‌نشده‌یِ او) نشان داده می‌شه و در ستونِ بعدی مبلغِ این حواله نوشته می‌شه. عددِ مانده از سرور میاد
   // (/accounts/customer-free-rial/ — با کنارگذاشتنِ تخصیص‌هایِ خودِ همین حواله موقعِ ویرایش). فقط نمایشی و هشدار است؛
   // اگه مبلغ بیشتر از مانده باشه، همان رفتارِ قبلی (پیش‌پرداختِ سرمایه‌ای برایِ مابه‌التفاوت) اجرا می‌شه.
-  let freeMap = null;   // {نامِ مشتری: ریالِ آزاد} — تا وقتی null است «در حال بارگذاری»
+  let freeMap = null, freeNorm = {}, freeSrc = 'loading';   // freeSrc: loading | server | summary | error
+  const normName = s => String(s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ').replace(/[\u200e\u200f]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+  function setFreeMap(m, src){ freeMap = m; freeSrc = src; freeNorm = {}; Object.keys(m).forEach(n=>{ freeNorm[normName(n)] = n; }); }
+  // اگه نامِ تایپ‌شده فقط در املا/فاصله با نامِ ثبت‌شده فرق داره، همان نامِ دقیق را برمی‌گردونه (وگرنه سرور واریزی‌ها را پیدا نمی‌کنه)
+  const exactFreeName = (name)=> (freeMap && (name in freeMap ? name : freeNorm[normName(name)])) || null;
+  function fixSplitNames(){
+    splitRows.forEach((r,i)=>{
+      const k = exactFreeName((r.customer||'').trim());
+      if(k && k !== r.customer){ r.customer = k; const inp = backdrop.querySelector(`[data-sp-cust="${i}"]`); if(inp) inp.value = k; }
+    });
+  }
   function updateFreeCell(i){
     const cell = backdrop.querySelector(`[data-sp-free="${i}"]`); if(!cell) return;
     const name = (splitRows[i].customer||'').trim();
-    if(freeMap === null){ cell.innerHTML = '<span style="color:var(--ink-soft)">…</span>'; return; }
+    if(freeSrc === 'loading'){ cell.innerHTML = '<span style="color:var(--ink-soft)">…</span>'; return; }
+    if(freeSrc === 'error'){
+      cell.innerHTML = '<span style="color:var(--danger);font-size:11px">⚠️ مانده از سرور نیامد</span> <button class="icon-btn" type="button" data-sp-retry style="font-size:10px">دوباره</button>';
+      cell.querySelector('[data-sp-retry]').addEventListener('click', ()=>{ freeSrc='loading'; splitRows.forEach((_,j)=>updateFreeCell(j)); loadFreeAndBalances(); });
+      return;
+    }
     if(!name){ cell.innerHTML = '<span style="color:var(--ink-soft)">—</span>'; return; }
-    if(!(name in freeMap)){ cell.innerHTML = '<span style="color:var(--ink-soft)" title="این نام در واریزی‌ها نیست">— (واریزی ندارد)</span>'; return; }
-    const free = Number(freeMap[name]||0), want = num(splitRows[i].amount);
+    const key = exactFreeName(name);
+    if(!key){ cell.innerHTML = '<span style="color:var(--ink-soft)" title="این نام در واریزی‌ها نیست">— (واریزی ندارد)</span>'; return; }
+    const free = Number(freeMap[key]||0), want = num(splitRows[i].amount);
     cell.innerHTML = `<b>${fmtRial(free)}</b>` + (free > 0.5 ? ` <button class="icon-btn" type="button" data-sp-fill="${i}" title="مبلغ را با کلِ این مانده پر کن" style="font-size:10px">همه</button>` : '')
+      + (key !== name ? `<div style="font-size:10px;color:var(--ink-soft)">نامِ ثبت‌شده: ${fxc_esc(key)}</div>` : '')
+      + (freeSrc === 'summary' ? '<div style="font-size:10px;color:var(--ink-soft)">از آخرین خلاصه</div>' : '')
       + (want > free + 0.5 ? `<div style="font-size:10.5px;color:var(--danger)">⚠️ ${fmtRial(want-free)} بیشتر از مانده — مابه‌التفاوت «پیش‌پرداختِ سرمایه‌ای» می‌شه</div>` : '');
     const fb = cell.querySelector('[data-sp-fill]');
     if(fb) fb.addEventListener('click', ()=>{
+      splitRows[i].customer = key; const ci = backdrop.querySelector(`[data-sp-cust="${i}"]`); if(ci) ci.value = key;
       splitRows[i].amount = String(Math.round(free)); autoSplitResult = null;
       const inp = backdrop.querySelector(`[data-sp-amt="${i}"]`); if(inp) inp.value = fmt(free,0);
       sumRial(); updateFreeCell(i);
@@ -2717,7 +2744,10 @@ function openHawaleModal(existing){
     const box = backdrop.querySelector('#hSplitRows');
     box.innerHTML = `<div class="split-row split-head"><span>مشتری</span><span>مانده‌یِ ریاليِ دستِ ما (واریزیِ حواله‌نشده)</span><span>مبلغِ این حواله (ریال)</span><span></span></div>` +
       splitRows.map((r,i)=>`<div class="split-row"><input data-sp-cust="${i}" type="text" list="knownCustomersListH" placeholder="نامِ مشتری" value="${fxc_esc(r.customer||'')}"><div class="split-free" data-sp-free="${i}"></div><input data-sp-amt="${i}" type="text" class="num" placeholder="مبلغِ ریال" value="${r.amount?fmt(num(r.amount),0):''}"><button class="icon-btn" data-sp-del="${i}" type="button" ${splitRows.length<=1?'disabled':''}>✕</button></div>`).join('');
-    box.querySelectorAll('[data-sp-cust]').forEach(x=>x.addEventListener('input',()=>{ const i=+x.dataset.spCust; splitRows[i].customer = x.value; autoSplitResult = null; sumRial(); updateFreeCell(i); }));
+    box.querySelectorAll('[data-sp-cust]').forEach(x=>{
+      x.addEventListener('input',()=>{ const i=+x.dataset.spCust; splitRows[i].customer = x.value; autoSplitResult = null; sumRial(); updateFreeCell(i); });
+      x.addEventListener('change',()=>{ const i=+x.dataset.spCust; const k = exactFreeName(x.value.trim()); if(k && k !== x.value){ x.value = k; splitRows[i].customer = k; showToast('نام با «'+k+'» یکی گرفته شد'); } updateFreeCell(i); });
+    });
     box.querySelectorAll('[data-sp-amt]').forEach(x=>{ wireLiveNumberFormat(x); x.addEventListener('input',()=>{ const i=+x.dataset.spAmt; splitRows[i].amount = x.value; autoSplitResult = null; sumRial(); updateFreeCell(i); }); });
     box.querySelectorAll('[data-sp-del]').forEach(x=>x.addEventListener('click',()=>{ if(splitRows.length<=1) return; splitRows.splice(+x.dataset.spDel,1); autoSplitResult = null; drawSplits(); }));
     splitRows.forEach((_,i)=>updateFreeCell(i));
@@ -2738,17 +2768,30 @@ function openHawaleModal(existing){
   backdrop.querySelector('#hSupplier').addEventListener('input', sumShares);
   backdrop.addEventListener('input', e => { if(e.target.matches('[data-contrib-amount]')) setTimeout(()=>{ sumShares(); sumRial(); }, 0); });
   drawShares(); drawSplits();
-  // ⚠️ (۱۴۰۵/۰۷/۱۴) مانده‌یِ ریاليِ آزادِ مشتری‌ها را در پس‌زمینه بگیر (فرم منتظرش نمی‌مونه)؛ موقعِ ویرایش، تخصیص‌هایِ خودِ همین حواله حساب نمی‌شن
-  (async()=>{
-    try{
-      const r = await fetchWithRetry(FX_API+'accounts/customer-free-rial/' + (isEdit ? ('?exclude_hawale_id='+existing.id) : ''));
-      if(r.ok){ const d = await r.json(); freeMap = d.customers || {}; }
-      else { freeMap = {}; }
-    }catch(e){ freeMap = {}; }
-    if(document.body.contains(backdrop)) splitRows.forEach((_,i)=>updateFreeCell(i));
-  })();
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) مانده‌یِ ریاليِ آزادِ مشتری‌ها + مانده‌یِ بانک‌ها را در پس‌زمینه بگیر (فرم منتظرشون نمی‌مونه).
+  // اگه سرور (فایلِ views.py جدید) جواب نداد: برایِ مشتری‌ها از «آخرین خلاصه» (همان عددِ ستونِ «ریالِ واریزی‌شده — هنوز
+  // حواله نشده» در لیستِ مشتریان) استفاده می‌شه؛ و اگه آن هم نبود، به‌جایِ «واریزی ندارد» صریح می‌گه که مانده نیامده.
+  async function loadFreeAndBalances(){
+    const getJson = async (url)=>{ try{ const r = await fetchWithRetry(url); return r.ok ? await r.json() : null; }catch(e){ return null; } };
+    const [fr, bl] = await Promise.all([
+      getJson(FX_API+'accounts/customer-free-rial/' + (isEdit ? ('?exclude_hawale_id='+existing.id) : '')),
+      getJson(FX_API+'accounts/account-balances/'),
+    ]);
+    if(fr && fr.customers){ setFreeMap(fr.customers, 'server'); }
+    else {
+      const cs = (typeof fxLastSummary !== 'undefined' && fxLastSummary && Array.isArray(fxLastSummary.customers)) ? fxLastSummary.customers : null;
+      if(cs){ const m = {}; cs.forEach(c=>{ m[c.name] = Number(c.unlinkedRial||0); }); setFreeMap(m, 'summary'); }
+      else { freeMap = null; freeSrc = 'error'; }
+    }
+    if(bl && Array.isArray(bl.accounts)){ bankBal = {}; bl.accounts.forEach(a=>{ bankBal[String(a.id)] = Number(a.balance); }); }
+    if(!document.body.contains(backdrop)) return;
+    refreshAccountOptions(); updateContribBalances();
+    splitRows.forEach((_,i)=>updateFreeCell(i));
+  }
+  loadFreeAndBalances();
 
   backdrop.querySelector('#hAutoSplitBtn').addEventListener('click', async ()=>{
+    fixSplitNames();
     const rows = splitRows.filter(r=>r.customer.trim() && num(r.amount) > 0);
     if(!rows.length){ showToast('حداقل یک مشتری و مبلغ وارد کنید'); return; }
     const merged = {};
@@ -2772,14 +2815,37 @@ function openHawaleModal(existing){
       ${result.perCustomer.map(c=>`✅ <b>${c.customer}</b>: ${fmtRial(c.covered)} از واریزی‌هایِ خودش` + (c.uncovered>0.5 ? ` — <span style="color:var(--danger)">⚠️ ${fmtRial(c.uncovered)} کم داشت؛ از سرمایه‌ی شرکت برداشته و در «پیش‌پرداخت‌هایِ سرمایه‌ای» ثبت می‌شه</span>` : '')).join('<br>')}</div>`;
   });
 
+  // مانده‌یِ بانکِ هر ردیف + مانده پس از این حواله (جمعِ ردیف‌هایِ هم‌حساب حساب می‌شه؛ در ویرایش، سهمِ قبلیِ همین حواله برمی‌گرده)
+  function updateContribBalances(){
+    contribRows.forEach((r,i)=>{
+      const cell = backdrop.querySelector(`[data-contrib-bal="${i}"]`); if(!cell) return;
+      const key = String(r.account);
+      if(!key || key==='null'){ cell.innerHTML = '<span>منبعِ نامعلوم — از هیچ بانکی کم نمی‌شود</span>'; return; }
+      if(!bankBal || bankBal[key] === undefined){ cell.innerHTML = '<span>مانده‌یِ بانک: …</span>'; return; }
+      const bal = bankBal[key];
+      const newTotal = contribRows.filter(x=>String(x.account)===key).reduce((s,x)=>s+num(x.rial_amount),0);
+      const orig = origByAccount[key] || 0;
+      const after = bal + orig - newTotal;
+      cell.innerHTML = `مانده‌یِ فعلیِ بانک: <b>${fmtRial(bal)}</b>` +
+        (newTotal > 0 ? ` · پس از این حواله: <b style="color:${after<0?'var(--danger)':'inherit'}">${fmtRial(after)}</b>${after<0?' ⚠️ منفی می‌شود':''}` : '') +
+        (orig > 0 ? ' <span style="font-size:10px">(مانده‌یِ فعلی شاملِ همین حواله است)</span>' : '');
+    });
+  }
+  function refreshAccountOptions(){
+    backdrop.querySelectorAll('[data-contrib-account] option').forEach(o=>{
+      const a = state.accounts.find(x=>String(x.id)===String(o.value)); if(a) o.textContent = accountOptionText(a);
+    });
+  }
   function wireContribRows(){
     backdrop.querySelectorAll('[data-contrib-account]').forEach(sel=>sel.addEventListener('change',()=>{
       contribRows[+sel.dataset.contribAccount].account = sel.value;
+      updateContribBalances();
     }));
     backdrop.querySelectorAll('[data-contrib-amount]').forEach(inp=>{
       wireLiveNumberFormat(inp);
       inp.addEventListener('input',()=>{
         contribRows[+inp.dataset.contribAmount].rial_amount = inp.value.replace(/,/g,'');
+        updateContribBalances();
       });
     });
     backdrop.querySelectorAll('[data-remove-contrib]').forEach(b=>b.addEventListener('click',()=>{
@@ -2788,6 +2854,7 @@ function openHawaleModal(existing){
       backdrop.querySelector('#contribRowsBox').innerHTML = renderContribRows();
       wireContribRows();
     }));
+    updateContribBalances();
   }
   wireContribRows();
   backdrop.querySelector('#addContribBtn').addEventListener('click', ()=>{
@@ -2797,6 +2864,7 @@ function openHawaleModal(existing){
   });
 
   backdrop.querySelector('#saveHawaleBtn').addEventListener('click', async ()=>{
+    fixSplitNames();
     let supplierName = backdrop.querySelector('#hSupplier').value.trim();
     const date = backdrop.querySelector('#hDate').value.trim();
     const rate = parseFloat(backdrop.querySelector('#hRate').value.replace(/,/g,''));
