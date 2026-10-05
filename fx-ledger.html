@@ -4511,6 +4511,8 @@ async function renderYuanPosition(main){
         ${c.links.length ? `<div style="font-weight:700;margin:6px 0">حواله‌هایی که با پولِ این مشتری زده شده — و رزرو برایِ پیش‌فاکتور</div>
           <div class="table-wrap"><table><thead><tr><th>تاریخِ واریز</th><th>تاریخِ حواله</th><th>تأمین‌کننده</th><th>نرخ</th><th>ریال</th><th>یوان</th><th>رزرو برایِ…</th></tr></thead><tbody>${linkRows}</tbody></table></div>`
           : '<div style="font-size:12px;color:var(--ink-soft);margin:6px 0">هنوز هیچ حواله‌ای با پولِ این مشتری زده نشده.</div>'}
+        ${(c.holds||[]).length ? `<div style="font-weight:700;margin:12px 0 6px">🔒 نگه‌داری‌شده برایِ این مشتری نزدِ تأمین‌کننده‌ها (پولِ تأمین‌کننده نیست)</div>
+          <div class="table-wrap"><table><thead><tr><th>تاریخِ حواله</th><th>تأمین‌کننده</th><th>نرخ</th><th>ریال</th><th>یوان</th></tr></thead><tbody>${c.holds.map(x=>`<tr><td class="date-cell">${fxc_esc(x.hawaleDate)}</td><td>${fxc_esc(x.supplier)}</td><td class="num">${fmt(x.rate,0)}</td><td class="num">${fmtRial(x.rial)}</td><td class="num">${fmtYuan(x.yuan)}</td></tr>`).join('')}</tbody></table></div>` : ''}
         ${c.orders.length ? `<div style="font-weight:700;margin:12px 0 6px">پیش‌فاکتورها و فاکتورها</div>
           <div class="table-wrap"><table><thead><tr><th>تاریخ</th><th>نوع</th><th>یوان</th><th>رزروشده</th><th>پوشش‌یافته</th><th>مانده</th></tr></thead><tbody>${orderRows}</tbody></table></div>` : ''}
       </div></details>`;
@@ -4872,45 +4874,79 @@ function openOpeningBalanceModal(partyType, name, existing){
 // این بخش از مانده‌یِ بدهیِ فاکتورهایِ تأمین‌کننده کنار گذاشته می‌شه؛ سمتِ مشتری (اعتبارِ یوانی) و بانک تغییر نمی‌کنه.
 // سرور: POST /api/ledger/accounts/hawale-holds/  {hawale, held_rial, note}   (held_rial=0 → برداشتن)
 // ══════════════════════════════════════════════════════════════
-function openHawaleHoldModal(hawaleId, ev, supplierName){
-  const full = Number(ev.fullRial||0), cur = Number(ev.heldRial||0);
+async function openHawaleHoldModal(hawaleId, ev, supplierName){
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) به تفکیکِ مشتری: اگه حواله با پولِ چند مشتری زده شده، برایِ هر کدام جدا مشخص می‌کنید
+  // چقدرش «نگه‌داری» است (سقف = سهمِ همان مشتری از این حواله). جمعِ همه سقفش کلِ حواله است.
+  let g = null;
+  try{
+    const r = await fetchWithRetry(FX_API+'accounts/hawale-holds/?hawale='+hawaleId);
+    if(r.ok) g = await r.json();
+  }catch(e){}
+  if(!g){ showToast('❌ اطلاعاتِ حواله از سرور نیامد — دوباره امتحان کنید'); return; }
+  const full = Number(g.fullRial||0);
+  const custs = g.customers || [];
+  const unassigned = Number(g.unassignedRial||0);
+  const hasAny = custs.some(c=>c.heldRial>0) || unassigned>0;
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
+  const rows = custs.map((c,i)=>`<tr>
+      <td><b>${fxc_esc(c.name)}</b></td>
+      <td class="num">${fmtRial(c.linkRial)}</td>
+      <td><input data-hh-cust="${i}" type="text" class="num" value="${c.heldRial>0 ? fmt(c.heldRial,0) : ''}" placeholder="۰ = نگه‌داری نیست" style="min-width:150px"></td>
+      <td><button class="icon-btn" type="button" data-hh-full="${i}" style="font-size:10px">کلِ سهمش</button></td></tr>`).join('');
   backdrop.innerHTML = `
-    <div class="modal">
+    <div class="modal" style="max-width:720px">
       <h3>🔒 نگه‌داری برایِ مشتری — حواله #${hawaleId}</h3>
-      <p class="page-desc">این حواله به <b>${fxc_esc(supplierName)}</b> زده شده. اگر یوانِ آن (یا بخشی از آن) <b>پولِ تأمین‌کننده نیست</b> و فقط نزدِ او نگه‌داری می‌شه تا مشتری بعداً خرید کند، آن بخش را اینجا مشخص کنید: از «مانده‌یِ بدهیِ فاکتورهایِ ${fxc_esc(supplierName)}» کنار گذاشته می‌شه و جدا (🔒) نمایش داده می‌شه. اعتبارِ یوانیِ مشتری و بانک تغییر نمی‌کنه.</p>
-      <div class="form-row">
-        <div class="field"><label>کلِ مبلغِ این حواله (ریال)</label><input type="text" class="num" value="${fmt(full,0)}" disabled></div>
-        <div class="field"><label>چقدرش نگه‌داری برایِ مشتری است؟ (ریال)</label><input id="hhRial" type="text" class="num" value="${fmt(cur || full,0)}"></div>
-      </div>
-      <div class="field" style="margin-bottom:10px"><label>توضیح (اختیاری)</label><input id="hhNote" type="text" value="" placeholder="مثلاً: پیش‌پرداختِ خریدِ آینده"></div>
+      <p class="page-desc">این حواله به <b>${fxc_esc(supplierName)}</b> زده شده (کلِ مبلغ: <b>${fmtRial(full)}</b>). برایِ هر مشتری بنویسید چقدر از <b>پولِ خودش</b> در این حواله «فقط نزدِ تأمین‌کننده نگه‌داری می‌شه» (پولِ تأمین‌کننده نیست و فاکتورهایش را تسویه نمی‌کنه). آن بخش از «مانده‌یِ بدهیِ فاکتورهایِ ${fxc_esc(supplierName)}» کنار گذاشته می‌شه و جدا (🔒) و به نامِ همان مشتری نمایش داده می‌شه. اعتبارِ یوانیِ مشتری و بانک تغییر نمی‌کنه.</p>
+      ${custs.length ? `<div class="table-wrap"><table><thead><tr><th>مشتری (منبعِ ریالِ این حواله)</th><th>سهمِ او از این حواله</th><th>چقدرش نگه‌داری است؟ (ریال)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : '<div style="font-size:12px;color:var(--danger);margin:6px 0">⚠️ در «منبعِ ریالِ» این حواله هیچ مشتری‌ای ثبت نشده؛ برایِ مشخص‌شدنِ مالکِ یوان، اول حواله را ویرایش کنید و نامِ مشتری را در «👥 منبعِ ریالِ این حواله» بزنید.</div>'}
+      ${(!custs.length || unassigned>0) ? `<div class="field" style="margin-top:8px"><label>نگه‌داری بدونِ مشتریِ مشخص (ریال)</label><input id="hhUnassigned" type="text" class="num" value="${unassigned>0 ? fmt(unassigned,0) : ''}" placeholder="۰"></div>` : ''}
+      <div id="hhTotal" style="font-size:12px;margin:8px 0;font-weight:700"></div>
+      <div class="field" style="margin-bottom:10px"><label>توضیح (اختیاری)</label><input id="hhNote" type="text" value="${fxc_esc(g.note||'')}" placeholder="مثلاً: پیش‌پرداختِ خریدِ آینده"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="hhSave">ذخیره</button>
-        ${cur>0 ? '<button class="btn btn-ghost" id="hhRemove">برداشتنِ نگه‌داری</button>' : ''}
+        ${hasAny ? '<button class="btn btn-ghost" id="hhRemove">برداشتنِ همه‌یِ نگه‌داری‌ها</button>' : ''}
         <button class="btn btn-ghost" id="hhCancel">انصراف</button>
       </div>
     </div>`;
   document.body.appendChild(backdrop);
-  const post = async (heldRial)=>{
+  const num = (el)=>{ const v = (el && el.value || '').replace(/[,،\s]/g,''); return v ? parseFloat(v) : 0; };
+  const collect = ()=>{
+    const holds = [];
+    custs.forEach((c,i)=>{ const v = num(backdrop.querySelector(`[data-hh-cust="${i}"]`)); if(v) holds.push({customer:c.name, held_rial:v, cap:c.linkRial}); });
+    const ua = backdrop.querySelector('#hhUnassigned'); if(ua && num(ua)) holds.push({customer:'', held_rial:num(ua), cap:full});
+    return holds;
+  };
+  const refreshTotal = ()=>{
+    const h = collect(), tot = h.reduce((s,x)=>s+x.held_rial,0);
+    const bad = h.some(x=>isNaN(x.held_rial) || x.held_rial<0 || x.held_rial > x.cap+0.5) || tot > full+0.5;
+    backdrop.querySelector('#hhTotal').innerHTML = `جمعِ نگه‌داری: ${fmtRial(tot)} از ${fmtRial(full)}` + (bad ? ' <span style="color:var(--danger)">⚠️ از سقفِ سهمِ یک مشتری یا کلِ حواله بیشتر است</span>' : '');
+    return !bad;
+  };
+  backdrop.querySelectorAll('input[data-hh-cust], #hhUnassigned').forEach(i=>i.addEventListener('input', refreshTotal));
+  backdrop.querySelectorAll('[data-hh-full]').forEach(b=>b.addEventListener('click', ()=>{
+    const c = custs[+b.dataset.hhFull]; backdrop.querySelector(`[data-hh-cust="${b.dataset.hhFull}"]`).value = fmt(c.linkRial,0); refreshTotal();
+  }));
+  refreshTotal();
+  const post = async (holds)=>{
     let ok=false, msg='';
     try{
       const r = await fetchWithRetry(FX_API+'accounts/hawale-holds/', {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({hawale:hawaleId, held_rial:String(Math.round(heldRial)), note: backdrop.querySelector('#hhNote').value.trim()})});
+        body: JSON.stringify({hawale:hawaleId, holds: holds.map(x=>({customer:x.customer, held_rial:String(Math.round(x.held_rial))})), note: backdrop.querySelector('#hhNote').value.trim()})});
       ok = r.ok; if(!ok){ try{ msg = (await r.json()).error || ''; }catch(e){} }
     }catch(e){ msg = 'اتصال به سرور برقرار نشد'; }
     if(!ok){ showToast('❌ ' + (msg || 'ثبت نشد')); return; }
-    showToast(heldRial>0 ? '🔒 ثبت شد' : 'نگه‌داری برداشته شد');
+    showToast(holds.length ? '🔒 ثبت شد' : 'نگه‌داری برداشته شد');
     backdrop.remove(); fxLastSummary = null; renderMain();
   };
   backdrop.querySelector('#hhCancel').addEventListener('click', ()=>backdrop.remove());
   backdrop.querySelector('#hhSave').addEventListener('click', ()=>{
-    const v = parseFloat(backdrop.querySelector('#hhRial').value.replace(/[,،\s]/g,''));
-    if(isNaN(v) || v <= 0){ showToast('مبلغِ مثبت وارد کنید'); return; }
-    if(v > full + 0.5){ showToast('از کلِ مبلغِ حواله بیشتر است'); return; }
-    post(v);
+    const holds = collect();
+    if(!holds.length){ showToast('حداقل برایِ یک مشتری مبلغ وارد کنید (یا «برداشتنِ نگه‌داری»)'); return; }
+    if(!refreshTotal()){ showToast('مبلغ‌ها از سقف بیشترند'); return; }
+    post(holds);
   });
-  const rm = backdrop.querySelector('#hhRemove'); if(rm) rm.addEventListener('click', ()=>post(0));
+  const rm = backdrop.querySelector('#hhRemove'); if(rm) rm.addEventListener('click', ()=>post([]));
 }
 
 // ---- Boot ----
