@@ -826,6 +826,7 @@ function fxFingerprint(obj){
 const NAV_STRUCTURE = [
   {type:'item', id:'dashboard', label:'داشبورد'},
   {type:'item', id:'management', label:'📊 تحلیلِ مدیریتی'},
+  {type:'item', id:'reconcile', label:'🔎 صحت‌سنجیِ اعداد'},
   {type:'group', id:'group-customer', label:'مشتری', children:[
     {id:'customers', label:'مشتریان (دفتر)'},
     {id:'payments', label:'پرداخت‌های مشتریان'},
@@ -919,6 +920,7 @@ async function renderMain(){
   // وگرنه هر تلاشِ خاموشِ پس‌زمینه یک چشمک به «در حال بارگذاری» می‌زد، حتی وقتی صفحه از قبل پر بود.
   if(currentTab === 'dashboard') return renderDashboard(main);
   if(currentTab === 'management') return renderManagement(main);
+  if(currentTab === 'reconcile') return renderReconcile(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
   if(currentTab === 'payments') return renderPayments(main);
   if(currentTab === 'incomes') return renderIncomes(main);
@@ -1519,7 +1521,7 @@ async function renderCustomersList(main, cachedSummary){
       <p class="page-desc">هر مشتری را باز کنید تا دفتر کامل تسویه (به‌سبک صورت‌حساب) را ببینید</p>
     </div>
     <div class="toolbar">
-      <button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button><button class="btn btn-ghost" id="addOpeningGlobalBtn" title="برایِ مشتریِ جدید که فقط حسابِ قبلی دارد">🏁 مانده‌ی اولیه</button></div>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<input id="customersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customersListSearchQuery}" style="min-width:200px"></div>
     </div>
     <div class="table-wrap">
@@ -1540,6 +1542,7 @@ async function renderCustomersList(main, cachedSummary){
     </div>
   `;
   main.querySelector('#addOrderGlobalBtn').addEventListener('click', ()=>openOrderModal());
+  main.querySelector('#addOpeningGlobalBtn').addEventListener('click', ()=>fxPickPartyThenOpening('customer', g.customers.map(c=>c.name)));
   wireRateBasisToggle(main, ()=>renderCustomersList(main));
   main.querySelector('#customersListSearchInput').addEventListener('input', (e)=>{
     customersListSearchQuery = e.target.value;
@@ -1573,7 +1576,7 @@ async function renderCustomerLedger(main, cachedData){
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
-    <div class="toolbar"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button>
+    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button></div>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
     </div>
 
@@ -1644,14 +1647,14 @@ async function renderCustomerLedger(main, cachedData){
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
             filteredEvents.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell" style="text-align:center">${e.date}</td>
-            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':'💰 ')}${e.desc}</td>
-            <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : '—'}</td>
-            <td class="num col-group-rial">${e.type!=='order' ? fmtRial(e.rial_credit) : '—'}</td>
+            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':'💰 '))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
+            <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : ((e.type==='opening' && e.rial_debit!=null) ? fmtRial(e.rial_debit) : '—')}</td>
+            <td class="num col-group-rial">${e.type==='order' ? '—' : ((e.type==='opening' && e.rial_credit==null) ? '—' : fmtRial(e.rial_credit))}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
-            <td class="num">${e.type==='order' ? fmtYuan(e.yuan_debit) : '—'}</td>
-            <td class="num">${e.type==='payment' ? fmtYuan(e.yuan_credit) : '—'}</td>
+            <td class="num">${(e.type==='order' || (e.type==='opening' && e.yuan_debit!=null)) ? fmtYuan(e.yuan_debit) : '—'}</td>
+            <td class="num">${(e.type==='payment' || (e.type==='opening' && e.yuan_credit!=null)) ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
-            <td class="num">${e.type==='order' ? '—' : (e.hawaleRate ? fmt(e.hawaleRate,0)+(e.rateBreakdown ? ` <button class="icon-btn" data-show-rate-breakdown='${JSON.stringify(e.rateBreakdown)}' style="font-size:9.5px;padding:1px 5px">🔀 ${e.rateBreakdown.length} نرخ</button>` : '') : '⏳ هنوز حواله نشده')}${e.pendingRial>0.01 ? `<div style="font-size:9.5px;color:var(--danger)">⚠️ ${fmtRial(e.pendingRial)} هنوز لینک نشده</div>` : ''}</td>
+            <td class="num">${(e.type==='order' || e.type==='opening') ? '—' : (e.hawaleRate ? fmt(e.hawaleRate,0)+(e.rateBreakdown ? ` <button class="icon-btn" data-show-rate-breakdown='${JSON.stringify(e.rateBreakdown)}' style="font-size:9.5px;padding:1px 5px">🔀 ${e.rateBreakdown.length} نرخ</button>` : '') : '⏳ هنوز حواله نشده')}${e.pendingRial>0.01 ? `<div style="font-size:9.5px;color:var(--danger)">⚠️ ${fmtRial(e.pendingRial)} هنوز لینک نشده</div>` : ''}</td>
             <td class="num" style="max-width:80px;font-size:10.5px">${e.type==='payment' && e.depositRate ? fmt(e.depositRate,0) : '—'}</td>
             <td style="max-width:95px" class="${e.type==='payment' ? '' : ''}">
               ${e.type==='payment' ? `
@@ -1734,7 +1737,7 @@ async function renderCustomerLedger(main, cachedData){
     const rows = [['تاریخ','شرح','بدهکار ریالی','بستانکار ریالی','مانده ریالی','بدهکار یوانی','بستانکار یوانی','مانده یوانی','نرخِ حواله','نرخِ روزِ واریز','نرخِ پیشنهادی']];
     data.events.forEach(e=>rows.push([
       e.date, e.desc,
-      e.type==='order'?e.rial_debit:'', e.type!=='order'?e.rial_credit:'', e.runningRial,
+      (e.type==='order'||e.type==='opening')?(e.rial_debit??''):'', e.type!=='order'?(e.rial_credit??''):'', e.runningRial,
       e.yuan_debit||'', e.yuan_credit||'', e.runningYuan,
       e.hawaleRate||'', e.depositRate||'', e.suggestedRate||'',
     ]));
@@ -1755,6 +1758,13 @@ async function renderCustomerLedger(main, cachedData){
     renderCustomerLedger(main);
   }));
   main.querySelector('#addOrderBtn').addEventListener('click', ()=>openOrderModal(null, currentCustomer));
+  main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('customer', currentCustomer));
+  main.querySelectorAll('[data-edit-opening]').forEach(b=>b.addEventListener('click', ()=>{
+    const ev = data.events.find(x=>x.type==='opening' && x.id==b.dataset.editOpening);
+    if(!ev){ showToast('این مانده‌ی اولیه پیدا نشد'); return; }
+    openOpeningBalanceModal('customer', currentCustomer, ev);
+  }));
+  main.querySelectorAll('[data-del-opening]').forEach(b=>b.addEventListener('click', ()=>fxDeleteOpening(b.dataset.delOpening)));
   main.querySelectorAll('[data-edit-order]').forEach(b=>b.addEventListener('click', ()=>{
     const o = data.orderStatus.find(x=>x.id==b.dataset.editOrder);
     if(o.isLocked && !confirm('⚠️ این فاکتور قفل شده (تو هلو ثبت شده). ویرایشِ مبلغ ممکنه با نرخِ حسابداریِ ثبت‌شده ناهماهنگ بشه. مطمئنید؟')) return;
@@ -2000,13 +2010,14 @@ function fxCollapseSupplierEvents(events){
       e.desc = (e.partNumber ? e.partNumber + ' — ' : '') + e.desc + (e.provisional ? ' — ⚠️ قیمتِ موقت' : '');
     }
   });
-  out.sort((a,b)=> String(a.date).localeCompare(String(b.date)) || ((a.type==='invoice'?0:1)-(b.type==='invoice'?0:1)) || (a.id-b.id));
+  const _rank = (x)=> x.type==='opening' ? -1 : (x.type==='invoice' ? 0 : 1);   // ⚠️ (۱۴۰۵/۰۷/۱۴) مانده‌ی اولیه اولِ همان روز
+  out.sort((a,b)=> String(a.date).localeCompare(String(b.date)) || (_rank(a)-_rank(b)) || (a.id-b.id));
   let ry = 0, rr = 0;
   out.forEach(e=>{
-    if((e.type==='invoice' || e.type==='yuan_adjustment') && e.yuan_debit!=null) ry += Number(e.yuan_debit);
+    if((e.type==='invoice' || e.type==='yuan_adjustment' || e.type==='opening') && e.yuan_debit!=null) ry += Number(e.yuan_debit);
     else if(e.yuan_credit!=null) ry -= Number(e.yuan_credit);
-    if(e.type==='invoice' && e.rial_debit!=null) rr += Number(e.rial_debit);
-    else if(e.type==='hawale' && e.rial_credit!=null) rr -= Number(e.rial_credit);
+    if((e.type==='invoice' || e.type==='opening') && e.rial_debit!=null) rr += Number(e.rial_debit);
+    else if((e.type==='hawale' || e.type==='opening') && e.rial_credit!=null) rr -= Number(e.rial_credit);
     e.runningYuan = ry; e.runningRial = rr;
     e.diagnosis = ry > 10 ? 'بدهکار' : (ry < -10 ? 'بستانکار' : 'تسویه');
   });
@@ -2829,7 +2840,7 @@ async function renderSuppliersList(main, cachedSummary){
       <h1 class="page-title">تأمین‌کنندگان</h1>
       <p class="page-desc">هر تأمین‌کننده مانده‌ی یوانیِ کاملاً جدای خودش را دارد — روی هرکدام بزنید تا دفترش را ببینید</p>
     </div>
-    <div class="toolbar"><div></div><input id="suppliersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${suppliersListSearchQuery}" style="min-width:200px"></div>
+    <div class="toolbar"><button class="btn btn-ghost" id="addOpeningGlobalBtn" title="برایِ تأمین‌کننده‌یِ جدید که فقط حسابِ قبلی دارد">🏁 مانده‌ی اولیه</button><input id="suppliersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${suppliersListSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>تأمین‌کننده</th><th>یوان خریداری‌شده</th><th>یوان خرج‌شده</th><th>مانده (یوان)</th><th>مانده‌ی حمل پرداخت‌نشده</th><th></th></tr></thead>
@@ -2847,6 +2858,7 @@ async function renderSuppliersList(main, cachedSummary){
       </table>
     </div>
   `;
+  main.querySelector('#addOpeningGlobalBtn').addEventListener('click', ()=>fxPickPartyThenOpening('supplier', g.suppliers.map(s=>s.name)));
   main.querySelector('#suppliersListSearchInput').addEventListener('input', (e)=>{
     suppliersListSearchQuery = e.target.value;
     renderSuppliersList(main, g);
@@ -2878,7 +2890,9 @@ async function fxSyncSummaryFromLedgers(g, basis){
   (g.suppliers||[]).forEach(s=>jobs.push(async()=>{
     const d = await apiGetSupplierLedger(s.name);
     if(!d || !Array.isArray(d.events)){ supOk = false; return; }
-    const v = fxSupplierLastBalance(d.events).yuan;
+    // ⚠️ (۱۴۰۵/۰۷/۱۴) علامت: دفتر «مثبت = ما به تأمین‌کننده بدهکاریم» است ولی summary.yuanBalance (و برچسبِ
+    // «موجودی یوان دست تأمین‌کنندگان») عکسِ آن است (خرید‌شده − مصرف‌شده) — پس اینجا قرینه می‌شود.
+    const v = -(fxSupplierLastBalance(d.events).yuan) || 0;
     if(Math.abs(v - Number(s.yuanBalance||0)) > 0.005){ s.yuanBalance = v; changed = true; }
     s.__ledgerYuan = v;
   }));
@@ -2974,7 +2988,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       <h1 class="page-title">${sName}</h1>
       <p class="page-desc">فاکتورِ خرید (یوانی) = بدهیِ ما به این تأمین‌کننده؛ حواله (ریالی) تسویه‌اش می‌کنه — با همون منطقِ FIFO و نرخِ میانگینِ وزنیِ مشتریان</p>
     </div>
-    <div class="toolbar" style="margin-bottom:10px"><div></div><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div></div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — ما به تأمین‌کننده یوان بدهکاریم (باید حواله بزنیم)' : (realYuanBalance < -0.01 ? '🟢 منفی — تأمین‌کننده به ما بدهکار است (بیش از فاکتورهایش حواله زده‌ایم)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
@@ -3148,15 +3162,15 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
           filteredSupplierEvents.map(e=>`<tr${e.provisional ? ' class="fx-provisional"' : ''}>
             <td class="date-cell" style="text-align:center">${e.date}</td>
             <td class="num">${e.docNumber}</td>
-            <td class="col-right" style="text-align:center;max-width:150px;font-size:11px${e.provisional?';color:#8a5a00;font-weight:700':''}">${e.type==='invoice'?'📄 ':(e.type==='yuan_adjustment'?'⚙️ ':'💰 ')}${e.desc}</td>
-            <td class="num col-group-rial">${e.type==='invoice' && e.rial_debit!==null ? fmtRial(e.rial_debit) + (e.partialRial ? '<div style="font-size:10px;color:var(--ink-soft)">فقط بخشِ تسویه‌شده</div>' : '') : '—'}</td>
-            <td class="num col-group-rial">${e.type==='hawale' ? fmtRial(e.rial_credit) : '—'}</td>
+            <td class="col-right" style="text-align:center;max-width:150px;font-size:11px${e.provisional?';color:#8a5a00;font-weight:700':''}">${e.type==='invoice'?'📄 ':(e.type==='yuan_adjustment'?'⚙️ ':(e.type==='opening'?'🏁 ':'💰 '))}${e.desc}</td>
+            <td class="num col-group-rial">${(e.type==='invoice' || e.type==='opening') && e.rial_debit!==null && e.rial_debit!==undefined ? fmtRial(e.rial_debit) + (e.partialRial ? '<div style="font-size:10px;color:var(--ink-soft)">فقط بخشِ تسویه‌شده</div>' : '') : '—'}</td>
+            <td class="num col-group-rial">${(e.type==='hawale' || (e.type==='opening' && e.rial_credit!==null && e.rial_credit!==undefined)) ? fmtRial(e.rial_credit) : '—'}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
             <td class="num">${e.yuan_debit!==null && e.yuan_debit!==undefined ? fmtYuan(e.yuan_debit) : '—'}</td>
             <td class="num">${e.yuan_credit!==null && e.yuan_credit!==undefined ? fmtYuan(e.yuan_credit) : '—'}</td>
             <td class="num">${fmtYuan(e.runningYuan)}</td>
             <td class="num">${e.rate ? fmt(e.rate,0) : '—'}</td>
-            <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span>${e.type==='yuan_adjustment' ? ` <button class="icon-btn" data-edit-yuan-adj="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-yuan-adj="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
+            <td><span class="status-chip ${e.diagnosis==='بدهکار'?'open':'closed'}">${e.diagnosis}</span>${e.type==='yuan_adjustment' ? ` <button class="icon-btn" data-edit-yuan-adj="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-yuan-adj="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
           </tr>`).join('')}
         </tbody>
         ${filteredSupplierEvents.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
@@ -3174,6 +3188,13 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; supplierDocFilter=''; renderMain(); });
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
   main.querySelector('#addYuanAdjBtn').addEventListener('click', ()=>openYuanAdjustmentModal(sName));
+  main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('supplier', sName));
+  main.querySelectorAll('[data-edit-opening]').forEach(b=>b.addEventListener('click', ()=>{
+    const ev = data.events.find(x=>x.type==='opening' && x.id==b.dataset.editOpening);
+    if(!ev){ showToast('این مانده‌ی اولیه پیدا نشد'); return; }
+    openOpeningBalanceModal('supplier', sName, ev);
+  }));
+  main.querySelectorAll('[data-del-opening]').forEach(b=>b.addEventListener('click', ()=>fxDeleteOpening(b.dataset.delOpening)));
   main.querySelectorAll('[data-edit-yuan-adj]').forEach(b=>b.addEventListener('click', ()=>{
     const ev = filteredSupplierEvents.find(x=>x.id==b.dataset.editYuanAdj) || data.events.find(x=>x.id==b.dataset.editYuanAdj);
     if(!ev){ showToast('این تعدیل پیدا نشد'); return; }
@@ -4376,6 +4397,55 @@ let capitalAdvancesSearchQuery = '';
 // 📦 (۱۴۰۵/۰۷/۱۰) موجودیِ یوانِ شرکت — یوانی که با «پولِ مازادِ خودمون» در حواله‌ها خریده شده،
 //   و فروشش به مشتری با فرمولِ از پیش تعیین‌شده: نرخِ فروش = نرخِ خرید × (۱ + درصد ÷ ۱۰۰) + مبلغِ ثابت
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// 🔎 صحت‌سنجیِ اعداد (۱۴۰۵/۰۷/۱۴) — فقط-خواندنی. سرور چند بررسیِ مستقل انجام می‌ده
+// (/api/ledger/accounts/reconcile/) و اینجا فقط نمایش داده می‌شه؛ هیچ داده‌ای تغییر نمی‌کنه.
+// ══════════════════════════════════════════════════════════════
+const RECON_LEVELS = {
+  error:{icon:'🔴', label:'ایراد',   color:'#c0392b', bg:'rgba(192,57,43,.10)'},
+  warn: {icon:'🟠', label:'هشدار',   color:'#b9770e', bg:'rgba(185,119,14,.10)'},
+  info: {icon:'🔵', label:'اطلاعات', color:'#2e6da4', bg:'rgba(46,109,164,.10)'},
+  ok:   {icon:'🟢', label:'سالم',    color:'#1e8449', bg:'rgba(30,132,73,.08)'},
+};
+function reconFmt(v){ return (v===null || v===undefined) ? '—' : fmt(v, Math.abs(v) < 1000 && v !== Math.round(v) ? 2 : 0); }
+async function renderReconcile(main){
+  main.innerHTML = `<div class="page-head"><h2>🔎 صحت‌سنجیِ اعداد</h2><div class="sub">چند بررسیِ مستقل رویِ کلِ دفتر — فقط می‌خونه، چیزی را تغییر نمی‌ده.</div></div><div class="empty">⏳ در حالِ بررسی… (ممکنه چند ثانیه طول بکشه)</div>`;
+  let d = null, err = '';
+  try{
+    const r = await fetchWithRetry(FX_API+'accounts/reconcile/');
+    if(r.ok) d = await r.json(); else err = 'پاسخِ سرور: ' + r.status + (r.status===404 ? ' — فایلِ views.py جدید هنوز روی سرور نیست' : '');
+  }catch(e){ err = 'ارتباط با سرور برقرار نشد'; }
+  if(currentTab !== 'reconcile' || !document.body.contains(main)) return;
+  if(!d){
+    main.innerHTML = `<div class="page-head"><h2>🔎 صحت‌سنجیِ اعداد</h2></div><div class="empty">❌ ${fxc_esc(err)}<br><button class="btn btn-ghost btn-sm" id="reconRetry" style="margin-top:10px">تلاشِ دوباره</button></div>`;
+    main.querySelector('#reconRetry').addEventListener('click', ()=>renderReconcile(main));
+    return;
+  }
+  const c = d.counts || {};
+  const verdict = c.error ? {t:`🔴 ${c.error} ایرادِ جدی پیدا شد — قبل از اعتماد به اعداد بررسی کنید`, k:'error'}
+                : c.warn  ? {t:`🟠 ایرادِ جدی نیست، ولی ${c.warn} هشدار دارید`, k:'warn'}
+                :           {t:'🟢 هیچ ایرادی پیدا نشد', k:'ok'};
+  const V = RECON_LEVELS[verdict.k];
+  const when = d.generatedAt ? new Date(d.generatedAt).toLocaleString('fa-IR') : '';
+  const rowsHtml = (rows)=> !rows.length ? '' : `<div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>مورد</th><th>عدد ۱</th><th>عدد ۲</th><th>اختلاف</th><th>توضیح</th></tr></thead><tbody>${
+    rows.map(r=>`<tr><td>${fxc_esc(r.label)}</td><td class="num">${reconFmt(r.a)}</td><td class="num">${reconFmt(r.b)}</td><td class="num" style="font-weight:700">${reconFmt(r.diff)}</td><td style="font-size:11.5px">${fxc_esc(r.note||'')}</td></tr>`).join('')
+  }</tbody></table></div>`;
+  main.innerHTML = `
+    <div class="page-head"><h2>🔎 صحت‌سنجیِ اعداد</h2><div class="sub">چند بررسیِ مستقل رویِ کلِ دفتر — فقط می‌خونه، چیزی را تغییر نمی‌ده.</div></div>
+    <div class="card" style="margin-bottom:12px;border-right:4px solid ${V.color};background:${V.bg}">
+      <div style="font-weight:800;font-size:15px">${verdict.t}</div>
+      <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">🔴 ${c.error||0} ایراد · 🟠 ${c.warn||0} هشدار · 🔵 ${c.info||0} اطلاعات · 🟢 ${c.ok||0} سالم${when ? ' — ' + when : ''}</div>
+      <button class="btn btn-ghost btn-sm" id="reconRerun" style="margin-top:8px">🔄 دوباره بررسی کن</button>
+    </div>
+    ${d.checks.map(k=>{ const L = RECON_LEVELS[k.level] || RECON_LEVELS.info; return `
+      <div class="card" style="margin-bottom:10px;border-right:4px solid ${L.color}">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>${L.icon}</span><b>${fxc_esc(k.title)}</b><span style="font-size:11px;color:${L.color};font-weight:700">${L.label}${k.rows.length ? ' · ' + k.rows.length + ' مورد' : ''}</span></div>
+        ${k.hint ? `<div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">${fxc_esc(k.hint)}</div>` : ''}
+        ${rowsHtml(k.rows)}
+      </div>`; }).join('')}`;
+  main.querySelector('#reconRerun').addEventListener('click', async ()=>{ await loadAll(); renderReconcile(main); });
+}
+
 async function renderStock(main){
   main.innerHTML = '<div class="empty">در حالِ بارگذاری…</div>';
   let d;
@@ -4614,6 +4684,82 @@ function openYuanAdjustmentModal(supplierName, existing){
     if(!d) return;
     showToast(isEdit ? '✅ تعدیل به‌روزرسانی شد' : '✅ تعدیل ثبت شد');
     backdrop.remove();
+    renderMain();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 🏁 مانده‌ی اولیه‌ی مشتری/تأمین‌کننده (۱۴۰۵/۰۷/۱۴) — طبقِ درخواستِ صریحِ کاربر: «حسابم از قبل بوده».
+// ریال و یوان هر دو؛ فقط رویِ مانده‌هایِ دفتر اثر می‌ذاره (واردِ FIFO و نرخِ میانگینِ فاکتورها نمی‌شه).
+// سرور: /api/ledger/accounts/opening-balances/
+// ══════════════════════════════════════════════════════════════
+const FX_OPENING_EP = 'accounts/opening-balances';
+async function fxDeleteOpening(id){
+  if(!confirm('⚠️ مطمئنید می‌خواید این مانده‌ی اولیه را حذف کنید؟ مانده‌یِ دفتر عوض می‌شه.')) return;
+  const ok = await apiDelete(FX_OPENING_EP, id);
+  if(!ok) return;
+  showToast('✅ حذف شد');
+  renderMain();
+}
+// برایِ طرفِ جدید (که هنوز در لیست نیست): نام را می‌پرسه؛ اگر نام با یکی از لیست فقط در املا فرق کنه، همونِ لیست را پیشنهاد می‌ده
+function fxPickPartyThenOpening(partyType, existingNames){
+  const label = partyType === 'supplier' ? 'تأمین‌کننده' : 'مشتری';
+  const raw = prompt(`نامِ ${label} را بنویسید (برایِ طرفِ موجود، دقیقاً مثلِ نامِ ثبت‌شده):`);
+  if(raw === null) return;
+  let name = raw.trim();
+  if(!name){ showToast('نام را وارد کنید'); return; }
+  const norm = (s)=>String(s).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  const same = (existingNames||[]).find(n=>norm(n)===norm(name));
+  if(same && same !== name){ name = same; showToast('نام با «' + same + '» یکی گرفته شد'); }
+  openOpeningBalanceModal(partyType, name);
+}
+function openOpeningBalanceModal(partyType, name, existing){
+  const isEdit = !!existing;
+  const isSup = partyType === 'supplier';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  const recvLabel = isSup ? 'طلبِ ما از تأمین‌کننده — او یوان/ریالِ ما را دارد (پیش‌پرداخت)' : 'طلبِ ما از مشتری — او به ما بدهکار است';
+  const payLabel  = isSup ? 'بدهیِ ما به تأمین‌کننده — ما به او بدهکاریم' : 'بدهیِ ما به مشتری — پولی/اعتباری که او از قبل دارد';
+  const side = isEdit ? existing.openingSide : (isSup ? 'payable' : 'receivable');
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>🏁 ${isEdit?'ویرایشِ':'ثبتِ'} مانده‌ی اولیه — ${fxc_esc(name)}</h3>
+      <p class="page-desc">حسابِ قبل از شروعِ استفاده از مدار. یک ردیفِ «مانده‌ی اولیه» به اولِ دفترِ این ${isSup?'تأمین‌کننده':'مشتری'} اضافه می‌شه و در مانده‌ی ریالی و یوانی لحاظ می‌شه. <b>واردِ FIFO و نرخِ میانگینِ فاکتورها نمی‌شه</b> (اگر نرخِ دقیق لازم است، به‌جایش حواله/فاکتورِ قدیمی با تاریخِ واقعی ثبت کنید). هر کدام از مبلغ‌ها را که ندارید خالی بگذارید.</p>
+      <div class="field" style="margin-bottom:10px"><label>این مانده یعنی…</label>
+        <select id="obSide">
+          <option value="receivable" ${side==='receivable'?'selected':''}>${recvLabel}</option>
+          <option value="payable" ${side==='payable'?'selected':''}>${payLabel}</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاریخِ شروع (شمسی)</label><input id="obDate" type="text" value="${isEdit?fxc_esc(existing.date):todayShamsi()}" placeholder="1405-01-01"></div>
+        <div class="field"><label>مبلغ (یوان)</label><input id="obYuan" type="text" class="num" value="${isEdit && existing.yuanAmount ? existing.yuanAmount : ''}" placeholder="مثلاً 1500"></div>
+        <div class="field"><label>مبلغ (ریال)</label><input id="obRial" type="text" class="num" value="${isEdit && existing.rialAmount ? existing.rialAmount : ''}" placeholder="مثلاً 750000000"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>توضیح (اختیاری)</label><input id="obNote" type="text" value="${isEdit?fxc_esc(existing.note||''):''}" placeholder="مثلاً مانده‌ی قبل از مدار"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="obSave">${isEdit?'ذخیره‌ی تغییرات':'ثبتِ مانده‌ی اولیه'}</button>
+        <button class="btn btn-ghost" id="obCancel">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  backdrop.querySelector('#obCancel').addEventListener('click', ()=>backdrop.remove());
+  wireShamsiDatePicker(backdrop.querySelector('#obDate'));
+  backdrop.querySelector('#obSave').addEventListener('click', async ()=>{
+    const num = (id)=>{ const v = backdrop.querySelector(id).value.replace(/[,،\s]/g,''); return v ? parseFloat(v) : 0; };
+    const date = backdrop.querySelector('#obDate').value.trim();
+    const yuan = num('#obYuan'), rial = num('#obRial');
+    if(!date){ showToast('تاریخ را وارد کنید'); return; }
+    if(isNaN(yuan) || isNaN(rial) || yuan < 0 || rial < 0){ showToast('مبلغ‌ها باید عددِ مثبت باشند (جهت را با «این مانده یعنی…» مشخص کنید)'); return; }
+    if(!yuan && !rial){ showToast('حداقل یکی از مبلغ‌هایِ یوان یا ریال را وارد کنید'); return; }
+    const body = { party_type: partyType, party_name: name, date, side: backdrop.querySelector('#obSide').value,
+                   yuan_amount: String(Math.round(yuan*10000)/10000), rial_amount: String(Math.round(rial)),
+                   note: backdrop.querySelector('#obNote').value.trim() };
+    const d = isEdit ? await apiUpdate(FX_OPENING_EP, existing.id, body) : await apiCreate(FX_OPENING_EP, body);
+    if(!d) return;
+    showToast(isEdit ? '✅ مانده‌ی اولیه به‌روزرسانی شد' : '✅ مانده‌ی اولیه ثبت شد');
+    backdrop.remove();
+    fxLastSummary = null;   // خلاصه‌یِ کش‌شده کهنه شد
     renderMain();
   });
 }
