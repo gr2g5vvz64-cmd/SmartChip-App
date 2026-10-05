@@ -5060,9 +5060,11 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
     const r = await fetchWithRetry(FX_API+'accounts/hawale-holds/?hawale='+hawaleId);
     if(r.ok) g = await r.json();
   }catch(e){}
-  if(!g){ showToast('❌ اطلاعاتِ حواله از سرور نیامد — دوباره امتحان کنید'); return; }
+  if(!g){ showToast('❌ اطلاعاتِ حواله از سرور نیامد — احتمالاً views.py/migrationِ جدید روی سرور نیست (لاگِ Render را ببینید)'); return; }
   const full = Number(g.fullRial||0);
-  const custs = g.customers || [];
+  // اگه سرور هنوز نسخه‌یِ قدیمیِ views.py را دارد، فیلدهایِ تازه (سقفِ شاملِ پولِ شرکت و ...) نمی‌آیند؛ رفتارِ قدیمی را نگه می‌داریم و هشدار می‌دهیم
+  const serverNew = ('ownUntaggedRial' in g) && ('unaccountedRial' in g);
+  const custs = (g.customers || []).map(c=>Object.assign({}, c, {tagRial: Number(c.tagRial||0), capRial: Number(c.capRial !== undefined ? c.capRial : c.linkRial || 0)}));
   const unassigned = Number(g.unassignedRial||0);
   const toAssign = Number(g.ownUntaggedRial||0) + Number(g.unaccountedRial||0);   // پولِ شرکتِ بدونِ مشتری + ریالِ وصل‌نشده
   const hasAny = custs.some(c=>c.heldRial>0) || unassigned>0;
@@ -5087,6 +5089,7 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
   backdrop.innerHTML = `
     <div class="modal" style="max-width:820px">
       <h3>🔒 نگه‌داری برایِ مشتری — حواله #${hawaleId}</h3>
+      ${serverNew ? '' : '<div style="background:rgba(185,119,14,.12);border:1px solid #b9770e;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">⚠️ <b>نسخه‌یِ جدیدِ <code>views.py</code> هنوز روی سرور نیست</b> (یا Render بالا نیامده). تا آن‌موقع «پولِ شرکت برایِ مشتری» و سقفِ جدید کار نمی‌کند. در Render بخشِ Events/Logs را نگاه کنید.</div>'}
       <p class="page-desc">این حواله به <b>${fxc_esc(supplierName)}</b> زده شده (کلِ مبلغ: <b>${fmtRial(full)}</b>). برایِ هر مشتری بنویسید چقدر از <b>سهمِ خودش</b> در این حواله «فقط نزدِ تأمین‌کننده نگه‌داری می‌شه» (پولِ تأمین‌کننده نیست و فاکتورهایش را تسویه نمی‌کنه). آن بخش از «مانده‌یِ بدهیِ فاکتورهایِ ${fxc_esc(supplierName)}» کنار گذاشته می‌شه و جدا (🔒) و به نامِ همان مشتری نمایش داده می‌شه. اعتبارِ یوانیِ مشتری و بانک تغییر نمی‌کنه.</p>
       ${custs.length ? `<div class="table-wrap"><table><thead><tr><th>مشتری</th><th>پولِ خودش در این حواله</th><th>پولِ شرکت برایِ او</th><th>کلِ سهمِ او (سقف)</th><th>چقدرش نگه‌داری است؟ (ریال)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<div style="font-size:12px;color:var(--danger);margin:6px 0">⚠️ در «منبعِ ریالِ» این حواله هیچ مشتری‌ای ثبت نشده؛ برایِ مشخص‌شدنِ مالکِ یوان، اول حواله را ویرایش کنید و نامِ مشتری را در «👥 منبعِ ریالِ این حواله» بزنید.</div>'}
@@ -5123,7 +5126,11 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
     let ok=false, msg='';
     try{
       const r = await fetchWithRetry(FX_API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-      ok = r.ok; if(!ok){ try{ msg = (await r.json()).error || ''; }catch(e){} }
+      ok = r.ok;
+      if(!ok){
+        try{ msg = (await r.json()).error || ''; }catch(e){}
+        if(!msg) msg = `خطایِ سرور (کد ${r.status})` + (r.status===404 ? ' — آدرس روی سرور نیست؛ views.py جدید deploy نشده' : (r.status>=500 ? ' — معمولاً یعنی migration اجرا نشده یا views.py/models.py هم‌خوان نیستند (لاگِ Render را ببینید)' : ''));
+      }
     }catch(e){ msg = 'اتصال به سرور برقرار نشد'; }
     return {ok, msg};
   };
