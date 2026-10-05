@@ -826,6 +826,7 @@ function fxFingerprint(obj){
 const NAV_STRUCTURE = [
   {type:'item', id:'dashboard', label:'داشبورد'},
   {type:'item', id:'management', label:'📊 تحلیلِ مدیریتی'},
+  {type:'item', id:'yuan-position', label:'💱 حسابِ یوانیِ ما'},
   {type:'item', id:'reconcile', label:'🔎 صحت‌سنجیِ اعداد'},
   {type:'group', id:'group-customer', label:'مشتری', children:[
     {id:'customers', label:'مشتریان (دفتر)'},
@@ -920,6 +921,7 @@ async function renderMain(){
   // وگرنه هر تلاشِ خاموشِ پس‌زمینه یک چشمک به «در حال بارگذاری» می‌زد، حتی وقتی صفحه از قبل پر بود.
   if(currentTab === 'dashboard') return renderDashboard(main);
   if(currentTab === 'management') return renderManagement(main);
+  if(currentTab === 'yuan-position') return renderYuanPosition(main);
   if(currentTab === 'reconcile') return renderReconcile(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
   if(currentTab === 'payments') return renderPayments(main);
@@ -1576,7 +1578,7 @@ async function renderCustomerLedger(main, cachedData){
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
-    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button></div>
+    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور">💱 یوان و رزرو برایِ پیش‌فاکتور</button></div>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
     </div>
 
@@ -1758,6 +1760,7 @@ async function renderCustomerLedger(main, cachedData){
     renderCustomerLedger(main);
   }));
   main.querySelector('#addOrderBtn').addEventListener('click', ()=>openOrderModal(null, currentCustomer));
+  main.querySelector('#yuanPosBtn').addEventListener('click', ()=>{ yuanPosFocus = currentCustomer; currentTab = 'yuan-position'; currentCustomer = null; render(); });
   main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('customer', currentCustomer));
   main.querySelectorAll('[data-edit-opening]').forEach(b=>b.addEventListener('click', ()=>{
     const ev = data.events.find(x=>x.type==='opening' && x.id==b.dataset.editOpening);
@@ -4444,6 +4447,87 @@ async function renderReconcile(main){
         ${rowsHtml(k.rows)}
       </div>`; }).join('')}`;
   main.querySelector('#reconRerun').addEventListener('click', async ()=>{ await loadAll(); renderReconcile(main); });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 💱 حسابِ یوانیِ ما (۱۴۰۵/۰۷/۱۴) — طبقِ درخواستِ صریحِ کاربر. فقط-خواندنی به‌جز «رزرو برایِ پیش‌فاکتور».
+//  ۱) یوانِ ما نزدِ هر تأمین‌کننده (پیش‌پرداختِ بدونِ فاکتور)  ۲) بدهیِ یوانیِ ما به هر مشتری، با فهرستِ حواله‌هایی
+//  که با پولِ او زده شده  ۳) رزروِ هر حواله برایِ یک پیش‌فاکتور (اختیاری؛ پیش‌فرض = FIFO مثلِ قبل).
+// سرور: GET /api/ledger/accounts/yuan-position/ و POST /api/ledger/accounts/reserve-link/
+// ══════════════════════════════════════════════════════════════
+let yuanPosFocus = null;          // نامِ مشتری‌ای که باید باز بشه (از دفترِ مشتری میاد)
+let yuanPosOpen = new Set();      // مشتری‌هایی که کاربر بازشون کرده
+async function renderYuanPosition(main){
+  main.innerHTML = `<div class="page-head"><h2>💱 حسابِ یوانیِ ما</h2></div><div class="empty">⏳ در حالِ بارگذاری…</div>`;
+  let d = null, err = '';
+  try{
+    const r = await fetchWithRetry(FX_API+'accounts/yuan-position/');
+    if(r.ok) d = await r.json(); else err = 'پاسخِ سرور: ' + r.status + (r.status===404 ? ' — فایلِ views.py جدید هنوز روی سرور نیست' : '');
+  }catch(e){ err = 'ارتباط با سرور برقرار نشد'; }
+  if(currentTab !== 'yuan-position' || !document.body.contains(main)) return;
+  if(!d){
+    main.innerHTML = `<div class="page-head"><h2>💱 حسابِ یوانیِ ما</h2></div><div class="empty">❌ ${fxc_esc(err)}<br><button class="btn btn-ghost btn-sm" id="ypRetry" style="margin-top:10px">تلاشِ دوباره</button></div>`;
+    main.querySelector('#ypRetry').addEventListener('click', ()=>renderYuanPosition(main));
+    return;
+  }
+  if(yuanPosFocus){ yuanPosOpen.add(yuanPosFocus); }
+  const T = d.totals || {};
+  const gapOk = Math.abs(T.gap||0) < 1;
+  const card = (label, val, hint) => `<div class="card" style="flex:1;min-width:190px"><div class="card-label">${label}</div><div class="card-value">${fmtYuan(val||0)}</div>${hint?`<div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">${hint}</div>`:''}</div>`;
+  const supRows = (d.suppliers||[]).map(s=>`<tr><td>${fxc_esc(s.name)}</td><td class="num" style="font-weight:700;color:${s.yuan>0?'#1e8449':'#c0392b'}">${fmtYuan(Math.abs(s.yuan))}</td><td>${s.yuan>0?'🟢 یوانِ ما نزدِ اوست (پیش‌پرداخت)':'🟠 ما به او بدهکاریم'}</td></tr>`).join('');
+  const custHtml = (d.customers||[]).map(c=>{
+    const opts = (oid)=> `<option value="">— بدونِ رزرو (FIFO) —</option>` + c.orders.map(o=>`<option value="${o.id}" ${oid===o.id?'selected':''}>${fxc_esc(o.date)} — ${o.type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoiceNo?(' '+fxc_esc(o.invoiceNo)):''} — ${fmtYuan(o.yuan)}</option>`).join('');
+    const linkRows = c.links.map(l=>`<tr>
+        <td class="date-cell">${fxc_esc(l.paymentDate)}</td><td class="date-cell">${fxc_esc(l.hawaleDate)}</td><td>${fxc_esc(l.supplier)}${l.fromStock?' <span style="font-size:10px">(از موجودیِ شرکت)</span>':''}</td>
+        <td class="num">${fmt(l.rate,0)}</td><td class="num">${fmtRial(l.rial)}</td><td class="num">${fmtYuan(l.yuan)}</td>
+        <td><select data-yp-reserve data-pay="${l.paymentId}" data-hw="${l.hawaleId}" style="max-width:240px">${opts(l.orderId)}</select></td></tr>`).join('');
+    const orderRows = c.orders.map(o=>`<tr><td class="date-cell">${fxc_esc(o.date)}</td><td>${o.type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoiceNo?(' '+fxc_esc(o.invoiceNo)):''}</td>
+        <td class="num">${fmtYuan(o.yuan)}</td><td class="num">${o.reserved>0?('📌 '+fmtYuan(o.reserved)):'—'}</td><td class="num">${fmtYuan(o.covered)}</td>
+        <td class="num" style="font-weight:700;color:${o.remaining>0.01?'#c0392b':'#1e8449'}">${o.remaining>0.01?fmtYuan(o.remaining):'✅ پرداخت‌شده'}</td></tr>`).join('');
+    const headTxt = c.creditYuan>0.005 ? `🟢 ما به او ${fmtYuan(c.creditYuan)} بدهکاریم` : (c.debtYuan>0.005 ? `🟠 او به ما ${fmtYuan(c.debtYuan)} بدهکار است` : '⚪ تسویه');
+    return `<details data-yp-cust="${fxc_esc(c.name)}" ${yuanPosOpen.has(c.name)?'open':''} style="margin-bottom:8px">
+      <summary style="cursor:pointer;padding:9px 12px;background:var(--surface);border-radius:8px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <b>${fxc_esc(c.name)}</b><span>${headTxt}</span>${c.unlinkedRial>0.5?`<span style="font-size:11.5px;color:var(--ink-soft)">⏳ ریالِ حواله‌نشده: ${fmtRial(c.unlinkedRial)}</span>`:''}
+      </summary>
+      <div style="padding:8px 4px">
+        ${c.links.length ? `<div style="font-weight:700;margin:6px 0">حواله‌هایی که با پولِ این مشتری زده شده — و رزرو برایِ پیش‌فاکتور</div>
+          <div class="table-wrap"><table><thead><tr><th>تاریخِ واریز</th><th>تاریخِ حواله</th><th>تأمین‌کننده</th><th>نرخ</th><th>ریال</th><th>یوان</th><th>رزرو برایِ…</th></tr></thead><tbody>${linkRows}</tbody></table></div>`
+          : '<div style="font-size:12px;color:var(--ink-soft);margin:6px 0">هنوز هیچ حواله‌ای با پولِ این مشتری زده نشده.</div>'}
+        ${c.orders.length ? `<div style="font-weight:700;margin:12px 0 6px">پیش‌فاکتورها و فاکتورها</div>
+          <div class="table-wrap"><table><thead><tr><th>تاریخ</th><th>نوع</th><th>یوان</th><th>رزروشده</th><th>پوشش‌یافته</th><th>مانده</th></tr></thead><tbody>${orderRows}</tbody></table></div>` : ''}
+      </div></details>`;
+  }).join('');
+  main.innerHTML = `
+    <div class="page-head"><h2>💱 حسابِ یوانیِ ما</h2><div class="sub">یوانی که برایِ مشتری‌ها خریده‌ایم: نزدِ کدام تأمین‌کننده است و مالِ کدام مشتری. در هر لینک می‌توانید «برایِ کدام پیش‌فاکتور» را مشخص کنید (اختیاری).</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      ${card('یوانِ ما نزدِ تأمین‌کننده‌ها', T.heldAtSuppliers, 'پیش‌پرداختِ بدونِ فاکتور')}
+      ${card('بدهیِ یوانیِ ما به مشتری‌ها', T.customerCredit, 'یوانی که مشتری‌ها از ما طلب دارند')}
+      ${card('موجودیِ یوانِ شرکت', T.companyStockYuan, 'خریده‌شده با پولِ مازادِ خودمان')}
+    </div>
+    <div class="card" style="margin-bottom:14px;border-right:4px solid ${gapOk?'#1e8449':'#b9770e'}">
+      <b>${gapOk?'🟢':'🟠'} تطبیق: یوانِ ما نزدِ تأمین‌کننده‌ها − بدهی به مشتری‌ها − موجودیِ شرکت = ${fmtYuan(T.gap||0)}</b>
+      <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">${gapOk ? 'یوانِ نزدِ تأمین‌کننده‌ها دقیقاً با مالکانش (مشتری‌ها + شرکت) می‌خواند.' : 'یعنی بخشی از یوانِ نزدِ تأمین‌کننده‌ها مالکِ ثبت‌شده ندارد. دلایلِ رایج: حواله‌ای که نامِ مشتری در «منبعِ ریال»ش نیست، فروشِ ثبت‌شده‌ای که هنوز فاکتورِ خریدش ثبت نشده، مانده‌یِ اولیه یا تعدیلِ یوانی. این عدد «ایراد» نیست؛ راهنماست.'}</div>
+    </div>
+    <div style="font-weight:700;margin:6px 0">نزدِ تأمین‌کننده‌ها</div>
+    <div class="table-wrap" style="margin-bottom:16px"><table><thead><tr><th>تأمین‌کننده</th><th>یوان</th><th>وضعیت</th></tr></thead><tbody>${supRows || '<tr class="empty-row"><td colspan="3">هیچ تأمین‌کننده‌ای مانده‌ی یوانی ندارد</td></tr>'}</tbody></table></div>
+    <div style="font-weight:700;margin:6px 0">به تفکیکِ مشتری</div>
+    ${custHtml || '<div class="empty">هنوز مشتری‌ای با یوان یا واریزی نیست</div>'}`;
+  main.querySelectorAll('details[data-yp-cust]').forEach(dt=>dt.addEventListener('toggle', ()=>{
+    const n = dt.getAttribute('data-yp-cust'); if(dt.open) yuanPosOpen.add(n); else yuanPosOpen.delete(n);
+  }));
+  main.querySelectorAll('select[data-yp-reserve]').forEach(sel=>sel.addEventListener('change', async ()=>{
+    sel.disabled = true;
+    let ok = false, msg = '';
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/reserve-link/', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({payment_id:+sel.dataset.pay, hawale_id:+sel.dataset.hw, order_id: sel.value ? +sel.value : null})});
+      ok = r.ok; if(!ok){ try{ msg = (await r.json()).error || ''; }catch(e){} }
+    }catch(e){ msg = 'اتصال به سرور برقرار نشد'; }
+    showToast(ok ? (sel.value ? '📌 رزرو شد' : 'رزرو برداشته شد') : ('❌ ' + (msg || 'ثبت نشد')));
+    yuanPosFocus = null;
+    renderYuanPosition(main);
+  }));
+  yuanPosFocus = null;
 }
 
 async function renderStock(main){
