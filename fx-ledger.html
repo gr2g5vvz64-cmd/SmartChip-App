@@ -5086,6 +5086,23 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
           <button class="btn btn-ghost btn-sm" type="button" id="hhAssignBtn">اختصاص به این مشتری</button>
         </div>
       </div>` : '';
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) انتقالِ یوانِ نگه‌داری‌شده به پرداختِ تأمین‌کننده (وقتی مشتری می‌خواهد آن یوان را بابتِ خریدش بدهد)
+  const rateH = Number(g.rate || (ev && ev.rate) || 0);
+  const heldRows = custs.filter(c=>c.heldRial>0.5).map(c=>({name:c.name, label:c.name, held:c.heldRial}));
+  if(unassigned>0.5) heldRows.push({name:'', label:'(مشتریِ نامشخص)', held:unassigned});
+  const knownSup = (typeof getKnownSupplierNames === 'function') ? getKnownSupplierNames() : [];
+  const xferBlock = heldRows.length ? `
+      <div style="margin:12px 0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:rgba(46,109,164,.05)">
+        <div style="font-size:12.5px;font-weight:700">🔁 انتقالِ یوانِ نگه‌داری‌شده به پرداختِ تأمین‌کننده</div>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin:3px 0 8px;line-height:1.7">وقتی مشتری می‌خواهد این یوان را بابتِ خریدش بدهد: مبلغ را بنویسید و تأمین‌کننده‌یِ مقصد را انتخاب کنید. <b>اگر مقصد همین تأمین‌کننده است</b> نگه‌داری برداشته می‌شه و آن یوان فاکتورهایِ همین تأمین‌کننده را تسویه می‌کنه؛ <b>اگر تأمین‌کننده‌یِ دیگری است</b> همان مبلغِ یوان (با همان نرخِ این حواله) از این تأمین‌کننده کم و به او اضافه می‌شه. بانک و اعتبارِ یوانیِ مشتری تغییر نمی‌کنه؛ اعتبارِ او با ثبتِ <b>فاکتورِ فروشِ خودش</b> کم می‌شه و فاکتورِ خریدِ آن تأمین‌کننده را هم جدا ثبت کنید.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div class="field" style="margin:0"><label>مشتری</label><select id="hhXferCust">${heldRows.map(r=>`<option value="${fxc_esc(r.name)}">${fxc_esc(r.label)} — نگه‌داری: ${fmt(r.held,0)}</option>`).join('')}</select></div>
+          <div class="field" style="margin:0"><label>مبلغ (ریال) <button class="icon-btn" type="button" id="hhXferAll" style="font-size:10px">همه</button></label><input id="hhXferAmt" type="text" class="num" placeholder="مثلاً 2,020,000,000" style="min-width:170px"></div>
+          <div class="field" style="margin:0"><label>به تأمین‌کننده</label><input id="hhXferTo" type="text" list="hhSupList" value="${fxc_esc(supplierName)}" style="min-width:170px"><datalist id="hhSupList">${knownSup.map(n=>`<option value="${fxc_esc(n)}"></option>`).join('')}</datalist></div>
+          <button class="btn btn-primary btn-sm" type="button" id="hhXferBtn">🔁 انتقال</button>
+        </div>
+        <div id="hhXferInfo" style="font-size:11.5px;margin-top:6px"></div>
+      </div>` : '';
   backdrop.innerHTML = `
     <div class="modal" style="max-width:820px">
       <h3>🔒 نگه‌داری برایِ مشتری — حواله #${hawaleId}</h3>
@@ -5094,6 +5111,7 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
       ${custs.length ? `<div class="table-wrap"><table><thead><tr><th>مشتری</th><th>پولِ خودش در این حواله</th><th>پولِ شرکت برایِ او</th><th>کلِ سهمِ او (سقف)</th><th>چقدرش نگه‌داری است؟ (ریال)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<div style="font-size:12px;color:var(--danger);margin:6px 0">⚠️ در «منبعِ ریالِ» این حواله هیچ مشتری‌ای ثبت نشده؛ برایِ مشخص‌شدنِ مالکِ یوان، اول حواله را ویرایش کنید و نامِ مشتری را در «👥 منبعِ ریالِ این حواله» بزنید.</div>'}
       ${assignBlock}
+      ${xferBlock}
       ${(!custs.length || unassigned>0) ? `<div class="field" style="margin-top:8px"><label>نگه‌داری بدونِ مشتریِ مشخص (ریال)</label><input id="hhUnassigned" type="text" class="num" value="${unassigned>0 ? fmt(unassigned,0) : ''}" placeholder="۰"></div>` : ''}
       <div id="hhTotal" style="font-size:12px;margin:8px 0;font-weight:700"></div>
       <div class="field" style="margin-bottom:10px"><label>توضیح (اختیاری)</label><input id="hhNote" type="text" value="${fxc_esc(g.note||'')}" placeholder="مثلاً: پیش‌پرداختِ خریدِ آینده"></div>
@@ -5153,6 +5171,26 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
     showToast('💼 به «'+who+'» اختصاص یافت');
     backdrop.remove(); openHawaleHoldModal(hawaleId, ev, supplierName);
   });
+  const xb = backdrop.querySelector('#hhXferBtn');
+  if(xb){
+    const xi = backdrop.querySelector('#hhXferAmt'); wireLiveNumberFormat(xi);
+    const heldOf = ()=>{ const r = heldRows.find(x=>x.name===backdrop.querySelector('#hhXferCust').value); return r ? r.held : 0; };
+    const showInfo = ()=>{ const a = num(xi), to = backdrop.querySelector('#hhXferTo').value.trim();
+      backdrop.querySelector('#hhXferInfo').innerHTML = a>0 ? `${fmtRial(a)}${rateH?` ≈ ${fmtYuan(a/rateH)}`:''} ← ${to===supplierName ? 'برگشت به تسویه‌یِ فاکتورهایِ '+fxc_esc(supplierName) : 'منتقل به «'+fxc_esc(to)+'»'}${a>heldOf()+0.5?' <span style="color:var(--danger)">⚠️ بیشتر از مبلغِ نگه‌داری‌شده</span>':''}` : ''; };
+    xi.addEventListener('input', showInfo); backdrop.querySelector('#hhXferTo').addEventListener('input', showInfo); backdrop.querySelector('#hhXferCust').addEventListener('change', showInfo);
+    backdrop.querySelector('#hhXferAll').addEventListener('click', ()=>{ xi.value = fmt(heldOf(),0); showInfo(); });
+    xb.addEventListener('click', async ()=>{
+      const a = num(xi), to = backdrop.querySelector('#hhXferTo').value.trim(), cust = backdrop.querySelector('#hhXferCust').value;
+      if(!(a>0)){ showToast('مبلغِ انتقال را وارد کنید'); return; }
+      if(!to){ showToast('تأمین‌کننده‌یِ مقصد را بنویسید'); return; }
+      if(a > heldOf()+0.5){ showToast('بیشتر از مبلغِ نگه‌داری‌شده است'); return; }
+      if(!confirm(`${fmt(a,0)} ریال از نگه‌داریِ «${cust||'نامشخص'}» ${to===supplierName?'برداشته شود (برگردد به تسویه‌یِ فاکتورهایِ '+supplierName+')':'به «'+to+'» منتقل شود'}؟`)) return;
+      const r = await postJson('accounts/hold-transfer/', {hawale:hawaleId, customer:cust, rial_amount:String(Math.round(a)), to_supplier:to});
+      if(!r.ok){ showToast('❌ ' + (r.msg || 'انجام نشد')); return; }
+      showToast('✅ انتقال انجام شد'); fxLastSummary = null; renderMain();
+      backdrop.remove(); openHawaleHoldModal(hawaleId, ev, supplierName);
+    });
+  }
   backdrop.querySelector('#hhCancel').addEventListener('click', ()=>backdrop.remove());
   backdrop.querySelector('#hhSave').addEventListener('click', ()=>{
     const holds = collect();
