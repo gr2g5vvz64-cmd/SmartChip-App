@@ -122,6 +122,25 @@
   .nav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
   .nav-item.active{ background:#fff; color:var(--ink); font-weight:600; }
   .nav-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.55; flex-shrink:0; }
+  /* ⚠️ (۱۴۰۵/۰۷/۱۴) نوارِ کناریِ شفاف‌تر */
+  .nav-item{ padding:9px 12px; font-size:13.5px; }
+  .nav-item.active{ box-shadow:inset -4px 0 0 var(--accent); }
+  .nav-ico{ width:22px; text-align:center; font-size:15px; flex-shrink:0; }
+  .nav-sec{ margin-top:8px; }
+  .nav-sec-label{ display:flex; align-items:center; gap:8px; padding:8px 12px 5px; font-size:11px; font-weight:800; letter-spacing:.3px; color:#8D97A8; }
+  .nav-sec-label::after{ content:''; flex:1; height:1px; background:rgba(255,255,255,.12); }
+  .nav-sec-bar{ width:4px; height:13px; border-radius:2px; background:var(--sec); flex-shrink:0; }
+  .qa-box{ margin:0 2px 6px; padding:10px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); }
+  .qa-title{ font-size:11px; font-weight:800; color:#9AA3B2; margin-bottom:8px; }
+  .qa-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .qa-btn{ display:flex; align-items:center; gap:6px; padding:8px 8px; border-radius:9px; border:1px solid transparent; font-size:12px; font-weight:700; cursor:pointer; color:#fff; font-family:inherit; text-align:right; }
+  .qa-btn:last-child:nth-child(odd){ grid-column:1 / -1; }
+  .qa-btn[data-action="add-payment"]{ background:rgba(30,132,73,.32); border-color:rgba(30,132,73,.6); }
+  .qa-btn[data-action="add-hawale"]{ background:rgba(46,109,164,.38); border-color:rgba(46,109,164,.7); }
+  .qa-btn[data-action="add-order"]{ background:rgba(125,91,166,.38); border-color:rgba(125,91,166,.7); }
+  .qa-btn[data-action="add-expense"]{ background:rgba(185,119,14,.34); border-color:rgba(185,119,14,.65); }
+  .qa-btn[data-action="add-income"]{ background:rgba(17,122,139,.36); border-color:rgba(17,122,139,.65); }
+  .qa-btn:hover{ filter:brightness(1.25); }
   .sidebar-foot{ padding:14px 20px; font-size:11px; color:#7C8494; border-top:1px solid rgba(255,255,255,.08); }
 
   /* Main */
@@ -204,6 +223,12 @@
     .nav{ flex-direction:row; overflow-x:auto; padding:8px 10px; flex:1; }
     .nav-item{ white-space:nowrap; }
     .sidebar-foot{ display:none; }
+    .nav-sec-label{ display:none; }
+    .nav-sec{ display:flex; flex-direction:row; align-items:center; gap:2px; margin:0; padding-inline-start:8px; border-inline-start:1px solid rgba(255,255,255,.14); }
+    .qa-box{ display:flex; align-items:center; margin:0 0 0 6px; padding:4px 6px; }
+    .qa-title{ display:none; }
+    .qa-grid{ display:flex; gap:6px; }
+    .qa-btn{ white-space:nowrap; }
     .main{ padding:18px; }
     .form-grid{ grid-template-columns:1fr 1fr; }
   }
@@ -847,38 +872,53 @@ function fxFingerprint(obj){
 }
 
 // ── Rendering ──
-const NAV_STRUCTURE = [
-  {type:'item', id:'dashboard', label:'داشبورد'},
-  {type:'item', id:'management', label:'📊 تحلیلِ مدیریتی'},
-  {type:'item', id:'yuan-position', label:'💱 حسابِ یوانیِ ما'},
-  {type:'item', id:'reconcile', label:'🔎 صحت‌سنجیِ اعداد'},
-  {type:'item', id:'help', label:'📖 راهنمایِ دفترِ ارزی'},
-  {type:'group', id:'group-customer', label:'مشتری', children:[
-    {id:'customers', label:'مشتریان (دفتر)'},
-    {id:'payments', label:'پرداخت‌های مشتریان'},
-    {id:'incomes', label:'درآمدهای مشتریان'},
-    {id:'capital-advances', label:'پیش‌پرداخت‌های سرمایه‌ای'},
-    {id:'action-add-order', label:'+ ثبت فاکتور/پیش‌فاکتور', action:'add-order'},
-    {id:'action-add-payment', label:'+ ثبت پرداخت', action:'add-payment'},
-    {id:'action-add-income', label:'+ ثبت درآمد', action:'add-income'},
-  ]},
-  {type:'group', id:'group-supplier', label:'تأمین‌کننده', children:[
-    {id:'hawales', label:'حواله‌ها به تأمین‌کننده'},
-    {id:'stock', label:'📦 موجودیِ یوانِ شرکت'},
-    {id:'supplier', label:'دفتر تأمین‌کننده'},
-    {id:'action-add-hawale', label:'+ ثبت حواله', action:'add-hawale'},
-    {id:'action-add-expense', label:'+ ثبت فاکتورِ خرید/هزینه', action:'add-expense'},
-  ]},
-  {type:'item', id:'accounts', label:'حساب‌های بانکی'},
-  {type:'item', id:'settings', label:'تنظیمات'},
+// ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
+// همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
+const NAV_QUICK = [
+  {action:'add-payment', icon:'💰', label:'پرداختِ مشتری'},
+  {action:'add-hawale',  icon:'🔄', label:'حواله'},
+  {action:'add-order',   icon:'📄', label:'فاکتور / پیش‌فاکتور'},
+  {action:'add-expense', icon:'🧾', label:'فاکتورِ خرید'},
+  {action:'add-income',  icon:'💵', label:'درآمد'},
 ];
+const NAV_STRUCTURE = [
+  {type:'section', id:'sec-overview', label:'نمای کلی', color:'#5B8DEF', children:[
+    {id:'dashboard', icon:'🏠', label:'داشبورد'},
+    {id:'yuan-position', icon:'💱', label:'حسابِ یوانیِ ما'},
+    {id:'management', icon:'📊', label:'تحلیلِ مدیریتی'},
+  ]},
+  {type:'section', id:'sec-customer', label:'مشتری', color:'#3FB68B', children:[
+    {id:'customers', icon:'👥', label:'مشتریان (دفتر)'},
+    {id:'payments', icon:'💰', label:'پرداخت‌هایِ مشتریان'},
+    {id:'incomes', icon:'💵', label:'درآمدهایِ مشتریان'},
+    {id:'capital-advances', icon:'🧾', label:'پیش‌پرداخت‌هایِ سرمایه‌ای'},
+  ]},
+  {type:'section', id:'sec-supplier', label:'تأمین‌کننده', color:'#E0A030', children:[
+    {id:'supplier', icon:'🏭', label:'دفترِ تأمین‌کننده'},
+    {id:'hawales', icon:'🔄', label:'حواله‌ها به تأمین‌کننده'},
+    {id:'stock', icon:'📦', label:'موجودیِ یوانِ شرکت'},
+  ]},
+  {type:'section', id:'sec-bank', label:'بانک', color:'#A07CE0', children:[
+    {id:'accounts', icon:'🏦', label:'حساب‌هایِ بانکی'},
+  ]},
+  {type:'section', id:'sec-control', label:'کنترل و راهنما', color:'#8D97A8', children:[
+    {id:'reconcile', icon:'🔎', label:'صحت‌سنجیِ اعداد'},
+    {id:'settings', icon:'⚙️', label:'تنظیمات'},
+    {id:'help', icon:'📖', label:'راهنمایِ دفترِ ارزی'},
+  ]},
+];
+function renderNavHtml(){
+  const quick = `<div class="qa-box"><div class="qa-title">➕ ثبتِ سریع</div><div class="qa-grid">${
+    NAV_QUICK.map(q=>`<button type="button" class="qa-btn" data-action="${q.action}"><span class="nav-ico">${q.icon}</span><span>${q.label}</span></button>`).join('')}</div></div>`;
+  const secs = NAV_STRUCTURE.map(s=>`<div class="nav-sec" style="--sec:${s.color}"><div class="nav-sec-label"><span class="nav-sec-bar"></span>${s.label}</div>${
+    s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span></button>`).join('')}</div>`).join('');
+  return quick + secs;
+}
 let currentTab = 'dashboard';
 // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: آکاردئونِ مشتری/تأمین‌کننده،
 // بدونِ شمارنده (برخلافِ الگوی CRM/ERP). گروهی که تبِ فعلی توشه، پیش‌فرض بازه.
-function groupContainingTab(tabId){
-  return NAV_STRUCTURE.find(n=>n.type==='group' && n.children.some(c=>c.id===tabId));
-}
-let openNavGroups = new Set([groupContainingTab(currentTab)?.id].filter(Boolean));
+function groupContainingTab(tabId){ return null; }   // آکاردئون حذف شد (بخش‌ها همیشه بازند)
+let openNavGroups = new Set();
 let currentCustomer = null;
 let summaryCache = null;
 
@@ -894,23 +934,7 @@ function render(){
           <div class="brand-sub">تسویه ریال ⇄ یوان با مشتریان و تأمین‌کننده</div>
         </div>
         <div class="nav">
-          ${NAV_STRUCTURE.map(n=>{
-            if(n.type==='item'){
-              return `<button class="nav-item ${currentTab===n.id?'active':''}" data-tab="${n.id}"><span class="nav-dot"></span> ${n.label}</button>`;
-            }
-            const isOpen = openNavGroups.has(n.id);
-            return `
-              <button class="nav-group-header" data-group="${n.id}" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;padding:9px 14px;cursor:pointer;font-size:13px;color:#C7CCD6;font-family:inherit;font-weight:700">
-                <span>${n.label}</span>
-                <span style="transition:transform .15s;transform:rotate(${isOpen?'0':'-90deg'})">▾</span>
-              </button>
-              <div style="display:${isOpen?'block':'none'};padding-right:10px">
-                ${n.children.map(c=>c.action
-                  ? `<button class="nav-item" data-action="${c.action}" style="color:var(--accent);font-weight:700"><span class="nav-dot" style="background:var(--accent)"></span> ${c.label}</button>`
-                  : `<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-dot"></span> ${c.label}</button>`
-                ).join('')}
-              </div>`;
-          }).join('')}
+          ${renderNavHtml()}
         </div>
         <div class="sidebar-foot">${fxIsStale() ? `⏱ اطلاعاتِ ${fxCacheAgeLabel()} پیش (سرور در دسترس نیست)` : '✅ داده روی سرور واقعی ذخیره می‌شود'}</div>
       </div>
@@ -926,13 +950,6 @@ function render(){
       if(btn.dataset.action==='add-order') openOrderModal();
       if(btn.dataset.action==='add-payment') openPaymentModal();
       if(btn.dataset.action==='add-income') openIncomeModal();
-    });
-  });
-  root.querySelectorAll('.nav-group-header').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const gid = btn.dataset.group;
-      if(openNavGroups.has(gid)) openNavGroups.delete(gid); else openNavGroups.add(gid);
-      render();
     });
   });
   renderMain();
@@ -4756,7 +4773,7 @@ const FX_HELP = {
     ['ریال یا تومان؟', 'همه‌یِ مبلغ‌هایِ ریالی در دفتر «ریال» هستند. تومان × ۱۰ = ریال (۷۹۰ میلیون تومان = ۷٬۹۰۰٬۰۰۰٬۰۰۰ ریال).'],
   ],
   scenarios: [
-    ['💰 مشتری پول واریز کرد', 'منو: مشتری ← «+ ثبت پرداخت». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
+    ['💰 مشتری پول واریز کرد', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «پرداختِ مشتری». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
     ['🔄 حواله زدم (با پولِ مشتری)', '«+ ثبت حواله»: تأمین‌کننده، تاریخ، نرخِ واقعی، حساب(هایِ) بانکیِ پرداخت‌کننده با مبلغ. در «👥 منبعِ ریالِ این حواله» نامِ مشتری را بزنید (کنارش «مانده‌یِ ریاليِ دستِ ما» دیده می‌شود)، مبلغ را بنویسید و «🔄 محاسبه‌یِ خودکار (FIFO)» را بزنید. نتیجه: بانک کم می‌شود، مشتری یوان بستانکار می‌شود، تأمین‌کننده «پیش‌پرداخت» می‌گیرد.'],
     ['🔒 این حواله برایِ خریدِ آینده‌یِ مشتری است (پولِ تأمین‌کننده نیست)', 'در دفترِ تأمین‌کننده روی ردیفِ حواله «🔒 نگه‌داری برایِ مشتری» را بزنید و برایِ هر مشتری مبلغ بدهید. آن بخش فاکتورهایِ تأمین‌کننده را تسویه نمی‌کند و از بدهیِ او کم نمی‌شود. اعتبارِ مشتری و بانک تغییر نمی‌کند.'],
     ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». زیرش در «🔖 این پولِ شرکت برایِ کدام مشتری است؟» نامِ مشتری را بزنید. نتیجه: در دفترِ او همان بخش به‌صورتِ «💼 پولِ شرکت برایِ او» (یوان بستانکار + بدهیِ ریاليِ او به شرکت) دیده می‌شود. وقتی پرداخت کرد: «+ ثبت پرداخت» و بعد «📦 موجودیِ یوانِ شرکت ← فروش» تا تسویه شود.'],
@@ -4803,16 +4820,16 @@ const FX_HELP = {
       ['🔒 قفل کن (ثبت در هلو)', 'نرخِ میانگین و معادلِ ریاليِ فاکتورِ بسته‌شده را ثابت می‌کند. «بازکردن» فقط برایِ قفلِ اشتباه.'],
       ['📋 جزئیاتِ تسویه / ✏️ ویرایش / حذف', 'نشان می‌دهد کدام واریزی‌ها فاکتور را بسته‌اند؛ ویرایش و حذفِ فاکتور.']]],
     'payments': ['پرداخت‌هایِ مشتریان', 'هر واریزِ مشتری به یکی از حساب‌ها.', [
-      ['+ ثبت پرداخت', 'مشتری، حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز. مانده‌یِ آن حساب بالا می‌رود.'],
+      ['➕ پرداختِ مشتری (ثبتِ سریع)', 'مشتری، حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز. مانده‌یِ آن حساب بالا می‌رود.'],
       ['تخصیصِ دستی به فاکتور', 'اختیاری؛ کلِ آن واریزی را به یک فاکتورِ مشخص می‌چسباند (به‌جایِ FIFO).'],
       ['ستون‌هایِ مانده', 'مانده‌یِ مشتری بعد از همان ردیف.']]],
     'incomes': ['درآمدهایِ مشتریان', 'کمیسیون یا سندی که پولِ واقعی به یک حسابِ بانکی می‌آورد ولی ربطی به خریدِ یوان ندارد.', [
-      ['+ ثبت درآمد', 'مشتری، حساب، مبلغ، توضیح. در مانده‌یِ حسابِ بانکی می‌آید؛ در دفترِ یوانیِ مشتری نمی‌آید.']]],
+      ['➕ درآمد (ثبتِ سریع)', 'مشتری، حساب، مبلغ، توضیح. در مانده‌یِ حسابِ بانکی می‌آید؛ در دفترِ یوانیِ مشتری نمی‌آید.']]],
     'capital-advances': ['پیش‌پرداخت‌هایِ سرمایه‌ای', 'وقتی برایِ مشتری از سرمایه/حسابِ خودتان (نه واریزیِ خودِ او) حواله زده‌اید.', [
       ['چطور ساخته می‌شود', 'در فرمِ حواله اگر مبلغِ یک مشتری از «مانده‌یِ آزادِ» او بیشتر باشد، مابه‌التفاوت اینجا ثبت می‌شود.'],
       ['تسویه', 'هر واریزِ تازه‌یِ همان مشتری به‌ترتیبِ قدیمی‌ترین تسویه‌اش می‌کند و سود/زیانِ نوسانِ نرخ را نشان می‌دهد. این بخش فقط ردیابیِ اطلاعاتی است و رویِ بانک و مانده‌یِ مشتری اثری ندارد.']]],
     'hawales': ['حواله‌ها به تأمین‌کننده', 'هر بار که ریال را به نرخِ روز به یوان تبدیل و حواله می‌زنید.', [
-      ['+ ثبت حواله', 'فرمِ حواله (راهنمایِ آن با ❓ بالایِ خودِ فرم).'],
+      ['➕ حواله (ثبتِ سریع) یا + ثبت حواله', 'فرمِ حواله (راهنمایِ آن با ❓ بالایِ خودِ فرم).'],
       ['✏️ ویرایش / ✏️ ویرایشِ کاملِ سند', 'تغییرِ حساب‌ها، مبلغ‌ها، منبعِ ریال و …؛ مانده‌یِ بانک‌ها خودکار درست می‌شود.'],
       ['ستون‌هایِ مانده', 'مانده‌یِ یوانیِ تأمین‌کننده بعد از آن حواله.']]],
     'stock': ['موجودیِ یوانِ شرکت', 'یوانی که با «پولِ مازادِ خودمون» خریده شده و هنوز به مشتری فروخته نشده.', [
