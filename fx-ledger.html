@@ -137,16 +137,18 @@
   .nav-sec-label{ display:flex; align-items:center; gap:8px; padding:8px 12px 5px; font-size:11px; font-weight:800; letter-spacing:.3px; color:#8D97A8; }
   .nav-sec-label::after{ content:''; flex:1; height:1px; background:rgba(255,255,255,.12); }
   .nav-sec-bar{ width:4px; height:13px; border-radius:2px; background:var(--sec); flex-shrink:0; }
-  .qa-box{ margin:0 2px 6px; padding:10px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); }
-  .qa-title{ font-size:11px; font-weight:800; color:#9AA3B2; margin-bottom:8px; }
-  .qa-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-  .qa-btn{ display:flex; align-items:center; gap:6px; padding:8px 8px; border-radius:9px; border:1px solid transparent; font-size:12px; font-weight:700; cursor:pointer; color:#fff; font-family:inherit; text-align:right; }
-  .qa-btn:last-child:nth-child(odd){ grid-column:1 / -1; }
-  .qa-btn[data-action="add-payment"]{ background:rgba(30,132,73,.32); border-color:rgba(30,132,73,.6); }
-  .qa-btn[data-action="add-hawale"]{ background:rgba(46,109,164,.38); border-color:rgba(46,109,164,.7); }
-  .qa-btn[data-action="add-order"]{ background:rgba(125,91,166,.38); border-color:rgba(125,91,166,.7); }
-  .qa-btn[data-action="add-expense"]{ background:rgba(185,119,14,.34); border-color:rgba(185,119,14,.65); }
-  .qa-btn[data-action="add-income"]{ background:rgba(17,122,139,.36); border-color:rgba(17,122,139,.65); }
+  .qa-box{ margin:0 2px 6px; padding:8px; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); }
+  .qa-title{ font-size:10.5px; font-weight:800; color:#9AA3B2; margin-bottom:6px; }
+  .qa-grid{ display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .qa-btn{ display:flex; align-items:center; gap:5px; height:30px; padding:0 7px; border-radius:7px; border:1px solid transparent; font-size:11.5px; font-weight:700; cursor:pointer; color:#fff; font-family:inherit; text-align:right; white-space:nowrap; overflow:hidden; }
+  .qa-ico{ width:16px; text-align:center; font-size:13px; flex-shrink:0; }
+  .qa-lbl{ overflow:hidden; text-overflow:ellipsis; }
+  .qa-btn[data-action="add-payment"]{ background:rgba(30,132,73,.30); border-color:rgba(30,132,73,.55); }
+  .qa-btn[data-action="add-hawale"]{ background:rgba(46,109,164,.36); border-color:rgba(46,109,164,.65); }
+  .qa-btn[data-action="add-order"]{ background:rgba(125,91,166,.36); border-color:rgba(125,91,166,.65); }
+  .qa-btn[data-action="add-expense"]{ background:rgba(185,119,14,.32); border-color:rgba(185,119,14,.6); }
+  .qa-btn[data-action="add-income"]{ background:rgba(17,122,139,.34); border-color:rgba(17,122,139,.6); }
+  .qa-btn[data-action="add-yuan-adjust"], .qa-btn[data-action="add-opening"]{ background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.18); }
   .qa-btn:hover{ filter:brightness(1.25); }
   .sidebar-foot{ padding:14px 20px; font-size:11px; color:#7C8494; border-top:1px solid rgba(255,255,255,.08); }
 
@@ -882,11 +884,13 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 const NAV_QUICK = [
-  {action:'add-payment', icon:'💰', label:'پرداختِ مشتری'},
-  {action:'add-hawale',  icon:'🔄', label:'حواله'},
-  {action:'add-order',   icon:'📄', label:'فاکتور / پیش‌فاکتور'},
-  {action:'add-expense', icon:'🧾', label:'فاکتورِ خرید'},
-  {action:'add-income',  icon:'💵', label:'درآمد'},
+  {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
+  {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
+  {action:'add-order',        icon:'📄', label:'ثبت فاکتور',   tip:'فاکتور یا پیش‌فاکتورِ فروش به مشتری — نوع را داخلِ فرم انتخاب می‌کنید'},
+  {action:'add-expense',      icon:'🧾', label:'ثبت خرید',     tip:'فاکتورِ خریدِ تأمین‌کننده (کالا + جابجایی + کارمزد)'},
+  {action:'add-income',       icon:'💵', label:'ثبت درآمد',    tip:'درآمدِ مشتری (کمیسیون و …) به یک حساب'},
+  {action:'add-yuan-adjust',  icon:'⚙️', label:'تعدیل یوانی',  tip:'تغییرِ مستقیمِ مانده‌یِ یوانیِ یک تأمین‌کننده'},
+  {action:'add-opening',      icon:'🏁', label:'مانده اولیه',  tip:'حسابِ قبل از مدار برایِ مشتری یا تأمین‌کننده'},
 ];
 const NAV_STRUCTURE = [
   {type:'section', id:'sec-overview', label:'نمای کلی', color:'#5B8DEF', children:[
@@ -916,7 +920,7 @@ const NAV_STRUCTURE = [
 ];
 function renderNavHtml(){
   const quick = `<div class="qa-box"><div class="qa-title">➕ ثبتِ سریع</div><div class="qa-grid">${
-    NAV_QUICK.map(q=>`<button type="button" class="qa-btn" data-action="${q.action}"><span class="nav-ico">${q.icon}</span><span>${q.label}</span></button>`).join('')}</div></div>`;
+    NAV_QUICK.map(q=>`<button type="button" class="qa-btn" data-action="${q.action}" title="${q.tip}"><span class="qa-ico">${q.icon}</span><span class="qa-lbl">${q.label}</span></button>`).join('')}</div></div>`;
   const secs = NAV_STRUCTURE.map(s=>`<div class="nav-sec" style="--sec:${s.color}"><div class="nav-sec-label"><span class="nav-sec-bar"></span>${s.label}</div>${
     s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span></button>`).join('')}</div>`).join('');
   return quick + secs;
@@ -957,9 +961,10 @@ function render(){
       if(btn.dataset.action==='add-order') openOrderModal();
       if(btn.dataset.action==='add-payment') openPaymentModal();
       if(btn.dataset.action==='add-income') openIncomeModal();
+      if(btn.dataset.action==='add-yuan-adjust') openPartyPicker({title:'⚙️ تعدیلِ مستقیمِ یوانی', desc:'مانده‌یِ یوانیِ کدام تأمین‌کننده را مستقیم تغییر می‌دهید؟ (بدونِ ریال، نرخ و بانک — برایِ مبلغی که دستی داده/گرفته‌اید)', types:[{key:'supplier', label:'تأمین‌کننده'}], onPick:(type,name)=>openYuanAdjustmentModal(name)});
+      if(btn.dataset.action==='add-opening') openPartyPicker({title:'🏁 مانده‌یِ اولیه', desc:'حسابِ قبل از شروعِ مدارِ کدام مشتری یا تأمین‌کننده را وارد می‌کنید؟', types:[{key:'customer', label:'مشتری'},{key:'supplier', label:'تأمین‌کننده'}], onPick:(type,name)=>openOpeningBalanceModal(type, name)});
     });
   });
-  fxWatchMain();
   renderMain();
 }
 
@@ -4781,13 +4786,13 @@ const FX_HELP = {
     ['ریال یا تومان؟', 'همه‌یِ مبلغ‌هایِ ریالی در دفتر «ریال» هستند. تومان × ۱۰ = ریال (۷۹۰ میلیون تومان = ۷٬۹۰۰٬۰۰۰٬۰۰۰ ریال).'],
   ],
   scenarios: [
-    ['💰 مشتری پول واریز کرد', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «پرداختِ مشتری». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
+    ['💰 مشتری پول واریز کرد', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «ثبت پرداخت». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
     ['🔄 حواله زدم (با پولِ مشتری)', '«+ ثبت حواله»: تأمین‌کننده، تاریخ، نرخِ واقعی، حساب(هایِ) بانکیِ پرداخت‌کننده با مبلغ. در «👥 منبعِ ریالِ این حواله» نامِ مشتری را بزنید (کنارش «مانده‌یِ ریاليِ دستِ ما» دیده می‌شود)، مبلغ را بنویسید و «🔄 محاسبه‌یِ خودکار (FIFO)» را بزنید. نتیجه: بانک کم می‌شود، مشتری یوان بستانکار می‌شود، تأمین‌کننده «پیش‌پرداخت» می‌گیرد.'],
     ['🔒 این حواله برایِ خریدِ آینده‌یِ مشتری است (پولِ تأمین‌کننده نیست)', 'در دفترِ تأمین‌کننده روی ردیفِ حواله «🔒 نگه‌داری برایِ مشتری» را بزنید و برایِ هر مشتری مبلغ بدهید. آن بخش فاکتورهایِ تأمین‌کننده را تسویه نمی‌کند و از بدهیِ او کم نمی‌شود. اعتبارِ مشتری و بانک تغییر نمی‌کند.'],
     ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». زیرش در «🔖 این پولِ شرکت برایِ کدام مشتری است؟» نامِ مشتری را بزنید. نتیجه: در دفترِ او همان بخش به‌صورتِ «💼 پولِ شرکت برایِ او» (یوان بستانکار + بدهیِ ریاليِ او به شرکت) دیده می‌شود. وقتی پرداخت کرد: «+ ثبت پرداخت» و بعد «📦 موجودیِ یوانِ شرکت ← فروش» تا تسویه شود.'],
     ['🔁 مشتری می‌خواهد یوانِ نگه‌داری‌شده را به تأمین‌کننده بدهد', 'اول فاکتورِ فروشِ مشتری و فاکتورِ خریدِ تأمین‌کننده را ثبت کنید. بعد در دفترِ تأمین‌کننده «ویرایش/برداشتن» ← بخشِ «🔁 انتقال»: مبلغ و تأمین‌کننده‌یِ مقصد. همان تأمین‌کننده = نگه‌داری برداشته می‌شود و فاکتورهایش تسویه می‌شود؛ تأمین‌کننده‌یِ دیگر = همان یوان با همان نرخ به او منتقل می‌شود.'],
-    ['🏁 حسابِ قبل از مدار (مانده‌یِ اولیه)', 'در دفترِ مشتری یا تأمین‌کننده «🏁 مانده‌ی اولیه». جهت را درست انتخاب کنید («طلبِ ما از او» یا «بدهیِ ما به او»). فقط روی مانده‌ها اثر دارد، نه روی FIFO و نرخِ فاکتورها.'],
-    ['⚙️ پولی دستی به/از تأمین‌کننده دادم/گرفتم', 'در دفترِ تأمین‌کننده «⚙️ تعدیلِ مستقیمِ یوانی». «بدهکار» = طلبِ ما از او زیاد می‌شود؛ «بستانکار» = کم می‌شود. بدونِ ریال، نرخ و بانک است؛ توضیحِ واقعی بنویسید.'],
+    ['🏁 حسابِ قبل از مدار (مانده‌یِ اولیه)', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «مانده اولیه» (یا دکمه‌یِ آن در دفترِ همان نفر). جهت را درست انتخاب کنید («طلبِ ما از او» یا «بدهیِ ما به او»). فقط روی مانده‌ها اثر دارد، نه روی FIFO و نرخِ فاکتورها.'],
+    ['⚙️ پولی دستی به/از تأمین‌کننده دادم/گرفتم', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «تعدیل یوانی» (یا دکمه‌یِ آن در دفترِ تأمین‌کننده). «بدهکار» = طلبِ ما از او زیاد می‌شود؛ «بستانکار» = کم می‌شود. بدونِ ریال، نرخ و بانک است؛ توضیحِ واقعی بنویسید.'],
     ['✅ مطمئن شوم اعداد درست‌اند', '«🔎 صحت‌سنجیِ اعداد» چند بررسیِ مستقل می‌کند (قرمز = ایراد، نارنجی = هشدار، آبی = اطلاعات). «💱 حسابِ یوانیِ ما» نشان می‌دهد یوانِ نزدِ تأمین‌کننده‌ها مالِ کدام مشتری است.'],
     ['💾 بک‌آپ', 'داشبورد ← دکمه‌یِ دانلودِ بک‌آپ. سرورِ رایگان بک‌آپِ خودکار ندارد؛ هرچند وقت یک‌بار فایل را نگه دارید.'],
   ],
@@ -4828,16 +4833,16 @@ const FX_HELP = {
       ['🔒 قفل کن (ثبت در هلو)', 'نرخِ میانگین و معادلِ ریاليِ فاکتورِ بسته‌شده را ثابت می‌کند. «بازکردن» فقط برایِ قفلِ اشتباه.'],
       ['📋 جزئیاتِ تسویه / ✏️ ویرایش / حذف', 'نشان می‌دهد کدام واریزی‌ها فاکتور را بسته‌اند؛ ویرایش و حذفِ فاکتور.']]],
     'payments': ['پرداخت‌هایِ مشتریان', 'هر واریزِ مشتری به یکی از حساب‌ها.', [
-      ['➕ پرداختِ مشتری (ثبتِ سریع)', 'مشتری، حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز. مانده‌یِ آن حساب بالا می‌رود.'],
+      ['➕ ثبت پرداخت (ثبتِ سریع)', 'مشتری، حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز. مانده‌یِ آن حساب بالا می‌رود.'],
       ['تخصیصِ دستی به فاکتور', 'اختیاری؛ کلِ آن واریزی را به یک فاکتورِ مشخص می‌چسباند (به‌جایِ FIFO).'],
       ['ستون‌هایِ مانده', 'مانده‌یِ مشتری بعد از همان ردیف.']]],
     'incomes': ['درآمدهایِ مشتریان', 'کمیسیون یا سندی که پولِ واقعی به یک حسابِ بانکی می‌آورد ولی ربطی به خریدِ یوان ندارد.', [
-      ['➕ درآمد (ثبتِ سریع)', 'مشتری، حساب، مبلغ، توضیح. در مانده‌یِ حسابِ بانکی می‌آید؛ در دفترِ یوانیِ مشتری نمی‌آید.']]],
+      ['➕ ثبت درآمد (ثبتِ سریع)', 'مشتری، حساب، مبلغ، توضیح. در مانده‌یِ حسابِ بانکی می‌آید؛ در دفترِ یوانیِ مشتری نمی‌آید.']]],
     'capital-advances': ['پیش‌پرداخت‌هایِ سرمایه‌ای', 'وقتی برایِ مشتری از سرمایه/حسابِ خودتان (نه واریزیِ خودِ او) حواله زده‌اید.', [
       ['چطور ساخته می‌شود', 'در فرمِ حواله اگر مبلغِ یک مشتری از «مانده‌یِ آزادِ» او بیشتر باشد، مابه‌التفاوت اینجا ثبت می‌شود.'],
       ['تسویه', 'هر واریزِ تازه‌یِ همان مشتری به‌ترتیبِ قدیمی‌ترین تسویه‌اش می‌کند و سود/زیانِ نوسانِ نرخ را نشان می‌دهد. این بخش فقط ردیابیِ اطلاعاتی است و رویِ بانک و مانده‌یِ مشتری اثری ندارد.']]],
     'hawales': ['حواله‌ها به تأمین‌کننده', 'هر بار که ریال را به نرخِ روز به یوان تبدیل و حواله می‌زنید.', [
-      ['➕ حواله (ثبتِ سریع) یا + ثبت حواله', 'فرمِ حواله (راهنمایِ آن با ❓ بالایِ خودِ فرم).'],
+      ['➕ ثبت حواله (ثبتِ سریع) یا + ثبت حواله', 'فرمِ حواله (راهنمایِ آن با ❓ بالایِ خودِ فرم).'],
       ['✏️ ویرایش / ✏️ ویرایشِ کاملِ سند', 'تغییرِ حساب‌ها، مبلغ‌ها، منبعِ ریال و …؛ مانده‌یِ بانک‌ها خودکار درست می‌شود.'],
       ['ستون‌هایِ مانده', 'مانده‌یِ یوانیِ تأمین‌کننده بعد از آن حواله.']]],
     'stock': ['موجودیِ یوانِ شرکت', 'یوانی که با «پولِ مازادِ خودمون» خریده شده و هنوز به مشتری فروخته نشده.', [
@@ -5303,6 +5308,37 @@ async function fxDeleteOpening(id){
   if(!ok) return;
   showToast('✅ حذف شد');
   renderMain();
+}
+// ⚠️ (۱۴۰۵/۰۷/۱۴) انتخابِ طرفِ حساب (مشتری/تأمین‌کننده) برایِ دکمه‌هایِ «ثبتِ سریع» که به یک نفر وابسته‌اند
+function openPartyPicker(cfg){
+  const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
+  const custNames = [...new Set([...state.orders.map(o=>o.customer_name), ...state.payments.map(p=>p.customer_name), ...((typeof fxLastSummary !== 'undefined' && fxLastSummary && fxLastSummary.customers) ? fxLastSummary.customers.map(c=>c.name) : [])])].filter(Boolean).sort();
+  const supNames = (typeof getKnownSupplierNames === 'function') ? getKnownSupplierNames() : [];
+  const multi = cfg.types.length > 1;
+  backdrop.innerHTML = `<div class="modal" style="max-width:460px"><h3>${cfg.title}</h3><p class="page-desc">${cfg.desc||''}</p>
+    ${multi ? `<div class="field" style="margin-bottom:10px"><label>برایِ…</label><div style="display:flex;gap:14px">${cfg.types.map((ty,i)=>`<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="radio" name="ppType" value="${ty.key}" ${i===0?'checked':''}> ${ty.label}</label>`).join('')}</div></div>` : ''}
+    <div class="field" style="margin-bottom:10px"><label id="ppLabel"></label><input id="ppName" type="text" list="ppList" placeholder="نام را بنویسید یا از لیست انتخاب کنید"><datalist id="ppList"></datalist></div>
+    <div class="modal-actions"><button class="btn btn-primary" id="ppGo" type="button">ادامه ›</button><button class="btn btn-ghost" id="ppCancel" type="button">انصراف</button></div></div>`;
+  document.body.appendChild(backdrop);
+  const curType = ()=> multi ? backdrop.querySelector('input[name="ppType"]:checked').value : cfg.types[0].key;
+  const names = ()=> curType()==='supplier' ? supNames : custNames;
+  const fill = ()=>{ const ty = cfg.types.find(x=>x.key===curType());
+    backdrop.querySelector('#ppLabel').textContent = 'نامِ ' + ty.label;
+    backdrop.querySelector('#ppList').innerHTML = names().map(n=>`<option value="${fxc_esc(n)}"></option>`).join(''); };
+  backdrop.querySelectorAll('input[name="ppType"]').forEach(r=>r.addEventListener('change', ()=>{ backdrop.querySelector('#ppName').value=''; fill(); }));
+  fill();
+  const norm = s=>String(s).replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+  const go = ()=>{
+    let name = backdrop.querySelector('#ppName').value.trim();
+    if(!name){ showToast('نام را وارد کنید'); return; }
+    const same = names().find(n=>norm(n)===norm(name));         // نامِ دقیقِ ثبت‌شده، اگر فقط در املا فرق داشت
+    if(same && same !== name){ name = same; showToast('نام با «'+same+'» یکی گرفته شد'); }
+    const type = curType(); backdrop.remove(); cfg.onPick(type, name);
+  };
+  backdrop.querySelector('#ppGo').addEventListener('click', go);
+  backdrop.querySelector('#ppName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
+  backdrop.querySelector('#ppCancel').addEventListener('click', ()=>backdrop.remove());
+  setTimeout(()=>backdrop.querySelector('#ppName').focus(), 30);
 }
 // برایِ طرفِ جدید (که هنوز در لیست نیست): نام را می‌پرسه؛ اگر نام با یکی از لیست فقط در املا فرق کنه، همونِ لیست را پیشنهاد می‌ده
 function fxPickPartyThenOpening(partyType, existingNames){
