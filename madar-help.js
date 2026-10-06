@@ -11,6 +11,7 @@
   if (file === 'fx-ledger.html') return;                       // راهنمایِ مستقلِ خودش را دارد
   if (/[?&]m=/.test(location.search)) return;                  // حالتِ تمام‌صفحه‌یِ گوشی (crm.html?m=…)
 
+  var BUILD = '1405.07.14-18';
   var GUIDES = [['📖 راهنمایِ کاملِ کارکنان', 'guide-staff.html'], ['🛠️ راهنمایِ مدیریتِ مدار', 'guide-admin.html']];
 
   var PAGES = {
@@ -177,7 +178,7 @@
     var bd = document.createElement('div'); bd.id = 'madarHelp';
     bd.innerHTML = '<div class="mh-box" role="dialog" aria-label="راهنما"><div class="mh-h"><span style="font-size:20px">' + esc(P.i) + '</span><b>راهنما — ' + esc(P.t) + '</b><button class="mh-x" type="button">بستن ✕</button></div>' +
       '<div class="mh-b"><p class="mh-what">' + esc(P.what) + '</p>' + ((P.sec || []).length > 6 ? '<input class="mh-s" type="text" placeholder="🔍 جستجو در راهنمایِ این صفحه…">' : '') + secs + tips + '</div>' +
-      '<div class="mh-f">' + GUIDES.filter(function (g) { return g[1] !== file; }).map(function (g) { return '<a href="./' + g[1] + '">' + g[0] + '</a>'; }).join('') + '</div></div>';
+      '<div class="mh-f"><span style="flex:1;font-size:10.5px;color:#7c849c;align-self:center">نسخه‌یِ راهنما: ' + BUILD + '</span>' + GUIDES.filter(function (g) { return g[1] !== file; }).map(function (g) { return '<a href="./' + g[1] + '">' + g[0] + '</a>'; }).join('') + '</div></div>';
     document.body.appendChild(bd);
     function close() { if (bd.parentNode) bd.parentNode.removeChild(bd); document.removeEventListener('keydown', onKey); }
     function onKey(e) { if (e.key === 'Escape') close(); }

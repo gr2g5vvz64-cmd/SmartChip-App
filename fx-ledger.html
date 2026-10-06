@@ -883,6 +883,8 @@ function fxFingerprint(obj){
 // ── Rendering ──
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
+// ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
+const FX_BUILD = '1405.07.14-18';
 const NAV_QUICK = [
   {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
   {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
@@ -947,7 +949,7 @@ function render(){
         <div class="nav">
           ${renderNavHtml()}
         </div>
-        <div class="sidebar-foot">${fxIsStale() ? `⏱ اطلاعاتِ ${fxCacheAgeLabel()} پیش (سرور در دسترس نیست)` : '✅ داده روی سرور واقعی ذخیره می‌شود'}</div>
+        <div class="sidebar-foot">${fxIsStale() ? `⏱ اطلاعاتِ ${fxCacheAgeLabel()} پیش (سرور در دسترس نیست)` : '✅ داده روی سرور واقعی ذخیره می‌شود'} · نسخه ${FX_BUILD}</div>
       </div>
       <div class="main" id="main"></div>
     </div>`;
@@ -5067,7 +5069,7 @@ function openHelpModal(key){
     ${fxPlainHtml(FX_HELP_PLAIN[key])}
     <div style="font-weight:700;margin:10px 0 2px">دکمه‌ها و بخش‌ها</div>
     <div class="help-list">${fxHelpEntries(pg[2])}</div>
-    <div class="modal-actions"><button class="btn btn-ghost" id="hlpFull" type="button">📖 راهنمایِ کاملِ دفترِ ارزی</button><button class="btn btn-primary" id="hlpClose" type="button">باشه</button></div></div>`;
+    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:8px">نسخه‌یِ این صفحه: ${FX_BUILD}</div><div class="modal-actions"><button class="btn btn-ghost" id="hlpFull" type="button">📖 راهنمایِ کاملِ دفترِ ارزی</button><button class="btn btn-primary" id="hlpClose" type="button">باشه</button></div></div>`;
   document.body.appendChild(bd);
   bd.addEventListener('click', e=>{ if(e.target === bd) bd.remove(); });
   bd.querySelector('#hlpClose').addEventListener('click', ()=>bd.remove());
