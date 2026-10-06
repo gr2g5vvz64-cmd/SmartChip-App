@@ -1632,7 +1632,7 @@ async function renderCustomerLedger(main, cachedData){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
-      ${(data.companyMoney && data.companyMoney.yuan > 0.005) ? `<div class="card stat-card"><div class="stat-label">💼 پولِ شرکت برایِ او (بدهیِ ریاليِ او به شرکت)</div><div class="stat-value yuan num">${fmtYuan(data.companyMoney.yuan)}</div><div class="stat-hint">≈ ${fmtRial(data.companyMoney.rial)} — در حواله‌هایِ ${data.companyMoney.items.map(i=>'#'+i.hawaleId).join('، ')} از جیبِ شرکت برایِ او گذاشته شده. یوانش همین الان در مانده‌یِ یوانیِ او حساب شده و ریالش بدهیِ اوست؛ وقتی پرداخت کرد از «📦 موجودیِ یوانِ شرکت» به او فروخته کنید تا تسویه شود</div></div>` : ''}
+      ${fxCompanyMoneyCardHtml(data.companyMoney)}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور">💱 یوان و رزرو برایِ پیش‌فاکتور</button></div>
@@ -1706,7 +1706,7 @@ async function renderCustomerLedger(main, cachedData){
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
             filteredEvents.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell" style="text-align:center">${e.date}</td>
-            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}</td>
+            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <button class="icon-btn" data-settle-company style="font-size:9.5px" title="با واریزیِ این مشتری تسویه شود (فروش از موجودی)">💰 تسویه</button>` : ''}</td>
             <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : (((e.type==='opening' || e.type==='advance') && e.rial_debit!=null) ? fmtRial(e.rial_debit) : '—')}</td>
             <td class="num col-group-rial">${(e.type==='order' || e.type==='advance') ? '—' : ((e.type==='opening' && e.rial_credit==null) ? '—' : fmtRial(e.rial_credit))}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
@@ -1817,6 +1817,7 @@ async function renderCustomerLedger(main, cachedData){
     renderCustomerLedger(main);
   }));
   main.querySelector('#addOrderBtn').addEventListener('click', ()=>openOrderModal(null, currentCustomer));
+  main.querySelectorAll('[data-settle-company]').forEach(b=>b.addEventListener('click', ()=>fxSettleCompanyMoney(currentCustomer, data.companyMoney || {rial:0})));
   main.querySelector('#yuanPosBtn').addEventListener('click', ()=>{ yuanPosFocus = currentCustomer; currentTab = 'yuan-position'; currentCustomer = null; render(); });
   main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('customer', currentCustomer));
   main.querySelectorAll('[data-edit-opening]').forEach(b=>b.addEventListener('click', ()=>{
@@ -4804,7 +4805,7 @@ const FX_HELP = {
     ['💰 مشتری پول واریز کرد', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «ثبت پرداخت». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
     ['🔄 حواله زدم (با پولِ مشتری)', '«+ ثبت حواله»: تأمین‌کننده، تاریخ، نرخِ واقعی، حساب(هایِ) بانکیِ پرداخت‌کننده با مبلغ. در «👥 منبعِ ریالِ این حواله» نامِ مشتری را بزنید (کنارش «مانده‌یِ ریاليِ دستِ ما» دیده می‌شود)، مبلغ را بنویسید و «🔄 محاسبه‌یِ خودکار (FIFO)» را بزنید. نتیجه: بانک کم می‌شود، مشتری یوان بستانکار می‌شود، تأمین‌کننده «پیش‌پرداخت» می‌گیرد.'],
     ['🔒 این حواله برایِ خریدِ آینده‌یِ مشتری است (پولِ تأمین‌کننده نیست)', 'در دفترِ تأمین‌کننده روی ردیفِ حواله «🔒 نگه‌داری برایِ مشتری» را بزنید و برایِ هر مشتری مبلغ بدهید. آن بخش فاکتورهایِ تأمین‌کننده را تسویه نمی‌کند و از بدهیِ او کم نمی‌شود. اعتبارِ مشتری و بانک تغییر نمی‌کند.'],
-    ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». زیرش در «🔖 این پولِ شرکت برایِ کدام مشتری است؟» نامِ مشتری را بزنید. نتیجه: در دفترِ او همان بخش به‌صورتِ «💼 پولِ شرکت برایِ او» (یوان بستانکار + بدهیِ ریاليِ او به شرکت) دیده می‌شود. وقتی پرداخت کرد: «+ ثبت پرداخت» و بعد «📦 موجودیِ یوانِ شرکت ← فروش» تا تسویه شود.'],
+    ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». زیرش در «🔖 این پولِ شرکت برایِ کدام مشتری است؟» نامِ مشتری را بزنید. نتیجه: در دفترِ او همان بخش به‌صورتِ «💼 پولِ شرکت برایِ او» (یوان بستانکار + بدهیِ ریاليِ او به شرکت) دیده می‌شود. وقتی پرداخت کرد: «+ ثبت پرداخت»، بعد در دفترِ او «💰 تسویه با واریزیِ او» (یا «📦 موجودیِ یوانِ شرکت ← فروش از موجودی») تا آن واریزی نرخ بگیرد و بدهی تسویه شود.'],
     ['🔁 مشتری می‌خواهد یوانِ نگه‌داری‌شده را به تأمین‌کننده بدهد', 'اول فاکتورِ فروشِ مشتری و فاکتورِ خریدِ تأمین‌کننده را ثبت کنید. بعد در دفترِ تأمین‌کننده «ویرایش/برداشتن» ← بخشِ «🔁 انتقال»: مبلغ و تأمین‌کننده‌یِ مقصد. همان تأمین‌کننده = نگه‌داری برداشته می‌شود و فاکتورهایش تسویه می‌شود؛ تأمین‌کننده‌یِ دیگر = همان یوان با همان نرخ به او منتقل می‌شود.'],
     ['🏁 حسابِ قبل از مدار (مانده‌یِ اولیه)', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «مانده اولیه» (یا دکمه‌یِ آن در دفترِ همان نفر). جهت را درست انتخاب کنید («طلبِ ما از او» یا «بدهیِ ما به او»). فقط روی مانده‌ها اثر دارد، نه روی FIFO و نرخِ فاکتورها.'],
     ['⚙️ پولی دستی به/از تأمین‌کننده دادم/گرفتم', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «تعدیل یوانی» (یا دکمه‌یِ آن در دفترِ تأمین‌کننده). «بدهکار» = در ستونِ بدهکار می‌نشیند و بدهیِ ما به او زیاد می‌شود؛ «بستانکار» = در ستونِ بستانکار می‌نشیند و بدهیِ ما کم می‌شود. بدونِ ریال، نرخ و بانک است؛ توضیحِ واقعی بنویسید.'],
@@ -5134,6 +5135,12 @@ async function renderStock(main){
     const r = await fetch(FX_API+'stock/undo/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({allocation_id:+b.dataset.stkUndo})});
     if(r.ok){ showToast('↩ برگردونده شد'); renderStock(main); } else showToast('❌ ناموفق');
   });
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) آمدن از دفترِ مشتری با «💰 تسویه با واریزیِ او»: مشتری و مبلغ پُر و پیش‌نمایش خودکار اجرا می‌شود
+  if(fxStockPrefill){
+    const pf = fxStockPrefill; fxStockPrefill = null;
+    const c = main.querySelector('#stkCust'), r = main.querySelector('#stkRial');
+    if(c && r){ c.value = pf.customer; r.value = fmt(pf.rial, 0); try{ c.scrollIntoView({block:'center'}); }catch(e){} const pv = main.querySelector('#stkPrev'); if(pv) pv.click(); }
+  }
 }
 
 async function renderCapitalAdvances(main, skipLoad){
@@ -5424,6 +5431,19 @@ function openOpeningBalanceModal(partyType, name, existing){
 // این بخش از مانده‌یِ بدهیِ فاکتورهایِ تأمین‌کننده کنار گذاشته می‌شه؛ سمتِ مشتری (اعتبارِ یوانی) و بانک تغییر نمی‌کنه.
 // سرور: POST /api/ledger/accounts/hawale-holds/  {hawale, held_rial, note}   (held_rial=0 → برداشتن)
 // ══════════════════════════════════════════════════════════════
+// ⚠️ (۱۴۰۵/۰۷/۱۴) کارتِ «پولِ شرکت برایِ او» + دکمه‌یِ «💰 تسویه با واریزیِ او» (می‌رود به «موجودیِ یوانِ شرکت» با مشتری و مبلغِ پُرشده)
+let fxStockPrefill = null;
+function fxCompanyMoneyCardHtml(cm){
+  if(!cm || !(cm.yuan > 0.005)) return '';
+  return `<div class="card stat-card"><div class="stat-label">💼 پولِ شرکت برایِ او (بدهیِ ریاليِ او به شرکت)</div><div class="stat-value yuan num">${fmtYuan(cm.yuan)}</div><div class="stat-hint">≈ ${fmtRial(cm.rial)} — در حواله‌هایِ ${cm.items.map(i=>'#'+i.hawaleId).join('، ')} از جیبِ شرکت برایِ او گذاشته شده. یوانش همین الان در مانده‌یِ یوانیِ او حساب شده و ریالش بدهیِ اوست. وقتی پول داد، همین دکمه را بزنید: آن واریزی نرخ می‌گیرد و این بدهی تسویه می‌شود.</div><div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-settle-company>💰 تسویه با واریزیِ او ›</button></div></div>`;
+}
+function fxSettleCompanyMoney(customer, cm){
+  const s = (typeof fxLastSummary !== 'undefined' && fxLastSummary && fxLastSummary.customers) ? fxLastSummary.customers.find(c=>c.name===customer) : null;
+  const free = s ? Number(s.unlinkedRial||0) : 0;
+  const amount = free > 0 ? Math.min(free, cm.rial) : cm.rial;
+  fxStockPrefill = {customer, rial: Math.round(amount)};
+  currentTab = 'stock'; currentCustomer = null; if(typeof currentSupplier !== 'undefined') currentSupplier = null; render();
+}
 async function openHawaleHoldModal(hawaleId, ev, supplierName){
   // ⚠️ (۱۴۰۵/۰۷/۱۴) به تفکیکِ مشتری. سقفِ هر مشتری = پولِ خودش در این حواله (واریزی‌هایِ لینک‌شده) + «پولِ شرکت که برایِ او رزرو شده».
   // اگه بخشی از ریالِ حواله به هیچ مشتری‌ای وصل نیست (پولِ مازادِ شرکت بدونِ مشتری)، همین‌جا می‌شه برایِ یکی از مشتری‌ها رزروش کرد.
