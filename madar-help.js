@@ -143,7 +143,7 @@
   PAGES['mobile.html'] = PAGES['m.html'];
   var P = PAGES[file] || { t: 'مدار', i: '❓', what: 'برایِ این صفحه راهنمایِ جداگانه‌ای نوشته نشده است. راهنمایِ کاملِ مدار را در لینک‌هایِ پایین ببینید.', sec: [], tips: [] };
 
-  var css = '#madarHelpBtn{position:fixed;left:16px;bottom:' + (file === 'm.html' ? '76' : '62') + 'px;z-index:2147481900;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;border:1px solid #323952;background:#1a1e2a;color:#f4f5f8;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
+  var css = '#madarHelpBtn{position:fixed;left:16px;bottom:' + (file === 'm.html' ? '76' : '16') + 'px;z-index:2147481900;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;border:1px solid #323952;background:#1a1e2a;color:#f4f5f8;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
     '#madarHelpBtn:hover{border-color:#f0a500}' +
     '#madarHelp{position:fixed;inset:0;z-index:2147483000;background:rgba(8,10,16,.62);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
     '#madarHelp .mh-box{width:min(720px,100%);max-height:88vh;overflow:auto;background:#1a1e2a;border:1px solid #323952;border-radius:16px;color:#f4f5f8;box-shadow:0 20px 60px rgba(0,0,0,.55)}' +
@@ -201,6 +201,14 @@
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     var b = document.createElement('button'); b.id = 'madarHelpBtn'; b.type = 'button'; b.textContent = '❓ راهنما'; b.title = 'راهنمایِ همین صفحه';
     b.addEventListener('click', open); document.body.appendChild(b);
+    // ⚠️ (۱۴۰۵/۰۷/۱۴) کنارِ (سمتِ راستِ) دکمه‌یِ 📥 کارتابل، هم‌ردیف با آن؛ پنلِ بازِ کارتابل بالایِ همین ردیف باز می‌شود و دکمه را نمی‌پوشاند
+    function place() {
+      var inbox = document.querySelector('#madarInbox .mi-btn');
+      if (!inbox || file === 'm.html') return;
+      var r = inbox.getBoundingClientRect();
+      if (r.width) { b.style.left = Math.round(r.right + 8) + 'px'; b.style.bottom = Math.round(window.innerHeight - r.bottom + (r.height - 34) / 2) + 'px'; }
+    }
+    place(); setTimeout(place, 800); setTimeout(place, 2500); setTimeout(place, 6000); window.addEventListener('resize', place);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
   window.MadarHelp = { open: open };

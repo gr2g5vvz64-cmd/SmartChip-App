@@ -210,6 +210,7 @@
     '#madarInbox .mi-ic{font-size:16px;line-height:1.4}' +
     '#madarInbox .mi-t{font-size:12.5px;font-weight:700;line-height:1.6}' +
     '#madarInbox .mi-s{font-size:11px;color:#9aa2bd;line-height:1.6}' +
+    '#madarInbox .mi-src{font-size:10.5px;color:#f0a500;line-height:1.6;margin-top:1px}' +
     '#madarInbox .mi-empty{padding:22px 14px;text-align:center;color:#9aa2bd;font-size:12px}' +
     '#madarInbox .mi-cats{display:flex;flex-wrap:wrap;gap:5px;padding:9px 12px;border-bottom:1px solid #323952}' +
     '#madarInbox .mi-cat{font-size:11px;color:#f4f5f8;text-decoration:none;border:1px solid #323952;border-radius:14px;padding:2px 9px;background:#232838}' +
@@ -217,6 +218,23 @@
     '#madarInbox .mi-cat b{color:#ff8080;margin-right:3px}';
   var inbox = {el: null, items: [], open: false};
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) «این کار از کجاست؟» — از رویِ لینکِ هر مورد، صفحه و بخشی که کار در آن ثبت شده نشان داده می‌شود
+  // (کارتابل از چند بخش جمع می‌کند؛ بسیاری از موردها در جدولِ CRM نیستند و در ERP/سازمان‌اند).
+  var SRC_FILES = {'crm.html': 'CRM', 'erp.html': 'ERP', 'org.html': 'سازمان', 'attendance.html': 'حضور و غیاب', 'reminders.html': 'یادآوری‌ها', 'fx-ledger.html': 'دفترِ ارزی', 'weights.html': 'وزن‌نامه', 'pricelist.html': 'Price List', 'staff-admin.html': 'مدیریتِ کارمندان'};
+  var SRC_PAGES = {'dashboard': 'داشبورد', 'tasks': 'ارجاع کار', 'requests': 'درخواست‌ها', 'samples': 'نمونه‌ها', 'procurement': 'نیاز مشتری', 'domesticdeliv': 'جمع‌آوری کالا',
+    'financetasks': 'تسک‌های مالی', 'promises': 'وعده‌های پرداخت', 'debtcases': 'وصول مطالبات', 'chequesreceived': 'چک‌های دریافتی', 'chequesreturned': 'چک‌های برگشتی', 'chequespaid': 'چک‌های پرداختی',
+    'foreigndeliv': 'نیاز مشتری خارج', 'shipments': 'ردیابی محموله‌ها', 'clearance': 'ترخیص', 'warehouse': 'ورودی انبار', 'addresses': 'آدرس مشتریان', 'reminders': 'یادآوری‌ها', 'calendar': 'تقویم',
+    'prospMgmt': 'تایید مدیریت', 'prospApprovals': 'تاییدها', 'prospDecisions': 'نتیجه‌ی درخواست‌ها', 'debts': 'وصول مطالبات', 'table': 'جدول کامل', 'archive': 'بایگانی', 'morning': 'صبح امروز'};
+  function inboxSrc(link) {
+    try {
+      var m = /^\.?\/?([\w.-]+\.html)?(?:[?#](.*))?$/.exec(String(link || ''));
+      var file = m && m[1] ? m[1].toLowerCase() : '', rest = (m && m[2]) || '';
+      var pg = /(?:^|[&#:])(?:page|tab)=([\w-]+)/.exec(rest);
+      var a = SRC_FILES[file] || ''; var b = pg ? (SRC_PAGES[pg[1]] || '') : '';
+      if (!a && /^inbox/.test(rest)) a = 'سازمان';
+      return a ? (b ? a + ' ← ' + b : a) : '';
+    } catch (e) { return ''; }
+  }
   function inboxRender() {
     if (!inbox.el) return;
     var n = inbox.count != null ? inbox.count : inbox.items.length;
@@ -226,7 +244,7 @@
       (inbox.open ? '<div class="mi-panel" role="dialog" aria-label="کارتابلِ من"><div class="mi-h"><span>📥 کارتابلِ من</span><a href="org.html#inbox">صفحه‌ی کامل ›</a></div>' +
         (cats.length ? '<div class="mi-cats">' + cats.map(function (c) { return '<a class="mi-cat" href="org.html#inbox:' + c.key + '">' + c.icon + ' ' + esc(c.label) + ' <b>' + fa(c.count) + '</b></a>'; }).join('') + '</div>' : '') +
         (n ? inbox.items.slice(0, 30).map(function (it) {
-          return '<a class="mi-it" href="' + esc(it.link || '#') + '"><span class="mi-ic">' + esc(it.icon) + '</span><span><div class="mi-t">' + esc(it.title) + '</div><div class="mi-s">' + esc(it.sub) + '</div></span></a>';
+          return '<a class="mi-it" href="' + esc(it.link || '#') + '"><span class="mi-ic">' + esc(it.icon) + '</span><span><div class="mi-t">' + esc(it.title) + '</div><div class="mi-s">' + esc(it.sub) + '</div>' + (inboxSrc(it.link) ? '<div class="mi-src">📍 ' + esc(inboxSrc(it.link)) + '</div>' : '') + '</span></a>';
         }).join('') : '<div class="mi-empty">✨ چیزی منتظرِ شما نیست</div>') + '</div>' : '');
     inbox.el.querySelector('.mi-btn').onclick = function (e) { e.stopPropagation(); inbox.open = !inbox.open; inboxRender(); if (inbox.open) inboxLoad(); };
     var pn = inbox.el.querySelector('.mi-panel'); if (pn) pn.addEventListener('click', function (e) { e.stopPropagation(); });
