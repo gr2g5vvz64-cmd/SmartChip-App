@@ -3123,6 +3123,33 @@ async function apiGetSupplierLedger(supplier){
 // برایِ هر تأمین‌کننده و هر مشتری، آخرین مانده‌یِ تجمعیِ همان دفتر برداشته می‌شه و جایگزینِ عددِ summary می‌شه.
 //  • تأمین‌کننده: آخرین ردیفِ همان «دفترِ کامل (تاریخچه‌یِ رویدادها)» که کاربر می‌بینه (بعد از ادغامِ اسناد، شاملِ تعدیل‌هایِ یوانی)
 //  • مشتری: آخرین رویدادِ دفترِ مشتری (همون عددی که بالایِ صفحه‌یِ دفترش هست)
+// ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ سؤالِ کاربر («چرا مانده‌یِ جدولِ فاکتورها با مانده‌یِ دفترِ کامل یکی نیست؟»): جدولِ «وضعیتِ فاکتورهایِ خرید» فقط
+// تطبیقِ FIFOِ حواله‌ها با فاکتورهاست؛ دفترِ کامل همه‌چیز را دارد (تعدیل‌هایِ یوانی، مانده‌یِ اولیه، مازادِ حواله). این نوار پلِ بینِ دو عدد را نشان می‌دهد.
+function fxSupplierBridgeHtml(data, ledgerYuan){
+  const ev = data.events || [];
+  const fifoRem = (data.invoiceStatus||[]).reduce((s,o)=>s+Number(o.remainingYuan||0),0);
+  const excess = Number(data.excessYuan||0);
+  const net = (type)=> ev.filter(e=>e.type===type).reduce((s,e)=>s+Number(e.yuan_debit||0)-Number(e.yuan_credit||0),0);
+  const adj = net('yuan_adjustment'), opn = net('opening');
+  const calc = fifoRem - excess + adj + opn;
+  const diffToLedger = ledgerYuan - calc;
+  const same = Math.abs(fifoRem - ledgerYuan) < 0.01;
+  if(same) return `<div class="tag yuan" style="margin:-8px 0 18px;font-size:11.5px">✅ مانده‌یِ جدولِ بالا (${fmtYuan(fifoRem)}) با مانده‌یِ دفترِ کامل یکی است.</div>`;
+  const row = (label, val, hint)=>`<tr><td>${label}${hint?` <span style="font-size:10.5px;color:var(--ink-soft)">${hint}</span>`:''}</td><td class="num" style="font-weight:700">${val>0.0001?'+':(val<-0.0001?'−':'')}${fmtYuan(Math.abs(val))}</td></tr>`;
+  return `<div class="card" style="margin:-6px 0 20px">
+    <div class="section-title" style="margin-bottom:4px">🧮 چرا «مانده‌یِ جدولِ بالا» با «مانده‌یِ دفترِ کامل» یکی نیست؟</div>
+    <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.9;margin-bottom:6px">جدولِ بالا فقط نشان می‌دهد حواله‌ها (با FIFO) چقدر از هر فاکتور را پوشانده‌اند. «دفترِ کاملِ تأمین‌کننده» همه‌چیز را حساب می‌کند: حواله‌یِ بدونِ فاکتور، تعدیل‌هایِ یوانی و مانده‌یِ اولیه. این دو فقط وقتی یکی‌اند که هیچ‌کدام از این‌ها نباشد.</div>
+    <table class="data-table" style="max-width:560px"><tbody>
+      ${row('جمعِ مانده‌یِ فاکتورها (جدولِ بالا)', fifoRem)}
+      ${Math.abs(excess)>0.01 ? row('− مازادِ حواله', -excess, '(حواله‌ای که فاکتوری برایش نیست)') : ''}
+      ${Math.abs(adj)>0.0001 ? row('± تعدیل‌هایِ یوانی', adj, '(بدهکار = بدهیِ ما بیشتر، بستانکار = کمتر)') : ''}
+      ${Math.abs(opn)>0.0001 ? row('± مانده‌یِ اولیه', opn) : ''}
+      <tr style="background:var(--surface)"><td><b>= مانده‌یِ دفترِ کامل</b></td><td class="num" style="font-weight:800">${ledgerYuan>0.0001?'+':(ledgerYuan<-0.0001?'−':'')}${fmtYuan(Math.abs(ledgerYuan))}</td></tr>
+    </tbody></table>
+    ${Math.abs(diffToLedger)>0.01 ? `<div style="font-size:11.5px;color:var(--danger);margin-top:6px">⚠️ این جمع‌ها ${fmtYuan(Math.abs(diffToLedger))} با دفتر فرق دارند (مثلاً قیمتِ موقتِ یک قلم یا ردیفی که اینجا نیامده) — «🔎 صحت‌سنجی» را بزنید.</div>` : '<div style="font-size:11.5px;color:#15803d;margin-top:6px">✅ جمع‌ها دقیقاً با مانده‌یِ دفتر می‌خوانند.</div>'}
+    <div style="font-size:11px;color:var(--ink-soft);margin-top:4px">علامت: مثبت = ما به تأمین‌کننده بدهکاریم؛ منفی = پیش‌پرداخت.</div>
+  </div>`;
+}
 function fxSupplierLastBalance(events){
   const col = fxCollapseSupplierEvents(events || []);
   const last = col.length ? col[col.length-1] : null;
@@ -3276,6 +3303,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
         </tr></tfoot>` : ''}
       </table>
     </div>
+    ${fxSupplierBridgeHtml(data, realYuanBalance)}
     <!-- ⚠️ (۱۴۰۵/۰۷/۰۶) طبقِ درخواستِ کاربر: خلاصه‌ی اسنادِ چندآیتمی زیرِ «وضعیتِ فاکتورهای خرید» -->
     ${multiItemDocs.length ? `
     <div class="card" style="margin-bottom:20px">
