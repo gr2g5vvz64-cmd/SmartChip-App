@@ -1868,7 +1868,7 @@ function fxLockDialog(o){
     <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">${o.label} · ${fmtYuan(o.yuan)}</div>
     <div class="field"><label>نرخی که در هلو ثبت کردید (ریال به ازایِ هر یوان)</label>
       <input id="lkRate" type="text" inputmode="decimal" style="font-size:18px;font-weight:800;text-align:center;direction:ltr" value="${comp ? Math.round(comp) : ''}"></div>
-    <div style="font-size:12px;margin:6px 0 10px;line-height:2">نرخِ محاسبه‌شده‌ی مدار (الان): <b>${comp ? fmt(comp,0) : '—'}</b></div>
+    <div style="font-size:12px;margin:6px 0 10px;line-height:2">نرخِ محاسبه‌شده‌ی مدار (الان): <b>${comp ? fmt(comp,2) : '—'}</b></div>
     <div id="lkDiff" style="font-size:12.5px;line-height:2;border-radius:8px;padding:8px 10px;background:var(--surface);margin-bottom:10px"></div>
     <div class="field" id="lkReasonBox" style="display:none"><label>دلیلِ تفاوت با محاسبه‌ی مدار (اجباری)</label>
       <input id="lkReason" type="text" placeholder="مثلاً: با این نرخ در هلو ثبت شده بود، قبل از تغییرِ پرداخت‌ها"></div>
@@ -1888,15 +1888,30 @@ function fxLockDialog(o){
   };
   rate.addEventListener('input', upd); upd(); setTimeout(()=>rate.select(), 30);
   backdrop.querySelector('[data-x]').onclick = () => backdrop.remove();
+  // ⚠️ (۱۴۰۵/۰۷/۱۴) باگِ «نرخ با محاسبه‌یِ مدار فرق داره» با نرخِ یکسان: فیلد نرخِ گردشده (مثلاً 347203) را نشان می‌داد ولی نرخِ واقعیِ
+  // مدار اعشار دارد (347203.41)؛ کلاینت اختلافِ کمتر از ۱ را «یکی» می‌دانست ولی سرور اختلافِ ریز را هم می‌گرفت و دلیل می‌خواست
+  // (و کادرِ دلیل هم نشان داده نمی‌شد). حالا: اگر دست نزده‌اید، نرخِ دقیقِ مدار فرستاده می‌شود؛ اگر عددِ دیگری نوشته‌اید ولی کمتر از ۱ ریال
+  // فرق دارد، با دلیلِ خودکارِ «گردکردن» ثبت می‌شود (همان عددی که تایپ کرده‌اید، مطابقِ هلو). اگر سرور باز هم فرق گرفت، یک‌بار با همان دلیلِ خودکار تکرار می‌شود.
+  const defaultText = rate.value;
+  const AUTO_REASON = 'گردکردنِ نرخ (اختلافِ کمتر از ۱ ریال با محاسبه‌یِ مدار)';
   backdrop.querySelector('[data-ok]').onclick = async () => {
-    const r = fxNum(rate.value);
+    let r = fxNum(rate.value);
     if(!r){ showToast('⚠️ نرخ رو وارد کنید'); return; }
-    const reason = backdrop.querySelector('#lkReason').value.trim();
-    if((!comp || Math.abs(r-comp) >= 1) && !reason){ showToast('⚠️ دلیلِ تفاوت رو بنویسید'); return; }
-    try{
+    let reason = backdrop.querySelector('#lkReason').value.trim();
+    const sameInUi = comp && Math.abs(r - comp) < 1;
+    if(comp && rate.value === defaultText) r = comp;                       // دست‌نخورده → نرخِ دقیقِ مدار
+    if(!sameInUi && !comp && !reason){ showToast('⚠️ دلیلِ تفاوت رو بنویسید'); return; }
+    if(!sameInUi && comp && !reason){ showToast('⚠️ دلیلِ تفاوت رو بنویسید'); return; }
+    if(sameInUi && r !== comp && !reason) reason = AUTO_REASON;           // عددِ دستیِ نزدیک به مدار
+    const send = async (rr, why) => {
       const res = await fetch(FX_LOCK_API, {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({kind:o.kind, id:o.id, rate:r, reason, basis:o.basis||'hawale', today:todayShamsi()})});
-      const d = await res.json();
+        body: JSON.stringify({kind:o.kind, id:o.id, rate:rr, reason:why, basis:o.basis||'hawale', today:todayShamsi()})});
+      let d = {}; try{ d = await res.json(); }catch(e){}
+      return {res, d};
+    };
+    try{
+      let {res, d} = await send(r, reason);
+      if((!res.ok || !d.ok) && sameInUi && !reason && /فرق|دلیل/.test(d.error||'')){ ({res, d} = await send(r, AUTO_REASON)); }
       if(!res.ok || !d.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
       backdrop.remove(); showToast(d.manual ? '✅ با نرخِ هلو قفل شد' : '✅ فاکتور قفل شد'); o.done && o.done();
     }catch(e){ showToast('❌ سرور جواب نداد'); }
