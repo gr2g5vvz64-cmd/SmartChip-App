@@ -27,11 +27,14 @@
 <script src="./madar-auth.js"></script>
 
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="manifest" href="./manifest-reminders.json">
-<meta name="theme-color" content="#7c3aed">
+<meta name="theme-color" content="#a9c8ec">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="یادآوری‌ها">
+<link rel="apple-touch-icon" href="./icons/reminders-192.png">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>🔔 یادآوری‌ها — اسمارت‌چیپ</title>
 <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) آیکونِ تبِ مرورگر — همون زنگِ سفید رویِ بنفشِ آیکونِ اپ، داخلِ همین فایل -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='#7C3AED'/%3E%3Cpath d='M32 12c-1.7 0-3 1.3-3 3v1.4C22.6 17.8 18 23.4 18 30v9l-4 5v2h36v-2l-4-5v-9c0-6.6-4.6-12.2-11-13.6V15c0-1.7-1.3-3-3-3z' fill='#fff'/%3E%3Ccircle cx='32' cy='52' r='4.5' fill='#fff'/%3E%3C/svg%3E">
@@ -301,6 +304,13 @@
 }
 @media (min-width:900px) and (max-width:1099px){ .cal-layout{ grid-template-columns:1fr } .cal-day{ height:60px } }
 @media (min-width:1500px){ .r-list{ grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)) } }
+
+/* ⚠️ (۱۴۰۵/۰۷/۱۵) PWAی یادآوری‌ها: ناحیه‌یِ امنِ آیفون (ناچ و خطِ پایین) هنگامِ اجرا به‌عنوانِ اپ */
+@supports (padding: env(safe-area-inset-top)){
+  body{ padding-top: env(safe-area-inset-top) }
+  .bnav{ padding-bottom: env(safe-area-inset-bottom, 0px); height: calc(66px + env(safe-area-inset-bottom, 0px)) }
+}
+@media (min-width:900px){ .bnav{ height:auto !important; padding-bottom:10px !important } }
 </style>
 </head>
 <body>
@@ -1493,11 +1503,9 @@ refreshData().then(renderMain);
 // فعال شد — نه برایِ CRM/ERP/دفترِ ارزی/بقیه. فایلِ سرویس‌ورکر هم اسمِ جدا داره
 // (sw-reminders.js، نه sw.js) و هم با scope صریح ثبت می‌شه، تا مطمئن باشیم هیچ‌وقت
 // رویِ بقیه‌ی صفحه‌ها (حتی اگه هم‌زمان در تبِ دیگه‌ای باز باشن) کنترل نمی‌گیره.
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw-reminders.js', {scope: './reminders.html'}).catch(()=>{});
-  });
-}
+// ⚠️ (۱۴۰۵/۰۷/۱۵) ثبتِ سرویس‌ورکر حذف شد: فایلِ sw-reminders.js وجود ندارد (۴۰۴ در هر بازدید) و طبقِ تصمیمِ ۱۴۰۵/۰۷/۰۹ هیچ سرویس‌ورکری نباید باشد.
+// نصب‌پذیری (manifest + آیکن) بدونِ سرویس‌ورکر کار می‌کند؛ فقط حالتِ آفلاین ندارد.
+
 </script>
 
 <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) هشدارِ تعطیلات در همه‌ی مدار: «یک ماه تا نوروز / تعطیلاتِ چین» (قابلِ بستن؛ فرداش دوباره) -->

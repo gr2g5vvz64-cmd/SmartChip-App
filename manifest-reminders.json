@@ -4,9 +4,9 @@
   "start_url": "./reminders.html",
   "scope": "./reminders.html",
   "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#7c3aed",
-  "background_color": "#f3f0fb",
+  "orientation": "any",
+  "theme_color": "#a9c8ec",
+  "background_color": "#a9c8ec",
   "dir": "rtl",
   "lang": "fa",
   "icons": [
@@ -23,5 +23,6 @@
       "purpose": "any maskable"
     }
   ],
-  "description": "کارهای فردا، یادآوری آزاد، یادآوری دوره‌ای، و تقویم"
+  "description": "کارهای فردا، یادآوری آزاد و دوره‌ای، سپرده‌ها و قول‌ها، و تقویم",
+  "id": "./reminders.html"
 }
