@@ -1617,7 +1617,7 @@ async function renderCustomersList(main, cachedSummary){
 // ---------- CUSTOMER LEDGER (دقیقاً به‌سبک عکس اکسل کاربر) ----------
 async function renderCustomerLedger(main, cachedData){
   const basis = state.settings.rateBasis;
-  const data = cachedData || await apiGetCustomerLedger(currentCustomer, basis);
+  const data = fxNormalizeCustomerLedger(cachedData || await apiGetCustomerLedger(currentCustomer, basis));
   if(!data){ main.innerHTML = '<p class="page-desc">❌ خطا در بارگذاری دفتر</p>'; return; }
   // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ کاربر: مانده‌ی ریالیِ *واقعی* — فقط از
   // اعدادِ مطمئن (پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگینِ نهایی‌شون
@@ -1634,6 +1634,7 @@ async function renderCustomerLedger(main, cachedData){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
+      ${(data._staleServer && !fxCustomerView) ? '<div class="card" data-mgmt-only style="grid-column:1/-1;font-size:12px;line-height:1.9;border-color:var(--danger)">⚠️ <b>سرور هنوز نسخه‌یِ قدیمیِ <code>views.py</code> را دارد.</b> این صفحه اثرِ «پولِ شرکت» را از مانده‌ها کنار گذاشت، ولی داشبورد و لیستِ مشتریان هنوز با آن حساب می‌شوند — <code>views.py</code> جدید را روی سرور بگذارید.</div>' : ''}
       ${fxCustomerView ? '' : fxCompanyMoneyCardHtml(data.companyMoney)}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
@@ -1706,9 +1707,9 @@ async function renderCustomerLedger(main, cachedData){
               e.rate, e.runningYuan, e.runningRial, e.hawaleRate, e.depositRate, e.suggestedRate,
             ], customerEventsSearchQuery));
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
-            fxWithMemo(filteredEvents, data.companyMoney).map(e=>e._memo ? fxMemoRowHtml(e) : `<tr style="${e.pending?'background:#FFF9E8':''}">
+            fxWithMemo(filteredEvents, data.companyMoney).map(e=>`<tr${e._dim?' data-mgmt-only':''} style="${e._dim?'opacity:.48;font-style:italic;background:#E6EAF1;':''}${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell" style="text-align:center">${e.date}</td>
-            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <button class="icon-btn" data-settle-company style="font-size:9.5px" title="با واریزیِ این مشتری تسویه شود (فروش از موجودی)">💰 تسویه</button>` : ''}</td>
+            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <span style="font-size:9.5px">(بدونِ اثر رویِ مانده)</span> <button class="icon-btn" data-settle-company style="font-size:9.5px" title="با واریزیِ این مشتری تسویه شود (فروش از موجودی)">💰 تسویه</button>` : ''}</td>
             <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : (((e.type==='opening' || e.type==='advance') && e.rial_debit!=null) ? fmtRial(e.rial_debit) : '—')}</td>
             <td class="num col-group-rial">${(e.type==='order' || e.type==='advance') ? '—' : ((e.type==='opening' && e.rial_credit==null) ? '—' : fmtRial(e.rial_credit))}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
@@ -4869,14 +4870,14 @@ const FX_HELP = {
       ['+ ثبت فاکتور/پیش‌فاکتور', 'فروشِ یوانی به مشتری (بدهکار). مشتری را از لیست انتخاب کنید یا نامِ جدید بنویسید.'],
       ['🏁 مانده‌ی اولیه', 'برایِ مشتری‌ایِ که فقط حسابِ قبلی دارد؛ نام را می‌پرسد و اگر املایش فقط کمی فرق داشته باشد نامِ ثبت‌شده را برمی‌دارد.'],
       ['ستون‌هایِ لیست', 'مانده‌یِ یوانی، ریالِ واریزیِ حواله‌نشده و وضعیتِ فاکتورها (باز/تسویه).']]],
-    'customer-ledger': ['دفترِ کاملِ مشتری', 'هر ردیف یک فاکتور، واریزی یا مانده‌یِ اولیه، با مانده‌یِ تجمعیِ ریالی و یوانی. چیزهایِ مخصوصِ مدیریت (پولِ شرکت برایِ او) فقط کارت/ردیفِ خاکستری‌اند و در مانده‌ها نیستند.', [
+    'customer-ledger': ['دفترِ کاملِ مشتری', 'هر ردیف یک فاکتور، واریزی یا مانده‌یِ اولیه، با مانده‌یِ تجمعیِ ریالی و یوانی. چیزهایِ مخصوصِ مدیریت (پولِ شرکت برایِ او) فقط یک کارت و یک ردیفِ کمرنگ‌اند و در مانده‌ها نیستند.', [
       ['+ ثبت فاکتور/پیش‌فاکتور برایِ این مشتری', 'فروشِ یوانی ثبت می‌کند؛ از اعتبارِ مشتری کم می‌شود.'],
       ['🏁 مانده‌ی اولیه (ریال و یوان)', 'حسابِ قبل از مدار. جهت: «طلبِ ما از او» یا «بدهیِ ما به او».'],
       ['💱 یوان و رزرو برایِ پیش‌فاکتور', 'به صفحه‌یِ «حسابِ یوانیِ ما» با همین مشتری می‌برد (حواله‌هایش و رزرو).'],
       ['📥 خروجی اکسل', 'فاکتورها یا دفترِ کامل را به اکسل می‌دهد.'],
       ['ردیفِ 🏁', 'مانده‌یِ اولیه — ویرایش/حذف دارد.'],
-      ['📝 کارت و ردیفِ خاکستریِ «فقط مدیریت»', 'پولی که شرکت از جیبِ خودش برایِ او گذاشته. در مانده‌ها و صورت‌حسابِ او نیست و فقط شما می‌بینید؛ «💰 تسویه» شما را به «موجودیِ یوانِ شرکت» می‌برد تا خودتان واریزی‌ها را انتخاب کنید.'],
-      ['🙈 نمایشِ به مشتری', 'روشنش کنید تا هرچه مخصوصِ مدیریت است (کارت، ردیفِ خاکستری، «یوان و رزرو») پنهان شود؛ وقتی صفحه را به مشتری نشان می‌دهید یا اسکرین‌شات می‌گیرید. خروجیِ اکسل همیشه بدونِ آن‌هاست.'],
+      ['📝 ردیفِ کمرنگِ 💼 و کارتِ «فقط مدیریت»', 'پولی که شرکت از جیبِ خودش برایِ او گذاشته: یک ردیفِ کمرنگ با همان ستون‌ها (مبلغ‌ها را می‌بینی ولی «مانده» تغییر نمی‌کند). در مانده‌ها و صورت‌حسابِ او نیست و فقط شما می‌بینید؛ «💰 تسویه» شما را به «موجودیِ یوانِ شرکت» می‌برد تا خودتان واریزی‌ها را انتخاب کنید.'],
+      ['🙈 نمایشِ به مشتری', 'روشنش کنید تا هرچه مخصوصِ مدیریت است (کارت، ردیفِ کمرنگ، «یوان و رزرو») پنهان شود؛ وقتی صفحه را به مشتری نشان می‌دهید یا اسکرین‌شات می‌گیرید. خروجیِ اکسل همیشه بدونِ آن‌هاست.'],
       ['ردیفِ واریزی', 'نرخِ حواله = نرخِ همان حواله‌ای که پولِ او را برده؛ «⏳ هنوز حواله نشده» یعنی هنوز یوانی نگرفته. «نرخِ سوم» (نرخِ پیشنهادیِ حواله) فقط وقتی فعال است که واریزی به حواله وصل باشد و فقط برایِ محاسبه‌یِ فاکتورِ مشتری است.'],
       ['🔒 قفل کن (ثبت در هلو)', 'نرخِ میانگین و معادلِ ریاليِ فاکتورِ بسته‌شده را ثابت می‌کند. «بازکردن» فقط برایِ قفلِ اشتباه.'],
       ['📋 جزئیاتِ تسویه / ✏️ ویرایش / حذف', 'نشان می‌دهد کدام واریزی‌ها فاکتور را بسته‌اند؛ ویرایش و حذفِ فاکتور.']]],
@@ -5506,20 +5507,39 @@ function fxCompanyMoneyCardHtml(cm){
   if(!cm || !(cm.yuan > 0.005)) return '';
   return `<div class="card stat-card" data-mgmt-only><div class="stat-label">💼 پولِ شرکت برایِ او (فقط مدیریت می‌بیند)</div><div class="stat-value yuan num">${fmtYuan(cm.yuan)}</div><div class="stat-hint">≈ ${fmtRial(cm.rial)} — در حواله‌هایِ ${cm.items.map(i=>'#'+i.hawaleId).join('، ')} از جیبِ شرکت برایِ او گذاشته شده. <b>در صورت‌حساب و مانده‌هایِ او نیست</b>؛ تا وقتی یوان را به او نفروخته‌ای «موجودیِ شرکت» است. وقتی خواستی تسویه کنی، دکمه را بزن و <b>خودت</b> واریزی‌هایی را که می‌خواهی استفاده شود انتخاب کن.</div><div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-settle-company>💰 تسویه با واریزیِ او ›</button></div></div>`;
 }
-// ردیفِ یادداشتِ مدیریت در جدولِ دفترِ مشتری (در مانده‌ها و جمع‌ها و خروجیِ اکسل حساب نمی‌شود)
+// ⚠️ (۱۴۰۵/۰۷/۱۵) طبقِ درخواستِ صریحِ کاربر: «پولِ شرکت» یک ردیفِ کمرنگِ واحد با همان ستون‌هایِ ردیف‌هایِ دیگر است
+// (نه یک خطِ توضیحِ جدا + یک ردیفِ عمل). مبلغ‌هایش در ستون‌هایِ خودشان دیده می‌شوند ولی «مانده» همان مانده‌یِ ردیفِ قبلی است (بدونِ اثر).
 function fxWithMemo(events, cm){
   if(fxCustomerView || !cm || !cm.items || !cm.items.length || (typeof customerEventsSearchQuery !== 'undefined' && customerEventsSearchQuery)) return events;
-  const memos = cm.items.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(i=>Object.assign({_memo:true}, i));
-  const out = []; let mi = 0;
+  const memos = cm.items.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const out = []; let mi = 0, prev = null;
+  const mk = (m)=>({type:'advance', _dim:true, date:m.date, id:m.hawaleId, hawaleId:m.hawaleId,
+    desc:`💼 پولِ شرکت برایِ او — حواله #${m.hawaleId} (${m.supplier})`, rial_debit:m.rial, rial_credit:null, yuan_debit:null, yuan_credit:m.yuan, rate:m.rate,
+    runningYuan: prev ? prev.runningYuan : 0, runningRial: prev ? prev.runningRial : 0});
   for(const e of events){
-    while(mi < memos.length && String(memos[mi].date) <= String(e.date)) out.push(memos[mi++]);
-    out.push(e);
+    while(mi < memos.length && String(memos[mi].date) <= String(e.date)) out.push(mk(memos[mi++]));
+    out.push(e); prev = e;
   }
-  while(mi < memos.length) out.push(memos[mi++]);
+  while(mi < memos.length) out.push(mk(memos[mi++]));
   return out;
 }
-function fxMemoRowHtml(m){
-  return `<tr data-mgmt-only style="background:#E6EAF1;color:#3d4a5e;font-style:italic"><td class="date-cell">${fxc_esc(m.date)}</td><td colspan="10" style="text-align:right;font-size:11.5px;line-height:1.9">📝 <b>فقط مدیریت</b> — 💼 پولِ شرکت برایِ او · حواله #${m.hawaleId} (${fxc_esc(m.supplier)}) · ${fmtYuan(m.yuan)} (${fmtRial(m.rial)}) · نرخ ${fmt(m.rate,0)} — <u>در مانده‌ها و صورت‌حساب نیست</u> <button class="icon-btn" type="button" data-settle-company style="font-size:10px;font-style:normal">💰 تسویه</button></td></tr>`;
+// اگر سرور هنوز views.py قدیمی را دارد (ردیفِ «advance» با اثرِ واقعی می‌فرستد)، اینجا کنار گذاشته می‌شود و مانده‌ها از نو حساب می‌شوند
+function fxNormalizeCustomerLedger(data){
+  if(!data || !Array.isArray(data.events) || !data.events.some(e=>e.type==='advance')) return data;
+  const adv = data.events.filter(e=>e.type==='advance');
+  if(!data.companyMoney || !((data.companyMoney.items||[]).length)){
+    data.companyMoney = {yuan: adv.reduce((s,e)=>s+Number(e.yuan_credit||0),0), rial: adv.reduce((s,e)=>s+Number(e.rial_debit||0),0),
+      items: adv.map(e=>({hawaleId:e.hawaleId||e.id, date:e.date, supplier:e.supplier||'', rate:e.rate||0, yuan:Number(e.yuan_credit||0), rial:Number(e.rial_debit||0)}))};
+  }
+  let ry = 0, rr = 0;
+  data.events = data.events.filter(e=>e.type!=='advance').map(e=>{
+    ry += Number(e.yuan_debit||0) - Number(e.yuan_credit||0);
+    if(e.rial_debit != null) rr += Number(e.rial_debit);
+    if(e.rial_credit != null) rr -= Number(e.rial_credit);
+    return Object.assign({}, e, {runningYuan: ry, runningRial: rr});
+  });
+  data._staleServer = true;
+  return data;
 }
 function fxSettleCompanyMoney(customer, cm){
   fxStockPrefill = {customer, hintRial: Math.round((cm && cm.rial) || 0), hintYuan: (cm && cm.yuan) || 0};

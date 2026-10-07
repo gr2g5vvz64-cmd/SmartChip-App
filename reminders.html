@@ -129,7 +129,7 @@
   .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px }
   .cal-wd{ text-align:center; font-size:10px; color:var(--ink-soft); padding:2px 0; font-weight:700 }
   .cal-day{
-    min-height:42px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:50px; box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:center;
     border-radius:7px; font-size:11.5px; cursor:pointer; border:1.5px solid transparent; position:relative; padding:3px 2px;
     font-feature-settings:"tnum" 1; gap:1px;
   }
@@ -144,13 +144,17 @@
   .cal-day.has-rem{ background:var(--grey-soft) }
   .cal-day.today.has-rem{ background:#FBF3E7 }
   .cal-day.friday .day-num{ color:var(--dot-ir-hol); font-weight:800 }
-  .cal-day.selected{ border-color:var(--ink); border-width:2px; box-shadow:0 0 0 2px var(--card), 0 0 0 3.5px var(--ink) }
-  .cal-day .g-date{ font-size:7px; color:var(--ink-soft) }
+  .cal-day.selected{ border-color:var(--ink); box-shadow:0 0 0 1.5px var(--ink) }
+  .cal-day .g-date{ font-size:8px; color:var(--ink-soft); line-height:1.2 }
   .cal-day .dot{ width:5px; height:5px; border-radius:50%; position:absolute; top:2px; left:2px }
   .cal-legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:10px; color:var(--ink-soft); margin-top:10px }
   .cal-legend span{ display:flex; align-items:center; gap:4px }
   .cal-legend .dot{ width:7px; height:7px; border-radius:50%; display:inline-block }
-  .hol-row{ display:flex; justify-content:space-between; font-size:11.5px; padding:6px 0; border-bottom:1px solid var(--line) }
+  .hol-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; padding:8px 0; border-bottom:1px solid var(--line) }
+.hol-t{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0 } .hol-d{ color:var(--ink-soft); font-size:11.5px; white-space:nowrap; text-align:left }
+.hol-n{ font-size:10.5px; opacity:.85 }
+.hol-badge{ font-size:10px; font-weight:800; border-radius:6px; padding:1px 8px; border:1.5px solid var(--line); background:var(--card) }
+.hol-badge.cn{ background:#f6d6d3; border-color:var(--dot-cn-hol); color:#8a1f17 } .hol-badge.ir{ background:#d6e4f7; border-color:var(--dot-ir-hol); color:#1d4575 } .hol-badge.lunar{ background:#e7e0f3; border-color:#7d6bb0; color:#4b3a85 }
   .hol-row:last-child{ border-bottom:none }
 
   .toast{
@@ -227,12 +231,12 @@
   .r-more{ display:none; padding:0 11px 11px }
   .r-row.open .r-more{ display:block }
   .done-bar{ width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--teal-soft); border:2px solid var(--teal); color:var(--teal); border-radius:12px; padding:10px 14px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; margin-top:14px }
-  .bnav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px; height:66px; background:var(--card); border-top:2.5px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); z-index:150; padding-bottom:env(safe-area-inset-bottom,0) }
+  .bnav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:492px; height:66px; background:var(--card); border-top:2.5px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); z-index:150; padding-bottom:env(safe-area-inset-bottom,0) }
   .bnav button{ border:none; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:11px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
   .bnav button .bi{ font-size:19px; line-height:1 }
   .bnav button.active{ color:var(--ink); font-weight:900 }
   .bnav button.active .bi{ transform:scale(1.12) }
-  .fab{ position:fixed; bottom:80px; left:max(16px, calc(50% - 244px)); width:58px; height:58px; border-radius:18px; background:var(--ink); color:var(--paper); border:none; font-size:30px; line-height:1; cursor:pointer; box-shadow:0 6px 16px rgba(15,31,54,.35); z-index:151; font-family:inherit }
+  .fab{ position:fixed; bottom:80px; left:max(14px, calc(50% - 246px)); width:58px; height:58px; border-radius:18px; background:var(--ink); color:var(--paper); border:none; font-size:30px; line-height:1; cursor:pointer; box-shadow:0 6px 16px rgba(15,31,54,.35); z-index:151; font-family:inherit }
   .hist-seg{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:4px; margin:14px 0 10px }
   .hist-seg button{ border:none; background:transparent; border-radius:9px; padding:8px 0; font-size:12.5px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
   .hist-seg button.active{ background:var(--ink); color:var(--paper); font-weight:800 }
@@ -1037,6 +1041,18 @@ function renderMain(){
   updateDelegBadge();
 }
 
+// ⚠️ (۱۴۰۵/۰۷/۱۵) ایموجیِ پرچم در ویندوز به‌صورتِ حروفِ «CN/IR» دیده می‌شود (و خودِ متنِ تعطیلی هم پرچم داشت) → حذف؛ به‌جایش نشانِ متنیِ رنگی
+const fxStripFlags = s => String(s||'').replace(/[\u{1F1E6}-\u{1F1FF}]/gu,'').replace(/\s+/g,' ').trim();
+function fxGroupHolidays(list){
+  const groups = [];
+  list.forEach(h=>{
+    const kind = []; if(h.fixedH) kind.push('ir'); if(h.lunarH) kind.push('lunar'); if(h.cnH) kind.push('cn');
+    const label = [h.fixedH, h.lunarH, h.cnH].filter(Boolean).map(fxStripFlags).join(' / ');
+    const key = kind.join('+') + '|' + label, last = groups[groups.length-1];
+    if(last && last.key === key && h.d === last.to + 1) last.to = h.d; else groups.push({key, kind, label, from:h.d, to:h.d});
+  });
+  return groups;
+}
 function renderCalendar(main){
   const firstOfMonthG = jalaliToGregorian(calYear, calMonth, 1);
   const jsDate = new Date(firstOfMonthG.y, firstOfMonthG.m-1, firstOfMonthG.d);
@@ -1085,10 +1101,10 @@ function renderCalendar(main){
       ${cnH?'<span class="cal-dot dot-cn-hol" title="تعطیلیِ چین"></span>':''}
     </span>` : '';
     const g = jalaliToGregorian(calYear, calMonth, d);
-    cells += `<div class="cal-day ${dateStr===today?'today':''} ${hasRem?'has-rem':''} ${isFriday?'friday':''} ${dateStr===selectedCalDate?'selected':''}" data-cal-day="${dateStr}">
+    const tipH = [fixedH,lunarH,cnH].filter(Boolean).map(fxStripFlags).join(' / ');
+    cells += `<div class="cal-day ${dateStr===today?'today':''} ${hasRem?'has-rem':''} ${isFriday?'friday':''} ${dateStr===selectedCalDate?'selected':''}" data-cal-day="${dateStr}"${tipH?` title="${escHtml(tipH)}"`:''}>
       <span class="day-num">${fn(d)}</span>
       <span class="g-date">${g.m}/${g.d}</span>
-      ${holTag}
       ${dotsRow}
     </div>`;
   }
@@ -1112,10 +1128,10 @@ function renderCalendar(main){
     <div id="calDayDetail"></div>
     <div class="card">
       <div class="card-title">تعطیلاتِ این ماه</div>
-      ${monthHolidays.length ? monthHolidays.map(h=>{
-        const flags = [h.fixedH?'🇮🇷':'', h.lunarH?'🌙':'', h.cnH?'🇨🇳':''].filter(Boolean).join(' ');
-        const labels = [h.fixedH, h.lunarH, h.cnH].filter(Boolean).join(' / ');
-        return `<div class="hol-row"><span>${flags} ${labels}</span><span style="color:var(--ink-soft)">${fn(calMonth)}/${fn(h.d)}</span></div>`;
+      ${monthHolidays.length ? fxGroupHolidays(monthHolidays).map(g=>{
+        const badges = g.kind.map(k=>`<span class="hol-badge ${k}">${k==='cn'?'چین':(k==='lunar'?'قمری':'ایران')}</span>`).join('');
+        const range = g.to > g.from ? `${fn(g.from)} تا ${fn(g.to)} ${SMONTHS[calMonth-1]} <span class="hol-n">(${fn(g.to-g.from+1)} روز)</span>` : `${fn(g.from)} ${SMONTHS[calMonth-1]}`;
+        return `<div class="hol-row"><div class="hol-t">${badges}<span>${escHtml(g.label)}</span></div><div class="hol-d">${range}</div></div>`;
       }).join('') : '<div class="empty">این ماه تعطیلی ندارد ✅</div>'}
     </div>
   `;
