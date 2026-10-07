@@ -265,6 +265,42 @@
 .dg-box{ border:2px dashed var(--line); border-radius:10px; padding:10px; margin:6px 0 10px }
 .dg-box-t{ font-size:12px; font-weight:800; margin-bottom:8px }
 .dg-warn{ font-size:11.5px; color:var(--brick); font-weight:700; line-height:1.8 }
+
+/* ⚠️ (۱۴۰۵/۰۷/۱۵) 🖥️ چیدمانِ افقی (landscape) — طبقِ درخواستِ صریحِ کاربر: رویِ صفحه‌یِ عریض مثلِ بقیه‌یِ صفحه‌هایِ مدار.
+   زیرِ ۹۰۰px (گوشی/تبلتِ عمودی) همه‌چیز دقیقاً مثلِ قبل است. */
+.r-list{ display:flex; flex-direction:column; gap:8px }
+.today-grid, .cal-layout{ display:block }
+@media (min-width:900px){
+  body{ max-width:1280px; padding:0 150px 40px 28px }
+  .hd{ padding-top:26px; max-width:420px } .hd .big-day{ font-size:48px } .hd .month{ font-size:17px }
+  .quick-row{ justify-content:flex-start; max-width:420px }
+  /* منویِ پایین → نوارِ عمودیِ کناریِ شناور (سمتِ راست) */
+  .bnav{ top:26px; bottom:auto; right:max(14px, calc((100vw - 1280px)/2 + 14px)); left:auto; transform:none; width:108px; max-width:none; height:auto;
+         display:grid; grid-template-columns:1fr; grid-auto-rows:auto; gap:6px; padding:10px 8px; border:2.5px solid var(--line); border-radius:20px; box-shadow:0 8px 24px rgba(15,31,54,.18) }
+  .bnav button{ width:100%; padding:13px 4px; border-radius:13px; font-size:12px; gap:4px }
+  .bnav button .bi{ font-size:22px }
+  .bnav button:hover{ background:rgba(15,31,54,.08) }
+  .bnav button.active{ background:var(--ink); color:var(--paper) } .bnav button.active .bi{ transform:none }
+  .dg-badge{ top:4px; inset-inline-end:10px }
+  .fab{ left:max(28px, calc((100vw - 1280px)/2 + 28px)); bottom:32px; width:62px; height:62px }
+  .modal{ max-width:560px }
+  /* امروز: ستونِ کناری (هفته + کارتِ بعدی + عقب‌افتاده‌ها) | ستونِ اصلی (جدولِ زمانیِ روز) */
+  .today-grid{ display:grid; grid-template-columns:minmax(340px,420px) 1fr; gap:26px; align-items:start }
+  .tg-side, .tg-main{ min-width:0 }
+  /* همه‌یِ باز، سابقه، سپرده‌ها: کارت‌ها در ۲–۳ ستون */
+  .r-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:12px; align-items:start }
+  .r-list > .empty{ grid-column:1 / -1 }
+  .dg-stats{ max-width:none; gap:12px } .tab-deleg [data-dg-new]{ width:auto; min-width:240px; padding-inline:28px }
+  /* تقویم: کارتِ بزرگِ ماه | جزئیاتِ روز و تعطیلات */
+  .cal-layout{ display:grid; grid-template-columns:minmax(520px,1.5fr) minmax(280px,1fr); gap:22px; align-items:start }
+  .cl-main, .cl-side{ min-width:0 }
+  .cal-grid{ gap:6px } .cal-day{ height:68px; font-size:13px } .cal-day .day-num{ font-size:15px } .cal-day .g-date{ font-size:9.5px }
+  .cal-wd{ font-size:12px; padding:6px 0 }
+  .cal-head > div{ font-size:18px }
+  .cal-legend{ font-size:11.5px }
+}
+@media (min-width:900px) and (max-width:1099px){ .cal-layout{ grid-template-columns:1fr } .cal-day{ height:60px } }
+@media (min-width:1500px){ .r-list{ grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)) } }
 </style>
 </head>
 <body>
@@ -587,7 +623,7 @@ function renderDelegations(main){
     <div class="dg-stats">${stat('waiting','⏳','منتظرِ جواب',waiting.length,'wait')}${stat('deliver','📣','باید تحویل بدهم',deliver.length,'ans')}${stat('late','🔴','دیرکرد',late.length,'late')}</div>
     <div class="hist-seg" style="margin:10px 0">${chip('open','همه‌یِ باز',open.length)}${chip('closed','✔️ بسته‌شده',closed.length)}</div>
     <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در کار، نام، مشتری، جواب…" value="${escHtml(listSearchQuery)}"></div>
-    <div style="display:flex;flex-direction:column;gap:8px">${list.length ? list.map(x=>renderDelegRow(x,{showDate:true})).join('') : `<div class="empty">${all.length ? 'در این فیلتر چیزی نیست ✨' : 'هنوز چیزی نسپرده‌ای.<br>روی «+ سپردم» بزن و اولین کار را ثبت کن.'}</div>`}</div>`;
+    <div class="r-list">${list.length ? list.map(x=>renderDelegRow(x,{showDate:true})).join('') : `<div class="empty">${all.length ? 'در این فیلتر چیزی نیست ✨' : 'هنوز چیزی نسپرده‌ای.<br>روی «+ سپردم» بزن و اولین کار را ثبت کن.'}</div>`}</div>`;
   main.querySelector('[data-dg-new]').addEventListener('click', ()=>openDelegModal(null));
   main.querySelectorAll('[data-dg-filter]').forEach(b=>b.addEventListener('click', ()=>{ dgFilter = (dgFilter===b.dataset.dgFilter && b.classList.contains('dg-stat')) ? 'open' : b.dataset.dgFilter; renderMain(); }));
   const inp = main.querySelector('#listSearchInput');
@@ -941,14 +977,17 @@ function renderToday(main){
   const freeOver = overdue.filter(r=>r._type==='free');
   const dayTitle = isToday ? 'برنامه‌ی امروز' : (selDay===tomorrowShamsi() ? 'برنامه‌ی فردا' : `برنامه‌ی ${WEEKDAY_FULL[satIndex(selDay)]} ${fmtDateHuman(selDay)}`);
   main.innerHTML = `
+    <div class="today-grid"><div class="tg-side">
     ${renderWeekStrip()}
     ${renderNextCard(next)}
     ${overdue.length ? `<div class="over-box"><div class="ob-head"><span>⚠️ عقب‌افتاده (${fn(overdue.length)})</span>${freeOver.length?`<button data-move-overdue>همه به امروز</button>`:''}</div>
       ${overdue.map(r=>renderRow(r,{whenText:fmtDateHuman(r.date)})).join('')}</div>` : ''}
+    </div><div class="tg-main">
     <div class="sec-label" style="font-size:14px;color:var(--ink);margin-top:18px"><span>${dayTitle}</span><span style="font-size:11.5px;color:var(--ink-soft)">${fn(dayOpen.length)} کار</span></div>
     ${renderTimeline(dayOpen, nextKey)}
     ${doneDay.length ? `<button class="done-bar" data-toggle-done><span>✓ ${fn(doneDay.length)} کار ${isToday?'امروز':''} انجام شد</span><span>${showDoneToday?'بستن':'نمایش'}</span></button>
       ${showDoneToday ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:7px">${doneDay.map(r=>renderRow(r,{hideChip:true, whenText:r.time?fn(r.time):''})).join('')}</div>` : ''}` : ''}
+    </div></div>
   `;
 }
 
@@ -963,7 +1002,7 @@ function renderFlatList(main, statuses, title, extraTop){
     <div class="page-title">${title}</div>
     ${extraTop||''}
     <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در عنوان، مشتری، توضیح..." value="${escHtml(listSearchQuery)}"></div>
-    <div style="display:flex;flex-direction:column;gap:7px">${filtered.length ? filtered.map(r=>renderRow(r,{showDate:true, hideChip:true})).join('') : '<div class="empty">چیزی نیست</div>'}</div>`;
+    <div class="r-list">${filtered.length ? filtered.map(r=>renderRow(r,{showDate:true, hideChip:true})).join('') : '<div class="empty">چیزی نیست</div>'}</div>`;
   const inp = main.querySelector('#listSearchInput');
   inp.addEventListener('input', (e)=>{
     listSearchQuery = e.target.value;
@@ -1023,6 +1062,7 @@ function wireNewButtons(main){
 
 function renderMain(){
   const main = document.getElementById('main');
+  main.className = 'tab-' + currentTab;
   renderHeaderAndRing();
   if(currentTab === 'today'){
     renderToday(main);
@@ -1110,6 +1150,7 @@ function renderCalendar(main){
   }
 
   main.innerHTML = `
+    <div class="cal-layout"><div class="cl-main">
     <div class="card">
       <div class="cal-head">
         <button id="calPrev">‹</button>
@@ -1125,6 +1166,7 @@ function renderCalendar(main){
         <span>📅 عددِ کوچیک = تاریخِ میلادی</span>
       </div>
     </div>
+    </div><div class="cl-side">
     <div id="calDayDetail"></div>
     <div class="card">
       <div class="card-title">تعطیلاتِ این ماه</div>
@@ -1134,6 +1176,7 @@ function renderCalendar(main){
         return `<div class="hol-row"><div class="hol-t">${badges}<span>${escHtml(g.label)}</span></div><div class="hol-d">${range}</div></div>`;
       }).join('') : '<div class="empty">این ماه تعطیلی ندارد ✅</div>'}
     </div>
+    </div></div>
   `;
   main.querySelector('#calPrev').addEventListener('click', ()=>{ calMonth--; if(calMonth<1){calMonth=12;calYear--;} renderMain(); });
   main.querySelector('#calNext').addEventListener('click', ()=>{ calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderMain(); });
