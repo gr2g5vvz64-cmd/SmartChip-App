@@ -227,7 +227,7 @@
   .r-more{ display:none; padding:0 11px 11px }
   .r-row.open .r-more{ display:block }
   .done-bar{ width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--teal-soft); border:2px solid var(--teal); color:var(--teal); border-radius:12px; padding:10px 14px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; margin-top:14px }
-  .bnav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px; height:66px; background:var(--card); border-top:2.5px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); z-index:150; padding-bottom:env(safe-area-inset-bottom,0) }
+  .bnav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px; height:66px; background:var(--card); border-top:2.5px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); z-index:150; padding-bottom:env(safe-area-inset-bottom,0) }
   .bnav button{ border:none; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:11px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
   .bnav button .bi{ font-size:19px; line-height:1 }
   .bnav button.active{ color:var(--ink); font-weight:900 }
@@ -237,6 +237,30 @@
   .hist-seg button{ border:none; background:transparent; border-radius:9px; padding:8px 0; font-size:12.5px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
   .hist-seg button.active{ background:var(--ink); color:var(--paper); font-weight:800 }
   .page-title{ font-size:22px; font-weight:900; margin:18px 2px 10px }
+
+/* ⚠️ (۱۴۰۵/۰۷/۱۵) 🤝 سپرده‌ها و قول‌ها */
+#mainTabs button{ position:relative }
+.dg-badge{ position:absolute; top:5px; inset-inline-end:14px; min-width:17px; height:17px; border-radius:9px; background:var(--brick); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px }
+.dg-intro{ font-size:12px; color:var(--ink-soft); line-height:1.9; margin:-2px 2px 12px }
+.dg-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px }
+.dg-stat{ border:2px solid var(--line); border-radius:12px; background:#dcebf9; padding:10px 6px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; align-items:center; color:var(--ink) }
+.dg-stat .n{ font-size:24px; font-weight:900 } .dg-stat .l{ font-size:11px; font-weight:700 }
+.dg-stat.on{ outline:3px solid var(--ink) } .dg-stat.late .n{ color:var(--brick) } .dg-stat.wait .n{ color:#b8690f } .dg-stat.ans .n{ color:var(--teal) }
+.dg-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:4px }
+.dg-chip{ font-size:10.5px; font-weight:700; border-radius:6px; padding:2px 8px; border:1.5px solid var(--line); background:var(--card) }
+.dg-chip.wait{ background:#fbe9cf; border-color:#d9962f; color:#7a4a05 } .dg-chip.ans{ background:var(--teal-soft); border-color:var(--teal); color:var(--brass-deep) }
+.dg-chip.done{ background:#dfe9e3; border-color:#6b8f7c; color:#2c5a43 } .dg-chip.off{ background:var(--grey-soft); color:var(--ink-soft) }
+.dg-chip.late{ background:var(--brick-soft); border-color:var(--brick); color:var(--brick) } .dg-chip.cust{ background:#e7eef8 }
+.dg-sum{ font-size:11.5px; color:var(--ink-soft); margin-top:3px }
+.dg-card.dg-late{ border-color:var(--brick) }
+.dg-lines{ display:flex; flex-direction:column; gap:5px; margin:2px 0 8px }
+.dg-line{ font-size:12px; line-height:1.9 } .dg-dim{ color:var(--ink-soft); font-size:11px }
+.dg-answer{ background:#eaf6ef; border:1.5px solid var(--teal); border-radius:8px; padding:7px 10px; font-size:12.5px; white-space:pre-wrap }
+.dg-hist{ margin:6px 0 8px; font-size:11.5px } .dg-hist summary{ cursor:pointer; font-weight:700 } .dg-h{ padding:4px 0; border-top:1px dashed var(--line) }
+.dg-b{ text-decoration:none; display:inline-block } .dg-b.dg-primary{ background:var(--ink); color:var(--paper); border-color:var(--ink); font-weight:700 }
+.dg-box{ border:2px dashed var(--line); border-radius:10px; padding:10px; margin:6px 0 10px }
+.dg-box-t{ font-size:12px; font-weight:800; margin-bottom:8px }
+.dg-warn{ font-size:11.5px; color:var(--brick); font-weight:700; line-height:1.8 }
 </style>
 </head>
 <body>
@@ -262,7 +286,8 @@
 <nav class="bnav" id="mainTabs">
   <button data-tab="today" class="active"><span class="bi">☀️</span>روزِ من</button>
   <button data-tab="open"><span class="bi">📋</span>همه‌ی باز</button>
-  <button data-tab="calendar"><span class="bi">🗓️</span>تقویم</button>
+  <button data-tab="deleg"><span class="bi">🤝</span>سپرده‌ها<span class="dg-badge" id="dgBadge" style="display:none"></span></button>
+<button data-tab="calendar"><span class="bi">🗓️</span>تقویم</button>
   <button data-tab="history"><span class="bi">🗄️</span>سابقه</button>
 </nav>
 
@@ -432,6 +457,282 @@ async function apiDelete(type, id){
   }catch(e){ showToast('❌ ارتباط با سرور برقرار نشد'); return false; }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// 🤝 سپرده‌ها و قول‌ها (۱۴۰۵/۰۷/۱۵) — طبقِ درخواستِ صریحِ حمیدرضا:
+// «کاری رو به کسی می‌سپارم؛ می‌خوام یادم بمونه سپردم، جواب بگیرم، و جواب رو تحویلِ کسی بدم که کار رو به من سپرده.»
+// جریان: ⏳ منتظرِ جواب ← (✅ جواب گرفتم) ← 📣 باید تحویل بدهم ← (📤 تحویل دادم) ← ✅ بسته.
+// بدونِ «کسی که کار را به من سپرده»، با «جواب گرفتم» کار همان‌جا بسته می‌شود.
+// سرور: /api/delegations/ (اپِ مستقل) — در «روزِ من»، «همه‌یِ باز» و «تقویم» هم با همین آیتم‌ها نشان داده می‌شوند.
+// ══════════════════════════════════════════════════════════════════════════
+const DG_API = 'https://api.smartchipelec.com/api/delegations/';
+const DG_CHANNELS = [['','—'],['bale','بله'],['whatsapp','واتساپ'],['telegram','تلگرام'],['sms','پیامک'],['phone','تلفن'],['in_person','حضوری']];
+const DG_EVENTS = {created:'🆕 ثبت', edited:'✏️ ویرایش', answered:'💬 جواب', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
+let dgFilter = 'open';   // open | waiting | deliver | late | closed
+
+async function dgCall(method, path, body){
+  try{
+    const r = await fetchWithRetry(DG_API + path, {method, headers:{'Content-Type':'application/json'}, body: body===undefined ? undefined : JSON.stringify(body)});
+    let d = null; try{ d = await r.json(); }catch(e){}
+    if(!r.ok){
+      showToast('❌ ' + ((d && d.error) || (r.status===404 ? 'بخشِ «سپرده‌ها» روی سرور هنوز نصب نشده' : 'انجام نشد')));
+      return null;
+    }
+    return d || {ok:true};
+  }catch(e){ showToast('❌ ارتباط با سرور برقرار نشد'); return null; }
+}
+
+function normalizeDeleg(r){
+  const isOpen = r.status==='waiting' || r.status==='answered';
+  const status = isOpen ? 'open' : (r.status==='delivered' ? 'done' : 'cancelled');
+  let title = r.title;
+  if(r.status==='waiting') title = `⏳ ${r.title} — منتظرِ ${r.delegate_name}`;
+  else if(r.status==='answered') title = `📣 ${r.title} — جواب را به ${r.requester_name||'—'} بده`;
+  return { _type:'deleg', id:r.id, title, customer:r.customer||'', date: isOpen ? r.next_date : r.ask_due_date,
+           time: r.status==='waiting' ? (r.ask_due_time||'') : '', note:'', status, raw:r };
+}
+
+function dgPhoneIntl(s){ const d=String(s||'').replace(/[^\d]/g,''); if(!d) return ''; if(d.startsWith('00')) return d.slice(2); if(d.startsWith('0')) return '98'+d.slice(1); if(d.startsWith('98')) return d; return d.length===10 ? '98'+d : d; }
+function dgIsPhone(s){ return /^[+\d\s()-]{8,}$/.test(String(s||'').trim()); }
+function dgChaseText(r){ return `سلام ${r.delegate_name}، جوابِ «${r.title}» چه شد؟`; }
+function dgDeliverText(r){ return `سلام ${r.requester_name}، جوابِ «${r.title}»:\n${r.answer_text || 'انجام شد'}`; }
+function dgWaLink(contact, text){ const p = dgPhoneIntl(contact); return p ? `https://wa.me/${p}?text=${encodeURIComponent(text)}` : ''; }
+function dgWhen(iso){
+  try{ const dt = new Date(iso); if(isNaN(dt)) return '';
+    const s = sStr(jdToS(gToJD(dt.getFullYear(), dt.getMonth()+1, dt.getDate())));
+    return fmtDateHuman(s) + ' · ' + fn(String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0'));
+  }catch(e){ return ''; }
+}
+function dgChannelLabel(c){ const x = DG_CHANNELS.find(a=>a[0]===c); return x && x[0] ? x[1] : ''; }
+
+function dgButtons(item){
+  const r = item.raw, id = r.id;
+  const b = (act, label, cls='') => `<button type="button" class="icon-btn dg-b ${cls}" data-dg-act="${act}" data-dg-id="${id}">${label}</button>`;
+  const a = (href, label) => href ? `<a class="icon-btn dg-b" href="${href}" target="_blank" rel="noopener">${label}</a>` : '';
+  if(r.status==='waiting'){
+    return b('answer','✅ جواب گرفتم','dg-primary') + b('postpone','⏰ ۱ روز بعد')
+      + a(dgWaLink(r.delegate_contact, dgChaseText(r)), '💬 پیگیری (واتساپ)')
+      + (dgIsPhone(r.delegate_contact) ? a('tel:'+String(r.delegate_contact).replace(/\s/g,''), '📞 تماس') : '')
+      + b('copy-chase','📋 کپیِ پیامِ پیگیری') + b('edit','✏️ ویرایش') + b('cancel','🚫 لغو') + b('del','🗑️ حذف');
+  }
+  if(r.status==='answered'){
+    return b('deliver','📤 تحویل دادم','dg-primary')
+      + a(dgWaLink(r.requester_contact, dgDeliverText(r)), '💬 ارسالِ جواب (واتساپ)')
+      + b('copy-deliver','📋 کپیِ پیامِ جواب') + b('postpone','⏰ ۱ روز بعد') + b('reopen','↩️ هنوز کامل نیست') + b('edit','✏️ ویرایش') + b('del','🗑️ حذف');
+  }
+  return b('reopen','↩️ بازگردانی') + b('edit','✏️ ویرایش') + b('del','🗑️ حذف');
+}
+
+function renderDelegRow(item, opts={}){
+  const r = item.raw, key = `deleg-${r.id}`;
+  const badge = r.status==='waiting' ? `<span class="dg-chip wait">⏳ منتظرِ جواب</span>`
+    : r.status==='answered' ? `<span class="dg-chip ans">📣 باید تحویل بدهی</span>`
+    : r.status==='delivered' ? `<span class="dg-chip done">✅ تحویل شد</span>` : `<span class="dg-chip off">🚫 لغو</span>`;
+  const late = r.overdue ? `<span class="dg-chip late">🔴 ${fn(r.overdue_days)} روز دیرکرد</span>` : '';
+  const ch = dgChannelLabel(r.channel);
+  const lines = [];
+  lines.push(`<div class="dg-line">🧑 <b>سپردم به:</b> ${escHtml(r.delegate_name)}${ch?` <span class="dg-dim">(${escHtml(ch)})</span>`:''}${r.delegate_contact?` <span class="dg-dim" dir="ltr">${escHtml(r.delegate_contact)}</span>`:''}${r.status==='waiting' ? ` — <b>جواب تا:</b> ${fmtDateHuman(r.ask_due_date)}${r.ask_due_time?' · '+fn(r.ask_due_time):''}` : ''}</div>`);
+  if(r.requester_name) lines.push(`<div class="dg-line">🙋 <b>جواب را باید بدهم به:</b> ${escHtml(r.requester_name)}${r.deliver_due_date?` — <b>تا:</b> ${fmtDateHuman(r.deliver_due_date)}`:''}</div>`);
+  if(r.status==='waiting' && r.waiting_days>0) lines.push(`<div class="dg-line dg-dim">⏱ ${fn(r.waiting_days)} روز است منتظرم</div>`);
+  if(r.answer_text) lines.push(`<div class="dg-answer">💬 جواب: ${escHtml(r.answer_text)}</div>`);
+  if(r.detail) lines.push(`<div class="dg-line dg-dim">${escHtml(r.detail)}</div>`);
+  const hist = (r.history||[]).map(h=>`<div class="dg-h"><b>${DG_EVENTS[h.event]||escHtml(h.event)}</b> ${escHtml(h.text||'')} <span class="dg-dim">${dgWhen(h.at)}</span></div>`).join('');
+  const when = opts.showDate ? (item.date ? fmtDateHuman(item.date) + (item.time ? ' · '+fn(item.time) : '') : '') : (opts.whenText||'');
+  const icon = r.status==='answered' ? '📣' : (r.status==='waiting' ? '⏳' : (r.status==='delivered' ? '✅' : '🚫'));
+  return `<div class="r-row dg-card st-${item.status}${r.overdue?' dg-late':''}${opts.isNow?' is-now':''}" data-item-key="${key}">
+    <div class="r-main" data-toggle-row>
+      <span class="r-icon">${icon}</span>
+      <div class="r-body"><div class="r-title">${escHtml(r.title)}</div><div class="dg-chips">${badge}${late}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}</span>`:''}</div>
+        <div class="dg-sum">${r.status==='waiting' ? '← '+escHtml(r.delegate_name) : (r.requester_name ? '→ '+escHtml(r.requester_name) : '')}</div></div>
+      ${opts.isNow ? '<span class="r-now">بعدی</span>' : (when ? `<span class="r-when">${when}</span>` : '')}
+    </div>
+    <div class="r-more"><div class="dg-lines">${lines.join('')}</div>
+      <details class="dg-hist"><summary>🕘 تاریخچه (${fn((r.history||[]).length)})</summary>${hist||'<div class="dg-dim">—</div>'}</details>
+      <div class="t-actions">${dgButtons(item)}</div></div>
+  </div>`;
+}
+
+function dgNextButtons(item){
+  const r = item.raw, id = r.id;
+  if(r.status==='waiting') return `<button class="nc-done" data-dg-act="answer" data-dg-id="${id}">✅ جواب گرفتم</button><button data-dg-act="postpone" data-dg-id="${id}">⏰ ۱ روز بعد</button>`;
+  return `<button class="nc-done" data-dg-act="deliver" data-dg-id="${id}">📤 تحویل دادم</button><button data-dg-act="postpone" data-dg-id="${id}">⏰ ۱ روز بعد</button>`;
+}
+
+function updateDelegBadge(){
+  const el = document.getElementById('dgBadge'); if(!el) return;
+  const late = allItems.filter(x=>x._type==='deleg' && x.raw.overdue).length;
+  el.textContent = late ? fn(late) : ''; el.style.display = late ? '' : 'none';
+}
+
+function renderDelegations(main){
+  const all = allItems.filter(x=>x._type==='deleg');
+  const open = all.filter(x=>x.status==='open');
+  const waiting = open.filter(x=>x.raw.status==='waiting'), deliver = open.filter(x=>x.raw.status==='answered'), late = open.filter(x=>x.raw.overdue);
+  const closed = all.filter(x=>x.status!=='open');
+  const sets = {open, waiting, deliver, late, closed};
+  let list = (sets[dgFilter] || open).slice().sort((a,b)=> (b.raw.overdue?1:0)-(a.raw.overdue?1:0) || ((a.date||'9999')+(a.time||'00:00')).localeCompare((b.date||'9999')+(b.time||'00:00')));
+  if(listSearchQuery.trim()){
+    const q = listSearchQuery.trim().toLowerCase();
+    list = list.filter(x=>[x.raw.title, x.raw.delegate_name, x.raw.requester_name, x.raw.customer, x.raw.answer_text].some(v=>(v||'').toLowerCase().includes(q)));
+  }
+  const stat = (k, icon, label, n, cls) => `<button type="button" class="dg-stat ${cls} ${dgFilter===k?'on':''}" data-dg-filter="${k}"><span class="n">${fn(n)}</span><span class="l">${icon} ${label}</span></button>`;
+  const chip = (k, label, n) => `<button type="button" class="${dgFilter===k?'active':''}" data-dg-filter="${k}">${label}${n!=null?` (${fn(n)})`:''}</button>`;
+  main.innerHTML = `
+    <div class="page-title">🤝 سپرده‌ها و قول‌ها</div>
+    <div class="dg-intro">کاری را به کسی می‌سپاری ← جواب را می‌گیری ← جواب را به کسی که کار را به تو سپرده تحویل می‌دهی. هیچ‌چیز از دستت نمی‌افتد.</div>
+    <button class="btn btn-primary" data-dg-new style="margin-bottom:12px">+ سپردم</button>
+    <div class="dg-stats">${stat('waiting','⏳','منتظرِ جواب',waiting.length,'wait')}${stat('deliver','📣','باید تحویل بدهم',deliver.length,'ans')}${stat('late','🔴','دیرکرد',late.length,'late')}</div>
+    <div class="hist-seg" style="margin:10px 0">${chip('open','همه‌یِ باز',open.length)}${chip('closed','✔️ بسته‌شده',closed.length)}</div>
+    <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در کار، نام، مشتری، جواب…" value="${escHtml(listSearchQuery)}"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${list.length ? list.map(x=>renderDelegRow(x,{showDate:true})).join('') : `<div class="empty">${all.length ? 'در این فیلتر چیزی نیست ✨' : 'هنوز چیزی نسپرده‌ای.<br>روی «+ سپردم» بزن و اولین کار را ثبت کن.'}</div>`}</div>`;
+  main.querySelector('[data-dg-new]').addEventListener('click', ()=>openDelegModal(null));
+  main.querySelectorAll('[data-dg-filter]').forEach(b=>b.addEventListener('click', ()=>{ dgFilter = (dgFilter===b.dataset.dgFilter && b.classList.contains('dg-stat')) ? 'open' : b.dataset.dgFilter; renderMain(); }));
+  const inp = main.querySelector('#listSearchInput');
+  inp.addEventListener('input', (e)=>{
+    listSearchQuery = e.target.value; const pos = e.target.selectionStart; renderMain();
+    const again = document.getElementById('listSearchInput'); if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(_){} }
+  });
+}
+
+function wireDelegButtons(container){
+  container.querySelectorAll('[data-dg-act]').forEach(b=>{
+    if(b.dataset.dgWired) return; b.dataset.dgWired = '1';
+    b.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const id = +b.dataset.dgId, act = b.dataset.dgAct;
+      const it = allItems.find(x=>x._type==='deleg' && x.id===id); if(!it) return;
+      const r = it.raw;
+      const finish = async (msg)=>{ showToast(msg); await refreshData(); renderMain(); };
+      if(act==='answer') return openDelegAnswerSheet(r);
+      if(act==='edit') return openDelegModal(r);
+      if(act==='copy-chase' || act==='copy-deliver'){
+        const text = act==='copy-chase' ? dgChaseText(r) : dgDeliverText(r);
+        try{ await navigator.clipboard.writeText(text); showToast('📋 پیام کپی شد'); }catch(_){ window.prompt('پیام را کپی کنید:', text); }
+        return;
+      }
+      b.disabled = true;
+      let d = null;
+      if(act==='deliver'){
+        if(!confirm(r.requester_name ? `جوابِ «${r.title}» را به ${r.requester_name} تحویل دادی؟` : `«${r.title}» بسته شود؟`)){ b.disabled = false; return; }
+        d = await dgCall('POST', `${id}/deliver/`, {});
+        if(d) return finish('✅ تحویل شد — بسته شد');
+      } else if(act==='postpone'){
+        d = await dgCall('POST', `${id}/postpone/`, {days:1});
+        if(d) return finish('⏰ یک روز عقب افتاد');
+      } else if(act==='reopen'){
+        d = await dgCall('POST', `${id}/reopen/`, {});
+        if(d) return finish('↩️ دوباره منتظرِ جواب شد');
+      } else if(act==='cancel'){
+        if(!confirm('این مورد لغو شود؟ (در «بسته‌شده» می‌ماند)')){ b.disabled = false; return; }
+        d = await dgCall('POST', `${id}/cancel/`, {});
+        if(d) return finish('🚫 لغو شد');
+      } else if(act==='del'){
+        if(!confirm('حذفِ کاملِ این مورد؟ دیگر قابلِ بازیابی نیست (برایِ نگه‌داشتنِ سابقه «لغو» را بزنید).')){ b.disabled = false; return; }
+        d = await dgCall('DELETE', `${id}/`);
+        if(d) return finish('🗑️ حذف شد');
+      }
+      b.disabled = false;
+    });
+  });
+}
+
+// ثبتِ «جواب گرفتم» — جواب را بنویس؛ اگر کسی کار را به تو سپرده، می‌شود «باید تحویل بدهم» (یا همین الان تحویل بده)
+function openDelegAnswerSheet(r){
+  const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `<div class="modal">
+    <h3>✅ جواب گرفتم</h3>
+    <div class="dg-line" style="margin-bottom:8px"><b>${escHtml(r.title)}</b><br><span class="dg-dim">از ${escHtml(r.delegate_name)}</span></div>
+    <div class="field"><label>جواب چه بود؟ (اختیاری — برایِ تحویل به ${escHtml(r.requester_name||'کسی که سپرده')} نگه داشته می‌شود)</label><textarea id="dgAns" placeholder="مثلاً: ۱۲٫۵ دلار، موجود است"></textarea></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" id="dgAnsSave">${r.requester_name ? `ثبتِ جواب — بعداً به ${escHtml(r.requester_name)} تحویل می‌دهم` : 'ثبتِ جواب و بستنِ کار'}</button>
+      ${r.requester_name ? `<button class="btn btn-ghost" id="dgAnsClose">ثبتِ جواب و همین الان تحویل دادم</button>` : ''}
+      <button class="btn btn-ghost" id="dgAnsCancel">انصراف</button>
+    </div></div>`;
+  document.body.appendChild(backdrop);
+  const send = async (close)=>{
+    const d = await dgCall('POST', `${r.id}/answer/`, {answer_text: backdrop.querySelector('#dgAns').value.trim(), close: !!close});
+    if(!d) return;
+    backdrop.remove(); showToast(d.status==='answered' ? `✅ ثبت شد — حالا جواب را به ${r.requester_name} بده` : '✅ ثبت شد — کار بسته شد');
+    await refreshData(); renderMain();
+  };
+  backdrop.querySelector('#dgAnsSave').addEventListener('click', ()=>send(false));
+  const c = backdrop.querySelector('#dgAnsClose'); if(c) c.addEventListener('click', ()=>send(true));
+  backdrop.querySelector('#dgAnsCancel').addEventListener('click', ()=>backdrop.remove());
+}
+
+// فرمِ «سپردم» — کوتاه و فقط چیزهایِ لازم؛ بخشِ «کسی که کار را به من سپرده» اختیاری است
+function openDelegModal(existing){
+  const isEdit = !!existing;
+  const known = allItems.filter(x=>x._type==='deleg').map(x=>x.raw);
+  const dNames = [...new Set(known.map(x=>x.delegate_name).filter(Boolean))], rNames = [...new Set(known.map(x=>x.requester_name).filter(Boolean))];
+  const e = existing || {};
+  const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `<div class="modal">
+    <h3>${isEdit ? 'ویرایشِ سپرده' : '🤝 سپردم'}</h3>
+    <div class="field"><label>چه کاری را سپردی؟</label><input id="dgTitle" type="text" placeholder="مثلاً: قیمتِ برد X را بگیر" value="${escHtml(e.title||'')}"></div>
+    <div class="field"><label>به چه کسی سپردی؟</label><input id="dgDelegate" type="text" list="dgDList" value="${escHtml(e.delegate_name||'')}"><datalist id="dgDList">${dNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist></div>
+    <div class="row2">
+      <div class="field"><label>شماره/آی‌دیِ او (اختیاری)</label><input id="dgContact" type="text" dir="ltr" placeholder="0912…" value="${escHtml(e.delegate_contact||'')}"></div>
+      <div class="field"><label>از چه راهی؟</label><select id="dgChannel">${DG_CHANNELS.map(([k,l])=>`<option value="${k}" ${e.channel===k?'selected':''}>${l}</option>`).join('')}</select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>تا کِی جواب بدهد؟</label><input id="dgDue" type="text" readonly value="${escHtml(e.ask_due_date||tomorrowShamsi())}"></div>
+      <div class="field"><label>ساعت (اختیاری)</label><input id="dgDueTime" type="time" value="${escHtml(e.ask_due_time||'')}"></div>
+    </div>
+    <div class="dg-box">
+      <div class="dg-box-t">🙋 اگر این کار را کسی به تو سپرده و باید جوابش را به او بدهی (اختیاری)</div>
+      <div class="field"><label>چه کسی کار را به تو سپرده؟</label><input id="dgReq" type="text" list="dgRList" value="${escHtml(e.requester_name||'')}"><datalist id="dgRList">${rNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist></div>
+      <div class="row2">
+        <div class="field"><label>شمارهٔ او (اختیاری)</label><input id="dgReqContact" type="text" dir="ltr" value="${escHtml(e.requester_contact||'')}"></div>
+        <div class="field"><label>کِی جواب را به او می‌دهی؟</label><input id="dgDeliver" type="text" readonly value="${escHtml(e.deliver_due_date||'')}" placeholder="انتخاب تاریخ"></div>
+      </div>
+      <div id="dgWarn" class="dg-warn" style="display:none"></div>
+    </div>
+    <div class="field"><label>توضیح (اختیاری)</label><textarea id="dgDetail">${escHtml(e.detail||'')}</textarea></div>
+    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" id="dgSave">${isEdit?'ذخیره':'ثبت'}</button><button class="btn btn-ghost" id="dgCancel">انصراف</button></div></div>`;
+  document.body.appendChild(backdrop);
+  const q = s=>backdrop.querySelector(s);
+  const dueEl = q('#dgDue'), delEl = q('#dgDeliver');
+  dueEl.addEventListener('click', ()=>openCalendarPicker(dueEl)); delEl.addEventListener('click', ()=>openCalendarPicker(delEl));
+  const warn = ()=>{
+    const w = q('#dgWarn'); const a = dueEl.value.trim(), b = delEl.value.trim(), who = q('#dgReq').value.trim();
+    let msg = '';
+    if(b && !who) msg = 'برایِ تاریخِ تحویل، نامِ کسی را که کار را به تو سپرده بنویس.';
+    else if(a && b && b < a) msg = `⚠️ قول داده‌ای ${fmtDateHuman(b)} جواب بدهی، ولی جوابِ ${q('#dgDelegate').value.trim()||'او'} تا ${fmtDateHuman(a)} می‌رسد — موعدها نمی‌خوانند.`;
+    w.textContent = msg; w.style.display = msg ? '' : 'none';
+  };
+  ['#dgReq','#dgDelegate'].forEach(s=>q(s).addEventListener('input', warn));
+  q('#dgDue').addEventListener('change', warn); delEl.addEventListener('change', warn);
+  backdrop._t = setInterval(()=>{ if(!document.body.contains(backdrop)) clearInterval(backdrop._t); else warn(); }, 600);   // انتخابگرِ تاریخ مستقیم value می‌گذارد
+  // نامِ آشنا را که انتخاب کرد، شماره و راه را از سپرده‌یِ قبلی پر کن
+  q('#dgDelegate').addEventListener('change', ()=>{
+    const prev = known.find(x=>x.delegate_name===q('#dgDelegate').value.trim());
+    if(prev && !q('#dgContact').value) q('#dgContact').value = prev.delegate_contact||'';
+    if(prev && !q('#dgChannel').value) q('#dgChannel').value = prev.channel||'';
+  });
+  q('#dgReq').addEventListener('change', ()=>{
+    const prev = known.find(x=>x.requester_name===q('#dgReq').value.trim());
+    if(prev && !q('#dgReqContact').value) q('#dgReqContact').value = prev.requester_contact||'';
+  });
+  q('#dgCancel').addEventListener('click', ()=>backdrop.remove());
+  q('#dgSave').addEventListener('click', async ()=>{
+    const body = { title:q('#dgTitle').value.trim(), delegate_name:q('#dgDelegate').value.trim(), delegate_contact:q('#dgContact').value.trim(),
+      channel:q('#dgChannel').value, ask_due_date:dueEl.value.trim(), ask_due_time:q('#dgDueTime').value,
+      requester_name:q('#dgReq').value.trim(), requester_contact:q('#dgReqContact').value.trim(), deliver_due_date:delEl.value.trim(),
+      detail:q('#dgDetail').value.trim() };
+    if(!body.title){ showToast('بنویس چه کاری را سپرده‌ای'); return; }
+    if(!body.delegate_name){ showToast('بنویس به چه کسی سپرده‌ای'); return; }
+    if(!body.ask_due_date){ showToast('تاریخِ «تا کِی جواب بدهد» را انتخاب کن'); return; }
+    if(body.deliver_due_date && !body.requester_name){ showToast('برایِ تاریخِ تحویل، نامِ کسی را که کار را به تو سپرده بنویس'); return; }
+    if(!isEdit){ body.owner_name = MY_NAME; body.asked_date = todayShamsi(); }
+    const d = isEdit ? await dgCall('PATCH', `${existing.id}/`, body) : await dgCall('POST', '', body);
+    if(!d) return;
+    backdrop.remove(); showToast('✅ ثبت شد — یادآوری می‌شوی');
+    if(!isEdit) dgFilter = 'open';     // تا مورد تازه بلافاصله دیده شود (حتی اگر روی فیلترِ «بسته‌شده» بودی)
+    await refreshData(); renderMain();
+  });
+  setTimeout(()=>{ const t = q('#dgTitle'); if(t && !isEdit) t.focus(); }, 60);
+}
+
 let allItems = [];
 let currentTab = 'today';
 let listSearchQuery = '';
@@ -457,6 +758,7 @@ function fmtDateHuman(dateStr){
 // چون آزاد یه فیلدِ `done` جدا داره، دوره‌ای نداره (هیچ‌وقت «تکمیل»
 // نمی‌شه، فقط باز/کنسل/بایگانی، چون خودش تکرار می‌شه)
 function statusActions(item){
+  if(item._type === 'deleg') return [];     // 🤝 دکمه‌هایِ خودش را دارد (dgButtons)
   if(item._type === 'free'){
     if(item.status==='open') return [{label:'✔️ تکمیل', body:{done:true}}, {label:'❌ کنسل', body:{canceled:true}}];
     if(item.status==='done' || item.status==='cancelled') return [{label:'↩️ بازگردانی به باز', body:{done:false, canceled:false}}, {label:'📦 بایگانی', body:{archived:true}}];
@@ -469,6 +771,7 @@ function statusActions(item){
 }
 
 function renderItem(item){
+  if(item._type === 'deleg') return renderDelegRow(item, {});
   const chip = item.status!=='open' ? `<span class="status-chip ${item.status}">${STATUS_LABEL[item.status]}</span>` : '';
   const actions = statusActions(item).map(a=>`<button class="icon-btn" data-set-status="${item._type}-${item.id}">${a.label}</button>`).join('');
   return `<div class="t-item st-${item.status}" data-item-key="${item._type}-${item.id}">
@@ -489,12 +792,13 @@ function renderList(items){
 }
 
 async function loadAllItems(){
-  const [freeRaw, recurRaw] = await Promise.all([apiFetchArray(FREE_API), apiFetchArray(RECUR_API)]);
+  const [freeRaw, recurRaw, dgRaw] = await Promise.all([apiFetchArray(FREE_API), apiFetchArray(RECUR_API), apiFetchArray(DG_API + '?owner=' + encodeURIComponent(MY_NAME))]);
   // ⚠️ طبقِ تصمیمِ کاربر: فقط یادآوریِ آزادِ *خودش* — دوره‌ای فعلاً
   // فیلدِ assignee نداره (طبقِ خودِ مدلِ worklog)، پس همه‌ش نشون داده می‌شه
   const myFree = freeRaw.filter(r=>r.assignee_name === MY_NAME).map(normalizeFree);
   const recurring = recurRaw.map(normalizeRecurring);
-  return [...myFree, ...recurring];
+  const deleg = dgRaw.map(normalizeDeleg);     // 🤝 سپرده‌ها و قول‌ها
+  return [...myFree, ...recurring, ...deleg];
 }
 
 // ⚠️ (۱۴۰۵/۰۷/۰۲) فیکسِ کاراییِ واقعیِ گزارش‌شده: قبلاً renderMain
@@ -536,6 +840,7 @@ function renderHeaderAndRing(){
 
 // یک ردیفِ یادآوری — با کلیک باز می‌شه و همون دکمه‌هایِ قبلی (تکمیل/کنسل/بایگانی/حذف) رو نشون می‌ده
 function renderRow(item, opts={}){
+  if(item._type === 'deleg') return renderDelegRow(item, opts);
   const key = `${item._type}-${item.id}`;
   let lead;
   if(item._type==='free' && item.status==='open') lead = `<button class="r-check" data-quick-done="${key}" aria-label="انجام شد"></button>`;
@@ -579,7 +884,7 @@ function renderNextCard(item){
     else if(diff >= -15) top += ' · همین الان';
     else top += ' · زمانش گذشته';
   }
-  const btns = item._type==='free'
+  const btns = item._type==='deleg' ? dgNextButtons(item) : item._type==='free'
     ? `<button class="nc-done" data-quick-done="${key}">✓ انجام شد</button>
        <button data-snooze="${key}" data-snooze-kind="hour">⏰ ۱ ساعت بعد</button>
        <button data-snooze="${key}" data-snooze-kind="tomorrow">↪ فردا</button>`
@@ -724,9 +1029,12 @@ function renderMain(){
     renderFlatList(main, [historyFilter], 'سابقه', seg);
   } else if(currentTab === 'calendar'){
     renderCalendar(main);
+  } else if(currentTab === 'deleg'){
+    renderDelegations(main);
   }
   wireItemButtons(main);
   wireNewButtons(main);
+  updateDelegBadge();
 }
 
 function renderCalendar(main){
@@ -845,6 +1153,7 @@ function renderCalendar(main){
 }
 
 function wireItemButtons(container){
+  wireDelegButtons(container);
   container.querySelectorAll('[data-set-status]').forEach(b=>b.addEventListener('click', async ()=>{
     const [type, id] = b.dataset.setStatus.split('-');
     const item = allItems.find(x=>x._type===type && String(x.id)===id);
@@ -912,6 +1221,7 @@ function openReminderModal(existing, presetDate){
         <div class="type-seg">
           <button type="button" data-pick-type="free" class="${modalType==='free'?'active':''}">آزاد (یک‌بار)</button>
           <button type="button" data-pick-type="recurring" class="${modalType==='recurring'?'active':''}">دوره‌ای</button>
+          <button type="button" data-pick-type="deleg">🤝 سپردم</button>
         </div>` : ''}
         <div class="field"><label>${modalType==='free'?'شرح':'عنوان'}</label><input id="rTitle" type="text" value="${existing ? (existing.title||'') : ''}"></div>
         <div class="field"><label>مشتری (اختیاری)</label>
@@ -936,6 +1246,7 @@ function openReminderModal(existing, presetDate){
     backdrop.querySelector('#rCancelBtn').addEventListener('click', ()=>backdrop.remove());
     if(!isEdit){
       backdrop.querySelectorAll('[data-pick-type]').forEach(b=>b.addEventListener('click', ()=>{
+        if(b.dataset.pickType === 'deleg'){ backdrop.remove(); openDelegModal(null); return; }
         modalType = b.dataset.pickType; draw();
       }));
     }
@@ -1018,7 +1329,7 @@ function openCalendarPicker(inputEl){
   },0);
 }
 
-document.getElementById('addBtn').addEventListener('click', ()=>openReminderModal(null));
+document.getElementById('addBtn').addEventListener('click', ()=>{ if(currentTab==='deleg') openDelegModal(null); else openReminderModal(null); });
 // ⚠️ (۱۴۰۵/۰۷/۰۳) طبق درخواستِ صریحِ کاربر: اتصالِ یادآورها به تقویمِ خودِ
 // گوشی — با آلارمِ خودِ گوشی سرِ ساعت (یا ۹ صبح برایِ بی‌ساعت‌ها) و هشدارِ
 // «چند روز قبل» برایِ دوره‌ای‌ها. لینک از سرور گرفته می‌شه (بر اساسِ اسم).
