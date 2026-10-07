@@ -387,13 +387,15 @@ async function init(){
   //   → مثلاً مدیر با نقشِ owner هیچ کاشی‌ای نمی‌دید. حالا هر نقش به گروهش نگاشت می‌شه؛ نقشِ ناشناخته هم حداقل «سازمان» و «راهنما» رو می‌بینه.
   const allowedTiles=ROLE_TILES[ROLE_GROUP[userInfo.role]||userInfo.role]||['attendance','org','reminders','guide'];
   const isMob = isMobileDevice();
+  // ⚠️ (۱۴۰۵/۰۷/۱۵) طبقِ درخواستِ صریحِ کاربر: روی دسکتاپ هر کاشی در «تبِ جدید» باز می‌شود تا صفحه‌یِ اصلی بسته نشود (ورودِ امن بینِ تب‌ها مشترک است). رویِ گوشی همان تب می‌ماند (در اپِ نصب‌شده تبِ جدید دردسر می‌سازد).
+  const newTab = isMob ? '' : ' target="_blank" rel="noopener"';
   document.getElementById('tilesContainer').innerHTML=allowedTiles.map(key=>{
     const m=TILE_META[key];
     const desktopFallback=(isMob && (key==='erp'||key==='crm'))
       ? `<a href="${key==='erp'?'erp.html':'crm.html'}" style="display:block;margin-top:4px;font-size:10px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ نسخه‌ی کامل</a>`
       : '';
     return `<div>
-      <a class="tile" href="${APP_URLS[key]}" style="display:block;">
+      <a class="tile" href="${APP_URLS[key]}"${newTab} style="display:block;">
         <div class="tile-icon">${m.icon}</div>
         <div class="tile-title">${m.title}</div>
         <div class="tile-desc">${m.desc}</div>
