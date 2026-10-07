@@ -1634,10 +1634,10 @@ async function renderCustomerLedger(main, cachedData){
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
-      ${fxCompanyMoneyCardHtml(data.companyMoney)}
+      ${fxCustomerView ? '' : fxCompanyMoneyCardHtml(data.companyMoney)}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
-    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور">💱 یوان و رزرو برایِ پیش‌فاکتور</button></div>
+    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button>${fxCustomerView ? '' : '<button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور (فقط مدیریت)">💱 یوان و رزرو برایِ پیش‌فاکتور</button>'}<button class="btn btn-ghost" id="custViewToggle" title="اگر صفحه را به مشتری نشان می‌دهی یا اسکرین‌شات می‌گیری، روشن کن تا هرچه مخصوصِ مدیریت است پنهان شود">${fxCustomerView ? '👁️ برگشت به نمایِ مدیریت' : '🙈 نمایشِ به مشتری'}</button></div>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
     </div>
 
@@ -1706,7 +1706,7 @@ async function renderCustomerLedger(main, cachedData){
               e.rate, e.runningYuan, e.runningRial, e.hawaleRate, e.depositRate, e.suggestedRate,
             ], customerEventsSearchQuery));
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
-            filteredEvents.map(e=>`<tr style="${e.pending?'background:#FFF9E8':''}">
+            fxWithMemo(filteredEvents, data.companyMoney).map(e=>e._memo ? fxMemoRowHtml(e) : `<tr style="${e.pending?'background:#FFF9E8':''}">
             <td class="date-cell" style="text-align:center">${e.date}</td>
             <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <button class="icon-btn" data-settle-company style="font-size:9.5px" title="با واریزیِ این مشتری تسویه شود (فروش از موجودی)">💰 تسویه</button>` : ''}</td>
             <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : (((e.type==='opening' || e.type==='advance') && e.rial_debit!=null) ? fmtRial(e.rial_debit) : '—')}</td>
@@ -1820,7 +1820,8 @@ async function renderCustomerLedger(main, cachedData){
   }));
   main.querySelector('#addOrderBtn').addEventListener('click', ()=>openOrderModal(null, currentCustomer));
   main.querySelectorAll('[data-settle-company]').forEach(b=>b.addEventListener('click', ()=>fxSettleCompanyMoney(currentCustomer, data.companyMoney || {rial:0})));
-  main.querySelector('#yuanPosBtn').addEventListener('click', ()=>{ yuanPosFocus = currentCustomer; currentTab = 'yuan-position'; currentCustomer = null; render(); });
+  const _ypb = main.querySelector('#yuanPosBtn'); if(_ypb) _ypb.addEventListener('click', ()=>{ yuanPosFocus = currentCustomer; currentTab = 'yuan-position'; currentCustomer = null; render(); });
+  main.querySelector('#custViewToggle').addEventListener('click', ()=>{ fxCustomerView = !fxCustomerView; renderMain(); });
   main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('customer', currentCustomer));
   main.querySelectorAll('[data-edit-opening]').forEach(b=>b.addEventListener('click', ()=>{
     const ev = data.events.find(x=>x.type==='opening' && x.id==b.dataset.editOpening);
@@ -2696,7 +2697,7 @@ function openHawaleModal(existing){
         <!-- ⚠️ (۱۴۰۵/۰۷/۱۴) پولِ شرکت برایِ کدام مشتری؟ (اختیاری) -->
         <div id="hOwnTagBox" style="margin-top:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px">
           <div style="font-size:11.5px;font-weight:700">🔖 این پولِ شرکت برایِ کدام مشتری است؟ (اختیاری)</div>
-          <div style="font-size:10.5px;color:var(--ink-soft);margin:2px 0 6px">اگه این بخش جبرانِ کمبودِ پولِ یک مشتری است، نامش و مبلغ را بنویسید. در «موجودیِ یوانِ شرکت» به نامِ او رزرو می‌شه و فقط به همان مشتری فروخته می‌شه؛ در دفترِ او هم «پولِ شرکت برایِ او (منتظرِ پرداخت)» دیده می‌شه. خالی بگذارید = موجودیِ عمومی.</div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin:2px 0 6px">اگه این بخش جبرانِ کمبودِ پولِ یک مشتری است، نامش و مبلغ را بنویسید. در «موجودیِ یوانِ شرکت» به نامِ او رزرو می‌شه و فقط به همان مشتری فروخته می‌شه؛ در دفترِ او فقط برایِ مدیریت (بدونِ اثر رویِ مانده‌ها و صورت‌حسابش) دیده می‌شه. خالی بگذارید = موجودیِ عمومی.</div>
           <div id="hOwnTagRows"></div>
           <button class="btn btn-ghost btn-sm" id="hAddOwnTag" type="button">+ مشتری</button>
           <div id="hOwnTagSum" style="font-size:11.5px;line-height:1.8;margin-top:4px"></div>
@@ -4835,7 +4836,7 @@ const FX_HELP = {
     ['💰 مشتری پول واریز کرد', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «ثبت پرداخت». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
     ['🔄 حواله زدم (با پولِ مشتری)', '«+ ثبت حواله»: تأمین‌کننده، تاریخ، نرخِ واقعی، حساب(هایِ) بانکیِ پرداخت‌کننده با مبلغ. در «👥 منبعِ ریالِ این حواله» نامِ مشتری را بزنید (کنارش «مانده‌یِ ریاليِ دستِ ما» دیده می‌شود)، مبلغ را بنویسید و «🔄 محاسبه‌یِ خودکار (FIFO)» را بزنید. نتیجه: بانک کم می‌شود، مشتری یوان بستانکار می‌شود، تأمین‌کننده «پیش‌پرداخت» می‌گیرد.'],
     ['🔒 این حواله برایِ خریدِ آینده‌یِ مشتری است (پولِ تأمین‌کننده نیست)', 'در دفترِ تأمین‌کننده روی ردیفِ حواله «🔒 نگه‌داری برایِ مشتری» را بزنید و برایِ هر مشتری مبلغ بدهید. آن بخش فاکتورهایِ تأمین‌کننده را تسویه نمی‌کند و از بدهیِ او کم نمی‌شود. اعتبارِ مشتری و بانک تغییر نمی‌کند.'],
-    ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». زیرش در «🔖 این پولِ شرکت برایِ کدام مشتری است؟» نامِ مشتری را بزنید. نتیجه: در دفترِ او همان بخش به‌صورتِ «💼 پولِ شرکت برایِ او» (یوان بستانکار + بدهیِ ریاليِ او به شرکت) دیده می‌شود. وقتی پرداخت کرد: «+ ثبت پرداخت»، بعد در دفترِ او «💰 تسویه با واریزیِ او» (یا «📦 موجودیِ یوانِ شرکت ← فروش از موجودی») تا آن واریزی نرخ بگیرد و بدهی تسویه شود.'],
+    ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». زیرش در «🔖 این پولِ شرکت برایِ کدام مشتری است؟» نامِ مشتری را بزنید. نتیجه: <b>مشتری چیزی نمی‌بیند</b> — در صورت‌حساب و مانده‌هایش نیست؛ فقط شما در «موجودیِ یوانِ شرکت»، «حسابِ یوانیِ ما» و یک کارتِ مخصوصِ مدیریت (بالایِ دفترِ او) می‌بینید. وقتی خواستید تسویه کنید: در دفترِ او «💰 تسویه با واریزیِ او» ← <b>خودتان</b> واریزی‌هایی را که می‌خواهید استفاده شود تیک بزنید ← پیش‌نمایش ← فروش؛ همان واریزی‌ها نرخ می‌گیرند و یوانشان رویِ ردیفِ خودشان می‌نشیند. اگر صفحه را به مشتری نشان می‌دهید «🙈 نمایشِ به مشتری» را روشن کنید.'],
     ['🔁 مشتری می‌خواهد یوانِ نگه‌داری‌شده را به تأمین‌کننده بدهد', 'اول فاکتورِ فروشِ مشتری و فاکتورِ خریدِ تأمین‌کننده را ثبت کنید. بعد در دفترِ تأمین‌کننده «ویرایش/برداشتن» ← بخشِ «🔁 انتقال»: مبلغ و تأمین‌کننده‌یِ مقصد. همان تأمین‌کننده = نگه‌داری برداشته می‌شود و فاکتورهایش تسویه می‌شود؛ تأمین‌کننده‌یِ دیگر = همان یوان با همان نرخ به او منتقل می‌شود.'],
     ['🏁 حسابِ قبل از مدار (مانده‌یِ اولیه)', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «مانده اولیه» (یا دکمه‌یِ آن در دفترِ همان نفر). جهت را درست انتخاب کنید («طلبِ ما از او» یا «بدهیِ ما به او»). فقط روی مانده‌ها اثر دارد، نه روی FIFO و نرخِ فاکتورها.'],
     ['⚙️ پولی دستی به/از تأمین‌کننده دادم/گرفتم', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «تعدیل یوانی» (یا دکمه‌یِ آن در دفترِ تأمین‌کننده). «بدهکار» = در ستونِ بدهکار می‌نشیند و بدهیِ ما به او زیاد می‌شود؛ «بستانکار» = در ستونِ بستانکار می‌نشیند و بدهیِ ما کم می‌شود. بدونِ ریال، نرخ و بانک است؛ توضیحِ واقعی بنویسید.'],
@@ -4868,13 +4869,14 @@ const FX_HELP = {
       ['+ ثبت فاکتور/پیش‌فاکتور', 'فروشِ یوانی به مشتری (بدهکار). مشتری را از لیست انتخاب کنید یا نامِ جدید بنویسید.'],
       ['🏁 مانده‌ی اولیه', 'برایِ مشتری‌ایِ که فقط حسابِ قبلی دارد؛ نام را می‌پرسد و اگر املایش فقط کمی فرق داشته باشد نامِ ثبت‌شده را برمی‌دارد.'],
       ['ستون‌هایِ لیست', 'مانده‌یِ یوانی، ریالِ واریزیِ حواله‌نشده و وضعیتِ فاکتورها (باز/تسویه).']]],
-    'customer-ledger': ['دفترِ کاملِ مشتری', 'هر ردیف یک فاکتور، واریزی، مانده‌یِ اولیه یا «پولِ شرکت برایِ او»، با مانده‌یِ تجمعیِ ریالی و یوانی.', [
+    'customer-ledger': ['دفترِ کاملِ مشتری', 'هر ردیف یک فاکتور، واریزی یا مانده‌یِ اولیه، با مانده‌یِ تجمعیِ ریالی و یوانی. چیزهایِ مخصوصِ مدیریت (پولِ شرکت برایِ او) فقط کارت/ردیفِ خاکستری‌اند و در مانده‌ها نیستند.', [
       ['+ ثبت فاکتور/پیش‌فاکتور برایِ این مشتری', 'فروشِ یوانی ثبت می‌کند؛ از اعتبارِ مشتری کم می‌شود.'],
       ['🏁 مانده‌ی اولیه (ریال و یوان)', 'حسابِ قبل از مدار. جهت: «طلبِ ما از او» یا «بدهیِ ما به او».'],
       ['💱 یوان و رزرو برایِ پیش‌فاکتور', 'به صفحه‌یِ «حسابِ یوانیِ ما» با همین مشتری می‌برد (حواله‌هایش و رزرو).'],
       ['📥 خروجی اکسل', 'فاکتورها یا دفترِ کامل را به اکسل می‌دهد.'],
       ['ردیفِ 🏁', 'مانده‌یِ اولیه — ویرایش/حذف دارد.'],
-      ['ردیفِ 💼 پولِ شرکت برایِ او', 'یوانِ آن بخش همین الان به او اعتبار شده و ریالش بدهیِ اوست؛ با پرداخت و «فروش از موجودی» تسویه می‌شود.'],
+      ['📝 کارت و ردیفِ خاکستریِ «فقط مدیریت»', 'پولی که شرکت از جیبِ خودش برایِ او گذاشته. در مانده‌ها و صورت‌حسابِ او نیست و فقط شما می‌بینید؛ «💰 تسویه» شما را به «موجودیِ یوانِ شرکت» می‌برد تا خودتان واریزی‌ها را انتخاب کنید.'],
+      ['🙈 نمایشِ به مشتری', 'روشنش کنید تا هرچه مخصوصِ مدیریت است (کارت، ردیفِ خاکستری، «یوان و رزرو») پنهان شود؛ وقتی صفحه را به مشتری نشان می‌دهید یا اسکرین‌شات می‌گیرید. خروجیِ اکسل همیشه بدونِ آن‌هاست.'],
       ['ردیفِ واریزی', 'نرخِ حواله = نرخِ همان حواله‌ای که پولِ او را برده؛ «⏳ هنوز حواله نشده» یعنی هنوز یوانی نگرفته. «نرخِ سوم» (نرخِ پیشنهادیِ حواله) فقط وقتی فعال است که واریزی به حواله وصل باشد و فقط برایِ محاسبه‌یِ فاکتورِ مشتری است.'],
       ['🔒 قفل کن (ثبت در هلو)', 'نرخِ میانگین و معادلِ ریاليِ فاکتورِ بسته‌شده را ثابت می‌کند. «بازکردن» فقط برایِ قفلِ اشتباه.'],
       ['📋 جزئیاتِ تسویه / ✏️ ویرایش / حذف', 'نشان می‌دهد کدام واریزی‌ها فاکتور را بسته‌اند؛ ویرایش و حذفِ فاکتور.']]],
@@ -4944,7 +4946,7 @@ const FX_HELP_PLAIN = {
       'جدولِ پایین: هر ردیف یک حواله است. «خریده‌شده با پولِ خودمون» = چند یوانِ آن حواله پولِ شرکت بوده؛ «فروخته» = چقدرش را به مشتری‌ها داده‌اید؛ «مانده» = هنوز چقدر دارید؛ «نرخِ فروشِ الان» = طبقِ فرمول.',
       'ردیفِ «🔖 رزرو برایِ …» زیرِ یک حواله یعنی هنگامِ ثبتِ حواله مشخص کرده‌اید آن بخشِ پولِ شرکت برایِ فلان مشتری است: فقط به همان مشتری فروخته می‌شود («مانده‌یِ رزروِ او» = چقدرش هنوز مانده). «بخشِ عمومی» را به هر مشتری می‌شود فروخت.',
     ],
-    example: 'مثلاً در ردیفِ #16: ‎۷۸۰٫۰۷۳۹ یوان (۳۱۷٬۴۹۰٬۰۶۴ ریال) برایِ «شرکت ویرا تدبیر» رزرو شده. وقتی ویرا ‎۳۱۷٬۴۹۰٬۰۶۴ ریال پرداخت کرد: واریزی را ثبت کنید، اینجا مشتری = شرکت ویرا تدبیر و مبلغ = ‎317490064 ← پیش‌نمایش ← فروش. بعد «مانده‌یِ رزروِ او» صفر می‌شود و بدهیِ ریاليِ او به شرکت در دفترش تسویه می‌شود. ردیفِ #14 رزرو ندارد؛ آن یوان «عمومی» است و به هر مشتری می‌شود فروخت.',
+    example: 'مثلاً در ردیفِ #16: ‎۷۸۰٫۰۷۳۹ یوان (۳۱۷٬۴۹۰٬۰۶۴ ریال) برایِ «شرکت ویرا تدبیر» رزرو شده. مشتری این را نمی‌بیند. وقتی خواستید تسویه کنید: مشتری = شرکت ویرا تدبیر ← واریزی‌هایی را که <b>خودتان</b> می‌خواهید تیک بزنید (بقیه برایِ حساب‌هایِ قبلی می‌مانند) ← پیش‌نمایش ← فروش. همان واریزی‌ها نرخِ فروش می‌گیرند و یوانشان رویِ ردیفِ خودشان در دفترِ مشتری می‌نشیند؛ «مانده‌یِ رزروِ او» کم می‌شود و «سودِ فروش به او» همین‌جا دیده می‌شود. ردیفِ #14 رزرو ندارد؛ آن یوان «عمومی» است و به هر مشتری می‌شود فروخت.',
     tips: ['اگر همه‌یِ حواله‌هایتان فقط با پولِ مشتری‌ها زده می‌شود، این صفحه خالی است و کاری با آن ندارید.', 'فروش فقط از «واریزی‌هایِ آزادِ» همان مشتری انجام می‌شود (واریزیِ حواله‌نشده). اگر نوشت «کافی نیست»، واریزیِ او را ثبت نکرده‌اید یا قبلاً خرج شده.', 'هر فروش را از جدولِ «جزئیاتِ تسویه» می‌شود برگرداند.'],
   },
   'yuan-position': {
@@ -4966,7 +4968,7 @@ const FX_HELP_PLAIN = {
     tips: ['برایِ نگه‌داری یا انتقالِ یوانِ یک حواله، وارد «دفترِ تأمین‌کننده» شوید و روی ردیفِ آن حواله بزنید.'],
   },
   'customer-ledger': {
-    what: 'صورت‌حسابِ کاملِ یک مشتری به ترتیبِ زمان: فاکتورها (او بدهکار می‌شود)، واریزی‌ها (بستانکار)، مانده‌یِ اولیه و «پولِ شرکت برایِ او». دو مانده‌یِ جدا دارد: ریالی و یوانی.',
+    what: 'صورت‌حسابِ کاملِ یک مشتری به ترتیبِ زمان: فاکتورها (او بدهکار می‌شود)، واریزی‌ها (بستانکار) و مانده‌یِ اولیه. دو مانده‌یِ جدا دارد: ریالی و یوانی. (پولِ شرکت برایِ او در این مانده‌ها نیست.)',
     steps: ['مانده‌یِ یوانیِ «منفی» یعنی ما به او یوان بدهکاریم؛ «مثبت» یعنی او به ما بدهکار است.', 'واریزی با «⏳ هنوز حواله نشده» یعنی پولش پیشِ ماست ولی هنوز یوانی نگرفته؛ بعد از ثبتِ حواله با پولِ او یوان می‌گیرد.', 'فاکتورِ «بسته» (باقی‌مانده ≤ ۱۰ یوان) نرخِ میانگین دارد؛ بعد از ثبت در هلو «🔒 قفل کن» را بزنید.'],
     example: 'واریزیِ ۳٫۷۵ میلیارد ریال → حواله‌ی او با نرخِ ۴۰۴٬۰۰۰ → ردیفِ واریزی «۹٬۲۸۸ یوان بستانکار» می‌شود.',
     tips: ['راهنمایِ هر دکمه: «❓ راهنما» (پایینِ صفحه).'],
@@ -5123,17 +5125,54 @@ async function renderStock(main){
       <div class="form-row"><div class="field"><label>مشتری</label><input id="stkCust" type="text" list="stkCustList"><datalist id="stkCustList">${customers.map(n=>`<option value="${n}">`).join('')}</datalist></div>
         <div class="field"><label>مبلغِ ریال (از واریزی‌هایِ آزادش)</label><input id="stkRial" type="text" class="num"></div>
         <div class="field"><label>نرخِ فروشِ دستی (اختیاری — خالی = فرمول)</label><input id="stkRate" type="text" class="num"></div></div>
+      <div id="stkPicker" style="margin:8px 0 10px"></div>
       <button class="btn btn-ghost btn-sm" id="stkPrev">🔎 پیش‌نمایش</button> <button class="btn btn-primary btn-sm" id="stkSell" disabled>✅ فروش</button>
       <div id="stkPrevBox" style="margin-top:10px"></div>
     </div>
     <div class="table-wrap"><table><thead><tr><th>حواله</th><th>تأمین‌کننده(ها)</th><th>نرخِ خرید</th><th>خریده‌شده با پولِ خودمون</th><th>فروخته</th><th>مانده</th><th>نرخِ فروشِ الان</th><th>سود</th></tr></thead><tbody>
       ${d.lots.length ? d.lots.map(l=>`<tr><td class="date-cell">#${l.hawaleId} · ${l.date}</td><td>${l.suppliers.join('، ')}</td><td class="num">${fmt(l.costRate,0)}</td><td class="num">${fmtYuan(l.stockYuan)}</td><td class="num">${fmtYuan(l.soldYuan)}</td><td class="num" style="font-weight:700">${fmtYuan(l.remainingYuan)}</td><td class="num">${fmt(l.saleRateNow,0)}</td><td class="num">${fmtRial(l.profitRial)}</td></tr>
-        ${(l.reservedFor||[]).map(x=>`<tr style="font-size:11px"><td></td><td colspan="7">🔖 رزرو برایِ <b>${fxc_esc(x.customer)}</b> · ${fmtYuan(x.yuan)} (${fmtRial(x.rial)}) · فروخته به او: ${fmtYuan(x.soldYuan)} · <b>مانده‌یِ رزروِ او: ${fmtYuan(x.remainingYuan)}</b> — فقط به همین مشتری فروخته می‌شه</td></tr>`).join('')}${(l.reservedFor||[]).length ? `<tr style="font-size:11px;color:var(--ink-soft)"><td></td><td colspan="7">بخشِ عمومی (قابلِ فروش به هر مشتری): ${fmtYuan(l.generalYuan||0)}</td></tr>` : ''}
+        ${(l.reservedFor||[]).map(x=>`<tr style="font-size:11px"><td></td><td colspan="7">🔖 رزرو برایِ <b>${fxc_esc(x.customer)}</b> · ${fmtYuan(x.yuan)} (${fmtRial(x.rial)}) · فروخته به او: ${fmtYuan(x.soldYuan)}${x.soldYuan>0 ? ' · سودِ فروش به او: <b>'+fmtRial((l.sales||[]).filter(s=>normalizeFa(s.customer)===normalizeFa(x.customer)).reduce((a,s)=>a+s.profitRial,0))+'</b>' : ''} · <b>مانده‌یِ رزروِ او: ${fmtYuan(x.remainingYuan)}</b> — فقط به همین مشتری فروخته می‌شه</td></tr>`).join('')}${(l.reservedFor||[]).length ? `<tr style="font-size:11px;color:var(--ink-soft)"><td></td><td colspan="7">بخشِ عمومی (قابلِ فروش به هر مشتری): ${fmtYuan(l.generalYuan||0)}</td></tr>` : ''}
         ${l.sales.map(x=>`<tr style="font-size:11px;color:var(--ink-soft)"><td></td><td colspan="5">↳ فروش به <b>${x.customer}</b> · واریزیِ ${x.paymentDate} · ${fmtYuan(x.yuan)} × ${fmt(x.saleRate,0)} = ${fmtRial(x.rial)}</td><td class="num">${fmtRial(x.profitRial)}</td><td><button class="icon-btn" data-stk-undo="${x.allocationId}" title="برگرداندنِ این فروش">↩</button></td></tr>`).join('')}`).join('')
         : '<tr><td colspan="8" class="empty">هنوز حواله‌ای با «پولِ مازادِ خودمون» ثبت نشده — در فرمِ حواله، فیلدِ «💼 از پولِ مازادِ خودمون» رو پر کنید.</td></tr>'}
     </tbody></table></div>`;
   ['#stkFix','#stkRial','#stkRate'].forEach(q=>wireLiveNumberFormat(main.querySelector(q)));
   const nm = v => Number(String(v||'').replace(/[۰-۹]/g,x=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(x)).replace(/[,٬\s]/g,'')) || 0;
+  // ⚠️ (۱۴۰۵/۰۷/۱۵) انتخابِ دستیِ واریزی‌ها — مدیر خودش می‌گوید کدام واریزی‌هایِ آزادِ مشتری استفاده شود (بقیه برایِ حساب‌هایِ قبلی دست‌نخورده می‌مانند)
+  let picked = new Set(), pickPays = [], amountTouched = false;
+  const pk = main.querySelector('#stkPicker');
+  const prefill = fxStockPrefill; fxStockPrefill = null;
+  const pickTotal = ()=>pickPays.filter(p=>picked.has(p.id)).reduce((s,p)=>s+p.freeRial,0);
+  function drawPicker(msg){
+    const cust = main.querySelector('#stkCust').value.trim();
+    if(!cust){ pk.innerHTML = '<div style="font-size:11.5px;color:var(--ink-soft)">نامِ مشتری را بنویس تا واریزی‌هایِ آزادش بیاید و خودت انتخاب کنی کدام‌ها استفاده شود.</div>'; return; }
+    if(msg){ pk.innerHTML = `<div style="font-size:11.5px;color:var(--ink-soft)">${msg}</div>`; return; }
+    const hint = (prefill && prefill.customer===cust && prefill.hintRial) ? `<div class="tag yuan" style="margin-bottom:6px;font-size:11.5px">💼 پولِ شرکت که برایِ او گذاشته‌ای: <b>${fmtRial(prefill.hintRial)}</b> (${fmtYuan(prefill.hintYuan)}) — واریزی‌هایی را که می‌خواهی با آن تسویه شود تیک بزن؛ بقیه دست‌نخورده می‌مانند.</div>` : '';
+    pk.innerHTML = `${hint}<div style="font-weight:700;font-size:12px;margin-bottom:4px">☑️ کدام واریزی‌هایِ آزادِ «${fxc_esc(cust)}» استفاده شود؟ <span style="font-weight:400;color:var(--ink-soft)">(خودت انتخاب کن)</span></div>
+      ${pickPays.length ? `<div class="table-wrap"><table><thead><tr><th></th><th>تاریخ</th><th>حساب</th><th>مبلغِ واریزی</th><th>آزاد (حواله‌نشده)</th></tr></thead><tbody>${pickPays.map(p=>`<tr><td><input type="checkbox" data-pk="${p.id}" ${picked.has(p.id)?'checked':''}></td><td class="date-cell">${fxc_esc(p.date)}</td><td>${fxc_esc(p.account)}</td><td class="num">${fmtRial(p.rialAmount)}</td><td class="num"><b>${fmtRial(p.freeRial)}</b></td></tr>`).join('')}</tbody></table></div>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button type="button" class="icon-btn" id="stkPkOldest">☑️ قدیمی‌ترین‌ها را خودکار بزن (به اندازه‌یِ مبلغ)</button><button type="button" class="icon-btn" id="stkPkNone">هیچ</button><span style="font-size:12px">انتخاب‌شده: <b>${fmtRial(pickTotal())}</b></span></div>` : '<div class="empty" style="padding:8px">این مشتری واریزیِ آزادی (حواله‌نشده) ندارد.</div>'}`;
+    pk.querySelectorAll('[data-pk]').forEach(cb=>cb.addEventListener('change', ()=>{ const id = +cb.dataset.pk; if(cb.checked) picked.add(id); else picked.delete(id); afterPick(); }));
+    const o = pk.querySelector('#stkPkOldest'); if(o) o.addEventListener('click', ()=>{ picked.clear(); const need = nm(main.querySelector('#stkRial').value) || Infinity; let got = 0; for(const p of pickPays){ if(got >= need) break; picked.add(p.id); got += p.freeRial; } afterPick(); });
+    const n = pk.querySelector('#stkPkNone'); if(n) n.addEventListener('click', ()=>{ picked.clear(); afterPick(); });
+  }
+  function afterPick(){
+    plan = null; const sb = main.querySelector('#stkSell'); if(sb) sb.disabled = true;
+    if(!amountTouched){ const r = main.querySelector('#stkRial'); r.value = pickTotal() ? fmt(pickTotal(), 0) : ''; }
+    drawPicker();
+  }
+  async function loadPicker(){
+    const cust = main.querySelector('#stkCust').value.trim(); picked = new Set(); pickPays = [];
+    if(!cust){ drawPicker(); return; }
+    drawPicker('در حالِ گرفتنِ واریزی‌هایِ آزاد…');
+    try{
+      const r = await fetch(FX_API+'accounts/customer-free-payments/?customer='+encodeURIComponent(cust)); const x = await r.json();
+      pickPays = (x.payments || []); drawPicker(r.ok ? null : (x.error || 'نشد'));
+    }catch(e){ drawPicker('⚠️ واریزی‌هایِ آزاد از سرور نیامد — دوباره امتحان کن (اگر تازه deploy کرده‌ای، views.py جدید را هم بگذار)'); }
+  }
+  let _pkTimer = null;
+  main.querySelector('#stkCust').addEventListener('input', ()=>{ clearTimeout(_pkTimer); _pkTimer = setTimeout(loadPicker, 500); });
+  main.querySelector('#stkCust').addEventListener('change', loadPicker);
+  main.querySelector('#stkRial').addEventListener('input', ()=>{ amountTouched = true; plan = null; const sb = main.querySelector('#stkSell'); if(sb) sb.disabled = true; });
+  drawPicker();
   main.querySelector('#stkSave').onclick = async ()=>{
     const r = await fetch(FX_API+'settings/', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stock_markup_percent: String(nm(main.querySelector('#stkPct').value)), stock_markup_fixed: String(nm(main.querySelector('#stkFix').value))})});
     if(r.ok){ showToast('✅ فرمول ذخیره شد'); renderStock(main); } else showToast('❌ ذخیره نشد');
@@ -5141,8 +5180,10 @@ async function renderStock(main){
   let plan = null;
   main.querySelector('#stkPrev').onclick = async ()=>{
     const cust = main.querySelector('#stkCust').value.trim(), rial = nm(main.querySelector('#stkRial').value), rate = nm(main.querySelector('#stkRate').value);
-    if(!cust || !rial){ showToast('مشتری و مبلغ رو وارد کنید'); return; }
-    const r = await fetch(FX_API+`stock/preview/?customer=${encodeURIComponent(cust)}&rial=${Math.round(rial)}${rate?'&sale_rate='+Math.round(rate):''}`);
+    if(!cust){ showToast('نامِ مشتری را وارد کنید'); return; }
+    if(!picked.size){ showToast('اول واریزی‌هایی را که می‌خواهی استفاده شود تیک بزن'); return; }
+    if(!rial){ showToast('مبلغ را وارد کنید (یا واریزی‌ها را تیک بزنید تا خودکار پر شود)'); return; }
+    const r = await fetch(FX_API+`stock/preview/?customer=${encodeURIComponent(cust)}&rial=${Math.round(rial)}&payment_ids=${[...picked].join(',')}${rate?'&sale_rate='+Math.round(rate):''}`);
     const x = await r.json(); plan = x;
     const box = main.querySelector('#stkPrevBox');
     if(!r.ok || !x.plan || !x.plan.length){ box.innerHTML = `<div style="color:var(--danger);font-size:12px">⚠️ ${x.error || 'واریزیِ آزادِ این مشتری یا موجودیِ شرکت کافی نیست'} (واریزیِ آزاد: ${fmtRial(x.customerFreeRial||0)} · موجودی: ${fmtYuan(x.stockYuan||0)})</div>`; main.querySelector('#stkSell').disabled = true; return; }
@@ -5156,7 +5197,7 @@ async function renderStock(main){
     if(!plan || !plan.plan.length) return;
     const cust = main.querySelector('#stkCust').value.trim(), rial = nm(main.querySelector('#stkRial').value), rate = nm(main.querySelector('#stkRate').value);
     if(!confirm(`فروش از موجودیِ شرکت به «${cust}» انجام بشه؟`)) return;
-    const r = await fetch(FX_API+'stock/sell/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:cust, rial:Math.round(rial), sale_rate: rate?Math.round(rate):null})});
+    const r = await fetch(FX_API+'stock/sell/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer:cust, rial:Math.round(rial), sale_rate: rate?Math.round(rate):null, payment_ids:[...picked]})});
     const x = await r.json();
     if(r.ok){ showToast('✅ فروخته شد'); await loadAll?.(); renderStock(main); } else showToast('❌ '+(x.error||'ناموفق'));
   };
@@ -5165,12 +5206,8 @@ async function renderStock(main){
     const r = await fetch(FX_API+'stock/undo/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({allocation_id:+b.dataset.stkUndo})});
     if(r.ok){ showToast('↩ برگردونده شد'); renderStock(main); } else showToast('❌ ناموفق');
   });
-  // ⚠️ (۱۴۰۵/۰۷/۱۴) آمدن از دفترِ مشتری با «💰 تسویه با واریزیِ او»: مشتری و مبلغ پُر و پیش‌نمایش خودکار اجرا می‌شود
-  if(fxStockPrefill){
-    const pf = fxStockPrefill; fxStockPrefill = null;
-    const c = main.querySelector('#stkCust'), r = main.querySelector('#stkRial');
-    if(c && r){ c.value = pf.customer; r.value = fmt(pf.rial, 0); try{ c.scrollIntoView({block:'center'}); }catch(e){} const pv = main.querySelector('#stkPrev'); if(pv) pv.click(); }
-  }
+  // ⚠️ (۱۴۰۵/۰۷/۱۵) آمدن از دفترِ مشتری با «💰 تسویه با واریزیِ او»: فقط مشتری پُر می‌شود و واریزی‌هایِ آزادش می‌آید — انتخاب با خودِ توست
+  if(prefill){ const c = main.querySelector('#stkCust'); if(c){ c.value = prefill.customer; try{ c.scrollIntoView({block:'center'}); }catch(e){} loadPicker(); } }
 }
 
 async function renderCapitalAdvances(main, skipLoad){
@@ -5461,17 +5498,31 @@ function openOpeningBalanceModal(partyType, name, existing){
 // این بخش از مانده‌یِ بدهیِ فاکتورهایِ تأمین‌کننده کنار گذاشته می‌شه؛ سمتِ مشتری (اعتبارِ یوانی) و بانک تغییر نمی‌کنه.
 // سرور: POST /api/ledger/accounts/hawale-holds/  {hawale, held_rial, note}   (held_rial=0 → برداشتن)
 // ══════════════════════════════════════════════════════════════
-// ⚠️ (۱۴۰۵/۰۷/۱۴) کارتِ «پولِ شرکت برایِ او» + دکمه‌یِ «💰 تسویه با واریزیِ او» (می‌رود به «موجودیِ یوانِ شرکت» با مشتری و مبلغِ پُرشده)
+// ⚠️ (۱۴۰۵/۰۷/۱۵) «پولِ شرکت برایِ مشتری» فقط برایِ مدیریت است و در صورت‌حسابِ مشتری و مانده‌هایش نمی‌آید.
+// کارتِ زیر + ردیفِ یادداشتِ خاکستری در جدول «بدونِ اثر رویِ مانده‌ها» نشان داده می‌شوند؛ با «🙈 نمایشِ به مشتری» همه پنهان می‌شوند.
 let fxStockPrefill = null;
+let fxCustomerView = false;      // true = نمایِ مشتری (هرچه مخصوصِ مدیریت است پنهان)
 function fxCompanyMoneyCardHtml(cm){
   if(!cm || !(cm.yuan > 0.005)) return '';
-  return `<div class="card stat-card"><div class="stat-label">💼 پولِ شرکت برایِ او (بدهیِ ریاليِ او به شرکت)</div><div class="stat-value yuan num">${fmtYuan(cm.yuan)}</div><div class="stat-hint">≈ ${fmtRial(cm.rial)} — در حواله‌هایِ ${cm.items.map(i=>'#'+i.hawaleId).join('، ')} از جیبِ شرکت برایِ او گذاشته شده. یوانش همین الان در مانده‌یِ یوانیِ او حساب شده و ریالش بدهیِ اوست. وقتی پول داد، همین دکمه را بزنید: آن واریزی نرخ می‌گیرد و این بدهی تسویه می‌شود.</div><div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-settle-company>💰 تسویه با واریزیِ او ›</button></div></div>`;
+  return `<div class="card stat-card" data-mgmt-only><div class="stat-label">💼 پولِ شرکت برایِ او (فقط مدیریت می‌بیند)</div><div class="stat-value yuan num">${fmtYuan(cm.yuan)}</div><div class="stat-hint">≈ ${fmtRial(cm.rial)} — در حواله‌هایِ ${cm.items.map(i=>'#'+i.hawaleId).join('، ')} از جیبِ شرکت برایِ او گذاشته شده. <b>در صورت‌حساب و مانده‌هایِ او نیست</b>؛ تا وقتی یوان را به او نفروخته‌ای «موجودیِ شرکت» است. وقتی خواستی تسویه کنی، دکمه را بزن و <b>خودت</b> واریزی‌هایی را که می‌خواهی استفاده شود انتخاب کن.</div><div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-settle-company>💰 تسویه با واریزیِ او ›</button></div></div>`;
+}
+// ردیفِ یادداشتِ مدیریت در جدولِ دفترِ مشتری (در مانده‌ها و جمع‌ها و خروجیِ اکسل حساب نمی‌شود)
+function fxWithMemo(events, cm){
+  if(fxCustomerView || !cm || !cm.items || !cm.items.length || (typeof customerEventsSearchQuery !== 'undefined' && customerEventsSearchQuery)) return events;
+  const memos = cm.items.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(i=>Object.assign({_memo:true}, i));
+  const out = []; let mi = 0;
+  for(const e of events){
+    while(mi < memos.length && String(memos[mi].date) <= String(e.date)) out.push(memos[mi++]);
+    out.push(e);
+  }
+  while(mi < memos.length) out.push(memos[mi++]);
+  return out;
+}
+function fxMemoRowHtml(m){
+  return `<tr data-mgmt-only style="background:#E6EAF1;color:#3d4a5e;font-style:italic"><td class="date-cell">${fxc_esc(m.date)}</td><td colspan="10" style="text-align:right;font-size:11.5px;line-height:1.9">📝 <b>فقط مدیریت</b> — 💼 پولِ شرکت برایِ او · حواله #${m.hawaleId} (${fxc_esc(m.supplier)}) · ${fmtYuan(m.yuan)} (${fmtRial(m.rial)}) · نرخ ${fmt(m.rate,0)} — <u>در مانده‌ها و صورت‌حساب نیست</u> <button class="icon-btn" type="button" data-settle-company style="font-size:10px;font-style:normal">💰 تسویه</button></td></tr>`;
 }
 function fxSettleCompanyMoney(customer, cm){
-  const s = (typeof fxLastSummary !== 'undefined' && fxLastSummary && fxLastSummary.customers) ? fxLastSummary.customers.find(c=>c.name===customer) : null;
-  const free = s ? Number(s.unlinkedRial||0) : 0;
-  const amount = free > 0 ? Math.min(free, cm.rial) : cm.rial;
-  fxStockPrefill = {customer, rial: Math.round(amount)};
+  fxStockPrefill = {customer, hintRial: Math.round((cm && cm.rial) || 0), hintYuan: (cm && cm.yuan) || 0};
   currentTab = 'stock'; currentCustomer = null; if(typeof currentSupplier !== 'undefined') currentSupplier = null; render();
 }
 async function openHawaleHoldModal(hawaleId, ev, supplierName){
