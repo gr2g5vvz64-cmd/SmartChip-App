@@ -11,7 +11,7 @@
   if (file === 'fx-ledger.html') return;                       // راهنمایِ مستقلِ خودش را دارد
   if (/[?&]m=/.test(location.search)) return;                  // حالتِ تمام‌صفحه‌یِ گوشی (crm.html?m=…)
 
-  var BUILD = '1405.07.15-1';
+  var BUILD = '1405.07.15-2';
   var GUIDES = [['📖 راهنمایِ کاملِ کارکنان', 'guide-staff.html'], ['🛠️ راهنمایِ مدیریتِ مدار', 'guide-admin.html']];
 
   var PAGES = {
@@ -129,21 +129,20 @@
       tips: ['وزنِ هر قطعه از «وزن‌نامه» خوانده می‌شود؛ اگر وزنش ثبت نشده، اول آنجا وارد کنید.']
     },
     'reminders.html': {
-      t: 'یادآوری‌ها و سپرده‌ها', i: '🔔',
-      what: 'کارهایِ شخصیِ شما: یادآوریِ آزاد و دوره‌ای، تقویم، و «🤝 سپرده‌ها و قول‌ها» برایِ کارهایی که به کسی می‌سپارید. این صفحه مثلِ یک اپ نصب می‌شود.',
-      sec: [['🤝 سپرده‌ها و قول‌ها (تبِ «سپرده‌ها»)', [
-        ['+ سپردم', 'چه کاری، به چه کسی، تا کِی جواب بدهد، از چه راهی (بله/واتساپ/…). اگر کسی کار را به شما سپرده، نامش و «کِی جواب را به او می‌دهید» را هم بزنید.'],
-        ['⏳ منتظرِ جواب', 'کاری که سپرده‌اید و هنوز جوابش نیامده. روزِ موعد در «روزِ من» و تقویم می‌آید؛ بعد از موعد 🔴 دیرکرد می‌خورد.'],
-        ['✅ جواب گرفتم', 'جواب را (اختیاری) بنویسید. اگر کسی کار را به شما سپرده، مورد می‌شود «📣 باید تحویل بدهی»؛ وگرنه همان‌جا بسته می‌شود.'],
-        ['📣 تحویل دادم', 'وقتی جواب را به کسی که کار را سپرده رساندید بزنید؛ مورد بسته می‌شود و در «سابقه» می‌ماند.'],
-        ['💬 پیگیری / 📋 کپیِ پیام', 'اگر شماره‌اش را نوشته باشید، دکمه‌یِ واتساپ با متنِ آماده و تماس می‌آید؛ وگرنه «کپیِ پیام» را بزنید و هر جا خواستید بفرستید.'],
-        ['⏰ ۱ روز بعد / ↩️ هنوز کامل نیست', 'موعدِ مرحله‌یِ فعلی را یک روز عقب می‌اندازد / مورد را دوباره «منتظرِ جواب» می‌کند.'],
-        ['🕘 تاریخچه', 'زیرِ هر مورد: چه اتفاقی، کِی افتاده؛ برایِ شفافیت.']]],
+      t: 'یادآوری‌ها و پیگیری و تحویل', i: '🔔',
+      what: 'کارهایِ شخصیِ شما: یادآوریِ آزاد و دوره‌ای، تقویم، و «🤝 پیگیری و تحویل» برایِ کارهایی که به همکار ارجاع می‌دهید. این صفحه مثلِ یک اپ نصب می‌شود.',
+      sec: [['🤝 پیگیری و تحویل', [
+        ['+ ثبتِ پیگیری', 'فرم: مسئولِ پیگیری (حمیدرضا/عباس) · پیگیری‌کننده · زمانِ ارجاع (خودکار با انتخابِ پیگیری‌کننده) · مشتری (جستجو در همه‌یِ مشتریانِ مدار) · موضوعِ پیگیری · موعدِ تحویلِ پیگیری · نتیجه‌یِ پیگیری.'],
+        ['⏳ در حال پیگیری', 'کاری که ارجاع شده و نتیجه‌اش نیامده. پیگیری‌کننده همان لحظه در بله خبر می‌گیرد؛ روزِ موعد در «روزِ من» و تقویم می‌آید و بعد از موعد 🔴 دیرکرد می‌خورد.'],
+        ['✅ ثبتِ نتیجه', 'پیگیری‌کننده نتیجه را می‌نویسد؛ مسئول در بله خبر می‌گیرد و مورد می‌شود «📦 منتظرِ تحویل». اگر مسئول و پیگیری‌کننده یکی باشند، کار همان‌جا بسته می‌شود.'],
+        ['📦 تحویل گرفتم', 'مسئول وقتی نتیجه را تحویل گرفت بزند؛ مورد بسته می‌شود و در «سابقه» می‌ماند.'],
+        ['📋 کپیِ پیامِ پیگیری / ⏰ ۱ روز بعد / ↩️ هنوز کامل نیست', 'پیامِ آماده برایِ هر پیام‌رسان؛ عقب‌انداختنِ یک‌روزه؛ برگرداندنِ مورد به «در حال پیگیری».'],
+        ['🕘 تاریخچه', 'زیرِ هر مورد: چه اتفاقی، کِی و به دستِ چه کسی افتاده.']]],
         ['یادآوری‌هایِ معمولی', [
-        ['☀️ روزِ من', 'کارهایِ امروز (شاملِ سپرده‌هایی که امروز موعدشان است) و «عقب‌افتاده».'], ['📋 همه‌یِ باز', 'همه‌یِ یادآوری‌ها و سپرده‌هایِ باز.'],
-        ['🗓️ تقویم', 'نمایِ ماهانه؛ هر روزِ دارایِ کار یک نقطه دارد.'], ['🗄️ سابقه', 'انجام‌شده‌ها، لغوشده‌ها و بایگانی.'],
-        ['+ (دکمه‌یِ گوشه)', 'یادآوریِ جدید: آزاد، دوره‌ای یا «🤝 سپردم».'], ['⚡ کارِ فردا', 'سریع چیزی برایِ فردا بگذارید.']]]],
-      tips: ['هر صبح (و هر وقت کرون تنظیم شده) خلاصه‌یِ «چه کسی باید جواب بدهد» به بله‌یِ شما می‌آید.', 'یادآوری‌ها قبل از موعد در بله هم پیام می‌دهند.']
+        ['＋ یادآوریِ جدید', 'در «روزِ من» و «همه‌یِ باز» (کنارِ عنوان) و در تقویم برایِ هر روز؛ آزاد یا دوره‌ای. «⚡ کارِ فردا» بالایِ صفحه برایِ ثبتِ سریع.'],
+        ['☀️ روزِ من', 'کارهایِ امروز (شاملِ پیگیری‌هایی که امروز موعدشان است) و «عقب‌افتاده».'], ['📋 همه‌یِ باز', 'همه‌یِ یادآوری‌ها و پیگیری‌هایِ باز.'],
+        ['🗓️ تقویم', 'نمایِ ماهانه و تعطیلات؛ «🔗 اتصال به تقویمِ گوشی و گوگل» پایینِ همین تب است.'], ['🗄️ سابقه', 'انجام‌شده‌ها، لغوشده‌ها و بایگانی.']]]],
+      tips: ['هر صبح خلاصه‌یِ «چه چیزی دیرکرد/موعدش امروز است» به بله‌یِ شما می‌آید (با تنظیمِ کرون).', 'دایره‌یِ 📥 کارتابل و ❓ راهنما پایینِ صفحه هستند.']
     },
     'guide-staff.html': { t: 'راهنمایِ کارکنان', i: '📖', what: 'راهنمایِ کاملِ استفاده از مدار برایِ کارکنان. از فهرستِ بالایِ صفحه به هر بخش بروید؛ برایِ جستجو Ctrl+F بزنید.', sec: [], tips: ['اگر چیزی در این راهنما نبود یا گنگ بود، به مدیر بگویید تا اضافه شود.'] },
     'guide-admin.html': { t: 'راهنمایِ مدیریتِ مدار', i: '🛠️', what: 'راهنمایِ مدیران: تنظیماتِ سرور، ورودِ امن، بک‌آپ و تاریخچه‌یِ تغییراتِ مدار. برایِ جستجو Ctrl+F بزنید.', sec: [], tips: ['تاریخچه‌یِ نسخه‌ها (آخرینِ تغییرات) در بخشِ «🆕 تاریخچه‌ی نسخه‌ها» است.'] }
@@ -151,8 +150,9 @@
   PAGES['mobile.html'] = PAGES['m.html'];
   var P = PAGES[file] || { t: 'مدار', i: '❓', what: 'برایِ این صفحه راهنمایِ جداگانه‌ای نوشته نشده است. راهنمایِ کاملِ مدار را در لینک‌هایِ پایین ببینید.', sec: [], tips: [] };
 
-  var css = '#madarHelpBtn{position:fixed;left:16px;bottom:' + (file === 'm.html' ? '76' : '16') + 'px;z-index:2147481900;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;border:1px solid #323952;background:#1a1e2a;color:#f4f5f8;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
+  var css = '#madarHelpBtn{position:fixed;left:16px;bottom:16px;z-index:2147481900;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;border:1px solid #323952;background:#1a1e2a;color:#f4f5f8;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
     '#madarHelpBtn:hover{border-color:#f0a500}' +
+    '@media (max-width:700px){#madarHelpBtn{width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;font-size:17px}#madarHelpBtn .mh-lbl{display:none}}' +
     '#madarHelp{position:fixed;inset:0;z-index:2147483000;background:rgba(8,10,16,.62);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
     '#madarHelp .mh-box{width:min(720px,100%);max-height:88vh;overflow:auto;background:#1a1e2a;border:1px solid #323952;border-radius:16px;color:#f4f5f8;box-shadow:0 20px 60px rgba(0,0,0,.55)}' +
     '#madarHelp .mh-h{position:sticky;top:0;background:#1a1e2a;display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #323952;z-index:1}' +
@@ -207,16 +207,32 @@
   function mount() {
     if (document.getElementById('madarHelpBtn') || !document.body) return;
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
-    var b = document.createElement('button'); b.id = 'madarHelpBtn'; b.type = 'button'; b.textContent = '❓ راهنما'; b.title = 'راهنمایِ همین صفحه';
+    var b = document.createElement('button'); b.id = 'madarHelpBtn'; b.type = 'button'; b.innerHTML = '❓<span class="mh-lbl"> راهنما</span>'; b.title = 'راهنمایِ همین صفحه'; b.setAttribute('aria-label','راهنما');
     b.addEventListener('click', open); document.body.appendChild(b);
-    // ⚠️ (۱۴۰۵/۰۷/۱۴) کنارِ (سمتِ راستِ) دکمه‌یِ 📥 کارتابل، هم‌ردیف با آن؛ پنلِ بازِ کارتابل بالایِ همین ردیف باز می‌شود و دکمه را نمی‌پوشاند
+    // ⚠️ (۱۴۰۵/۰۷/۱۵) جایگاه: کنارِ (سمتِ راستِ) دکمه‌یِ 📥 کارتابل و هم‌ردیفِ آن؛ و بالایِ هر «نوارِ ثابتِ پایینِ صفحه» (منویِ یادآوری‌ها،
+    // مدارِ موبایل) تا روی برچسبِ تب‌ها نیفتد. اگر کارتابل دیرتر ساخته شود، با MutationObserver دوباره جابه‌جا می‌شود.
+    function barHeight() {
+      try {
+        if (window.innerWidth >= 900) return 0;
+        var bars = document.querySelectorAll('nav, .nav, .bnav, #mainTabs');
+        for (var i = 0; i < bars.length; i++) {
+          var cs = getComputedStyle(bars[i]), r = bars[i].getBoundingClientRect();
+          if (cs.position === 'fixed' && r.height > 0 && r.top > window.innerHeight / 2 && Math.abs(window.innerHeight - r.bottom) < 4) return Math.round(r.height);
+        }
+      } catch (e) {}
+      return 0;
+    }
     function place() {
       var inbox = document.querySelector('#madarInbox .mi-btn');
-      if (!inbox || file === 'm.html') return;
-      var r = inbox.getBoundingClientRect();
-      if (r.width) { b.style.left = Math.round(r.right + 8) + 'px'; b.style.bottom = Math.round(window.innerHeight - r.bottom + (r.height - 34) / 2) + 'px'; }
+      if (inbox) {
+        var r = inbox.getBoundingClientRect();
+        if (r.width) { b.style.left = Math.round(r.right + 8) + 'px'; b.style.bottom = Math.round(window.innerHeight - r.bottom + (r.height - b.offsetHeight) / 2) + 'px'; return; }
+      }
+      b.style.left = ''; b.style.bottom = (barHeight() ? barHeight() + 12 : 16) + 'px';
     }
-    place(); setTimeout(place, 800); setTimeout(place, 2500); setTimeout(place, 6000); window.addEventListener('resize', place);
+    place(); window.addEventListener('resize', place);
+    try { new MutationObserver(function () { place(); }).observe(document.body, {childList: true}); } catch (e) {}
+    var tries = 0, iv = setInterval(function () { place(); if (++tries > 24) clearInterval(iv); }, 500);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
   window.MadarHelp = { open: open };

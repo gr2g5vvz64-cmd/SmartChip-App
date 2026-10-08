@@ -215,7 +215,12 @@
     '#madarInbox .mi-cats{display:flex;flex-wrap:wrap;gap:5px;padding:9px 12px;border-bottom:1px solid #323952}' +
     '#madarInbox .mi-cat{font-size:11px;color:#f4f5f8;text-decoration:none;border:1px solid #323952;border-radius:14px;padding:2px 9px;background:#232838}' +
     '#madarInbox .mi-cat:hover{border-color:#f0a500}' +
-    '#madarInbox .mi-cat b{color:#ff8080;margin-right:3px}';
+    '#madarInbox .mi-cat b{color:#ff8080;margin-right:3px}' +
+    // ⚠️ (۱۴۰۵/۰۷/۱۵) گوشی: دکمه به یک دایره‌یِ کوچک (فقط 📥 و عدد) تبدیل می‌شود تا روی محتوا و منویِ پایین نیفتد
+    '@media (max-width:700px){#madarInbox .mi-btn{width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;position:relative;font-size:17px}' +
+    '#madarInbox .mi-lbl{display:none}' +
+    '#madarInbox .mi-n{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;font-size:10px;padding:0 4px;border:2px solid #1a1e2a;box-sizing:content-box}' +
+    '#madarInbox .mi-panel{bottom:52px}}';
   var inbox = {el: null, items: [], open: false};
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
   // ⚠️ (۱۴۰۵/۰۷/۱۴) «این کار از کجاست؟» — از رویِ لینکِ هر مورد، صفحه و بخشی که کار در آن ثبت شده نشان داده می‌شود
@@ -235,12 +240,29 @@
       return a ? (b ? a + ' ← ' + b : a) : '';
     } catch (e) { return ''; }
   }
+  // ⚠️ (۱۴۰۵/۰۷/۱۵) جایگاهِ دکمه: بالایِ دکمه‌یِ نقشه‌یِ راهِ صفحه‌یِ اصلی، و بالایِ هر «نوارِ ثابتِ پایینِ صفحه» (منویِ یادآوری‌ها و مدارِ موبایل) —
+  // قبلاً روی برچسبِ تب‌ها می‌افتاد و جلویشان را می‌گرفت.
+  function inboxPlace() {
+    var el = inbox.el; if (!el) return;
+    var bottom = 16;
+    if (document.getElementById('roadmapBtn')) bottom = 76;
+    try {
+      if (window.innerWidth < 900) {
+        var bars = document.querySelectorAll('nav, .nav, .bnav, #mainTabs');
+        for (var i = 0; i < bars.length; i++) {
+          var cs = getComputedStyle(bars[i]), r = bars[i].getBoundingClientRect();
+          if (cs.position === 'fixed' && r.height > 0 && r.top > window.innerHeight / 2 && Math.abs(window.innerHeight - r.bottom) < 4) { bottom = Math.max(bottom, Math.round(r.height) + 12); break; }
+        }
+      }
+    } catch (e) {}
+    el.style.bottom = bottom + 'px';
+  }
   function inboxRender() {
     if (!inbox.el) return;
     var n = inbox.count != null ? inbox.count : inbox.items.length;
     var cats = (inbox.cats || []).filter(function (c) { return c.count && !c.soon; });
     var fa = function (x) { return String(x).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); };
-    inbox.el.innerHTML = '<button type="button" class="mi-btn" aria-expanded="' + inbox.open + '" title="کارتابلِ من — هر چیزی که منتظرِ شماست">📥 کارتابل <span class="mi-n' + (n ? '' : ' zero') + '">' + fa(n) + '</span></button>' +
+    inbox.el.innerHTML = '<button type="button" class="mi-btn" aria-expanded="' + inbox.open + '" title="کارتابلِ من — هر چیزی که منتظرِ شماست">📥<span class="mi-lbl"> کارتابل</span> <span class="mi-n' + (n ? '' : ' zero') + '">' + fa(n) + '</span></button>' +
       (inbox.open ? '<div class="mi-panel" role="dialog" aria-label="کارتابلِ من"><div class="mi-h"><span>📥 کارتابلِ من</span><a href="org.html#inbox">صفحه‌ی کامل ›</a></div>' +
         (cats.length ? '<div class="mi-cats">' + cats.map(function (c) { return '<a class="mi-cat" href="org.html#inbox:' + c.key + '">' + c.icon + ' ' + esc(c.label) + ' <b>' + fa(c.count) + '</b></a>'; }).join('') + '</div>' : '') +
         (n ? inbox.items.slice(0, 30).map(function (it) {
@@ -259,7 +281,7 @@
       if (!inbox.el) {
         var st = document.createElement('style'); st.textContent = inboxCss; document.head.appendChild(st);
         inbox.el = document.createElement('div'); inbox.el.id = 'madarInbox'; document.body.appendChild(inbox.el);
-        var rb = document.getElementById('roadmapBtn'); if (rb) inbox.el.style.bottom = '76px';   // دکمه‌ی نقشه‌ی راهِ صفحه‌ی اصلی
+        inboxPlace(); window.addEventListener('resize', inboxPlace); setTimeout(inboxPlace, 700); setTimeout(inboxPlace, 2500); setTimeout(inboxPlace, 6000);
         document.addEventListener('click', function () { if (inbox.open && inbox.el) { inbox.open = false; inboxRender(); } });
       }
       inbox.items = d.items || []; inbox.cats = d.categories || []; inbox.count = d.count; inboxRender();
