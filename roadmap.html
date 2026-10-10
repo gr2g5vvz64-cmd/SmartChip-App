@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>🗺️ نقشه‌ی راه — مدار</title>
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--warn:#fb923c;--no:#f87171;--blue:#5b9bf0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:960px;margin:0 auto;padding:18px 16px 110px}
+a{color:inherit;text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+h1{font-size:22px;margin:4px 0 0}.sub{color:var(--soft);font-size:12.5px}.home{color:var(--acc);font-size:12.5px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+button,input,select,textarea{font:inherit;color:var(--ink)}
+.tabs button,.btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:6px 14px;font-size:13px;cursor:pointer}
+.tabs button.on{border-color:var(--acc);color:var(--acc)}
+.btn.pri{background:var(--acc);color:#1b1400;border-color:var(--acc);font-weight:700}
+.btn.sm{padding:2px 10px;font-size:12px}.btn.bad{color:var(--no)}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:14px;text-align:center;padding:8px}.sum b{display:block;font-size:24px;line-height:1.3}.sum span{font-size:11.5px;color:var(--soft)}
+.it{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 15px;margin-bottom:12px}
+.hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.hd h3{margin:0;font-size:14.5px;flex:1;min-width:200px;white-space:pre-line}
+.pill{font-size:11px;border-radius:10px;padding:0 9px;border:1px solid var(--line);color:var(--soft);white-space:nowrap}
+.pill.bug{color:var(--no);border-color:rgba(248,113,113,.5)}.pill.idea,.pill.improve,.pill.feature{color:var(--blue);border-color:rgba(91,155,240,.5)}
+.pill.part{color:var(--warn);border-color:rgba(251,146,60,.5)}.pill.ok{color:var(--ok);border-color:rgba(52,211,153,.5)}.pill.q{color:var(--acc);border-color:rgba(240,165,0,.5)}
+.bar{height:7px;background:var(--card2);border-radius:6px;overflow:hidden;margin:9px 0 6px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#6ee7b7)}
+.meta{font-size:11.5px;color:var(--soft);display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px}.meta b{color:#d7dbea;font-weight:600}
+.st{display:flex;gap:8px;align-items:flex-start;padding:5px 2px;font-size:13px;border-top:1px solid #262c3d}.st:first-child{border-top:0}
+.cb{width:18px;height:18px;border-radius:5px;border:2px solid var(--line);flex:none;margin-top:3px;display:grid;place-items:center;font-size:12px;cursor:default;background:none;padding:0}
+.cb.m{cursor:pointer}.st.d .cb{background:var(--ok);border-color:var(--ok);color:#06281b}.st.d .tx{color:var(--soft);text-decoration:line-through;text-decoration-color:#4b5470}
+.st .dt{margin-inline-start:auto;font-size:11px;color:var(--soft);white-space:nowrap;text-align:left}
+.act{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+details{margin-top:6px}summary{cursor:pointer;font-size:12px;color:var(--acc)}.dsc{font-size:12.5px;line-height:1.9;white-space:pre-wrap;margin-top:4px}
+.log{font-size:11.5px;color:var(--soft);padding:2px 0}
+.empty{color:var(--soft);text-align:center;padding:30px 4px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th,td{padding:8px 10px;border-bottom:1px solid #262c3d;text-align:center;font-size:13px}th{background:var(--card2);color:var(--soft);font-weight:600;font-size:12px}td:first-child,th:first-child{text-align:right}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:12px}
+.md{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;max-width:520px;width:100%;max-height:92vh;overflow:auto}
+.md h2{margin:0 0 10px;font-size:16px}
+.f{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}.f label{font-size:12px;color:var(--soft)}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 10px;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.note{color:var(--soft);font-size:11.5px;margin-top:12px}
+.banner{background:#1c2233;border:1px dashed var(--acc);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+@media (max-width:700px){.wrap{padding:12px 12px 110px}.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="sub" id="today"></div><h1>🗺️ نقشه‌ی راه</h1><div class="sub">هر مورد: چه کسی گفت، کِی گفت، چه کسی و کِی تمامش کرد</div></div>
+    <div style="display:flex;gap:8px;align-items:center"><button class="btn pri" onclick="openNew()">+ ثبتِ باگ / ایده</button><a class="home" href="index.html">← صفحه‌یِ اصلی</a></div>
+  </div>
+  <div id="banner"></div>
+  <div class="sum" id="sum"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="box"><div class="empty">در حالِ بارگذاری…</div></div>
+  <div class="note">پیشنهادِ شما (باگ یا ایده) پس از تأییدِ مدیریت وارد فهرست و «مشارکت» می‌شود. وزن: ۱ کوچک · ۲ متوسط · ۳ بزرگ. مشارکت یکی از معیارها است، نه تنها معیار.</div>
+</div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)closeNew()"><div class="md">
+  <h2 id="mdT">ثبتِ مورد</h2>
+  <div class="f"><label>عنوان</label><textarea id="nTitle" rows="2" placeholder="مثلاً: دکمه‌یِ ذخیره در فرمِ X کار نمی‌کند"></textarea></div>
+  <div class="row2">
+    <div class="f"><label>نوع</label><select id="nKind"><option value="bug">🐞 باگ</option><option value="idea">💡 ایده</option><option value="improve">✨ بهبود</option><option value="feature">🧩 ویژگیِ تازه</option><option value="task">📌 کار</option></select></div>
+    <div class="f"><label>وزن</label><select id="nWeight"><option value="1">۱ — کوچک</option><option value="2">۲ — متوسط</option><option value="3">۳ — بزرگ</option></select></div>
+  </div>
+  <div class="f"><label>توضیحات (کجا؟ چه شد؟ چطور تکرار می‌شود؟)</label><textarea id="nDesc" rows="4"></textarea></div>
+  <div class="row2 mgr">
+    <div class="f"><label>چه کسی گفت؟</label><input id="nBy"></div>
+    <div class="f"><label>تاریخِ گفتن (شمسی)</label><input id="nDate" placeholder="۱۴۰۵/۰۷/۱۹"></div>
+  </div>
+  <div class="f mgr"><label>مرحله‌ها (هر خط یک مرحله — اختیاری)</label><textarea id="nSteps" rows="3"></textarea></div>
+  <div style="display:flex;gap:8px"><button class="btn pri" onclick="saveNew()">ثبت</button><button class="btn" onclick="closeNew()">انصراف</button><span id="nErr" class="sub" style="color:var(--no)"></span></div>
+</div></div>
+
+<div class="ov" id="ov2" onclick="if(event.target===this)this.style.display='none'"><div class="md">
+  <h2>انجام شد</h2>
+  <div class="f"><label>چه کسی تمامش کرد؟</label><input id="cBy"></div>
+  <div class="f"><label>تاریخِ تکمیل (شمسی)</label><input id="cDate"></div>
+  <div style="display:flex;gap:8px"><button class="btn pri" onclick="doComplete()">ثبت</button><button class="btn" onclick="document.getElementById('ov2').style.display='none'">انصراف</button></div>
+</div></div>
+
+<script>
+const API='https://api.smartchipelec.com/api/roadmap/';
+const SEED=/*SEED*/[{"title": "🔑 قفلِ سرورِ پنلِ دسترسی: بخشِ باقی‌مانده (ماژول‌هایِ حضور/مرخصی/کارتابلِ سازمانی، ستون‌هایِ حساس)", "category": "queue", "addedDate": "1405/07/19", "priority": 3, "status": "pending", "desc": "انجام‌شده (۱۴۰۵/۰۷/۱۹): قفلِ نقش برایِ دفترِ ارزی، تحلیل، بکاپ، پنل، چک‌ها و مطالبات، وزن‌نامه، کارکنان، CRM/ERP؛ و «هر کس فقط داده‌یِ خودش» برایِ یادآوری‌هایِ آزاد/دوره‌ای، ارجاعِ کار (به‌تفکیکِ واحد)، اهدافِ فروش، وعده‌هایِ پرداخت، آدرسِ تقویم، و داشبوردِ سازمان (کارمند: فقط خودش · سرپرست: تیمِ واحدِ خودش · مدیر/ادمین: همه). صفحه‌یِ «گزارشِ هفتگیِ تیم» برایِ سرپرستان و مدیریت. باقی‌مانده: ۱) بازبینیِ ماژول‌هایِ منابعِ انسانی (attendance.py، leave.py، workdesk.py، mobile_api.py) برایِ همین قاعده. ۲) ستون‌هایِ حسّاسِ ERP/CRM (قیمتِ خرید، سود) با مجوزِ data.*. ۳) پیش از همه: ورودهایِ «log» (از جمله دلیل‌هایِ scope:…) را در «مدیریت کارمندان ← ورودهای امن» ببینید و اگر مورد نامعتبری نبود MADAR_AUTH_MODE را به on ببرید، وگرنه سرور رد نمی‌کند.", "steps": [{"text": "قفلِ دفترِ ارزی، تحلیلِ مدیریتی، بکاپ، پنلِ دسترسی", "done": true, "done_date": "1405/07/19"}, {"text": "چک‌ها، مطالبات، وزن‌نامه، کارکنان", "done": true, "done_date": "1405/07/19"}, {"text": "مسیرهایِ CRM و ERP", "done": true, "done_date": "1405/07/19"}, {"text": "«هر کس فقط داده‌یِ خودش» (یادآوری‌ها، اهداف، وعده‌ها، ارجاعِ کار)", "done": true, "done_date": "1405/07/19"}, {"text": "بازبینیِ ماژول‌هایِ حضور، مرخصی و کارتابلِ سازمانی (attendance/leave/workdesk/mobile_api)"}, {"text": "ستون‌هایِ حسّاسِ ERP/CRM (قیمتِ خرید، سود) با مجوزِ data.*"}, {"text": "بررسیِ ورودهایِ log و روشن‌کردنِ MADAR_AUTH_MODE=on"}], "kind": "task", "weight": 3}, {"title": "📊 گزارشِ هفتگیِ آنلاینِ تیم برایِ سرپرستان و مدیریت (weekly.html)", "category": "queue", "addedDate": "1405/07/19", "status": "done", "completedDate": "1405/07/19", "desc": "هر سرپرست تیمِ واحدِ خودش، مدیر همه‌ی واحدها: دیرکردها، موعدهایِ هفته، انجام‌شده‌ها و پیگیری‌هایِ باز/دیرکرد؛ بازه‌یِ ۷/۱۴/۳۰ روز و چاپ/PDF برایِ جلسه. (/api/org/team-report/). ایده‌یِ بعدی: ارسالِ خودکارِ خلاصه‌اش هر هفته در بله."}, {"title": "🔐 روشن کردنِ قفلِ ورودِ امن: وقتی همه‌ی کارمندها یک بار وارد شدن (مدار در بله خبر می‌ده) ← Render ← Environment ← MADAR_AUTH_MODE رو از log به on تغییر بدید ← Save. اگه مشکل شد، برگردونید روی log", "category": "queue", "addedDate": "1405/07/08", "status": "pending", "steps": ["همه‌یِ کارمندها یک بار وارد شوند", "Render ← MADAR_AUTH_MODE = on"]}, {"title": "🧭 صفحه‌یِ اصلیِ بخش‌بندی‌شده (فروش / مالی / مدیریت / اداری / ابزارها) + جستجو", "category": "queue", "addedDate": "1405/07/19", "status": "done", "completedDate": "1405/07/19", "desc": "کاشی‌ها در پنج گروهِ رنگی جدا شدند و «داشبوردِ من» بالایِ همه است؛ هر نقش فقط گروه‌هایِ مجازِ خودش را می‌بیند. نوارِ جستجو (از ۵ بخش به بالا). موبایل دو ستونه. بخشِ تازه که در گروهی نباشد خودکار در «ابزارها» می‌آید (TILE_GROUPS در index.html)."}, {"title": "🔑 پنلِ دسترسی (نقش ← مجوز + استثنایِ فردی) و «داشبوردِ من»", "category": "queue", "addedDate": "1405/07/19", "status": "done", "completedDate": "1405/07/19", "desc": "جدولِ نقش × مجوز با ۱۶ نقش (صفحه‌ها، داشبوردها: تیم / تحلیلِ مدیریتیِ دفترِ ارزی / BIِ CRM، و عملیاتِ حساس: ثبت و ویرایشِ دفترِ ارزی، بکاپ، خودِ پنل)، استثنایِ فردی، تاریخچه‌یِ تغییرات، و «ببین مثلِ این نفر». کاشی‌هایِ index و منوها از همین جدول می‌آیند؛ «داشبوردِ من» برایِ همه؛ قفلِ سرور برایِ /api/ledger/ (خواندن/نوشتن جدا)، تحلیلِ مدیریتی و بکاپ. مدیریت قابلِ‌کم‌کردن نیست."}, {"title": "تعطیلات قمری ۱۴۰۵", "category": "queue", "addedDate": "1405/06/07", "status": "done", "completedDate": "1405/07/15", "desc": "بر اساسِ دیتا در کد: ۱۲ تعطیلیِ قمریِ ۱۴۰۵ (عید فطر، عید قربان، غدیر، تاسوعا و عاشورا، اربعین، رحلتِ پیامبر، شهادتِ امام رضا، میلادِ پیامبر و …) در تقویمِ یادآوری‌ها، CRM و ERP وجود دارد. تاریخِ دقیقِ اجرا ثبت نشده بود؛ تاریخِ نمایش‌داده‌شده = روزی که انجام‌شده علامت خورد. اگر تعطیلیِ قمریِ دیگری جا افتاده، همین آیتم را دوباره باز کنید."}, {"title": "📅 ثبتِ تاریخِ انقضایِ دامنه‌یِ smartchipelec.com (ثبت‌شده در هاست‌ایران، NS در Cloudflare) + یک یادآوریِ سالانه — اگر دامنه منقضی شود کلِ مدار از کار می‌افتد", "category": "queue", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: تاریخِ انقضا را از پنلِ هاست‌ایران بخوانید و در «یادآوری‌ها» یک یادآوریِ ۳۰ روز قبل از آن بگذارید (تمدیدِ خودکار هم اگر ممکن است فعال شود). در سندِ پروژه صراحتاً «هنوز نمی‌دانیم» ثبت شده بود."}, {"title": "زیرصنف‌های ۱۶ صنف دیگر (فقط لوازم خانگی فعلاً کامله)", "category": "queue", "addedDate": "1405/06/07", "status": "pending"}, {"title": "یکپارچه‌سازیِ «بازخوردِ پس از تحویل» و «بازخوردِ نمونه» در یک سیستمِ واحدِ «صدای مشتری» — یک فرم، یک داشبورد، یک مسیرِ ارجاع به واحدها (فروش، تدارکات، بازرگانی، مالی، انبار)؛ الان دو مسیرِ جدا در CRM/ERP/موبایل هستن — پایه‌ی CEM", "category": "future", "addedDate": "1405/07/07", "status": "pending"}, {"title": "CEM — مدیریتِ تجربه‌ی مشتری: نظرسنجیِ کوتاهِ خودکار بعد از هر تحویل (بله/پیامک)، شاخصِ NPS و CSAT، داشبوردِ رضایت به تفکیکِ مشتری/کارشناس/واحد، هشدارِ فوری به مدیر برایِ نمره‌ی پایین و پیگیریِ همون روز — ابزارِ ساختنِ «اعتبار» (شعارِ شرکت). پیش‌نیاز: یکپارچه‌سازیِ بازخوردها", "category": "future", "addedDate": "1405/07/07", "status": "pending"}, {"title": "دامنه‌ی اختصاصی رویِ سرویسِ Django (با Cloudflare) — چون همین الان با نامِ خامِ onrender.com، از بعضی ISPهایِ ایران به‌طورِ متناوب و غیرقابل‌پیش‌بینی قطع می‌شه؛ صرفِ‌نظر از اسمِ مسیرِ API (فقط با فیلترشکن قابل‌دسترسه)", "category": "future", "addedDate": "1405/07/01", "status": "done", "completedDate": "1405/07/15", "desc": "انجام‌شده: api.smartchipelec.com (Cloudflare، حالتِ Proxied، SSL = Full strict) به سرویسِ Render وصل است؛ همه‌یِ صفحه‌ها اول به همین آدرس می‌روند و فقط برایِ اطمینان یک fetch-fallback به آدرسِ قدیمیِ onrender.com دارند (تا ۵ دقیقه)؛ ALLOWED_HOSTS هر دو آدرس را دارد.\nیادداشت: تاریخِ دقیقِ راه‌اندازی در همین نقشه‌یِ راه ثبت نشده بود (علامتِ «انجام‌شد» جا افتاده بود)؛ تاریخِ نمایش‌داده‌شده = روزی که انجام‌شده علامت خورد.\nباقی‌مانده‌یِ مرتبط: ثبتِ تاریخِ انقضایِ دامنه (آیتمِ تازه‌یِ «در صف»)."}, {"title": "صفحه‌ی اختصاصی هر واحد (انبار، بازرگانی، تدارکات، اداری، مالی) + محدودیت دسترسی به کل ERP", "category": "future", "addedDate": "1405/06/18", "status": "pending"}, {"priority": 1, "title": "🔴 اولویتِ ۱ — گزارشِ عدم‌انطباق و اقدامِ اصلاحی (NCR + CAPA + RCA) — بزرگ‌ترینِ خلأ", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "چرا: در واردات هر روز اتفاق می‌افتد (کالایِ خراب یا تقلبی، اختلافِ تعداد یا وزن، تأخیرِ تأمین‌کننده، اشتباهِ قیمت یا حواله) ولی جایی ثبت و ریشه‌یابی نمی‌شود.\nچه بسازیم: صفحه‌یِ «عدم‌انطباق‌ها» — هر مورد یک پرونده:\n• نوع (کالا / تعداد-وزن / تأخیر / قیمت / حواله / دیگر)، تاریخ، مربوط به (محموله، سفارش، تأمین‌کننده یا مشتری)، شرح، شدت\n• علتِ ریشه‌ای با روشِ «۵ چرا» (RCA): پنج فیلدِ پشتِ هم\n• اقدامِ اصلاحی (همین مورد را درست کن) + اقدامِ پیشگیرانه (دوباره تکرار نشود) — CAPA\n• مسئول، موعد، هزینه‌یِ ضرر (برایِ COQ سبک)، وضعیت (باز ← در حال اقدام ← تأییدِ بستن ← بسته)\n• مسئول و موعد از طریقِ «ارجاع/سپرده‌ها» و کارتابل؛ بستن فقط با تأییدِ سرپرست\nگزارش: به تفکیکِ تأمین‌کننده، نوع و ماه («کدام تأمین‌کننده بیشترین مشکل را دارد؟»).\nپیش‌نیاز: ندارد. بعداً به SOP و دفترِ ریسک وصل می‌شود."}, {"priority": 2, "title": "🟠 SOP + RACI — روشِ اجراییِ هر کار + ماتریسِ «چه کسی مسئول/تأییدکننده» (برایِ ورودِ کارمندانِ تازه)", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "چرا: وقتی ۲۰ کارمندِ تازه می‌آیند «روشِ اجراییِ هر کار» باید جایی نوشته باشد؛ راهنمایِ فعلی فقط کارِ نرم‌افزار را توضیح می‌دهد، نه «حواله چطور زده شود».\nچه بسازیم: برایِ هر فرایند یک صفحه‌یِ استاندارد: هدف، مراحل، ورودی/خروجی، RACI (مسئولِ انجام، پاسخ‌گو، مشورت‌شونده، مطلع)، زمان‌بندی/SLA، «چه چیزی را کجا ثبت کنیم».\nشروع با ۳ فرایندِ اصلی: سفارش تا تحویل، ثبتِ حواله، ترخیص. هر SOP نسخه، تاریخ و تأییدکننده دارد (MOCِ سبک).\nماتریسِ RACI: سطر = مرحله، ستون = سِمَت؛ در همان صفحه یا در «سازمان».\nبا «صفحه‌یِ کاریِ هر تیم» (برنامه‌یِ آینده) جور است.\nپیش‌نیاز: SIPOCِ همان ۳ فرایند (آیتمِ پایین)."}, {"priority": 3, "title": "🟡 دفترِ ریسک (ERMِ سبک) — فهرستِ ریسک‌ها با احتمال، اثر، مسئول و راهِ کنترل", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "چرا: ساده و ارزان است؛ الان فقط ریسکِ ارزی در «تحلیلِ مدیریتی» دیده می‌شود.\nچه بسازیم: جدولِ ریسک: عنوان، دسته (ارز، تأمین‌کننده، گمرک/ترخیص، اعتبارِ مشتری، پشتیبان‌گیری و امنیت، تعطیلاتِ چین/حمل‌ونقل)، احتمال (۱ تا ۵) × اثر (۱ تا ۵) ← امتیازِ خودکار و رنگ، مسئول، راهِ کنترل/اقدام، تاریخِ بازبینی.\nنمای «۵ ریسکِ بالا» در داشبوردِ مدیریت؛ یادآوریِ بازبینیِ ماهانه.\nاولین ورودی‌ها: نوسانِ ارز، تأخیرِ تأمین‌کننده، بدهیِ معوقِ مشتری، قطعیِ سرور/بک‌آپ، افشایِ دسترسی.\nهر NCRِ تکرارشونده می‌تواند به یک ریسک تبدیل شود."}, {"priority": 4, "title": "🟡 CSATِ سبک — بعد از هر سفارشِ تمام‌شده یک سؤالِ یک‌کلیکی (زیرمجموعه‌یِ CEM)", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "چرا: برایِ شناختنِ رضایت کافی است؛ NPS برایِ تعدادِ کمِ مشتریِ B2B کم‌فایده است.\nچطور: پیامِ کوتاهِ بله/پیامک با لینکِ ۵ دکمه‌ای (۱ تا ۵) بعد از تحویل. نمره‌یِ پایین ← هشدارِ فوریِ مدیر + ساختِ یک مورد در NCR.\nوابسته به: آیتمِ «یکپارچه‌سازیِ بازخوردها» و «CEM» همین فهرست (همان زیرساخت)."}, {"title": "تعریفِ KPI برایِ هر نقش — الان عددها هست (کارنامه‌یِ کارشناس، هدفِ ماهانه، سنِ مطالبات) ولی «شاخصِ تعریف‌شده‌یِ هر نقش» نیست", "category": "queue", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: برایِ هر نقش ۳ تا ۵ شاخص + هدف + واحد. مثال: فروش (تماسِ جذب، تبدیلِ سفارش، وصولِ مطالبات)، تدارکات (زمانِ قیمت‌گذاری)، انبار (رعایتِ مهلت‌ها)، مالی (سنِ مطالبات).\nنمایش در «داشبوردِ من» هر نفر. وقتی «صفحه‌یِ کاریِ هر تیم» ساخته شد، با OKRِ سبک یکی می‌شود."}, {"title": "SLA برایِ قیمتِ تدارکات، پاسخِ بازرگانی، پاسخ به مشتری و تأییدِ وعده‌یِ پرداخت — الان فقط انبار SLA دارد (وزن ۶ ساعت، فاکتور ۱۸ ساعت)", "category": "queue", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: برایِ هر کدام یک مهلتِ مشخص؛ نمایشِ «ساعتِ باقی‌مانده / دیرکرد» در کارتابل و یک گزارشِ «رعایتِ SLA» به تفکیکِ واحد (مثلِ همان مدلِ انبار)."}, {"title": "تحلیلِ منظمِ «صدایِ مشتری» (VOC) — بازخوردها جمع می‌شود ولی تحلیلِ منظم ندارد", "category": "queue", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: دسته‌بندیِ موضوعِ بازخوردها، روندِ ماهانه، ارجاع به واحدِ مربوط.\nبهتر است در همان پروژه‌یِ «یکپارچه‌سازیِ بازخوردها / CEM» (آیتم‌هایِ آینده) انجام شود تا دو بار ساخته نشود."}, {"title": "ترسیمِ SIPOC برایِ ۳ فرایندِ اصلی (سفارش تا تحویل، حواله، ترخیص) — یک‌بار؛ پیش‌نیازِ SOP", "category": "queue", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: در یک جلسه، برایِ هر فرایند: تأمین‌کنندگان، ورودی‌ها، مراحلِ بالاسطح، خروجی‌ها، مشتری‌ها. نرم‌افزار لازم نیست (کاغذ یا یک صفحه‌یِ ساده). خروجی ورودیِ «SOP + RACI» است."}, {"title": "جلسه‌یِ استراتژیِ سالانه: SWOT و PESTEL (ارز، تعرفه، تعطیلاتِ چین، حمل‌ونقل) — نه نرم‌افزار؛ فقط یادآوریِ سالانه", "category": "queue", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: سالی یک جلسه (مثلاً پایانِ سال یا قبل از تعطیلاتِ بلندِ چین) با خروجیِ مکتوب؛ یک یادآوریِ سالانه در «یادآوری‌ها» کافی است. نتیجه‌ها وارد «دفترِ ریسک» می‌شود."}, {"priority": 5, "title": "OKRِ سبک — بعد از اینکه هر تیم صفحه‌یِ کاریِ خودش را گرفت؛ جایگزینِ «هدفِ ماهانه»", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "چرا: وقتی تیم‌ها صفحه‌یِ خودشان را دارند، هدفِ سه‌ماهه + ۲ تا ۴ نتیجه‌یِ کلیدی برایِ هر تیم ساده‌ترین قالبِ هدف‌گذاری است.\nپیش‌نیاز: «صفحه‌یِ اختصاصیِ هر واحد» و تعریفِ KPIِ هر نقش."}, {"priority": 6, "title": "FMEA فقط برایِ ۲ تا ۳ فرایندِ حساس (ثبتِ حواله، ترخیص) — یک‌بار، نه ابزارِ دائمی", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "کار: برایِ هر مرحله از فرایندِ حساس: «چه چیزی می‌تواند خراب شود؟ اثرش؟ احتمالش؟ چطور زود می‌فهمیم؟» ← امتیازِ ریسک (RPN) و اقدام. خروجی: یک جدولِ ثابت در SOP و چند مورد در «دفترِ ریسک». سنگین است؛ بعد از SOP و دفترِ ریسک."}, {"priority": 7, "title": "MOCِ سبک — ثبت و تأییدِ تغییرِ فرایندها / نرخ‌ها / دسترسی‌ها (فعلاً فقط تاریخچه‌یِ راهنماها هست)", "category": "future", "addedDate": "1405/07/15", "status": "pending", "desc": "چرا: «PDCA و MOC» فعلاً فقط در حدِ عادت و تاریخچه‌یِ راهنماهاست، ابزار نیست.\nچه بسازیم: هر تغییرِ مهم (فرایند، نرخِ فرمول، دسترسیِ نقش) یک درخواستِ کوتاه: چه تغییر می‌کند، چرا، اثر، تأییدکننده، تاریخِ اجرا. با SOPِ نسخه‌دار هم‌زمان ساخته شود."}, {"title": "بررسیِ «۲۵ مخففِ مهم و کاربردی برایِ مدیران» برایِ مدار و ثبتِ تصمیم: چه چیزی داریم، چه چیزی ناقص است، چه چیزی لازم است و چه چیزی لازم نیست", "category": "future", "addedDate": "1405/07/15", "status": "done", "completedDate": "1405/07/15", "desc": "داریم: CRM.\nنیمه‌دارم: KPI، SLA (فقط انبار)، VOC، RACI، SOP (راهنمایِ نرم‌افزار)، ERM (فقط ریسکِ ارز)، PDCA/MOC (فقط عادت و تاریخچه) — هر کدام یک آیتم در «در صف/آینده».\nلازم و ساخته‌نشده: NCR+CAPA+RCA (اولویتِ ۱)، SOP+RACI (۲)، دفترِ ریسک (۳)، CSATِ سبک (۴).\nیک‌باره/بدونِ نرم‌افزار: SWOT و PESTEL (جلسه‌یِ سالانه)، SIPOC (۳ فرایند)، FMEA (۲ تا ۳ فرایندِ حساس)، OKR (بعد از صفحه‌یِ تیم‌ها).\nلازم نیست (تصمیم): OEE (تولید نداریم)، TQM، IMS و BSC (چارچوب‌هایِ بزرگِ صنعتی)، COQ (فقط یک فیلدِ «هزینه» در NCR)، QMS/ISO کامل (مگر مشتری یا بازار گواهی بخواهد؛ نسخه‌یِ سبکش = SOP + NCR/CAPA + ارزیابیِ تأمین‌کننده)، NPS (برایِ تعدادِ کمِ مشتریِ B2B)."}, {"title": "همگام‌سازیِ دوطرفه‌ی گوگل کلندر با Apps Script (بدونِ Google Cloud) — دو تقویمِ «یادآوری‌ها» و «کارهای روز»، ساخت/ویرایش/حذف در گوگل ← SmartChip، به‌علاوه‌ی «یادآوریِ قبل از موعد» (بله + هشدارِ گوگل/آیفون)", "category": "future", "addedDate": "1405/06/18", "status": "done", "completedDate": "1405/07/07"}, {"title": "وزن‌نامه: ابزارِ تکراری‌ها (ادغام با اولویتِ وزن‌هایِ G تا V، دفترچه‌ی «اصلاحات»، ویرایش در همون پنل) + تکمیلِ خودکارِ Package از رویِ پارت‌نامبر", "category": "future", "addedDate": "1405/07/07", "status": "done", "completedDate": "1405/07/07"}, {"title": "وزن‌نامه‌ی قطعات (weights.html) — جایگزینِ کاملِ شیتِ Verified_Weights: ۲۲ ستونِ A تا V، verifi = سطرِ سبز، جستجو + افزودن، پیست از Excel، خروجیِ Excel؛ Price List، ماشین‌حسابِ موبایل و دفترِ ارزی مستقیم از همین می‌خونن", "category": "future", "addedDate": "1405/07/06", "status": "done", "completedDate": "1405/07/06"}, {"title": "بکاپِ کامل (همه‌ی اپ‌ها، با مانیفست) + دستورِ بازگردانی + تمرینِ بازگردانیِ هفتگیِ خودکار", "category": "future", "addedDate": "1405/07/06", "status": "done", "completedDate": "1405/07/06"}, {"title": "سیستم کامل جذب مشتری (Prospect) — دسکتاپ", "category": "future", "addedDate": "1405/06/10", "status": "done", "completedDate": "1405/06/15"}, {"title": "پورت کامل سیستم جذب مشتری به موبایل (۶ مرحله)", "category": "future", "addedDate": "1405/06/17", "status": "done", "completedDate": "1405/06/17"}, {"title": "مدیریت کارمندان اختصاصی (staff-admin.html) + وضعیت بات یکپارچه", "category": "future", "addedDate": "1405/06/18", "status": "done", "completedDate": "1405/06/18"}, {"title": "اتصال یادآوری‌ها به تقویم آیفون/گوگل (فید ICS)", "category": "future", "addedDate": "1405/06/18", "status": "done", "completedDate": "1405/06/18"}, {"title": "تبدیل پلتفرم به PWA (نصب رو صفحه‌ی اصلی گوشی، بدون نوار آدرس) — CRM، ERP، Price List، مدیریت کارمندان، دفتر ارزی، و یادآوری‌ها", "category": "future", "addedDate": "1405/06/18", "status": "done", "completedDate": "1405/07/01"}, {"title": "PWAی کاملاً مستقلِ یادآوری‌ها (کارِ فردا، آزاد، دوره‌ای، تقویمِ چندگانه با تعطیلاتِ ایران/چین/قمری) — مبتنی بر worklog", "category": "future", "addedDate": "1405/06/28", "status": "done", "completedDate": "1405/07/01"}]/*END*/;
+const $=id=>document.getElementById(id);
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const en=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KL={bug:'🐞 باگ',idea:'💡 ایده',improve:'✨ بهبود',feature:'🧩 ویژگی',task:'📌 کار'};
+let ITEMS=[],MGR=false,ME='',TAB='flow',STATS=[],COMPLETE_ID=null;
+function todayJ(){const p=new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((o,x)=>(o[x.type]=x.value,o),{});return p.year+'/'+p.month+'/'+p.day;}
+async function api(path,method,body){
+  const b=Object.assign({actor:ME},body||{});
+  const r=await fetch(API+path,{method:method||'GET',headers:{'Content-Type':'application/json'},cache:'no-store',body:method&&method!=='GET'?JSON.stringify(b):undefined});
+  let j={};try{j=await r.json();}catch(e){}
+  if(!r.ok||j.ok===false) throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+async function load(){
+  try{
+    const j=await api('?actor='+encodeURIComponent(ME));ITEMS=j.items;MGR=j.manager;ME=j.me||ME;
+  }catch(e){$('box').innerHTML='<div class="empty">'+esc(e.message)+'<br>با ورودِ امن از صفحه‌یِ اصلی وارد شوید.</div>';return;}
+  try{STATS=(await api('stats/?actor='+encodeURIComponent(ME))).people;}catch(e){STATS=[];}
+  render();
+}
+function counts(){const c={flow:0,future:0,done:0,prop:0};ITEMS.forEach(i=>{if(i.status==='done')c.done++;else if(i.status==='future')c.future++;else if(i.status==='proposed'||i.status==='rejected')c.prop++;else c.flow++;});return c;}
+function render(){
+  const c=counts();
+  const part=ITEMS.filter(i=>i.status==='doing').length;
+  $('sum').innerHTML=`<div><b style="color:var(--ok)">${fa(c.done)}</b><span>انجام‌شده</span></div><div><b style="color:var(--warn)">${fa(part)}</b><span>در حالِ انجام</span></div><div><b>${fa(c.flow)}</b><span>در جریان/صف</span></div><div><b>${fa(c.future)}</b><span>آینده</span></div>`;
+  const T=[['flow','در جریان ('+fa(c.flow)+')'],['future','آینده ('+fa(c.future)+')'],['done','انجام‌شده ('+fa(c.done)+')'],['prop',(MGR?'پیشنهادها':'پیشنهادهایِ من')+' ('+fa(c.prop)+')'],['stats','👥 مشارکت']];
+  $('tabs').innerHTML=T.map(t=>`<button class="${TAB===t[0]?'on':''}" onclick="TAB='${t[0]}';render()">${t[1]}</button>`).join('');
+  $('banner').innerHTML=(MGR&&!ITEMS.some(i=>i.status!=='proposed'))?`<div class="banner">نقشه‌یِ راهِ قبلی هنوز به سرور منتقل نشده. <button class="btn sm pri" onclick="doImport()">انتقالِ ${fa(SEED.length)} موردِ قبلی</button></div>`:'';
+  if(TAB==='stats') return renderStats();
+  let L;
+  if(TAB==='flow') L=ITEMS.filter(i=>['queue','doing'].includes(i.status)).sort((a,b)=>(a.status==='doing'?0:1)-(b.status==='doing'?0:1)||(a.priority||99)-(b.priority||99));
+  else if(TAB==='future') L=ITEMS.filter(i=>i.status==='future');
+  else if(TAB==='done') L=ITEMS.filter(i=>i.status==='done').sort((a,b)=>(b.completed_date||'').localeCompare(a.completed_date||''));
+  else L=ITEMS.filter(i=>['proposed','rejected'].includes(i.status));
+  $('box').innerHTML=L.length?L.map(card).join(''):'<div class="empty">موردی نیست</div>';
+}
+function card(i){
+  const pct=i.steps_total?Math.round(i.steps_done*100/i.steps_total):(i.status==='done'?100:0);
+  const st=i.status==='done'?'<span class="pill ok">✓ انجام‌شده</span>':i.status==='doing'?`<span class="pill part">نیمه‌کاره · ${fa(i.steps_done)} از ${fa(i.steps_total)}</span>`:i.status==='proposed'?'<span class="pill q">منتظرِ تأیید</span>':i.status==='rejected'?'<span class="pill bad">ردشده</span>':i.steps_total?`<span class="pill q">${fa(i.steps_done)} از ${fa(i.steps_total)}</span>`:'';
+  const steps=i.steps.map(s=>`<div class="st ${s.done?'d':''}"><button class="cb ${MGR?'m':''}" ${MGR?`onclick="tick(${i.id},${s.id},${!s.done})"`:'disabled'}>${s.done?'✓':''}</button><span class="tx">${esc(s.text)}</span><span class="dt">${s.done?esc(s.done_date)+(s.done_by?'<br>'+esc(s.done_by):''):''}</span>${MGR?`<button class="btn sm bad" onclick="delStep(${i.id},${s.id})" title="حذف">✕</button>`:''}</div>`).join('');
+  const act=MGR?`<div class="act">
+    ${i.status==='proposed'?`<button class="btn sm pri" onclick="act(${i.id},'approve')">✔ تأیید (در صف)</button><button class="btn sm" onclick="act(${i.id},'approve',{status:'future'})">تأیید (آینده)</button><button class="btn sm bad" onclick="act(${i.id},'reject')">ردکردن</button>`:''}
+    ${['queue','future','doing'].includes(i.status)?`<button class="btn sm" onclick="addStep(${i.id})">+ مرحله</button><button class="btn sm pri" onclick="askComplete(${i.id})">✓ انجام شد</button>`:''}
+    ${['done','rejected'].includes(i.status)?`<button class="btn sm" onclick="act(${i.id},'reopen')">↩ بازگرداندن</button>`:''}
+    <button class="btn sm" onclick="editItem(${i.id})">✎ ویرایش</button><button class="btn sm bad" onclick="delItem(${i.id})">حذف</button></div>`:'';
+  const log=(i.log||[]).slice().reverse().map(l=>`<div class="log">${esc(l.date)} · ${esc(l.by)} · ${esc({created:'ثبت',approved:'تأیید',rejected:'رد',completed:'تکمیل',reopened:'بازگشت',edited:'ویرایش',imported:'انتقال'}[l.event]||l.event)} ${esc(l.text)}</div>`).join('');
+  return `<div class="it" id="i${i.id}"><div class="hd"><h3>${esc(i.title)}</h3><span class="pill ${i.kind}">${KL[i.kind]||i.kind}</span><span class="pill">وزن ${fa(i.weight)}</span>${i.priority?`<span class="pill q">اولویت ${fa(i.priority)}</span>`:''}${st}</div>
+  ${(i.steps_total||i.status==='done')?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}
+  <div class="meta"><span>🗣 گفته: <b>${esc(i.reported_by||'—')}</b> · ${esc(i.reported_date||'')}</span>${i.status==='done'?`<span>✅ تکمیل: <b>${esc(i.completed_by||'—')}</b> · ${esc(i.completed_date||'')}</span>`:''}${i.approved_by?`<span>تأیید: ${esc(i.approved_by)} · ${esc(i.approved_date)}</span>`:''}</div>
+  ${steps?`<div style="margin-top:8px">${steps}</div>`:''}
+  ${i.desc?`<details><summary>📄 توضیحات</summary><div class="dsc">${esc(i.desc)}</div></details>`:''}
+  ${log?`<details><summary>🕘 تاریخچه</summary>${log}</details>`:''}${act}</div>`;
+}
+function renderStats(){
+  $('box').innerHTML=STATS.length?`<table><tr><th>نام</th><th>گفته (تأییدشده)</th><th>باگ</th><th>ایده/بهبود</th><th>تمام کرده</th><th>امتیاز</th></tr>`+STATS.map(p=>`<tr><td>${esc(p.name)}</td><td>${fa(p.found)}</td><td>${fa(p.found_bug)}</td><td>${fa(p.found_idea)}</td><td>${fa(p.fixed)}</td><td><b>${fa(p.points)}</b></td></tr>`).join('')+`</table><div class="note">فقط مواردِ تأییدشده. امتیاز = جمعِ وزنِ مواردی که گفته + وزنِ مواردی که تمام کرده. ${MGR?'':'شما فقط ردیفِ خودتان (و تیمتان اگر سرپرست باشید) را می‌بینید.'}</div>`:'<div class="empty">هنوز مشارکتِ ثبت‌شده‌ای نیست</div>';
+}
+async function run(fn){try{await fn();await load();}catch(e){alert(e.message);}}
+function tick(id,sid,done){run(()=>api(id+'/step/'+sid+'/','PATCH',{done}));}
+function delStep(id,sid){if(confirm('این مرحله حذف شود؟'))run(()=>api(id+'/step/'+sid+'/','DELETE'));}
+function addStep(id){const t=prompt('متنِ مرحله:');if(t&&t.trim())run(()=>api(id+'/step/','POST',{text:t}));}
+function act(id,a,b){run(()=>api(id+'/'+a+'/','POST',b));}
+function delItem(id){if(confirm('این مورد برایِ همیشه حذف شود؟ (برایِ تمام‌شده‌ها بهتر است «بازگرداندن» یا نگه‌داشتن)'))run(()=>api(id+'/','DELETE'));}
+function editItem(id){const i=ITEMS.find(x=>x.id===id);const t=prompt('عنوان:',i.title);if(t===null)return;const by=prompt('چه کسی گفت؟',i.reported_by);if(by===null)return;const d=prompt('تاریخِ گفتن (شمسی):',i.reported_date);if(d===null)return;run(()=>api(id+'/','PATCH',{title:t,reported_by:by,reported_date:en(d)}));}
+function askComplete(id){COMPLETE_ID=id;$('cBy').value=ME;$('cDate').value=todayJ();$('ov2').style.display='flex';}
+function doComplete(){const id=COMPLETE_ID;$('ov2').style.display='none';act(id,'complete',{completed_by:$('cBy').value,completed_date:en($('cDate').value)});}
+function openNew(){$('nTitle').value=$('nDesc').value=$('nSteps').value='';$('nBy').value=ME;$('nDate').value=todayJ();$('nErr').textContent='';document.querySelectorAll('.mgr').forEach(e=>e.style.display=MGR?'':'none');$('ov').style.display='flex';$('nTitle').focus();}
+function closeNew(){$('ov').style.display='none';}
+async function saveNew(){
+  const title=$('nTitle').value.trim();if(!title){$('nErr').textContent='عنوان لازم است';return;}
+  try{await api('','POST',{title,kind:$('nKind').value,weight:+$('nWeight').value,desc:$('nDesc').value,reported_by:$('nBy').value,reported_date:en($('nDate').value),steps:$('nSteps').value.split('\n').map(s=>s.trim()).filter(Boolean)});closeNew();if(!MGR)TAB='prop';await load();}catch(e){$('nErr').textContent=e.message;}
+}
+async function doImport(){if(!confirm('نقشه‌یِ راهِ قبلی (همه‌یِ موارد با وضعیتِ فعلی) منتقل شود؟ تکراری‌ها نادیده گرفته می‌شوند.'))return;run(()=>api('import/','POST',{items:SEED}));}
+$('today').textContent=new Date().toLocaleDateString('fa-IR',{calendar:'persian',weekday:'long',day:'numeric',month:'long',year:'numeric'});
+MadarAccess.ready(()=>{ME=(MadarAccess.name&&MadarAccess.name())||(window.MadarAuth&&MadarAuth.name&&MadarAuth.name())||'';load();});
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>
