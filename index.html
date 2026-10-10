@@ -129,6 +129,34 @@ body > *{position:relative;z-index:1}
   background:linear-gradient(160deg,rgba(240,165,0,.14),rgba(232,99,10,.06));border:1px solid rgba(240,165,0,.22)}
 .tile-title{font-size:14.5px;font-weight:800;margin-bottom:4px}
 .tile-desc{font-size:10.5px;color:var(--muted);line-height:1.7}
+
+/* ── ⚠️ (۱۴۰۵/۰۷/۱۹) صفحه‌ی اصلیِ بخش‌بندی‌شده: گروه‌ها، کاشیِ افقی، جستجو ── */
+.groups{width:min(1040px,100%);display:flex;flex-direction:column;gap:30px}
+.me-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 20px;border:1px solid rgba(240,165,0,.38);border-radius:16px;background:var(--surface);text-decoration:none;color:var(--text);transition:border-color .2s,transform .2s,box-shadow .2s}
+.me-hero:hover,.me-hero:focus-visible{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.22);outline:none}
+.me-hero .gt-ic{width:50px;height:50px}
+.me-hero-t{font-size:17px;font-weight:800}
+.me-hero-d{font-size:12px;color:var(--muted);margin-top:3px}
+.g-search{width:min(1040px,100%);margin-bottom:22px;display:flex;align-items:center;gap:10px;padding:0 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.g-search:focus-within{border-color:var(--accent)}
+.g-search svg{flex-shrink:0;stroke:var(--muted)}
+.g-search input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font-family:inherit;font-size:13.5px;padding:13px 0}
+.g-search input::placeholder{color:var(--faint)}
+.grp[hidden],.gt-cell[hidden]{display:none}
+.g-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.g-dot{width:10px;height:10px;border-radius:50%;background:var(--g);flex-shrink:0}
+.g-title{font-size:16px;font-weight:800}
+.g-note{font-size:11.5px;color:var(--muted)}
+.g-line{flex:1;height:1px;background:var(--border)}
+.g-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.gt-cell{min-width:0}
+.gt{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);text-decoration:none;color:var(--text);transition:border-color .2s,transform .2s,box-shadow .2s}
+.gt:hover,.gt:focus-visible{border-color:var(--g);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.22);outline:none}
+.gt-ic{width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--g,var(--accent));background:rgba(240,165,0,.12);background:color-mix(in srgb,var(--g,var(--accent)) 15%,transparent);border:1px solid rgba(240,165,0,.25);border-color:color-mix(in srgb,var(--g,var(--accent)) 32%,transparent)}
+.gt-t{font-size:14.5px;font-weight:800}
+.gt-d{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:3px}
+.g-empty{text-align:center;color:var(--muted);font-size:12.5px;padding:22px 0}
+@media (prefers-reduced-motion:reduce){.gt,.me-hero{transition:none}}
 .foot{margin-top:34px;font-size:10px;color:var(--faint);letter-spacing:.15em;direction:ltr}
 .access-denied{text-align:center;max-width:420px}
 .access-denied-icon{font-size:48px;margin-bottom:16px}
@@ -145,6 +173,13 @@ body > *{position:relative;z-index:1}
   .tile-icon{width:40px;height:40px;font-size:20px;border-radius:11px;margin-bottom:8px}
   .tile-title{font-size:12.5px}
   .tile-desc{font-size:9.5px}
+  .groups{gap:22px}
+  .g-grid{grid-template-columns:1fr 1fr;gap:9px}
+  .gt{flex-direction:column;gap:10px;padding:13px;border-radius:13px}
+  .gt-t{font-size:13px}
+  .gt-d{font-size:10.5px}
+  .me-hero{padding:14px;gap:12px}
+  .me-hero-t{font-size:15px}
 }
 /* ── هشدارِ تعطیلات ── */
 .hol-strip{width:min(620px,100%);margin:-10px auto 26px;display:flex;flex-direction:column;gap:8px}
@@ -204,7 +239,12 @@ body > *{position:relative;z-index:1}
 
 <div id="mainState" style="display:none;width:100%;flex-direction:column;align-items:center;">
   <div class="user-info" id="userInfoText"></div>
-  <div class="tiles" id="tilesContainer"></div>
+  <div class="g-search" id="gSearchWrap" hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
+    <input id="gSearch" type="search" placeholder="جستجوی بخش — مثلاً «چک» یا «حضور»" aria-label="جستجوی بخش‌ها" autocomplete="off">
+  </div>
+  <div class="groups" id="tilesContainer"></div>
+  <div class="g-empty" id="gEmpty" hidden>بخشی با این نام پیدا نشد</div>
 </div>
 
 <div id="deniedState" style="display:none;" class="access-denied">
@@ -374,6 +414,80 @@ async function getCurrentUserInfoFromDjangoOrSheet(email){
   return await sheetCall('getCurrentUserInfo', { email });
 }
 
+// ⚠️ (۱۴۰۵/۰۷/۱۹) صفحه‌ی اصلیِ بخش‌بندی‌شده — هر کاشی در یکی از پنج گروه؛ «داشبوردِ من» بالایِ همه.
+// کاشی‌هایِ مجاز همچنان از پنلِ دسترسی می‌آیند (allowedTiles)؛ این‌جا فقط «چیدمان» است. گروهِ خالی نمایش داده نمی‌شود.
+const TILE_ICON = {
+  me:'M3 3h8v8H3z M13 3h8v5h-8z M13 10h8v11h-8z M3 13h8v8H3z',
+  crm:'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+  priceList:'M3 12V4h8l10 10-8 8z M7.5 8.5h.01',
+  fxLedger:'M4 8h14l-3-3 M20 16H6l3 3',
+  erp:'M3 21V11l6 3.5V11l6 3.5V5h4v16z',
+  access:'M14 10a4 4 0 1 1-1 2.6L4 21v-3h3v-3h3l2.5-2.5',
+  staffAdmin:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20a6 6 0 0 1 12 0 M17 11a3 3 0 1 0 0-5 M21 20a5 5 0 0 0-4-5',
+  adminGuide:'M14.7 6.3a4 4 0 0 0 5 5L11 20a2 2 0 0 1-3-3z',
+  attendance:'M12 7v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  org:'M4 21V4h10v17 M14 9h6v12 M8 8h2 M8 12h2 M8 16h2 M3 21h18',
+  reminders:'M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7 M10 20a2 2 0 0 0 4 0',
+  weights:'M12 3v18 M5 7h14 M5 7l-3 7a3 3 0 0 0 6 0z M19 7l-3 7a3 3 0 0 0 6 0z M8 21h8',
+  guide:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z M4 5v16 M8 7h7'
+};
+const TILE_GROUPS = [
+  { id:'sales', title:'فروش و بازاریابی',      note:'مشتری، قیمت، پیگیری',          color:'#e8a23a', keys:['crm','priceList'] },
+  { id:'fin',   title:'مالی و بازرگانی',        note:'پول، ارز، محموله',             color:'#3fb5a3', keys:['fxLedger','erp'] },
+  { id:'mgmt',  title:'مدیریت',                 note:'دسترسی، کارکنان، تنظیمات',     color:'#9b8cf7', keys:['access','staffAdmin','adminGuide'] },
+  { id:'admin', title:'اداری و منابع انسانی',   note:'حضور، سازمان، کارهایِ روزانه', color:'#5b9bf0', keys:['attendance','org','reminders'] },
+  { id:'more',  title:'ابزارها و راهنما',       note:'وزن‌نامه و راهنماها',          color:'#8f9bb3', keys:['weights','guide'] }
+];
+function _tileSvg(key, size){
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(TILE_ICON[key]||'M4 4h16v16H4z')+'"/></svg>';
+}
+function _normFa(t){ return String(t||'').replace(/ي/g,'ی').replace(/ك/g,'ک').toLowerCase(); }
+function renderGroupedTiles(allowedTiles, isMob, newTab){
+  const box = document.getElementById('tilesContainer');
+  const allowed = new Set(allowedTiles);
+  const placed = new Set(['me']);
+  TILE_GROUPS.forEach(g=>g.keys.forEach(k=>placed.add(k)));
+  const extra = allowedTiles.filter(k=>!placed.has(k) && TILE_META[k]);     // کاشیِ تازه‌ای که هنوز در گروهی نیست ← «ابزارها»
+  let html = '';
+  if(allowed.has('me') && TILE_META.me){
+    const m = TILE_META.me;
+    html += '<a class="me-hero" href="'+APP_URLS.me+'"'+newTab+'><span class="gt-ic" style="--g:var(--accent)">'+_tileSvg('me',26)+'</span><span style="flex:1;min-width:200px"><div class="me-hero-t">'+m.title+'</div><div class="me-hero-d">'+m.desc+'</div></span></a>';
+  }
+  let count = 0;
+  TILE_GROUPS.forEach(g=>{
+    const keys = g.keys.concat(g.id==='more'?extra:[]).filter(k=>allowed.has(k) && TILE_META[k]);
+    if(!keys.length) return;
+    count += keys.length;
+    html += '<section class="grp" style="--g:'+g.color+'"><div class="g-head"><span class="g-dot"></span><span class="g-title">'+g.title+'</span><span class="g-note">'+g.note+'</span><span class="g-line"></span></div><div class="g-grid">'
+      + keys.map(k=>{
+          const m = TILE_META[k];
+          const fb = (isMob && (k==='erp'||k==='crm'))
+            ? '<a href="'+(k==='erp'?'erp.html':'crm.html')+'" style="display:block;margin-top:4px;font-size:10px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ نسخه‌ی کامل</a>' : '';
+          return '<div class="gt-cell" data-q="'+_normFa(m.title+' '+m.desc)+'"><a class="gt" href="'+APP_URLS[k]+'"'+newTab+'><span class="gt-ic">'+_tileSvg(k,22)+'</span><span><div class="gt-t">'+m.title+'</div><div class="gt-d">'+m.desc+'</div></span></a>'+fb+'</div>';
+        }).join('')
+      + '</div></section>';
+  });
+  if(isMob) html += '<div style="text-align:center;padding:4px 0"><a href="m.html" class="tile" style="display:block;border-color:rgba(240,165,0,.5)"><div class="tile-icon">📱</div><div class="tile-title">مدار موبایل</div><div class="tile-desc">کارتابل، ورود/خروج، ثبتِ تماس، مشتری — مخصوصِ گوشی</div></a></div>';
+  if(!count && !allowed.has('me')) html = '<div style="color:var(--muted);font-size:12px;text-align:center">برای نقش شما هیچ بخشی فعال نشده — با مدیر تماس بگیر</div>';
+  box.innerHTML = html;
+  // جستجو: فقط وقتی بخش‌ها زیاد است
+  const wrap = document.getElementById('gSearchWrap'), inp = document.getElementById('gSearch');
+  if(wrap && inp && count >= 5){
+    wrap.hidden = false;
+    inp.oninput = function(){
+      const q = _normFa(inp.value).trim();
+      let any = false;
+      box.querySelectorAll('.grp').forEach(sec=>{
+        let vis = 0;
+        sec.querySelectorAll('.gt-cell').forEach(c=>{ const ok = !q || c.getAttribute('data-q').indexOf(q) >= 0; c.hidden = !ok; if(ok) vis++; });
+        sec.hidden = vis === 0; if(vis) any = true;
+      });
+      const hero = box.querySelector('.me-hero'); if(hero) hero.hidden = !!q;
+      document.getElementById('gEmpty').hidden = !q || any;
+    };
+  }
+}
+
 async function init(){
   const email=await ensureUserEmail();
   if(!email){
@@ -404,21 +518,7 @@ async function init(){
   const isMob = isMobileDevice();
   // ⚠️ (۱۴۰۵/۰۷/۱۵) طبقِ درخواستِ صریحِ کاربر: روی دسکتاپ هر کاشی در «تبِ جدید» باز می‌شود تا صفحه‌یِ اصلی بسته نشود (ورودِ امن بینِ تب‌ها مشترک است). رویِ گوشی همان تب می‌ماند (در اپِ نصب‌شده تبِ جدید دردسر می‌سازد).
   const newTab = isMob ? '' : ' target="_blank" rel="noopener"';
-  document.getElementById('tilesContainer').innerHTML=allowedTiles.map(key=>{
-    const m=TILE_META[key];
-    const desktopFallback=(isMob && (key==='erp'||key==='crm'))
-      ? `<a href="${key==='erp'?'erp.html':'crm.html'}" style="display:block;margin-top:4px;font-size:10px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ نسخه‌ی کامل</a>`
-      : '';
-    return `<div>
-      <a class="tile" href="${APP_URLS[key]}"${newTab} style="display:block;">
-        <div class="tile-icon">${m.icon}</div>
-        <div class="tile-title">${m.title}</div>
-        <div class="tile-desc">${m.desc}</div>
-      </a>
-      ${desktopFallback}
-    </div>`;
-  }).join('') + (isMob ? `<div style="grid-column:1/-1;text-align:center;padding:14px 0 4px;"><a href="m.html" class="tile" style="display:block;border-color:rgba(240,165,0,.5)"><div class="tile-icon">📱</div><div class="tile-title">مدار موبایل</div><div class="tile-desc">کارتابل، ورود/خروج، ثبتِ تماس، مشتری — مخصوصِ گوشی</div></a></div>` : '')
-  || `<div style="color:var(--muted);font-size:12px;">برای نقش شما هیچ بخشی فعال نشده — با مدیر تماس بگیر</div>`;
+  renderGroupedTiles(allowedTiles, isMob, newTab);
 }
 // ══════════════════════════════════════════════════════════════
 // 🗺️ نقشه‌ی راه — کارهای در صف/آینده + تاریخچه (۱۴۰۵/۰۶/۱۸)
@@ -432,6 +532,8 @@ const ROADMAP_ITEMS = [
   // ── در صف (queue) — کارهای کوچیک‌تر و باز ──
   { title: '🔑 قفلِ سرورِ پنلِ دسترسی: بخشِ باقی‌مانده (سازمان، یادآوری‌ها، «هر کس فقط داده‌یِ خودش»، ستون‌هایِ حساس)', category: 'queue', addedDate: '1405/07/19', priority: 3, status: 'pending',
     desc: `انجام‌شده (۱۴۰۵/۰۷/۱۹): قفلِ سرور برایِ دفترِ ارزی، تحلیلِ مدیریتی، بکاپ، پنلِ دسترسی، چک‌ها و مطالبات (finance.view/edit)، وزن‌نامه (weights.edit)، کارکنان و مسیرهایِ CRM/ERP (درخواست‌ها، عملیات، ارسال‌ها، سرنخ‌ها، مشتریان). باقی‌مانده: ۱) مسیرهایِ /api/org/ و /api/worklog/ و یادآوری‌ها: «هر کس فقط داده‌یِ خودش» (نه فقط مجوزِ صفحه). ۲) ستون‌هایِ حسّاسِ ERP/CRM (قیمتِ خرید، سود) با مجوزِ data.*. ۳) پیش از همه: ورودهایِ «log» را در «مدیریت کارمندان ← ورودهای امن» ببینید و اگر مورد نامعتبری نبود MADAR_AUTH_MODE را به on ببرید، وگرنه سرور رد نمی‌کند.` },  { title: '🔐 روشن کردنِ قفلِ ورودِ امن: وقتی همه‌ی کارمندها یک بار وارد شدن (مدار در بله خبر می‌ده) ← Render ← Environment ← MADAR_AUTH_MODE رو از log به on تغییر بدید ← Save. اگه مشکل شد، برگردونید روی log', category: 'queue', addedDate: '1405/07/08', status: 'pending' },
+  { title: '🧭 صفحه‌یِ اصلیِ بخش‌بندی‌شده (فروش / مالی / مدیریت / اداری / ابزارها) + جستجو', category: 'queue', addedDate: '1405/07/19', status: 'done', completedDate: '1405/07/19',
+    desc: `کاشی‌ها در پنج گروهِ رنگی جدا شدند و «داشبوردِ من» بالایِ همه است؛ هر نقش فقط گروه‌هایِ مجازِ خودش را می‌بیند. نوارِ جستجو (از ۵ بخش به بالا). موبایل دو ستونه. بخشِ تازه که در گروهی نباشد خودکار در «ابزارها» می‌آید (TILE_GROUPS در index.html).` },
   { title: '🔑 پنلِ دسترسی (نقش ← مجوز + استثنایِ فردی) و «داشبوردِ من»', category: 'queue', addedDate: '1405/07/19', status: 'done', completedDate: '1405/07/19',
     desc: `جدولِ نقش × مجوز با ۱۶ نقش (صفحه‌ها، داشبوردها: تیم / تحلیلِ مدیریتیِ دفترِ ارزی / BIِ CRM، و عملیاتِ حساس: ثبت و ویرایشِ دفترِ ارزی، بکاپ، خودِ پنل)، استثنایِ فردی، تاریخچه‌یِ تغییرات، و «ببین مثلِ این نفر». کاشی‌هایِ index و منوها از همین جدول می‌آیند؛ «داشبوردِ من» برایِ همه؛ قفلِ سرور برایِ /api/ledger/ (خواندن/نوشتن جدا)، تحلیلِ مدیریتی و بکاپ. مدیریت قابلِ‌کم‌کردن نیست.` },
   { title: 'تعطیلات قمری ۱۴۰۵', category: 'queue', addedDate: '1405/06/07', status: 'done', completedDate: '1405/07/15',
