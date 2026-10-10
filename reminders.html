@@ -359,7 +359,25 @@ const FREE_API = 'https://api.smartchipelec.com/api/worklog/free-reminders/';
 const RECUR_API = 'https://api.smartchipelec.com/api/worklog/recurring-reminders/';
 // ⚠️ فقط یادآوری‌های خودِ همین کارمند نشون داده می‌شه (نه کلِ تیم) —
 // یادآوری‌هایِ تیمی جای جداگانه‌ای (تبِ CRM) دیده می‌شن، نه اینجا.
-const MY_NAME = 'حمیدرضا چاوشی ابیانه';
+// ⚠️ (۱۴۰۵/۰۷/۱۹) نامِ کاربر دیگر در کد ثابت نیست (قبلاً نامِ مدیر بود؛ برایِ هر کارمندِ دیگر یادآوری‌هایِ مدیر را نشان می‌داد).
+//   از ورودِ امن می‌آید؛ resolveMyName() پیش از اولین بارگذاری مقدارش را پر می‌کند.
+let MY_NAME = (window.MadarAuth && MadarAuth.name && MadarAuth.name()) || '';
+async function resolveMyName(){
+  if(MY_NAME) return MY_NAME;
+  try{
+    await Promise.race([ new Promise(res=>{ if(window.MadarAccess&&MadarAccess.ready) MadarAccess.ready(res); else res(); }), new Promise(res=>setTimeout(res,3000)) ]);
+    if(window.MadarAccess && MadarAccess.name && MadarAccess.name()) MY_NAME = MadarAccess.name();
+  }catch(e){}
+  if(!MY_NAME){
+    try{
+      const em = (localStorage.getItem('smartchip_user_email')||localStorage.getItem('smartchip_erp_email')||'').toLowerCase();
+      const r = await fetch('https://api.smartchipelec.com/api/staff/staff/'); const j = await r.json();
+      const me = (Array.isArray(j)?j:[]).find(x=>x && String(x.email||'').toLowerCase()===em);
+      if(me && me.name) MY_NAME = String(me.name).trim();
+    }catch(e){}
+  }
+  return MY_NAME;
+}
 
 // ══════════════════════════════════════════════════════════════
 // تقویمِ شمسیِ کامل — عیناً همون الگوریتمِ محک‌شده‌ی CRM/ERP
@@ -560,7 +578,7 @@ async function dgLoadPeople(){
   try{ const r = await fetchWithRetry(DG_STAFF_API); if(r.ok){ const j = await r.json(); staff = (Array.isArray(j)?j:[]).filter(s=>s && s.active!==false && s.name).map(s=>String(s.name).trim()); } }catch(e){}
   const pick = (first)=>{
     const hits = staff.filter(n=>dgNorm(n).split(' ')[0]===dgNorm(first));
-    if(first==='حمیدرضا' && !hits.includes(MY_NAME)) hits.unshift(MY_NAME);
+    if(MY_NAME && first===dgNorm(MY_NAME).split(' ')[0] && !hits.includes(MY_NAME)) hits.unshift(MY_NAME);
     return hits.length ? [...new Set(hits)] : [first];
   };
   const uniq = (arr)=>[...new Set(arr)];
@@ -1558,7 +1576,7 @@ document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('cli
   document.getElementById('bigDayNum').textContent = fn(t[2]);
   document.getElementById('dayMonthYear').textContent = SMONTHS[t[1]-1] + ' ' + fn(t[0]);
 }
-refreshData().then(renderMain);
+resolveMyName().then(()=>{ if(!MY_NAME){ try{ showToast('❌ نامِ شما پیدا نشد؛ از صفحه‌یِ اصلی دوباره وارد شوید'); }catch(e){} } return refreshData(); }).then(renderMain);
 
 // ⚠️ (۱۴۰۵/۰۷/۱۱) طبقِ درخواستِ صریحِ کاربر: PWA فقط برایِ همین صفحه (یادآوری‌ها) دوباره
 // فعال شد — نه برایِ CRM/ERP/دفترِ ارزی/بقیه. فایلِ سرویس‌ورکر هم اسمِ جدا داره

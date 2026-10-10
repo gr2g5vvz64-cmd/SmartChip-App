@@ -284,6 +284,7 @@ const APP_URLS = {
   staffAdmin: 'staff-admin.html',  // فقط برای مدیر — افزودن/حذف کارمند
   fxLedger: 'fx-ledger.html',      // ⚠️ (۱۴۰۵/۰۶/۱۸) دفتر ارزی — فقط مدیر، تسویه ریال⇄یوان با مشتریان/تأمین‌کننده
   reminders: 'reminders.html',     // ⚠️ (۱۴۰۵/۰۶/۲۷) یادآوری‌ها — PWA کاملاً مستقل، کارِ فردا/آزاد/دوره‌ای/تقویم
+  weekly: 'weekly.html',           // ⚠️ (۱۴۰۵/۰۷/۱۹) گزارشِ هفتگیِ تیم — مدیریت و سرپرستان
   org: 'org.html',                 // ⚠️ (۱۴۰۵/۰۷/۰۸) سازمان — منابعِ انسانی، اداری، کارتابلِ من
   attendance: 'attendance.html',   // ⚠️ (۱۴۰۵/۰۷/۱۰) حضور و غیاب — کیوآرکدِ شخصیِ چرخان + گوشیِ حضور
   guide: 'guide-staff.html',       // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای کارکنان — کامل و به‌روز
@@ -307,7 +308,7 @@ if(isMobileDevice()){
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
 const ROLE_TILES = {
-  admin:   ['attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','guide','adminGuide'],
+  admin:   ['attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','weekly','guide','adminGuide'],
   sales:   ['attendance','org','crm','priceList','guide'],
   ops:     ['attendance','org','erp','guide'],
   finance: ['attendance','org','erp','guide'],
@@ -327,6 +328,7 @@ const ROLE_LABEL = {
 };
 const TILE_META = {
   attendance:{icon:'🕘', title:'حضور و غیاب', desc:'ثبتِ ورود و خروج با کیوآرکد و گوشی'},
+  weekly:   {icon:'📊', title:'گزارشِ هفتگیِ تیم', desc:'یادآوری‌ها و پیگیری‌هایِ تیم برایِ جلسه‌یِ سرپرستان'},
   org:      {icon:'🏢', title:'سازمان', desc:'منابعِ انسانی · اداری · کارتابلِ من'},
   erp:      {icon:'🏭', title:'ERP', desc:'تدارکات، بازرگانی، مالی، ردیابی محموله'},
   crm:      {icon:'📞', title:'CRM فروش', desc:'پیجویی و ثبت تماس با مشتری'},
@@ -342,9 +344,9 @@ const TILE_META = {
 };
 // ⚠️ (۱۴۰۵/۰۷/۱۹) هر کاشی ← مجوزِ مربوط در «پنلِ دسترسی»؛ ترتیبِ نمایش همین است.
 // اگر سرور هنوز پنلِ دسترسی نداشته باشد، همان نگاشتِ قدیمیِ ROLE_TILES کار می‌کند.
-const TILE_ORDER = ['me','attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','access','guide','adminGuide'];
+const TILE_ORDER = ['me','attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','weekly','access','guide','adminGuide'];
 const TILE_PERM = { me:'page.me', attendance:'page.attendance', org:'page.org', erp:'page.erp', crm:'page.crm', priceList:'page.pricelist', weights:'page.weights',
-  staffAdmin:'page.staffadmin', fxLedger:'page.fxledger', reminders:'page.reminders', access:'access.manage', guide:'page.guide', adminGuide:'page.adminguide' };
+  staffAdmin:'page.staffadmin', fxLedger:'page.fxledger', reminders:'page.reminders', weekly:'page.weekly', access:'access.manage', guide:'page.guide', adminGuide:'page.adminguide' };
 if(isMobileDevice()){
   TILE_META.erp.desc='مدار موبایل — کارتابل، ثبتِ تماس، مشتری';
   TILE_META.crm.desc='مدار موبایل — ثبتِ تماس، جستجویِ مشتری';
@@ -426,6 +428,7 @@ const TILE_ICON = {
   staffAdmin:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20a6 6 0 0 1 12 0 M17 11a3 3 0 1 0 0-5 M21 20a5 5 0 0 0-4-5',
   adminGuide:'M14.7 6.3a4 4 0 0 0 5 5L11 20a2 2 0 0 1-3-3z',
   attendance:'M12 7v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  weekly:'M4 20V10 M10 20V4 M16 20v-7 M22 20H2',
   org:'M4 21V4h10v17 M14 9h6v12 M8 8h2 M8 12h2 M8 16h2 M3 21h18',
   reminders:'M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7 M10 20a2 2 0 0 0 4 0',
   weights:'M12 3v18 M5 7h14 M5 7l-3 7a3 3 0 0 0 6 0z M19 7l-3 7a3 3 0 0 0 6 0z M8 21h8',
@@ -434,7 +437,7 @@ const TILE_ICON = {
 const TILE_GROUPS = [
   { id:'sales', title:'فروش و بازاریابی',      note:'مشتری، قیمت، پیگیری',          color:'#e8a23a', keys:['crm','priceList'] },
   { id:'fin',   title:'مالی و بازرگانی',        note:'پول، ارز، محموله',             color:'#3fb5a3', keys:['fxLedger','erp'] },
-  { id:'mgmt',  title:'مدیریت',                 note:'دسترسی، کارکنان، تنظیمات',     color:'#9b8cf7', keys:['access','staffAdmin','adminGuide'] },
+  { id:'mgmt',  title:'مدیریت',                 note:'دسترسی، کارکنان، تنظیمات',     color:'#9b8cf7', keys:['weekly','access','staffAdmin','adminGuide'] },
   { id:'admin', title:'اداری و منابع انسانی',   note:'حضور، سازمان، کارهایِ روزانه', color:'#5b9bf0', keys:['attendance','org','reminders'] },
   { id:'more',  title:'ابزارها و راهنما',       note:'وزن‌نامه و راهنماها',          color:'#8f9bb3', keys:['weights','guide'] }
 ];
@@ -530,8 +533,11 @@ async function init(){
 // ══════════════════════════════════════════════════════════════
 const ROADMAP_ITEMS = [
   // ── در صف (queue) — کارهای کوچیک‌تر و باز ──
-  { title: '🔑 قفلِ سرورِ پنلِ دسترسی: بخشِ باقی‌مانده (سازمان، یادآوری‌ها، «هر کس فقط داده‌یِ خودش»، ستون‌هایِ حساس)', category: 'queue', addedDate: '1405/07/19', priority: 3, status: 'pending',
-    desc: `انجام‌شده (۱۴۰۵/۰۷/۱۹): قفلِ سرور برایِ دفترِ ارزی، تحلیلِ مدیریتی، بکاپ، پنلِ دسترسی، چک‌ها و مطالبات (finance.view/edit)، وزن‌نامه (weights.edit)، کارکنان و مسیرهایِ CRM/ERP (درخواست‌ها، عملیات، ارسال‌ها، سرنخ‌ها، مشتریان). باقی‌مانده: ۱) مسیرهایِ /api/org/ و /api/worklog/ و یادآوری‌ها: «هر کس فقط داده‌یِ خودش» (نه فقط مجوزِ صفحه). ۲) ستون‌هایِ حسّاسِ ERP/CRM (قیمتِ خرید، سود) با مجوزِ data.*. ۳) پیش از همه: ورودهایِ «log» را در «مدیریت کارمندان ← ورودهای امن» ببینید و اگر مورد نامعتبری نبود MADAR_AUTH_MODE را به on ببرید، وگرنه سرور رد نمی‌کند.` },  { title: '🔐 روشن کردنِ قفلِ ورودِ امن: وقتی همه‌ی کارمندها یک بار وارد شدن (مدار در بله خبر می‌ده) ← Render ← Environment ← MADAR_AUTH_MODE رو از log به on تغییر بدید ← Save. اگه مشکل شد، برگردونید روی log', category: 'queue', addedDate: '1405/07/08', status: 'pending' },
+  { title: '🔑 قفلِ سرورِ پنلِ دسترسی: بخشِ باقی‌مانده (ماژول‌هایِ حضور/مرخصی/کارتابلِ سازمانی، ستون‌هایِ حساس)', category: 'queue', addedDate: '1405/07/19', priority: 3, status: 'pending',
+    desc: `انجام‌شده (۱۴۰۵/۰۷/۱۹): قفلِ نقش برایِ دفترِ ارزی، تحلیل، بکاپ، پنل، چک‌ها و مطالبات، وزن‌نامه، کارکنان، CRM/ERP؛ و «هر کس فقط داده‌یِ خودش» برایِ یادآوری‌هایِ آزاد/دوره‌ای، ارجاعِ کار (به‌تفکیکِ واحد)، اهدافِ فروش، وعده‌هایِ پرداخت، آدرسِ تقویم، و داشبوردِ سازمان (کارمند: فقط خودش · سرپرست: تیمِ واحدِ خودش · مدیر/ادمین: همه). صفحه‌یِ «گزارشِ هفتگیِ تیم» برایِ سرپرستان و مدیریت. باقی‌مانده: ۱) بازبینیِ ماژول‌هایِ منابعِ انسانی (attendance.py، leave.py، workdesk.py، mobile_api.py) برایِ همین قاعده. ۲) ستون‌هایِ حسّاسِ ERP/CRM (قیمتِ خرید، سود) با مجوزِ data.*. ۳) پیش از همه: ورودهایِ «log» (از جمله دلیل‌هایِ scope:…) را در «مدیریت کارمندان ← ورودهای امن» ببینید و اگر مورد نامعتبری نبود MADAR_AUTH_MODE را به on ببرید، وگرنه سرور رد نمی‌کند.` },
+  { title: '📊 گزارشِ هفتگیِ آنلاینِ تیم برایِ سرپرستان و مدیریت (weekly.html)', category: 'queue', addedDate: '1405/07/19', status: 'done', completedDate: '1405/07/19',
+    desc: `هر سرپرست تیمِ واحدِ خودش، مدیر همه‌ی واحدها: دیرکردها، موعدهایِ هفته، انجام‌شده‌ها و پیگیری‌هایِ باز/دیرکرد؛ بازه‌یِ ۷/۱۴/۳۰ روز و چاپ/PDF برایِ جلسه. (/api/org/team-report/). ایده‌یِ بعدی: ارسالِ خودکارِ خلاصه‌اش هر هفته در بله.` },
+  { title: '🔐 روشن کردنِ قفلِ ورودِ امن: وقتی همه‌ی کارمندها یک بار وارد شدن (مدار در بله خبر می‌ده) ← Render ← Environment ← MADAR_AUTH_MODE رو از log به on تغییر بدید ← Save. اگه مشکل شد، برگردونید روی log', category: 'queue', addedDate: '1405/07/08', status: 'pending' },
   { title: '🧭 صفحه‌یِ اصلیِ بخش‌بندی‌شده (فروش / مالی / مدیریت / اداری / ابزارها) + جستجو', category: 'queue', addedDate: '1405/07/19', status: 'done', completedDate: '1405/07/19',
     desc: `کاشی‌ها در پنج گروهِ رنگی جدا شدند و «داشبوردِ من» بالایِ همه است؛ هر نقش فقط گروه‌هایِ مجازِ خودش را می‌بیند. نوارِ جستجو (از ۵ بخش به بالا). موبایل دو ستونه. بخشِ تازه که در گروهی نباشد خودکار در «ابزارها» می‌آید (TILE_GROUPS در index.html).` },
   { title: '🔑 پنلِ دسترسی (نقش ← مجوز + استثنایِ فردی) و «داشبوردِ من»', category: 'queue', addedDate: '1405/07/19', status: 'done', completedDate: '1405/07/19',

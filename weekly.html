@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>📊 گزارش هفتگیِ تیم — مدار</title>
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 110px}
+a{color:inherit;text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:22px;margin:4px 0 0}
+.sub{color:var(--soft);font-size:12.5px}
+.home{color:var(--acc);font-size:12.5px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.bar button{background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:6px 14px;font:inherit;font-size:12.5px;cursor:pointer}
+.bar button.on{border-color:var(--acc);color:var(--acc)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.kpi b{display:block;font-size:26px;line-height:1.2}
+.kpi span{font-size:11.5px;color:var(--soft)}
+.kpi.warn b{color:var(--warn)}.kpi.bad b{color:var(--no)}.kpi.good b{color:var(--ok)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+.p{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.p.bad{border-color:rgba(248,113,113,.55)}
+.p h3{margin:0 0 2px;font-size:15px}
+.p .u{color:var(--soft);font-size:11.5px;margin-bottom:8px}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.nums div{background:var(--card2);border-radius:10px;text-align:center;padding:4px 2px;font-size:11px;color:var(--soft)}
+.nums b{display:block;font-size:17px;color:var(--ink)}
+.nums .r b{color:var(--no)}.nums .o b{color:var(--warn)}.nums .g b{color:var(--ok)}
+.li{font-size:12px;padding:4px 0;border-top:1px solid #262c3d;color:#d7dbea}
+.li small{color:var(--soft)}
+.empty{color:var(--soft);text-align:center;padding:30px 4px}
+.note{color:var(--soft);font-size:11.5px;margin-top:14px}
+.printbtn{margin-inline-start:auto}
+@media print{body{background:#fff;color:#000}.bar,.home,.printbtn,.note{display:none}.p,.kpi{background:#fff;border-color:#999;break-inside:avoid}.sub,.u,.li small,.kpi span,.nums div{color:#444}.nums div{background:#eee}.nums b{color:#000}}
+@media (max-width:700px){.wrap{padding:12px 12px 110px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="sub" id="today"></div><h1>📊 گزارشِ هفتگیِ تیم</h1><div class="sub" id="scopeLine"></div></div>
+    <a class="home" href="index.html">← صفحه‌یِ اصلی</a>
+  </div>
+  <div class="bar">
+    <span class="sub">بازه:</span>
+    <button data-d="7" class="on">۷ روز</button><button data-d="14">۱۴ روز</button><button data-d="30">۳۰ روز</button>
+    <button class="printbtn" onclick="window.print()">🖨 چاپ / ذخیره PDF</button>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid" id="people"><div class="empty">در حالِ بارگذاری…</div></div>
+  <div class="note">فقط یادآوری‌ها و پیگیری‌هایِ تیمِ شما را نشان می‌دهد (مدیریت: همه‌یِ واحدها). مرتب‌سازی: بیشترین دیرکرد بالاتر. برایِ جلسه می‌توانید همین صفحه را چاپ یا PDF کنید.</div>
+</div>
+<script>
+const API='https://api.smartchipelec.com';
+const $=id=>document.getElementById(id);
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let DAYS=7;
+async function load(){
+  $('people').innerHTML='<div class="empty">در حالِ بارگذاری…</div>';
+  let d;
+  try{
+    const r=await fetch(API+'/api/org/team-report/?days='+DAYS,{cache:'no-store'});
+    d=await r.json();
+    if(!r.ok||!d.ok) throw new Error(d&&d.error||('HTTP '+r.status));
+  }catch(e){
+    $('kpis').innerHTML=''; $('people').innerHTML='<div class="empty">'+esc(e.message||'گزارش در دسترس نیست')+'<br>این صفحه فقط برایِ مدیریت و سرپرستان است و باید با ورودِ امن وارد شده باشید.</div>'; return;
+  }
+  const t=d.totals||{};
+  $('scopeLine').textContent=(d.scope==='all'?'همه‌یِ واحدها':'تیمِ شما')+' · از '+fa(d.today)+' تا '+fa(d.to);
+  const k=(n,l,c)=>`<div class="kpi ${c}"><b>${fa(n)}</b><span>${l}</span></div>`;
+  $('kpis').innerHTML=k(t.open||0,'یادآوریِ باز','')+k(t.late||0,'دیرکرد',t.late?'bad':'good')+k(t.week||0,'موعد در بازه',t.week?'warn':'good')+k(t.done||0,'انجام‌شده','good')+k(t.dg_wait||0,'پیگیریِ باز','')+k(t.dg_late||0,'پیگیریِ دیرکرد',t.dg_late?'bad':'good');
+  const ps=d.people||[];
+  $('people').innerHTML=ps.length?ps.map(p=>`<div class="p ${(p.late||p.dg_late)?'bad':''}"><h3>${esc(p.name)}</h3><div class="u">${esc(p.unit||'—')}</div>
+    <div class="nums"><div class="${p.late?'r':''}"><b>${fa(p.late)}</b>دیرکرد</div><div class="${p.week?'o':''}"><b>${fa(p.week)}</b>موعدِ بازه</div><div><b>${fa(p.open)}</b>باز</div><div class="g"><b>${fa(p.done)}</b>انجام‌شده</div></div>`+
+    (p.late_items||[]).map(i=>`<div class="li">⏰ ${esc(i.desc||'—')} <small>· ${esc(i.date)}</small></div>`).join('')+
+    (p.dg_late_items||[]).map(i=>`<div class="li">🤝 ${esc(i.title)} <small>· به ${esc(i.to)} · موعد ${esc(i.due)}</small></div>`).join('')+
+    ((p.dg_wait)?`<div class="li"><small>پیگیریِ بازِ ${fa(p.dg_wait)}</small></div>`:'')+`</div>`).join(''):'<div class="empty">کسی در تیمِ شما ثبت نشده است.</div>';
+}
+document.querySelectorAll('.bar button[data-d]').forEach(b=>b.onclick=()=>{DAYS=+b.dataset.d;document.querySelectorAll('.bar button[data-d]').forEach(x=>x.classList.toggle('on',x===b));load();});
+$('today').textContent=new Date().toLocaleDateString('fa-IR',{calendar:'persian',weekday:'long',day:'numeric',month:'long',year:'numeric'});
+MadarAccess.ready(()=>{ load(); });
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>
