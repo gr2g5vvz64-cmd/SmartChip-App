@@ -899,7 +899,7 @@ const NAV_STRUCTURE = [
   {type:'section', id:'sec-overview', label:'نمای کلی', color:'#5B8DEF', children:[
     {id:'dashboard', icon:'🏠', label:'داشبورد'},
     {id:'yuan-position', icon:'💱', label:'حسابِ یوانیِ ما'},
-    {id:'management', icon:'📊', label:'تحلیلِ مدیریتی'},
+    {id:'management', icon:'📊', label:'تحلیلِ مدیریتی', perm:'dash.mgmt'},
   ]},
   {type:'section', id:'sec-customer', label:'مشتری', color:'#3FB68B', children:[
     {id:'customers', icon:'👥', label:'مشتریان (دفتر)'},
@@ -922,10 +922,10 @@ const NAV_STRUCTURE = [
   ]},
 ];
 function renderNavHtml(){
-  const quick = `<div class="qa-box"><div class="qa-title">➕ ثبتِ سریع</div><div class="qa-grid">${
+  const quick = `<div class="qa-box" data-perm="fx.edit"><div class="qa-title">➕ ثبتِ سریع</div><div class="qa-grid">${
     NAV_QUICK.map(q=>`<button type="button" class="qa-btn" data-action="${q.action}" title="${q.tip}"><span class="qa-ico">${q.icon}</span><span class="qa-lbl">${q.label}</span></button>`).join('')}</div></div>`;
   const secs = NAV_STRUCTURE.map(s=>`<div class="nav-sec" style="--sec:${s.color}"><div class="nav-sec-label"><span class="nav-sec-bar"></span>${s.label}</div>${
-    s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span></button>`).join('')}</div>`).join('');
+    s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"${c.perm?` data-perm="${c.perm}"`:''}><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span></button>`).join('')}</div>`).join('');
   return quick + secs;
 }
 let currentTab = 'dashboard';
@@ -5701,6 +5701,35 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
   const b = document.createElement('button'); b.id = 'fxHelpFab'; b.type = 'button'; b.textContent = '❓ راهنما';
   b.addEventListener('click', ()=>{ const k = fxHelpKeyForCurrent(); if(k) openHelpModal(k); else showToast('همین الان در صفحه‌یِ راهنما هستید'); });
   document.body.appendChild(b);
+})();
+// ⚠️ (۱۴۰۵/۰۷/۱۹) پنلِ دسترسی: «تحلیلِ مدیریتی» فقط با مجوزِ dash.mgmt؛ «ثبت/ویرایش/حذف» فقط با fx.edit (بدونِ آن، دفتر فقط‌خواندنی است؛
+// سرور هم همین را اجرا می‌کند — اینجا فقط دکمه‌ها پنهان می‌شوند تا کاربر به خطا نخورد).
+(function(){
+  if(!window.MadarAccess) return;
+  const WRITE_TXT = /ثبت|ذخیره|فروش|تسویه|قفل|حذف|ویرایش|افزودن|نگه‌داری|بازکردن|لغو/;
+  function hideWrites(root){
+    if(MadarAccess.can('fx.edit')) return;
+    (root||document).querySelectorAll('main button, #main button, .modal button, [id=main] [data-tab]').forEach(el=>{
+      if(el.dataset.roChecked) return; el.dataset.roChecked='1';
+      const attrs = Array.from(el.attributes).map(a=>a.name).join(' ');
+      const txt = el.textContent||'';
+      const isWrite = /\bdata-(edit|del|settle|company|hold|lock|sell|add|close|cancel-hawale)/.test(attrs) || (el.classList.contains('btn-primary') && WRITE_TXT.test(txt)) || /^add.*Btn$|GlobalBtn$/.test(el.id||'');
+      if(isWrite && !el.hasAttribute('data-help')) el.style.setProperty('display','none','important');
+    });
+  }
+  MadarAccess.ready(function(ok){
+    if(!ok) return;
+    if(!MadarAccess.can('fx.edit')){
+      document.body.classList.add('fx-readonly');
+      const b=document.createElement('div'); b.id='fxRoBanner';
+      b.setAttribute('style','position:fixed;top:0;right:0;left:0;z-index:60;background:#243046;color:#cfe0ff;font-size:12px;text-align:center;padding:4px 8px;border-bottom:1px solid #3b4d6e');
+      b.textContent='👁️ دفترِ ارزی برایِ نقشِ شما «فقط‌خواندنی» است';
+      document.body.appendChild(b); setTimeout(()=>{ try{ b.remove(); }catch(e){} }, 6000);
+      hideWrites(document);
+      new MutationObserver(()=>hideWrites(document)).observe(document.body,{childList:true,subtree:true});
+    }
+    if(!MadarAccess.can('dash.mgmt') && typeof currentTab!=='undefined' && currentTab==='management'){ try{ currentTab='dashboard'; render(); }catch(e){} }
+  });
 })();
 // ---- Boot ----
 (function(){

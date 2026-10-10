@@ -248,6 +248,8 @@ const APP_URLS = {
   attendance: 'attendance.html',   // ⚠️ (۱۴۰۵/۰۷/۱۰) حضور و غیاب — کیوآرکدِ شخصیِ چرخان + گوشیِ حضور
   guide: 'guide-staff.html',       // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای کارکنان — کامل و به‌روز
   adminGuide: 'guide-admin.html',  // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای مدیریتِ مدار — زیرساخت، حساب‌ها، روال‌ها (فقط مدیریت)
+  me: 'me.html',                   // ⚠️ (۱۴۰۵/۰۷/۱۹) داشبوردِ من — برایِ همه
+  access: 'access.html',           // ⚠️ (۱۴۰۵/۰۷/۱۹) پنلِ دسترسی — نقش و استثنایِ فردی (فقط مدیریت)
 };
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
@@ -295,7 +297,14 @@ const TILE_META = {
   reminders:{icon:'⏰', title:'یادآوری‌ها', desc:'کارِ فردا، یادآوریِ آزاد و دوره‌ای، تقویم'},
   guide:    {icon:'📖', title:'راهنمای کارکنان', desc:'مرحله‌به‌مرحله — از روزِ اول تا همه‌ی بخش‌ها'},
   adminGuide:{icon:'🛠️', title:'راهنمای مدیریتِ مدار', desc:'سایت‌ها، حساب‌ها، تنظیمات و روال‌ها'},
+  me:       {icon:'🏠', title:'داشبوردِ من', desc:'کارتابل، پیگیری‌ها و میانبرهایِ خودم'},
+  access:   {icon:'🔑', title:'پنلِ دسترسی', desc:'هر نقش و هر نفر چه بخش‌هایی را ببیند'},
 };
+// ⚠️ (۱۴۰۵/۰۷/۱۹) هر کاشی ← مجوزِ مربوط در «پنلِ دسترسی»؛ ترتیبِ نمایش همین است.
+// اگر سرور هنوز پنلِ دسترسی نداشته باشد، همان نگاشتِ قدیمیِ ROLE_TILES کار می‌کند.
+const TILE_ORDER = ['me','attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','access','guide','adminGuide'];
+const TILE_PERM = { me:'page.me', attendance:'page.attendance', org:'page.org', erp:'page.erp', crm:'page.crm', priceList:'page.pricelist', weights:'page.weights',
+  staffAdmin:'page.staffadmin', fxLedger:'page.fxledger', reminders:'page.reminders', access:'access.manage', guide:'page.guide', adminGuide:'page.adminguide' };
 if(isMobileDevice()){
   TILE_META.erp.desc='مدار موبایل — کارتابل، ثبتِ تماس، مشتری';
   TILE_META.crm.desc='مدار موبایل — ثبتِ تماس، جستجویِ مشتری';
@@ -385,7 +394,13 @@ async function init(){
   document.getElementById('userInfoText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
   // ⚠️ (۱۴۰۵/۰۷/۰۸) رفعِ باگ: نقش‌هایِ جدید (owner، sup_sales، sales_expert، accounting…) در ROLE_TILES نبودن
   //   → مثلاً مدیر با نقشِ owner هیچ کاشی‌ای نمی‌دید. حالا هر نقش به گروهش نگاشت می‌شه؛ نقشِ ناشناخته هم حداقل «سازمان» و «راهنما» رو می‌بینه.
-  const allowedTiles=ROLE_TILES[ROLE_GROUP[userInfo.role]||userInfo.role]||['attendance','org','reminders','guide'];
+  let allowedTiles=['me'].concat(ROLE_TILES[ROLE_GROUP[userInfo.role]||userInfo.role]||['attendance','org','reminders','guide']);
+  // ⚠️ (۱۴۰۵/۰۷/۱۹) پنلِ دسترسی: اگر سرور مجوزها را داد، کاشی‌ها از همان می‌آیند (حداکثر ۴ ثانیه صبر؛ بعدش نگاشتِ قدیمی)
+  try{
+    const accOk = await Promise.race([ new Promise(res=>MadarAccess.ready(res)), new Promise(res=>setTimeout(()=>res(false),4000)) ]);
+    if(accOk) await Promise.race([ MadarAccess.refresh(), new Promise(res=>setTimeout(res,2500)) ]);   // تغییراتِ تازه‌یِ مدیر فوراً دیده بشه
+    if(accOk && MadarAccess.perms()) allowedTiles = TILE_ORDER.filter(k=>MadarAccess.can(TILE_PERM[k]));
+  }catch(e){}
   const isMob = isMobileDevice();
   // ⚠️ (۱۴۰۵/۰۷/۱۵) طبقِ درخواستِ صریحِ کاربر: روی دسکتاپ هر کاشی در «تبِ جدید» باز می‌شود تا صفحه‌یِ اصلی بسته نشود (ورودِ امن بینِ تب‌ها مشترک است). رویِ گوشی همان تب می‌ماند (در اپِ نصب‌شده تبِ جدید دردسر می‌سازد).
   const newTab = isMob ? '' : ' target="_blank" rel="noopener"';
@@ -415,7 +430,11 @@ async function init(){
 // ══════════════════════════════════════════════════════════════
 const ROADMAP_ITEMS = [
   // ── در صف (queue) — کارهای کوچیک‌تر و باز ──
+  { title: '🔑 گسترشِ قفلِ سرورِ پنلِ دسترسی به بقیه‌یِ اپ‌ها (CRM، ERP، سازمان، یادآوری‌ها)', category: 'queue', addedDate: '1405/07/19', priority: 3, status: 'pending',
+    desc: `الان قفلِ سرور فقط دفترِ ارزی، تحلیلِ مدیریتی، بکاپ و خودِ پنل را زیرِ نظر دارد. برایِ بقیه فقط منو/کاشی/دکمه‌ها پنهان می‌شوند. کار: در access_app/catalog.py در PATH_PERMS برایِ هر مسیرِ API (مثلاً /api/requests/، /api/finance/) یک مجوز تعریف کنیم (به شرطِ اینکه ابتدا فایل‌هایِ urls/views آن اپ را ببینیم تا مسیرهایِ فقط‌خواندنی و نوشتن را درست جدا کنیم). همچنین «ستون‌هایِ حساسِ ERP/CRM» (قیمتِ خرید، سود) با مجوزِ data.* پنهان شوند. و پیش از آن: MADAR_AUTH_MODE را به on ببریم، وگرنه سرور رد نمی‌کند.` },
   { title: '🔐 روشن کردنِ قفلِ ورودِ امن: وقتی همه‌ی کارمندها یک بار وارد شدن (مدار در بله خبر می‌ده) ← Render ← Environment ← MADAR_AUTH_MODE رو از log به on تغییر بدید ← Save. اگه مشکل شد، برگردونید روی log', category: 'queue', addedDate: '1405/07/08', status: 'pending' },
+  { title: '🔑 پنلِ دسترسی (نقش ← مجوز + استثنایِ فردی) و «داشبوردِ من»', category: 'queue', addedDate: '1405/07/19', status: 'done', completedDate: '1405/07/19',
+    desc: `جدولِ نقش × مجوز با ۱۶ نقش (صفحه‌ها، داشبوردها: تیم / تحلیلِ مدیریتیِ دفترِ ارزی / BIِ CRM، و عملیاتِ حساس: ثبت و ویرایشِ دفترِ ارزی، بکاپ، خودِ پنل)، استثنایِ فردی، تاریخچه‌یِ تغییرات، و «ببین مثلِ این نفر». کاشی‌هایِ index و منوها از همین جدول می‌آیند؛ «داشبوردِ من» برایِ همه؛ قفلِ سرور برایِ /api/ledger/ (خواندن/نوشتن جدا)، تحلیلِ مدیریتی و بکاپ. مدیریت قابلِ‌کم‌کردن نیست.` },
   { title: 'تعطیلات قمری ۱۴۰۵', category: 'queue', addedDate: '1405/06/07', status: 'done', completedDate: '1405/07/15',
     desc: `بر اساسِ دیتا در کد: ۱۲ تعطیلیِ قمریِ ۱۴۰۵ (عید فطر، عید قربان، غدیر، تاسوعا و عاشورا، اربعین، رحلتِ پیامبر، شهادتِ امام رضا، میلادِ پیامبر و …) در تقویمِ یادآوری‌ها، CRM و ERP وجود دارد. تاریخِ دقیقِ اجرا ثبت نشده بود؛ تاریخِ نمایش‌داده‌شده = روزی که انجام‌شده علامت خورد. اگر تعطیلیِ قمریِ دیگری جا افتاده، همین آیتم را دوباره باز کنید.` },
   { title: '📅 ثبتِ تاریخِ انقضایِ دامنه‌یِ smartchipelec.com (ثبت‌شده در هاست‌ایران، NS در Cloudflare) + یک یادآوریِ سالانه — اگر دامنه منقضی شود کلِ مدار از کار می‌افتد', category: 'queue', addedDate: '1405/07/15', status: 'pending',

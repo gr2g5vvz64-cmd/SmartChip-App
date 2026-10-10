@@ -311,4 +311,18 @@
     setInterval(function () { if (document.visibilityState === 'visible') inboxLoad(); }, 120000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+
+  // ── ۷) 🔑 سطحِ دسترسی (پنلِ دسترسی): فایلِ madar-access.js از همین پوشه بارگذاری می‌شه ──
+  // تا آماده شدنش، MadarAccess.can(...) مقدارِ جایگزین (پیش‌فرض: مجاز) می‌ده و ready(cb) صف می‌شه.
+  if (!window.MadarAccess) {
+    window.MadarAccess = {
+      q: [], can: function (p, fb) { return fb === undefined ? true : !!fb; }, any: function () { return true; },
+      ready: function (cb) { this.q.push(cb); }, apply: function () {}, role: function () { return ''; }
+    };
+    try {
+      var me = document.currentScript, src = (me && me.src) ? me.src.replace(/madar-auth\.js(\?.*)?$/, 'madar-access.js') : './madar-access.js';
+      var sc = document.createElement('script'); sc.src = src; sc.async = true;
+      (document.head || document.documentElement).appendChild(sc);
+    } catch (e) {}
+  }
 })();

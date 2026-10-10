@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-page-perm="access.manage">
+<head>
+<meta charset="UTF-8">
+<script>
+/* سرورِ مدار: api.smartchipelec.com — اگه وصل نشد، خودکار با آدرسِ قدیمیِ Render تکرار می‌شه (مثلِ بقیه‌یِ صفحه‌ها) */
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>🔑 پنلِ دسترسی — مدار</title>
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:1280px;margin:0 auto;padding:18px 16px 90px}
+h1{font-size:21px;margin:6px 0 2px}
+.sub{color:var(--soft);font-size:12.5px;margin-bottom:14px}
+.banner{background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.45);color:#ffd7b0;border-radius:12px;padding:10px 14px;font-size:12.5px;margin:0 0 14px}
+.banner.good{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.4);color:#b9f3da}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.tab{background:var(--card);border:1px solid var(--line);color:var(--ink);padding:9px 16px;border-radius:12px;cursor:pointer;font:inherit;font-weight:700;font-size:13px}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#141821}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+select,input{font:inherit;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{background:var(--card2);color:var(--soft);border:0;padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer}
+.seg button.on{background:var(--acc);color:#141821;font-weight:800}
+.legend{color:var(--soft);font-size:11.5px;margin:0 0 10px;display:flex;gap:14px;flex-wrap:wrap}
+.legend b{font-weight:800}
+/* ماتریس */
+.mwrap{overflow:auto;border:1px solid var(--line);border-radius:12px;max-height:72vh}
+table.m{border-collapse:separate;border-spacing:0;min-width:100%;font-size:12.5px}
+table.m th,table.m td{border-bottom:1px solid #262c3d;border-left:1px solid #262c3d;padding:0;text-align:center;background:var(--card)}
+table.m thead th{position:sticky;top:0;z-index:3;background:#202637;font-size:11.5px;padding:8px 6px;min-width:82px;line-height:1.5}
+table.m th.rowh{position:sticky;right:0;z-index:2;background:#202637;text-align:right;padding:8px 12px;min-width:230px;max-width:260px}
+table.m thead th.rowh{z-index:4}
+table.m tr.grp th{background:#171b26;color:var(--acc);text-align:right;padding:6px 12px;font-size:12px;position:sticky;right:0}
+.rl{font-weight:700}.rd{color:var(--soft);font-size:11px;font-weight:400}
+.cell{width:100%;height:42px;border:0;background:transparent;cursor:pointer;font-size:16px;color:var(--ok);position:relative}
+.cell.no{color:var(--no)}
+.cell.lock{cursor:default;opacity:.55}
+.cell.mod::after{content:"";position:absolute;top:6px;left:6px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.cell:hover:not(.lock){background:rgba(255,255,255,.05)}
+/* لیست یک نقش / فرد */
+.plist{display:grid;gap:8px}
+.prow{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;flex-wrap:wrap}
+.prow .t{flex:1;min-width:200px}
+.prow .t b{font-size:13.5px}
+.prow .t div{color:var(--soft);font-size:11.5px}
+.sw{position:relative;width:48px;height:26px;border-radius:13px;background:#3a4156;border:0;cursor:pointer;flex:none}
+.sw::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+.sw.on{background:var(--ok)}
+.sw.on::after{right:25px}
+.sw[disabled]{opacity:.45;cursor:default}
+.mod-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-inline-start:6px}
+.badge{display:inline-block;font-size:11px;border-radius:10px;padding:1px 9px;border:1px solid var(--line);color:var(--soft)}
+.badge.ok{color:var(--ok);border-color:rgba(52,211,153,.5)}.badge.no{color:var(--no);border-color:rgba(248,113,113,.5)}.badge.us{color:var(--acc);border-color:rgba(240,165,0,.6)}
+.grpt{color:var(--acc);font-weight:800;font-size:12.5px;margin:14px 2px 6px}
+table.log{width:100%;border-collapse:collapse;font-size:12.5px}
+table.log th,table.log td{padding:8px 10px;border-bottom:1px solid #262c3d;text-align:right}
+table.log th{color:var(--soft);font-weight:600}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#202637;border:1px solid var(--line);border-radius:12px;padding:10px 18px;font-size:13px;z-index:50;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1}.toast.err{border-color:var(--no);color:#ffd0d0}
+.empty{color:var(--soft);text-align:center;padding:30px}
+a.back{color:var(--acc);text-decoration:none;font-size:12.5px}
+@media (max-width:700px){.wrap{padding:12px 12px 90px}table.m th.rowh{min-width:170px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← صفحه‌یِ اصلی</a>
+  <h1>🔑 پنلِ دسترسی</h1>
+  <div class="sub">مشخص کنید هر نقش (و در موارد خاص هر نفر) چه بخش‌ها، داشبوردها و عملیاتی را ببیند. مدیریت همیشه همه‌چیز دارد.</div>
+  <div id="banner"></div>
+  <div class="tabs">
+    <button class="tab on" data-t="roles">🧩 نقش‌ها</button>
+    <button class="tab" data-t="people">👤 افراد (استثنا)</button>
+    <button class="tab" data-t="log">🕘 تاریخچه</button>
+  </div>
+  <div id="main"><div class="empty">در حالِ بارگذاری…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const API='https://api.smartchipelec.com';
+const $=id=>document.getElementById(id);
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let D=null, tab='roles', view=(innerWidth<800?'one':'all'), oneRole='sales_expert', person='', prev=null;
+function myEmail(){ try{ return localStorage.getItem('smartchip_user_email')||localStorage.getItem('smartchip_erp_email')||''; }catch(e){ return ''; } }
+function toast(t,err){ const e=$('toast'); e.textContent=t; e.className='toast show'+(err?' err':''); clearTimeout(toast.t); toast.t=setTimeout(()=>e.className='toast',2400); }
+async function call(path,body){
+  const em=myEmail(); const opt = body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({actor_email:em},body))} : {cache:'no-store'};
+  const url = API+path + (body?'':((path.includes('?')?'&':'?')+'email='+encodeURIComponent(em)));
+  const r=await fetch(url,opt); let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j||!j.ok) throw new Error((j&&j.error)||('خطا '+r.status));
+  return j;
+}
+function fmtDate(iso){ try{ return new Date(iso).toLocaleString('fa-IR',{calendar:'persian',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; } }
+const roleLabel=k=>(D.roles.find(r=>r.key===k)||{label:k}).label;
+function defaultOf(role,perm){ const p=D.perms.find(x=>x.key===perm); return !!p && (p.default_roles.includes(role)); }
+function grantOf(role,perm){ const g=D.grants[role]; return g && Object.prototype.hasOwnProperty.call(g,perm) ? g[perm] : null; }
+function roleVal(role,perm){ const r=D.roles.find(x=>x.key===role); if(r&&r.locked) return true; const g=grantOf(role,perm); return g===null?defaultOf(role,perm):g; }
+async function load(){
+  try{ D=await call('/api/access/admin/matrix/'); }
+  catch(e){ $('main').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'<br><br>اگه تازه نصب کرده‌اید: اپِ <b>access_app</b> باید روی سرور باشد و <code>migrate</code> زده شود.</div>'; return; }
+  const m=D.mode;
+  $('banner').innerHTML = m==='on'
+    ? '<div class="banner good">🔒 قفلِ ورود روشن است — محدودیت‌هایِ این پنل در سرور هم اجرا می‌شود (مسیرهایی که پنل زیرِ نظر دارد: دفترِ ارزی، تحلیلِ مدیریتی، بکاپ، همین پنل).</div>'
+    : '<div class="banner">⚠️ قفلِ ورود الان روی حالتِ <b>'+esc(m)+'</b> است: تنظیم‌هایِ این پنل در <b>منو، کاشی‌ها و داشبوردها</b> اثر دارد، ولی سرور تا وقتی <code>MADAR_AUTH_MODE=on</code> نشود جلویِ درخواستِ مستقیمِ API را نمی‌گیرد.</div>';
+  render();
+}
+function render(){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  if(tab==='roles') viewRoles(); else if(tab==='people') viewPeople(); else viewLog();
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ tab=b.dataset.t; if(D) render(); });
+
+/* ───── نقش‌ها ───── */
+function groups(){ const g=[]; D.perms.forEach(p=>{ let x=g.find(y=>y.name===p.group); if(!x){ x={name:p.group,items:[]}; g.push(x); } x.items.push(p); }); return g; }
+function viewRoles(){
+  const roleOpts=D.roles.filter(r=>!r.locked).map(r=>`<option value="${r.key}" ${r.key===oneRole?'selected':''}>${esc(r.label)}</option>`).join('');
+  let h=`<div class="tools"><div class="seg"><button data-v="all" class="${view==='all'?'on':''}">جدولِ کلی</button><button data-v="one" class="${view==='one'?'on':''}">فقط یک نقش</button></div>
+    ${view==='one'?`<select id="rolePick">${roleOpts}</select>`:''}</div>
+    <div class="legend"><span><b style="color:var(--ok)">✔</b> مجاز</span><span><b style="color:var(--no)">✖</b> ممنوع</span><span><i class="mod-dot" style="margin:0 4px 0 0"></i> نقطه‌یِ نارنجی = با پیش‌فرض فرق دارد (با کلیکِ دوباره به پیش‌فرض برمی‌گردد)</span></div>`;
+  h += view==='all' ? matrixHtml() : oneHtml();
+  $('main').innerHTML=h;
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ view=b.dataset.v; viewRoles(); });
+  const rp=$('rolePick'); if(rp) rp.onchange=()=>{ oneRole=rp.value; viewRoles(); };
+  document.querySelectorAll('[data-role][data-p]').forEach(el=>el.onclick=()=>{ if(el.disabled||el.classList.contains('lock')) return; toggleRole(el.dataset.role,el.dataset.p); });
+}
+function matrixHtml(){
+  let t='<div class="mwrap"><table class="m"><thead><tr><th class="rowh">مجوز</th>'+D.roles.map(r=>`<th>${esc(r.label)}${r.locked?'<div class="rd">همه‌چیز</div>':''}</th>`).join('')+'</tr></thead><tbody>';
+  groups().forEach(g=>{
+    t+=`<tr class="grp"><th colspan="${D.roles.length+1}">${esc(g.name)}</th></tr>`;
+    g.items.forEach(p=>{
+      t+=`<tr><th class="rowh"><div class="rl">${esc(p.label)}</div><div class="rd">${esc(p.desc)}</div></th>`+D.roles.map(r=>{
+        const v=roleVal(r.key,p.key), mod=!r.locked && v!==defaultOf(r.key,p.key);
+        return `<td><button class="cell ${v?'':'no'} ${r.locked?'lock':''} ${mod?'mod':''}" data-role="${r.key}" data-p="${p.key}" title="${esc(r.label)} — ${esc(p.label)}">${v?'✔':'✖'}</button></td>`;
+      }).join('')+'</tr>';
+    });
+  });
+  return t+'</tbody></table></div>';
+}
+function oneHtml(){
+  let h='<div class="card"><div class="plist">';
+  groups().forEach(g=>{
+    h+=`<div class="grpt">${esc(g.name)}</div>`;
+    g.items.forEach(p=>{
+      const v=roleVal(oneRole,p.key), mod=v!==defaultOf(oneRole,p.key);
+      h+=`<div class="prow"><div class="t"><b>${esc(p.label)}</b>${mod?'<i class="mod-dot" title="با پیش‌فرض فرق دارد"></i>':''}<div>${esc(p.desc)}</div></div>
+        <button class="sw ${v?'on':''}" data-role="${oneRole}" data-p="${p.key}" aria-label="${esc(p.label)}"></button></div>`;
+    });
+  });
+  return h+'</div></div>';
+}
+async function toggleRole(role,perm){
+  const cur=roleVal(role,perm), want=!cur, def=defaultOf(role,perm);
+  const state = (want===def) ? 'default' : (want?'allow':'deny');
+  try{
+    await call('/api/access/admin/role/',{role,perm,state});
+    D.grants[role]=D.grants[role]||{};
+    if(state==='default') delete D.grants[role][perm]; else D.grants[role][perm]=(state==='allow');
+    D.log.unshift({at:new Date().toISOString(),actor:'شما',kind:'role',target:role,perm,old:'—',new:state});
+    toast('ذخیره شد'); viewRoles();
+  }catch(e){ toast(e.message,true); }
+}
+
+/* ───── افراد ───── */
+async function loadPreview(){
+  if(!person){ prev=null; return; }
+  try{ prev=await call('/api/access/admin/preview/?target='+encodeURIComponent(person)); }catch(e){ prev=null; toast(e.message,true); }
+}
+async function viewPeople(){
+  if(!person && D.staff.length) person=D.staff.find(s=>!['owner','admin'].includes(s.role))?.email || D.staff[0].email;
+  await loadPreview();
+  const opts=D.staff.map(s=>`<option value="${esc(s.email)}" ${s.email===person?'selected':''}>${esc(s.name)} — ${esc(roleLabel(s.role))}</option>`).join('');
+  let h=`<div class="tools"><select id="perPick" style="min-width:260px">${opts}</select></div>`;
+  if(!prev){ $('main').innerHTML=h+'<div class="empty">کارمندی انتخاب نشده</div>'; wirePeople(); return; }
+  const locked=['owner','admin'].includes(prev.role);
+  h+=`<div class="sub">👀 دقیقاً همین چیزی که <b>${esc(prev.name)}</b> (${esc(roleLabel(prev.role))}) می‌بیند. «پیروِ نقش» یعنی هر چه برایِ نقشش در تبِ نقش‌ها تنظیم شده.</div>`;
+  if(locked) h+='<div class="banner good">مدیریت همیشه همه‌چیز دارد و استثنا نمی‌پذیرد.</div>';
+  h+='<div class="card"><div class="plist">';
+  groups().forEach(g=>{
+    h+=`<div class="grpt">${esc(g.name)}</div>`;
+    g.items.forEach(p=>{
+      const x=prev.perms[p.key], uo=(D.overrides[person.toLowerCase()]||{})[p.key];
+      const cur = uo===undefined?'default':(uo?'allow':'deny');
+      const src={locked:'مدیریت',user:'استثنایِ شخصی',role:'تنظیمِ نقش',default:'پیش‌فرضِ نقش'}[x.source];
+      h+=`<div class="prow"><div class="t"><b>${esc(p.label)}</b> <span class="badge ${x.allowed?'ok':'no'}">${x.allowed?'✔ می‌بیند':'✖ نمی‌بیند'}</span> <span class="badge ${x.source==='user'?'us':''}">${src}</span><div>${esc(p.desc)}</div></div>
+        <select data-uperm="${p.key}" ${locked?'disabled':''}><option value="default" ${cur==='default'?'selected':''}>پیروِ نقش</option><option value="allow" ${cur==='allow'?'selected':''}>✔ مجاز (استثنا)</option><option value="deny" ${cur==='deny'?'selected':''}>✖ ممنوع (استثنا)</option></select></div>`;
+    });
+  });
+  $('main').innerHTML=h+'</div></div>'; wirePeople();
+}
+function wirePeople(){
+  const pp=$('perPick'); if(pp) pp.onchange=()=>{ person=pp.value; viewPeople(); };
+  document.querySelectorAll('[data-uperm]').forEach(sel=>sel.onchange=async()=>{
+    try{
+      await call('/api/access/admin/user/',{email:person,perm:sel.dataset.uperm,state:sel.value});
+      const k=person.toLowerCase(); D.overrides[k]=D.overrides[k]||{};
+      if(sel.value==='default') delete D.overrides[k][sel.dataset.uperm]; else D.overrides[k][sel.dataset.uperm]=(sel.value==='allow');
+      D.log.unshift({at:new Date().toISOString(),actor:'شما',kind:'user',target:person,perm:sel.dataset.uperm,old:'—',new:sel.value});
+      toast('ذخیره شد'); viewPeople();
+    }catch(e){ toast(e.message,true); viewPeople(); }
+  });
+}
+
+/* ───── تاریخچه ───── */
+function viewLog(){
+  const lab=k=>(D.perms.find(p=>p.key===k)||{label:k}).label;
+  const st={default:'پیش‌فرض',allow:'✔ مجاز',deny:'✖ ممنوع'};
+  const rows=D.log.map(l=>`<tr><td>${esc(fmtDate(l.at))}</td><td>${esc(l.actor)}</td><td>${l.kind==='role'?'نقش: '+esc(roleLabel(l.target)):'فرد: '+esc((D.staff.find(s=>s.email.toLowerCase()===l.target.toLowerCase())||{name:l.target}).name)}</td><td>${esc(lab(l.perm))}</td><td>${esc(st[l.old]||l.old)} ← <b>${esc(st[l.new]||l.new)}</b></td></tr>`).join('');
+  $('main').innerHTML=D.log.length?`<div class="card" style="overflow:auto"><table class="log"><thead><tr><th>زمان</th><th>توسطِ</th><th>برایِ</th><th>مجوز</th><th>تغییر</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">هنوز تغییری ثبت نشده</div>';
+}
+load();
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>

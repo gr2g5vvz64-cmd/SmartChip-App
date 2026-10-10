@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script>window.MADAR_NO_INBOX_BUTTON = true;   /* کارتابل همین‌جا کارت دارد */</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>🏠 داشبوردِ من — مدار</title>
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 110px}
+a{color:inherit;text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:22px;margin:4px 0 0}
+.sub{color:var(--soft);font-size:12.5px}
+.home{color:var(--acc);font-size:12.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 14px 10px}
+.card h2{font-size:15px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h2 a{font-size:11.5px;color:var(--acc);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.kpi{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center}
+.kpi b{display:block;font-size:22px;line-height:1.2}
+.kpi span{font-size:11px;color:var(--soft)}
+.kpi.warn b{color:var(--warn)}.kpi.bad b{color:var(--no)}.kpi.good b{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:11.5px}
+.chip b{color:#ff8080;margin-inline-start:4px}
+.it{display:flex;gap:10px;padding:8px 2px;border-top:1px solid #262c3d;align-items:flex-start}
+.it .ic{font-size:16px}
+.it .t{font-size:13px;font-weight:700;line-height:1.6}
+.it .s{font-size:11.5px;color:var(--soft);line-height:1.6}
+.empty{color:var(--soft);text-align:center;padding:16px 4px;font-size:12.5px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.tl{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;font-size:12.5px;font-weight:700}
+.tl:hover{border-color:var(--acc)}
+.tl i{display:block;font-style:normal;font-size:22px}
+.note{color:var(--soft);font-size:11.5px;margin-top:8px}
+.badge{display:inline-block;font-size:11px;border-radius:10px;padding:0 8px;border:1px solid var(--line);color:var(--soft);margin-inline-start:6px}
+.badge.red{color:var(--no);border-color:rgba(248,113,113,.5)}
+@media (max-width:700px){.wrap{padding:12px 12px 110px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="sub" id="today"></div><h1 id="hello">🏠 داشبوردِ من</h1><div class="sub" id="roleLine"></div></div>
+    <a class="home" href="index.html">← صفحه‌یِ اصلی</a>
+  </div>
+  <div class="grid">
+    <section class="card" id="cInbox"><h2><span>📥 کارتابلِ من</span><a href="org.html#inbox">صفحه‌یِ کامل ›</a></h2><div class="empty">در حالِ بارگذاری…</div></section>
+    <section class="card" id="cDeleg"><h2><span>🤝 پیگیری و تحویل</span><a href="reminders.html" data-perm="page.reminders">باز کردن ›</a></h2><div class="empty">در حالِ بارگذاری…</div></section>
+    <section class="card" id="cLinks"><h2><span>🧭 میانبرها</span></h2><div class="tiles" id="tiles"></div></section>
+    <section class="card" id="cTeam" data-perm="dash.team"><h2><span>👥 تیمِ من</span><a href="org.html">سازمان ›</a></h2><div class="empty">در حالِ بارگذاری…</div></section>
+  </div>
+  <div class="note" style="margin-top:14px">این صفحه فقط چیزهایی را نشان می‌دهد که مربوط به خودِ شماست. بخش‌هایِ دیگر مدار بر اساسِ نقشِ شما (در «پنلِ دسترسی») باز یا بسته‌اند.</div>
+</div>
+<script>
+const API='https://api.smartchipelec.com';
+const $=id=>document.getElementById(id);
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ROLE_LABEL={owner:'مدیریت',admin:'مدیریت',sup_sales:'سرپرستِ فروش',sup_trade:'سرپرستِ بازرگانی',sup_procurement:'سرپرستِ تدارکات',sup_finance:'سرپرستِ مالی',sup_warehouse:'سرپرستِ انبار',office:'مسئولِ دفتر',sales_expert:'کارشناسِ فروش',accounting:'حسابداری',warehouse_keeper:'انباردار',trade_expert:'کارشناسِ بازرگانی',procurement_staff:'تدارکات',service:'خدمات',parts_mgmt:'مدیریتِ قطعات',pcb_mgmt:'مدیریتِ برد'};
+const TILES=[['attendance','🕘','حضور و غیاب','attendance.html','page.attendance'],['org','🏢','سازمان','org.html','page.org'],['erp','🏭','ERP','erp.html','page.erp'],['crm','📞','CRM فروش','crm.html','page.crm'],
+ ['reminders','⏰','یادآوری‌ها','reminders.html','page.reminders'],['priceList','💰','Price List','pricelist.html','page.pricelist'],['fx','💱','دفترِ ارزی','fx-ledger.html','page.fxledger'],
+ ['guide','📖','راهنمایِ کارکنان','guide-staff.html','page.guide']];
+function myEmail(){ try{ return localStorage.getItem('smartchip_user_email')||localStorage.getItem('smartchip_erp_email')||''; }catch(e){ return ''; } }
+function todayJ(){ const p=new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((o,x)=>(o[x.type]=x.value,o),{}); return p.year+'-'+p.month+'-'+p.day; }
+async function getJ(path){ const r=await fetch(API+path,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+let ME={name:'',role:''};
+
+function head(){
+  $('today').textContent=new Date().toLocaleDateString('fa-IR',{calendar:'persian',weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const n=(ME.name||'').split(' ')[0];
+  $('hello').textContent='🏠 سلام'+(n?' '+n:'')+'، امروز چه خبر؟';
+  $('roleLine').textContent=ME.role?('نقشِ شما: '+(ROLE_LABEL[ME.role]||ME.role)):'';
+}
+async function inbox(){
+  const c=$('cInbox');
+  try{
+    const d=await getJ('/api/org/inbox/'); if(!d.ok) throw new Error('x');
+    const cats=(d.categories||[]).filter(x=>x.count&&!x.soon), items=(d.items||[]).slice(0,7);
+    c.innerHTML=`<h2><span>📥 کارتابلِ من <span class="badge ${d.count?'red':''}">${fa(d.count||0)}</span></span><a href="org.html#inbox">صفحه‌یِ کامل ›</a></h2>`+
+      (cats.length?`<div class="chips">${cats.map(x=>`<a class="chip" href="org.html#inbox:${esc(x.key)}">${esc(x.icon)} ${esc(x.label)}<b>${fa(x.count)}</b></a>`).join('')}</div>`:'')+
+      (items.length?items.map(it=>`<a class="it" href="${esc(it.link||'#')}"><span class="ic">${esc(it.icon||'•')}</span><span><div class="t">${esc(it.title)}</div><div class="s">${esc(it.sub||'')}</div></span></a>`).join(''):'<div class="empty">✨ چیزی منتظرِ شما نیست</div>')+
+      ((d.items||[]).length>7?`<div class="note">و ${fa((d.items||[]).length-7)} موردِ دیگر — <a href="org.html#inbox" style="color:var(--acc)">همه را ببین</a></div>`:'');
+  }catch(e){ c.innerHTML='<h2><span>📥 کارتابلِ من</span></h2><div class="empty">کارتابل در دسترس نیست — وارد شوید یا کمی بعد دوباره امتحان کنید.</div>'; }
+}
+async function deleg(){
+  const c=$('cDeleg'), first=(ME.name||'').split(' ')[0];
+  const same=(a,b)=>a&&b&&String(a).split(' ')[0]===String(b).split(' ')[0];
+  try{
+    const arr=await getJ('/api/delegations/?actor='+encodeURIComponent(ME.name||''));
+    const list=Array.isArray(arr)?arr:(arr.results||arr.items||[]);
+    const t=todayJ();
+    const mineToDo=list.filter(r=>r.status==='waiting'&&same(r.delegate_name,first));
+    const toDeliver=list.filter(r=>r.status==='answered'&&same(r.owner_name,first));
+    const waitingOnOthers=list.filter(r=>r.status==='waiting'&&same(r.owner_name,first)&&!same(r.delegate_name,first));
+    const late=list.filter(r=>r.status==='waiting'&&r.ask_due_date&&r.ask_due_date<t&&(same(r.owner_name,first)||same(r.delegate_name,first)));
+    const row=(r,ic,txt)=>`<div class="it"><span class="ic">${ic}</span><span><div class="t">${esc(r.title)}</div><div class="s">${esc(txt)}${r.customer?' · '+esc(r.customer):''}${r.ask_due_date?' · موعد '+esc(r.ask_due_date):''}</div></span></div>`;
+    const rows=[...mineToDo.slice(0,3).map(r=>row(r,'⏳','باید پیگیری کنم — از '+(r.owner_name||''))),...toDeliver.slice(0,3).map(r=>row(r,'📦','نتیجه آماده است، تحویل بگیر — '+(r.delegate_name||''))),...waitingOnOthers.slice(0,2).map(r=>row(r,'🕐','منتظرِ '+(r.delegate_name||'')))];
+    c.innerHTML=`<h2><span>🤝 پیگیری و تحویل</span><a href="reminders.html" data-perm="page.reminders">باز کردن ›</a></h2>
+      <div class="kpis"><div class="kpi ${mineToDo.length?'warn':'good'}"><b>${fa(mineToDo.length)}</b><span>باید پیگیری کنم</span></div><div class="kpi ${toDeliver.length?'warn':'good'}"><b>${fa(toDeliver.length)}</b><span>منتظرِ تحویل به من</span></div><div class="kpi ${late.length?'bad':'good'}"><b>${fa(late.length)}</b><span>دیرکرد</span></div></div>`+(rows.join('')||'<div class="empty">✨ پیگیریِ بازی ندارید</div>');
+    if(window.MadarAccess) MadarAccess.apply(c);
+  }catch(e){ c.innerHTML='<h2><span>🤝 پیگیری و تحویل</span></h2><div class="empty">پیگیری‌ها در دسترس نیست.</div>'; }
+}
+function links(){
+  const ok=TILES.filter(t=>MadarAccess.can(t[4]));
+  $('tiles').innerHTML=ok.map(t=>`<a class="tl" href="${t[3]}"><i>${t[1]}</i>${t[2]}</a>`).join('')||'<div class="empty">بخشی برایِ نقشِ شما فعال نشده</div>';
+}
+async function team(){
+  const c=$('cTeam'); if(c.style.display==='none') return;
+  try{
+    const d=await getJ('/api/org/dashboard/');
+    c.innerHTML=`<h2><span>👥 تیمِ من</span><a href="org.html">سازمان ›</a></h2>
+      <div class="kpis"><div class="kpi"><b>${fa(d.headcount||0)}</b><span>کارمندِ فعال</span></div><div class="kpi"><b>${fa((d.units||[]).length)}</b><span>واحد</span></div><div class="kpi ${(d.missing_heads||[]).length?'warn':'good'}"><b>${fa((d.missing_heads||[]).length)}</b><span>واحدِ بدونِ سرپرست</span></div></div>`+
+      (d.units||[]).slice(0,6).map(u=>`<div class="it"><span class="ic">${esc(u.icon||'▫️')}</span><span><div class="t">${esc(u.name)} <span class="badge">${fa(u.headcount)} نفر</span></div><div class="s">${(u.heads||[]).length?esc(((u.name==='مدیریت')?'مدیران: ':'سرپرست: ')+u.heads.join('، ')):'—'}</div></span></div>`).join('');
+  }catch(e){ c.innerHTML='<h2><span>👥 تیمِ من</span></h2><div class="empty">اطلاعاتِ تیم در دسترس نیست.</div>'; }
+}
+MadarAccess.ready(async ()=>{
+  ME.name=(MadarAccess.name&&MadarAccess.name())||(window.MadarAuth&&MadarAuth.name&&MadarAuth.name())||''; ME.role=MadarAccess.role?MadarAccess.role():'';
+  head(); links(); MadarAccess.apply(document); inbox(); deleg(); team();
+});
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>

@@ -5942,6 +5942,12 @@ function updateProspectsBadge(){
   }
 }
 
+// ⚠️ (۱۴۰۵/۰۷/۱۹) پنلِ دسترسی: اگر مجوزها از سرور رسیده باشند همان ملاک است؛ وگرنه همان قاعده‌یِ قبلیِ نقش (fallback)
+function accessCan(perm, fallback){
+  try{ if(window.MadarAccess && MadarAccess.loaded && MadarAccess.loaded() && MadarAccess.perms()) return !!MadarAccess.can(perm, fallback); }catch(e){}
+  return fallback;
+}
+if(window.MadarAccess && MadarAccess.ready){ MadarAccess.ready(()=>{ try{ updateProspNavVisibility(); }catch(e){} }); }
 function isManagementRole(){
   const role = (currentUser||{}).role || '';
   return ['owner','admin'].includes(role);
@@ -5955,18 +5961,18 @@ function updateProspNavVisibility(){
   const mgmtBtn = document.getElementById('tabBtnProspMgmt');
   if(mgmtBtn) mgmtBtn.style.display = isManagementRole() ? 'flex' : 'none';
   const mgmtStatsBtn = document.getElementById('tabBtnProspMgmtStats');
-  if(mgmtStatsBtn) mgmtStatsBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  if(mgmtStatsBtn) mgmtStatsBtn.style.display = accessCan('dash.team', isSalesSupOrAbove()) ? 'flex' : 'none';
   const forecastBtn = document.getElementById('tabBtnSalesForecast');
-  if(forecastBtn) forecastBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  if(forecastBtn) forecastBtn.style.display = accessCan('dash.team', isSalesSupOrAbove()) ? 'flex' : 'none';
   // ⚠️ (۱۴۰۵/۰۷/۰۳) تحلیلِ مدیریتی شاملِ سود و مطالباته — فقط مدیریت
   const biBtn = document.getElementById('tabBtnCrmBi');
-  if(biBtn) biBtn.style.display = isManagementRole() ? 'flex' : 'none';
+  if(biBtn) biBtn.style.display = accessCan('dash.analytics', isManagementRole()) ? 'flex' : 'none';
   const changelogBtn = document.getElementById('tabBtnProspChangelog');
-  if(changelogBtn) changelogBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  if(changelogBtn) changelogBtn.style.display = accessCan('dash.team', isSalesSupOrAbove()) ? 'flex' : 'none';
   // ⚠️ (۱۴۰۵/۰۶/۱۵) طبق تصمیم کاربر: داشبورد سفارش‌ها (قبلاً «لیدها/کانبان»)
   // فقط سرپرست فروش/مدیریت — نه کارشناسان عادی
   const dashboardBtn = document.getElementById('tabBtnDashboard');
-  if(dashboardBtn) dashboardBtn.style.display = isSalesSupOrAbove() ? 'flex' : 'none';
+  if(dashboardBtn) dashboardBtn.style.display = accessCan('dash.team', isSalesSupOrAbove()) ? 'flex' : 'none';
 }
 async function updateApprovalsBadge(){
   if(!isSalesSupOrAbove()){ updateAllGroupBadges(); return; }
