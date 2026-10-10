@@ -453,10 +453,6 @@ function renderDesk(){
     <div class="dk-cards">${cards}</div>${nowBox}<div style="margin-bottom:12px">${actions}</div>
     <div class="dk-grid"><div>${body}</div>${side}</div>`;
 }
-async function loadInbox(){
-  try{ const d = await api('/api/org/inbox/'); S.inbox = d.items || []; S.inboxCats = d.categories || []; S.inboxCount = d.count || 0; }catch(e){ S.inbox = []; S.inboxCount = 0; }
-  const b = $('inboxBd'); b.hidden = !S.inboxCount; b.textContent = fa(S.inboxCount);
-}
 // ── ↔️ ارجاع
 function pickTarget(){
   const d = D.data;
@@ -677,6 +673,5 @@ function viewSoon(title, text){
   setInterval(() => { if(document.visibilityState === 'visible') loadInbox(); }, 120000);
 })();
 </script>
-<script src="./madar-help.js" defer></script>
 </body>
 </html>
