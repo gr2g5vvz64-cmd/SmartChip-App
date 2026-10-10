@@ -29,7 +29,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="manifest" href="./manifest-reminders.json">
-<meta name="theme-color" content="#a9c8ec">
+<meta name="theme-color" content="#0f1117">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="یادآوری‌ها">
@@ -39,9 +39,19 @@
 <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) آیکونِ تبِ مرورگر — همون زنگِ سفید رویِ بنفشِ آیکونِ اپ، داخلِ همین فایل -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='#7C3AED'/%3E%3Cpath d='M32 12c-1.7 0-3 1.3-3 3v1.4C22.6 17.8 18 23.4 18 30v9l-4 5v2h36v-2l-4-5v-9c0-6.6-4.6-12.2-11-13.6V15c0-1.7-1.3-3-3-3z' fill='#fff'/%3E%3Ccircle cx='32' cy='52' r='4.5' fill='#fff'/%3E%3C/svg%3E">
 <link rel="alternate icon" type="image/png" href="./icons/reminders-192.png">
+<script>try{if(localStorage.getItem('smartchip_theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <style>
   /* ═══ سیستمِ طراحیِ «دفترچه‌ی رومیزی» — سرمه‌ای + کاغذیِ گرم + طلایی‌مسی ═══ */
+  /* ⚠️ (۱۴۰۵/۰۷/۱۹) تمِ تیره (پیش‌فرضِ مدار) + روشن با دکمه‌یِ 🌙/☀️ — کلیدِ مشترک با صفحه‌یِ اصلی (smartchip_theme) */
   :root{
+    --ink:#f4f5f8; --paper:#0f1117; --card:#232838; --line:#3d4560;
+    --ink-soft:#9aa2bd; --brass:#f0a500; --brass-deep:#ffcf5a;
+    --teal:#2fbf9b; --brick:#ef4444; --brick-soft:#3a1f22;
+    --teal-soft:#16352f; --grey-soft:#1a1e2a;
+    --dot-rem:#f0a500; --dot-ir-hol:#5b9bf0; --dot-cn-hol:#ef6b5b;
+    color-scheme:dark;
+  }
+  html[data-theme="light"]{
     /* ⚠️ (۱۴۰۵/۰۶/۲۹) طبق درخواستِ صریحِ کاربر: دقیقاً همون پالتِ
        آبیِ حالتِ روشنِ CRM (نه یه چیزِ الهام‌گرفته) — --line تیره‌تر
        از استانداردِ خودِ CRM انتخاب شده چون کاربر صریحاً خواسته
@@ -332,6 +342,29 @@
   body #madarHelpBtn{ position:absolute!important; top:16px!important; bottom:auto!important; left:134px!important; }
   body #madarInbox .mi-panel{ bottom:auto!important; top:50px!important; }
   @media (min-width:900px){ body #madarInbox{ left:16px!important; } body #madarHelpBtn{ left:134px!important; top:17px!important; } }
+  /* ── تمِ تیره: رنگ‌هایِ ثابتی که با متغیر نبودند ── */
+  html:not([data-theme="light"]) .t-item, html:not([data-theme="light"]) .r-row, html:not([data-theme="light"]) .dg-stat{ background:#1a1e2a }
+  html:not([data-theme="light"]) .over-box .r-row{ background:#2a1a1d; border-color:#7a3a3f }
+  html:not([data-theme="light"]) .tag-recur{ background:#2b2a22 }
+  html:not([data-theme="light"]) .cal-day.today, html:not([data-theme="light"]) .cal-day.today.has-rem{ background:#2b2412 }
+  html:not([data-theme="light"]) .hol-badge.cn{ background:#3a1f22; color:#ff9d92 } html:not([data-theme="light"]) .hol-badge.ir{ background:#16283f; color:#9cc4f5 } html:not([data-theme="light"]) .hol-badge.lunar{ background:#271f3a; color:#c4b2f0 }
+  html:not([data-theme="light"]) .next-card{ background:#1a1e2a; color:#f4f5f8; border:1px solid var(--line); box-shadow:0 6px 18px rgba(0,0,0,.4) }
+  html:not([data-theme="light"]) .next-card .nc-done{ color:#141821 }
+  html:not([data-theme="light"]) .r-now, html:not([data-theme="light"]) .dg-badge{ color:#141821 }
+  html:not([data-theme="light"]) .dg-stat.wait .n{ color:#f0a500 }
+  html:not([data-theme="light"]) .dg-chip.wait{ background:#3a2d12; border-color:#a8741a; color:#ffd48a }
+  html:not([data-theme="light"]) .dg-chip.done{ background:#16352f; border-color:#2f7a64; color:#8fe3cf }
+  html:not([data-theme="light"]) .dg-chip.cust{ background:#1f2a3f }
+  html:not([data-theme="light"]) .dg-sub input{ accent-color:#2fbf9b }
+  html:not([data-theme="light"]) .dg-asub b{ text-decoration-color:#2f7a64 }
+  html:not([data-theme="light"]) .dg-note{ background:#16352f }
+  html:not([data-theme="light"]) .dg-answer{ background:#16352f }
+  html:not([data-theme="light"]) .modal-backdrop{ background:rgba(0,0,0,.65) }
+  html:not([data-theme="light"]) input, html:not([data-theme="light"]) select, html:not([data-theme="light"]) textarea{ background:#1a1e2a; color:var(--ink) }
+  /* دکمه/تبِ فعال در تیره: کهربایی با متنِ تیره (به‌جای سفیدِ تخت) */
+  html:not([data-theme="light"]) .btn-primary, html:not([data-theme="light"]) .type-seg button.active, html:not([data-theme="light"]) .bf-chip.on, html:not([data-theme="light"]) .wd.sel, html:not([data-theme="light"]) .hist-seg button.active, html:not([data-theme="light"]) .dg-b.dg-primary, html:not([data-theme="light"]) .bnav button.active, html:not([data-theme="light"]) .dg-ac-pri{ background:#f0a500; color:#141821; border-color:#f0a500 }
+  html:not([data-theme="light"]) .wd.sel .w{ color:#141821 } html:not([data-theme="light"]) .wd.sel.has .d{ background:#141821 }
+  .theme-btn{ margin-inline-start:auto; align-self:center; background:var(--card); border:1.5px solid var(--line); color:var(--ink); border-radius:20px; padding:6px 12px; font-size:12px; font-family:inherit; cursor:pointer }
 </style>
 </head>
 <body>
@@ -343,6 +376,7 @@
     <div class="hd-wd" id="hdWeekday"></div>
     <div class="hd-date"><span class="big-day" id="bigDayNum"></span><span class="month" id="dayMonthYear"></span></div>
   </div>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="تم">☀️ روز</button>
   <div class="ring" id="progressRing"></div>
 </div>
 <div class="quick-row">
@@ -1677,5 +1711,21 @@ resolveMyName().then(()=>{ if(!MY_NAME){ try{ showToast('❌ نامِ شما پ�
 })();
 </script>
 <script src="./madar-help.js" defer></script>
+<script>
+// ⚠️ (۱۴۰۵/۰۷/۱۹) دکمه‌یِ روز/شب — کلیدِ مشترکِ smartchip_theme (با صفحه‌یِ اصلی هماهنگ)
+(function(){
+  const b = document.getElementById('themeBtn'); if(!b) return;
+  const root = document.documentElement;
+  const paint = () => { const L = root.getAttribute('data-theme')==='light'; b.textContent = L ? '🌙 شب' : '☀️ روز';
+    const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content', L ? '#a9c8ec' : '#0f1117'); };
+  b.addEventListener('click', ()=>{
+    const L = root.getAttribute('data-theme')==='light';
+    if(L) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','light');
+    try{ localStorage.setItem('smartchip_theme', L ? 'dark' : 'light'); }catch(e){}
+    paint();
+  });
+  paint();
+})();
+</script>
 </body>
 </html>
