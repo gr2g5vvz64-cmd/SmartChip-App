@@ -239,7 +239,6 @@
   .bnav button .bi{ font-size:19px; line-height:1 }
   .bnav button.active{ color:var(--ink); font-weight:900 }
   .bnav button.active .bi{ transform:scale(1.12) }
-  .fab{ position:fixed; bottom:80px; left:max(14px, calc(50% - 246px)); width:58px; height:58px; border-radius:18px; background:var(--ink); color:var(--paper); border:none; font-size:30px; line-height:1; cursor:pointer; box-shadow:0 6px 16px rgba(15,31,54,.35); z-index:151; font-family:inherit }
   .hist-seg{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:4px; margin:14px 0 10px }
   .hist-seg button{ border:none; background:transparent; border-radius:9px; padding:8px 0; font-size:12.5px; color:var(--ink-soft); cursor:pointer; font-family:inherit; font-weight:600 }
   .hist-seg button.active{ background:var(--ink); color:var(--paper); font-weight:800 }
@@ -285,7 +284,6 @@
   .bnav button:hover{ background:rgba(15,31,54,.08) }
   .bnav button.active{ background:var(--ink); color:var(--paper) } .bnav button.active .bi{ transform:none }
   .dg-badge{ top:4px; inset-inline-end:10px }
-  .fab{ left:max(28px, calc((100vw - 1280px)/2 + 28px)); bottom:32px; width:62px; height:62px }
   .modal{ max-width:560px }
   /* امروز: ستونِ کناری (هفته + کارتِ بعدی + عقب‌افتاده‌ها) | ستونِ اصلی (جدولِ زمانیِ روز) */
   .today-grid{ display:grid; grid-template-columns:minmax(340px,420px) 1fr; gap:26px; align-items:start }
@@ -319,6 +317,12 @@
 .dg-ac-it{ display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; padding:9px 12px; border:0; border-bottom:1px solid var(--line); background:transparent; font-family:inherit; font-size:13px; color:var(--ink); cursor:pointer; text-align:start }
 .dg-ac-it:last-child{ border-bottom:0 } .dg-ac-it:hover{ background:var(--teal-soft) }
 .dg-ac-pri{ font-size:10px; font-weight:800; background:var(--ink); color:var(--paper); border-radius:6px; padding:1px 7px }
+
+  /* ⚠️ (۱۴۰۵/۰۷/۱۹) دکمه‌هایِ «کارتابل» و «راهنما» در این صفحه: بالایِ صفحه (نه شناور)، تا هیچ‌وقت روی تب‌هایِ پایین یا لیست نیفتند */
+  body #madarInbox{ position:absolute!important; top:14px!important; bottom:auto!important; left:84px!important; }
+  body #madarHelpBtn{ position:absolute!important; top:16px!important; bottom:auto!important; left:134px!important; }
+  body #madarInbox .mi-panel{ bottom:auto!important; top:50px!important; }
+  @media (min-width:900px){ body #madarInbox{ left:16px!important; } body #madarHelpBtn{ left:134px!important; top:17px!important; } }
 </style>
 </head>
 <body>
