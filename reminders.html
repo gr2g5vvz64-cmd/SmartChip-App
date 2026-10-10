@@ -256,6 +256,15 @@
 .dg-chip{ font-size:10.5px; font-weight:700; border-radius:6px; padding:2px 8px; border:1.5px solid var(--line); background:var(--card) }
 .dg-chip.wait{ background:#fbe9cf; border-color:#d9962f; color:#7a4a05 } .dg-chip.ans{ background:var(--teal-soft); border-color:var(--teal); color:var(--brass-deep) }
 .dg-chip.done{ background:#dfe9e3; border-color:#6b8f7c; color:#2c5a43 } .dg-chip.off{ background:var(--grey-soft); color:var(--ink-soft) }
+.dg-tl{ display:flex; flex-direction:column; gap:3px }
+.dg-tline{ font-size:13.5px; font-weight:700; line-height:1.6 }
+.dg-subs{ margin:8px 0; padding:8px 10px; border:1.5px dashed var(--line); border-radius:10px; background:var(--card) }
+.dg-sub{ display:flex; gap:8px; align-items:flex-start; padding:5px 0; font-size:13px; font-weight:600; cursor:pointer }
+.dg-sub input{ width:18px; height:18px; margin-top:2px; flex:none; accent-color:#2c5a43 }
+.dg-arch{ margin-top:8px } .dg-arch summary{ cursor:pointer; font-size:12px; font-weight:700 }
+.dg-asub{ padding:6px 0; border-top:1px solid var(--line); font-size:12.5px; opacity:.9 }
+.dg-asub b{ text-decoration:line-through; text-decoration-color:#6b8f7c }
+.dg-note{ background:#dfe9e3; border-radius:8px; padding:4px 8px; margin:4px 0; white-space:pre-line }
 .dg-chip.late{ background:var(--brick-soft); border-color:var(--brick); color:var(--brick) } .dg-chip.cust{ background:#e7eef8 }
 .dg-sum{ font-size:11.5px; color:var(--ink-soft); margin-top:3px }
 .dg-card.dg-late{ border-color:var(--brick) }
@@ -548,7 +557,7 @@ const DG_STAFF_API = 'https://api.smartchipelec.com/api/staff/staff/';
 const DG_CUSTOMERS_API = 'https://api.smartchipelec.com/api/customers/customers/';
 const DG_FIRST_RESPONSIBLES = ['حمیدرضا', 'عباس'];
 const DG_FIRST_DOERS = ['شیوا', 'سمیه', 'مینا', 'حمیدرضا', 'عباس', 'احمد'];
-const DG_EVENTS = {created:'🆕 ثبت', edited:'✏️ ویرایش', reassigned:'🔁 ارجاعِ تازه', answered:'💬 نتیجه', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
+const DG_EVENTS = {sub_done:'☑️ موضوع بسته شد', sub_reopen:'↩️ موضوع باز شد', created:'🆕 ثبت', edited:'✏️ ویرایش', reassigned:'🔁 ارجاعِ تازه', answered:'💬 نتیجه', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
 let dgFilter = 'open';   // open | waiting | deliver | late | closed
 let dgPeople = null, dgCustomers = null;
 
@@ -637,12 +646,29 @@ function dgButtons(item){
   return b('reopen','↩️ بازگردانی') + (owner ? b('edit','✏️ ویرایش') + b('del','🗑️ حذف') : '');
 }
 
+// ⚠️ (۱۴۰۵/۰۷/۱۹) موضوع‌هایِ جدا: هر خطِ عنوان یک موضوع است؛ بسته‌شده‌ها «بایگانی» می‌شوند
+function dgSubs(r){ return Array.isArray(r.subitems) ? r.subitems : []; }
+function dgCustOpenCount(r){
+  const k = dgNorm(r.customer); if(!k) return 0; let n = 0;
+  allItems.forEach(x=>{ if(x._type==='deleg' && (x.raw.status==='waiting'||x.raw.status==='answered') && dgNorm(x.raw.customer)===k) n += (x.raw.sub_total ? x.raw.sub_open : 1); });
+  return n;
+}
 function renderDelegRow(item, opts={}){
   const r = item.raw, key = `deleg-${r.id}`;
   const badge = r.status==='waiting' ? `<span class="dg-chip wait">⏳ در حال پیگیری</span>`
     : r.status==='answered' ? `<span class="dg-chip ans">📦 منتظرِ تحویل</span>`
     : r.status==='delivered' ? `<span class="dg-chip done">✅ تحویل شد</span>` : `<span class="dg-chip off">🚫 لغو</span>`;
   const late = r.overdue ? `<span class="dg-chip late">🔴 ${fn(r.overdue_days)} روز دیرکرد</span>` : '';
+  const subs = dgSubs(r), openSubs = subs.filter(x=>!x.done), archSubs = subs.filter(x=>x.done);
+  const cc = dgCustOpenCount(r);
+  const titleHtml = subs.length
+    ? `<div class="r-title dg-tl">${openSubs.length ? openSubs.map(x=>`<div class="dg-tline">– ${escHtml(x.text)}</div>`).join('') : '<div class="dg-tline dg-dim">همه‌یِ موضوع‌ها بسته شد</div>'}</div>`
+    : `<div class="r-title" style="white-space:pre-line">${escHtml(r.title)}</div>`;
+  const canTick = r.status==='waiting' || r.status==='answered';
+  const subHtml = subs.length ? `<div class="dg-subs">
+    ${openSubs.map(x=>`<label class="dg-sub"><input type="checkbox" ${canTick?'':'disabled'} data-dg-sub="${x.id}" data-dg-id="${r.id}"><span>${escHtml(x.text)}</span></label>`).join('')}
+    ${archSubs.length ? `<details class="dg-arch"><summary>📁 بایگانیِ موضوع‌ها (${fn(archSubs.length)})</summary>${archSubs.map(x=>`<div class="dg-asub">☑ <b>${escHtml(x.text)}</b>${x.note?`<div class="dg-note">💬 ${escHtml(x.note)}</div>`:''}<div class="dg-dim">${x.done_at?fmtDateHuman(x.done_at):''} · ${escHtml(x.done_by||'')} ${canTick?`<button type="button" class="icon-btn dg-b" data-dg-sub-open="${x.id}" data-dg-id="${r.id}">↩ بازگرداندن</button>`:''}</div></div>`).join('')}</details>` : ''}
+  </div>` : '';
   const lines = [];
   lines.push(`<div class="dg-line">🧑‍💼 <b>مسئولِ پیگیری:</b> ${escHtml(r.owner_name)}${dgIsMe(r.owner_name)?' <span class="dg-dim">(شما)</span>':''}</div>`);
   lines.push(`<div class="dg-line">🧑 <b>پیگیری‌کننده:</b> ${escHtml(r.delegate_name)}${dgIsMe(r.delegate_name)?' <span class="dg-dim">(شما)</span>':''}</div>`);
@@ -659,11 +685,11 @@ function renderDelegRow(item, opts={}){
   return `<div class="r-row dg-card st-${item.status}${r.overdue?' dg-late':''}${opts.isNow?' is-now':''}" data-item-key="${key}">
     <div class="r-main" data-toggle-row>
       <span class="r-icon">${icon}</span>
-      <div class="r-body"><div class="r-title" style="white-space:pre-line">${escHtml(r.title)}</div><div class="dg-chips">${badge}${late}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}</span>`:''}</div>
+      <div class="r-body">${titleHtml}<div class="dg-chips">${badge}${late}${openSubs.length>1?`<span class="dg-chip wait">${fn(openSubs.length)} موضوعِ باز</span>`:''}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}${cc>1?` · ${fn(cc)} کارِ باز`:''}</span>`:''}</div>
         <div class="dg-sum">${who}</div></div>
       ${opts.isNow ? '<span class="r-now">بعدی</span>' : (when ? `<span class="r-when">${when}</span>` : '')}
     </div>
-    <div class="r-more"><div class="dg-lines">${lines.join('')}</div>
+    <div class="r-more">${subHtml}<div class="dg-lines">${lines.join('')}</div>
       <details class="dg-hist"><summary>🕘 تاریخچه (${fn((r.history||[]).length)})</summary>${hist||'<div class="dg-dim">—</div>'}</details>
       <div class="t-actions">${dgButtons(item)}</div></div>
   </div>`;
@@ -711,7 +737,49 @@ function renderDelegations(main){
   });
 }
 
+function openSubSheet(r, sub, cb){
+  const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `<div class="modal">
+    <h3>☑️ بستنِ موضوع</h3>
+    <div class="dg-line" style="margin-bottom:8px"><b>${escHtml(sub.text)}</b>${r.customer?`<br><span class="dg-dim">مشتری: ${escHtml(r.customer)}</span>`:''}</div>
+    <div class="field"><label>هر چه گفت / نتیجه‌ی کار <span class="dg-dim">(با تاریخ بایگانی می‌شود)</span></label><textarea id="dgSubNote" rows="4" placeholder="مثلاً: قیمت ۳٫۲ دلار شد، مشتری قبول کرد"></textarea></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" id="dgSubSave">☑️ ثبت و بایگانی</button>
+      <button class="btn btn-ghost" id="dgSubCancel">انصراف</button>
+    </div></div>`;
+  document.body.appendChild(backdrop);
+  const cancel = ()=>{ backdrop.remove(); if(cb) cb.checked = false; };
+  backdrop.querySelector('#dgSubCancel').addEventListener('click', cancel);
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop) cancel(); });
+  backdrop.querySelector('#dgSubSave').addEventListener('click', async ()=>{
+    const d = await dgCall('POST', `${r.id}/sub/${sub.id}/`, dgActor({done:true, note: backdrop.querySelector('#dgSubNote').value.trim()}));
+    if(!d) return;
+    backdrop.remove();
+    showToast(d.status==='delivered' ? '✅ همه‌ی موضوع‌ها بسته شد — پیگیری بسته شد' : '☑️ بایگانی شد');
+    await refreshData(); renderMain();
+  });
+  setTimeout(()=>{ const t = backdrop.querySelector('#dgSubNote'); if(t) t.focus(); }, 50);
+}
+
 function wireDelegButtons(container){
+  container.querySelectorAll('[data-dg-sub]').forEach(cb=>{
+    if(cb.dataset.dgWired) return; cb.dataset.dgWired = '1';
+    cb.addEventListener('click', e=>e.stopPropagation());
+    cb.addEventListener('change', ()=>{
+      if(!cb.checked) return;
+      const it = allItems.find(x=>x._type==='deleg' && x.id===+cb.dataset.dgId); if(!it) return;
+      const sub = dgSubs(it.raw).find(x=>x.id===+cb.dataset.dgSub); if(!sub){ cb.checked = false; return; }
+      openSubSheet(it.raw, sub, cb);
+    });
+  });
+  container.querySelectorAll('[data-dg-sub-open]').forEach(b=>{
+    if(b.dataset.dgWired) return; b.dataset.dgWired = '1';
+    b.addEventListener('click', async e=>{
+      e.stopPropagation();
+      const d = await dgCall('POST', `${+b.dataset.dgId}/sub/${+b.dataset.dgSubOpen}/`, dgActor({done:false}));
+      if(d){ showToast('↩️ موضوع دوباره باز شد'); await refreshData(); renderMain(); }
+    });
+  });
   container.querySelectorAll('[data-dg-act]').forEach(b=>{
     if(b.dataset.dgWired) return; b.dataset.dgWired = '1';
     b.addEventListener('click', async (e)=>{
@@ -791,7 +859,7 @@ function openDelegModal(existing){
       <div class="field"><label>ساعتِ ارجاع</label><input id="dgAssignedTime" type="time" value="${escHtml(isEdit && e.assigned_time ? e.assigned_time : (()=>{const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');})())}"></div>
     </div>
     <div class="field dg-ac"><label>مشتری <span class="dg-dim">(جستجو در همه‌یِ مشتریانِ مدار)</span></label><input id="dgCust" type="text" autocomplete="off" placeholder="نامِ مشتری را بنویس…" value="${escHtml(e.customer||'')}"><div id="dgCustList" class="dg-ac-list" style="display:none"></div><div id="dgCustHint" class="dg-dim"></div></div>
-    <div class="field"><label>موضوعِ پیگیری</label><textarea id="dgTitle" rows="3" maxlength="500" placeholder="مثلاً: قیمتِ برد X را بگیر&#10;(چند موضوع؟ هر کدام در یک خط — با Enter یا Shift+Enter)" style="width:100%;resize:vertical;min-height:70px;font:inherit;line-height:1.8;white-space:pre-wrap">${escHtml(e.title||'')}</textarea></div>
+    <div class="field"><label>موضوعِ پیگیری <span class="dg-dim">(هر خط = یک موضوعِ جدا؛ هر کدام جدا تیک و بایگانی می‌شود)</span></label><textarea id="dgTitle" rows="3" maxlength="500" placeholder="مثلاً: قیمتِ برد X را بگیر&#10;(چند موضوع؟ هر کدام در یک خط — با Enter یا Shift+Enter)" style="width:100%;resize:vertical;min-height:70px;font:inherit;line-height:1.8;white-space:pre-wrap">${escHtml(e.title||'')}</textarea></div>
     <div class="row2">
       <div class="field"><label>موعدِ تحویلِ پیگیری</label><input id="dgDue" type="text" readonly value="${escHtml(e.ask_due_date||tomorrowShamsi())}"></div>
       <div class="field"><label>ساعت (اختیاری)</label><input id="dgDueTime" type="time" value="${escHtml(e.ask_due_time||'')}"></div>
