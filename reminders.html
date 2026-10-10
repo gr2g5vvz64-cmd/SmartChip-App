@@ -245,7 +245,7 @@
   .hist-seg button.active{ background:var(--ink); color:var(--paper); font-weight:800 }
   .page-title{ font-size:22px; font-weight:900; margin:18px 2px 10px }
 
-/* ⚠️ (۱۴۰۵/۰۷/۱۵) 🤝 سپرده‌ها و قول‌ها */
+/* ⚠️ (۱۴۰۵/۰۷/۱۵) 🤝 پیگیری و تحویل */
 #mainTabs button{ position:relative }
 .dg-badge{ position:absolute; top:5px; inset-inline-end:14px; min-width:17px; height:17px; border-radius:9px; background:var(--brick); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px }
 .dg-intro{ font-size:12px; color:var(--ink-soft); line-height:1.9; margin:-2px 2px 12px }
@@ -311,6 +311,14 @@
   .bnav{ padding-bottom: env(safe-area-inset-bottom, 0px); height: calc(66px + env(safe-area-inset-bottom, 0px)) }
 }
 @media (min-width:900px){ .bnav{ height:auto !important; padding-bottom:10px !important } }
+
+/* ⚠️ (۱۴۰۵/۰۷/۱۵) پیگیری و تحویل: تکمیلِ خودکارِ مشتری + ردیفِ عنوان با دکمه‌یِ افزودن */
+.page-title.add-row{ display:flex; justify-content:space-between; align-items:center; gap:10px }
+.dg-ac{ position:relative }
+.dg-ac-list{ position:absolute; z-index:30; inset-inline:0; top:100%; margin-top:2px; background:var(--card); border:2px solid var(--line); border-radius:10px; box-shadow:0 8px 22px rgba(15,31,54,.22); max-height:240px; overflow:auto }
+.dg-ac-it{ display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; padding:9px 12px; border:0; border-bottom:1px solid var(--line); background:transparent; font-family:inherit; font-size:13px; color:var(--ink); cursor:pointer; text-align:start }
+.dg-ac-it:last-child{ border-bottom:0 } .dg-ac-it:hover{ background:var(--teal-soft) }
+.dg-ac-pri{ font-size:10px; font-weight:800; background:var(--ink); color:var(--paper); border-radius:6px; padding:1px 7px }
 </style>
 </head>
 <body>
@@ -326,17 +334,15 @@
 </div>
 <div class="quick-row">
   <button class="chip-btn" id="quickTomorrowBtn">⚡ کارِ فردا</button>
-  <button class="chip-btn" id="calSyncBtn" title="اتصال به گوگل کلندر و تقویمِ گوشی">📅 تقویم</button>
 </div>
 
 <div id="main"></div>
 
 <div class="toast" id="toast"></div>
-<button class="fab" id="addBtn" aria-label="یادآوریِ جدید">+</button>
 <nav class="bnav" id="mainTabs">
   <button data-tab="today" class="active"><span class="bi">☀️</span>روزِ من</button>
   <button data-tab="open"><span class="bi">📋</span>همه‌ی باز</button>
-  <button data-tab="deleg"><span class="bi">🤝</span>سپرده‌ها<span class="dg-badge" id="dgBadge" style="display:none"></span></button>
+  <button data-tab="deleg"><span class="bi">🤝</span>پیگیری و تحویل<span class="dg-badge" id="dgBadge" style="display:none"></span></button>
 <button data-tab="calendar"><span class="bi">🗓️</span>تقویم</button>
   <button data-tab="history"><span class="bi">🗄️</span>سابقه</button>
 </nav>
@@ -508,43 +514,79 @@ async function apiDelete(type, id){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// 🤝 سپرده‌ها و قول‌ها (۱۴۰۵/۰۷/۱۵) — طبقِ درخواستِ صریحِ حمیدرضا:
-// «کاری رو به کسی می‌سپارم؛ می‌خوام یادم بمونه سپردم، جواب بگیرم، و جواب رو تحویلِ کسی بدم که کار رو به من سپرده.»
-// جریان: ⏳ منتظرِ جواب ← (✅ جواب گرفتم) ← 📣 باید تحویل بدهم ← (📤 تحویل دادم) ← ✅ بسته.
-// بدونِ «کسی که کار را به من سپرده»، با «جواب گرفتم» کار همان‌جا بسته می‌شود.
-// سرور: /api/delegations/ (اپِ مستقل) — در «روزِ من»، «همه‌یِ باز» و «تقویم» هم با همین آیتم‌ها نشان داده می‌شوند.
+// 🤝 پیگیری و تحویل (۱۴۰۵/۰۷/۱۵؛ نامِ قبلی: پیگیری و تحویل) — طبقِ درخواستِ صریحِ حمیدرضا.
+// فرم: مسئولِ پیگیری (حمیدرضا/عباس) · پیگیری‌کننده · زمانِ ارجاع (خودکار) · مشتری (جستجو + تکمیلِ خودکار) · موضوعِ پیگیری ·
+//       موعدِ تحویلِ پیگیری · نتیجه‌یِ پیگیری.
+// جریان: ⏳ در حال پیگیری ← (✅ ثبتِ نتیجه) ← 📦 منتظرِ تحویل ← (📦 تحویل گرفتم) ← ✅ بسته.
+// اگر مسئول و پیگیری‌کننده یک نفر باشند، با ثبتِ نتیجه کار همان‌جا بسته می‌شود.
+// سرور: /api/delegations/ — اطلاع‌رسانیِ خودکار در بله/تلگرام (ارجاع، نتیجه، تحویل) و خلاصه‌یِ صبحانه.
 // ══════════════════════════════════════════════════════════════════════════
 const DG_API = 'https://api.smartchipelec.com/api/delegations/';
-const DG_CHANNELS = [['','—'],['bale','بله'],['whatsapp','واتساپ'],['telegram','تلگرام'],['sms','پیامک'],['phone','تلفن'],['in_person','حضوری']];
-const DG_EVENTS = {created:'🆕 ثبت', edited:'✏️ ویرایش', answered:'💬 جواب', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
+const DG_STAFF_API = 'https://api.smartchipelec.com/api/staff/staff/';
+const DG_CUSTOMERS_API = 'https://api.smartchipelec.com/api/customers/customers/';
+const DG_FIRST_RESPONSIBLES = ['حمیدرضا', 'عباس'];
+const DG_FIRST_DOERS = ['شیوا', 'سمیه', 'مینا', 'حمیدرضا', 'عباس', 'احمد'];
+const DG_EVENTS = {created:'🆕 ثبت', edited:'✏️ ویرایش', reassigned:'🔁 ارجاعِ تازه', answered:'💬 نتیجه', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
 let dgFilter = 'open';   // open | waiting | deliver | late | closed
+let dgPeople = null, dgCustomers = null;
+
+const dgNorm = s => fa2enSafe(String(s||'').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ').replace(/\s+/g,' ').trim().toLowerCase());
+function fa2enSafe(s){ return s.replace(/[۰-۹]/g, d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)); }
 
 async function dgCall(method, path, body){
   try{
     const r = await fetchWithRetry(DG_API + path, {method, headers:{'Content-Type':'application/json'}, body: body===undefined ? undefined : JSON.stringify(body)});
     let d = null; try{ d = await r.json(); }catch(e){}
     if(!r.ok){
-      showToast('❌ ' + ((d && d.error) || (r.status===404 ? 'بخشِ «سپرده‌ها» روی سرور هنوز نصب نشده' : 'انجام نشد')));
+      showToast('❌ ' + ((d && d.error) || (r.status===404 ? 'بخشِ «پیگیری و تحویل» روی سرور هنوز نصب نشده' : 'انجام نشد')));
       return null;
     }
     return d || {ok:true};
   }catch(e){ showToast('❌ ارتباط با سرور برقرار نشد'); return null; }
 }
+const dgActor = (b)=>Object.assign({actor: MY_NAME}, b||{});
+
+// نام‌هایِ مسئول و پیگیری‌کننده از فهرستِ کارمندانِ واقعیِ مدار (تا نامِ کامل و دقیق ذخیره شود و اطلاع‌رسانیِ بله به همان کارمند برسد)
+async function dgLoadPeople(){
+  if(dgPeople) return dgPeople;
+  let staff = [];
+  try{ const r = await fetchWithRetry(DG_STAFF_API); if(r.ok){ const j = await r.json(); staff = (Array.isArray(j)?j:[]).filter(s=>s && s.active!==false && s.name).map(s=>String(s.name).trim()); } }catch(e){}
+  const pick = (first)=>{
+    const hits = staff.filter(n=>dgNorm(n).split(' ')[0]===dgNorm(first));
+    if(first==='حمیدرضا' && !hits.includes(MY_NAME)) hits.unshift(MY_NAME);
+    return hits.length ? [...new Set(hits)] : [first];
+  };
+  const uniq = (arr)=>[...new Set(arr)];
+  dgPeople = {responsibles: uniq(DG_FIRST_RESPONSIBLES.flatMap(pick)), doers: uniq(DG_FIRST_DOERS.flatMap(pick)), fromServer: staff.length>0};
+  return dgPeople;
+}
+async function dgLoadCustomers(){
+  if(dgCustomers) return dgCustomers;
+  try{
+    const r = await fetchWithRetry(DG_CUSTOMERS_API); const j = r.ok ? await r.json() : [];
+    dgCustomers = (Array.isArray(j)?j:[]).filter(c=>c && c.name).map(c=>({name:String(c.name).trim(), priority:c.priority?String(c.priority):''}));
+    const seen = new Set(); dgCustomers = dgCustomers.filter(c=>{ const k=dgNorm(c.name); if(seen.has(k)) return false; seen.add(k); return true; });
+  }catch(e){ dgCustomers = null; return []; }
+  return dgCustomers;
+}
+
+const dgIsMe = n => dgNorm(n) === dgNorm(MY_NAME);
+const dgNeedsDelivery = r => !!r.requester_name || (dgNorm(r.delegate_name) !== dgNorm(r.owner_name));
 
 function normalizeDeleg(r){
   const isOpen = r.status==='waiting' || r.status==='answered';
   const status = isOpen ? 'open' : (r.status==='delivered' ? 'done' : 'cancelled');
+  const mineOwner = dgIsMe(r.owner_name);
   let title = r.title;
-  if(r.status==='waiting') title = `⏳ ${r.title} — منتظرِ ${r.delegate_name}`;
-  else if(r.status==='answered') title = `📣 ${r.title} — جواب را به ${r.requester_name||'—'} بده`;
+  if(r.status==='waiting') title = `⏳ ${r.title} — ${mineOwner ? 'پیگیری‌کننده: '+r.delegate_name : 'برایِ '+r.owner_name}`;
+  else if(r.status==='answered') title = `📦 ${r.title} — ${mineOwner ? 'نتیجه‌یِ '+r.delegate_name+' را تحویل بگیر' : 'نتیجه ثبت شد'}`;
   return { _type:'deleg', id:r.id, title, customer:r.customer||'', date: isOpen ? r.next_date : r.ask_due_date,
            time: r.status==='waiting' ? (r.ask_due_time||'') : '', note:'', status, raw:r };
 }
 
 function dgPhoneIntl(s){ const d=String(s||'').replace(/[^\d]/g,''); if(!d) return ''; if(d.startsWith('00')) return d.slice(2); if(d.startsWith('0')) return '98'+d.slice(1); if(d.startsWith('98')) return d; return d.length===10 ? '98'+d : d; }
 function dgIsPhone(s){ return /^[+\d\s()-]{8,}$/.test(String(s||'').trim()); }
-function dgChaseText(r){ return `سلام ${r.delegate_name}، جوابِ «${r.title}» چه شد؟`; }
-function dgDeliverText(r){ return `سلام ${r.requester_name}، جوابِ «${r.title}»:\n${r.answer_text || 'انجام شد'}`; }
+function dgChaseText(r){ return `سلام ${r.delegate_name}، نتیجه‌یِ پیگیریِ «${r.title}»${r.customer?' ('+r.customer+')':''} چه شد؟`; }
 function dgWaLink(contact, text){ const p = dgPhoneIntl(contact); return p ? `https://wa.me/${p}?text=${encodeURIComponent(text)}` : ''; }
 function dgWhen(iso){
   try{ const dt = new Date(iso); if(isNaN(dt)) return '';
@@ -552,47 +594,48 @@ function dgWhen(iso){
     return fmtDateHuman(s) + ' · ' + fn(String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0'));
   }catch(e){ return ''; }
 }
-function dgChannelLabel(c){ const x = DG_CHANNELS.find(a=>a[0]===c); return x && x[0] ? x[1] : ''; }
+function dgAssignedText(r){ return r.assigned_date ? `${fmtDateHuman(r.assigned_date)} · ${fn(r.assigned_time||'')}` : (r.created_at ? dgWhen(r.created_at) : ''); }
 
 function dgButtons(item){
-  const r = item.raw, id = r.id;
+  const r = item.raw, id = r.id, owner = dgIsMe(r.owner_name), doer = dgIsMe(r.delegate_name);
   const b = (act, label, cls='') => `<button type="button" class="icon-btn dg-b ${cls}" data-dg-act="${act}" data-dg-id="${id}">${label}</button>`;
   const a = (href, label) => href ? `<a class="icon-btn dg-b" href="${href}" target="_blank" rel="noopener">${label}</a>` : '';
   if(r.status==='waiting'){
-    return b('answer','✅ جواب گرفتم','dg-primary') + b('postpone','⏰ ۱ روز بعد')
+    return b('answer','✅ ثبتِ نتیجه','dg-primary') + b('postpone','⏰ ۱ روز بعد')
       + a(dgWaLink(r.delegate_contact, dgChaseText(r)), '💬 پیگیری (واتساپ)')
-      + (dgIsPhone(r.delegate_contact) ? a('tel:'+String(r.delegate_contact).replace(/\s/g,''), '📞 تماس') : '')
-      + b('copy-chase','📋 کپیِ پیامِ پیگیری') + b('edit','✏️ ویرایش') + b('cancel','🚫 لغو') + b('del','🗑️ حذف');
+      + b('copy-chase','📋 کپیِ پیامِ پیگیری') + (owner ? b('edit','✏️ ویرایش') + b('cancel','🚫 لغو') + b('del','🗑️ حذف') : '');
   }
   if(r.status==='answered'){
-    return b('deliver','📤 تحویل دادم','dg-primary')
-      + a(dgWaLink(r.requester_contact, dgDeliverText(r)), '💬 ارسالِ جواب (واتساپ)')
-      + b('copy-deliver','📋 کپیِ پیامِ جواب') + b('postpone','⏰ ۱ روز بعد') + b('reopen','↩️ هنوز کامل نیست') + b('edit','✏️ ویرایش') + b('del','🗑️ حذف');
+    return (owner ? b('deliver','📦 تحویل گرفتم','dg-primary') : '') + b('postpone','⏰ ۱ روز بعد') + b('reopen','↩️ هنوز کامل نیست')
+      + (owner ? b('edit','✏️ ویرایش') + b('del','🗑️ حذف') : '');
   }
-  return b('reopen','↩️ بازگردانی') + b('edit','✏️ ویرایش') + b('del','🗑️ حذف');
+  return b('reopen','↩️ بازگردانی') + (owner ? b('edit','✏️ ویرایش') + b('del','🗑️ حذف') : '');
 }
 
 function renderDelegRow(item, opts={}){
   const r = item.raw, key = `deleg-${r.id}`;
-  const badge = r.status==='waiting' ? `<span class="dg-chip wait">⏳ منتظرِ جواب</span>`
-    : r.status==='answered' ? `<span class="dg-chip ans">📣 باید تحویل بدهی</span>`
+  const badge = r.status==='waiting' ? `<span class="dg-chip wait">⏳ در حال پیگیری</span>`
+    : r.status==='answered' ? `<span class="dg-chip ans">📦 منتظرِ تحویل</span>`
     : r.status==='delivered' ? `<span class="dg-chip done">✅ تحویل شد</span>` : `<span class="dg-chip off">🚫 لغو</span>`;
   const late = r.overdue ? `<span class="dg-chip late">🔴 ${fn(r.overdue_days)} روز دیرکرد</span>` : '';
-  const ch = dgChannelLabel(r.channel);
   const lines = [];
-  lines.push(`<div class="dg-line">🧑 <b>سپردم به:</b> ${escHtml(r.delegate_name)}${ch?` <span class="dg-dim">(${escHtml(ch)})</span>`:''}${r.delegate_contact?` <span class="dg-dim" dir="ltr">${escHtml(r.delegate_contact)}</span>`:''}${r.status==='waiting' ? ` — <b>جواب تا:</b> ${fmtDateHuman(r.ask_due_date)}${r.ask_due_time?' · '+fn(r.ask_due_time):''}` : ''}</div>`);
-  if(r.requester_name) lines.push(`<div class="dg-line">🙋 <b>جواب را باید بدهم به:</b> ${escHtml(r.requester_name)}${r.deliver_due_date?` — <b>تا:</b> ${fmtDateHuman(r.deliver_due_date)}`:''}</div>`);
-  if(r.status==='waiting' && r.waiting_days>0) lines.push(`<div class="dg-line dg-dim">⏱ ${fn(r.waiting_days)} روز است منتظرم</div>`);
-  if(r.answer_text) lines.push(`<div class="dg-answer">💬 جواب: ${escHtml(r.answer_text)}</div>`);
+  lines.push(`<div class="dg-line">🧑‍💼 <b>مسئولِ پیگیری:</b> ${escHtml(r.owner_name)}${dgIsMe(r.owner_name)?' <span class="dg-dim">(شما)</span>':''}</div>`);
+  lines.push(`<div class="dg-line">🧑 <b>پیگیری‌کننده:</b> ${escHtml(r.delegate_name)}${dgIsMe(r.delegate_name)?' <span class="dg-dim">(شما)</span>':''}</div>`);
+  const at = dgAssignedText(r); if(at) lines.push(`<div class="dg-line dg-dim">🕒 <b>زمانِ ارجاع:</b> ${at}</div>`);
+  if(r.customer) lines.push(`<div class="dg-line">🏢 <b>مشتری:</b> ${escHtml(r.customer)}</div>`);
+  if((r.status==='waiting' || r.status==='answered') && r.ask_due_date) lines.push(`<div class="dg-line">📅 <b>موعدِ تحویلِ پیگیری:</b> ${fmtDateHuman(r.ask_due_date)}${r.ask_due_time?' · '+fn(r.ask_due_time):''}</div>`);
+  if(r.status==='waiting' && r.waiting_days>0) lines.push(`<div class="dg-line dg-dim">⏱ ${fn(r.waiting_days)} روز از ارجاع گذشته</div>`);
+  if(r.answer_text) lines.push(`<div class="dg-answer">💬 <b>نتیجه‌یِ پیگیری:</b> ${escHtml(r.answer_text)}</div>`);
   if(r.detail) lines.push(`<div class="dg-line dg-dim">${escHtml(r.detail)}</div>`);
   const hist = (r.history||[]).map(h=>`<div class="dg-h"><b>${DG_EVENTS[h.event]||escHtml(h.event)}</b> ${escHtml(h.text||'')} <span class="dg-dim">${dgWhen(h.at)}</span></div>`).join('');
   const when = opts.showDate ? (item.date ? fmtDateHuman(item.date) + (item.time ? ' · '+fn(item.time) : '') : '') : (opts.whenText||'');
-  const icon = r.status==='answered' ? '📣' : (r.status==='waiting' ? '⏳' : (r.status==='delivered' ? '✅' : '🚫'));
+  const icon = r.status==='answered' ? '📦' : (r.status==='waiting' ? '⏳' : (r.status==='delivered' ? '✅' : '🚫'));
+  const who = r.status==='answered' ? `${escHtml(r.delegate_name)} ← ${escHtml(r.owner_name)}` : `${escHtml(r.owner_name)} ← ${escHtml(r.delegate_name)}`;
   return `<div class="r-row dg-card st-${item.status}${r.overdue?' dg-late':''}${opts.isNow?' is-now':''}" data-item-key="${key}">
     <div class="r-main" data-toggle-row>
       <span class="r-icon">${icon}</span>
       <div class="r-body"><div class="r-title">${escHtml(r.title)}</div><div class="dg-chips">${badge}${late}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}</span>`:''}</div>
-        <div class="dg-sum">${r.status==='waiting' ? '← '+escHtml(r.delegate_name) : (r.requester_name ? '→ '+escHtml(r.requester_name) : '')}</div></div>
+        <div class="dg-sum">${who}</div></div>
       ${opts.isNow ? '<span class="r-now">بعدی</span>' : (when ? `<span class="r-when">${when}</span>` : '')}
     </div>
     <div class="r-more"><div class="dg-lines">${lines.join('')}</div>
@@ -603,8 +646,8 @@ function renderDelegRow(item, opts={}){
 
 function dgNextButtons(item){
   const r = item.raw, id = r.id;
-  if(r.status==='waiting') return `<button class="nc-done" data-dg-act="answer" data-dg-id="${id}">✅ جواب گرفتم</button><button data-dg-act="postpone" data-dg-id="${id}">⏰ ۱ روز بعد</button>`;
-  return `<button class="nc-done" data-dg-act="deliver" data-dg-id="${id}">📤 تحویل دادم</button><button data-dg-act="postpone" data-dg-id="${id}">⏰ ۱ روز بعد</button>`;
+  if(r.status==='waiting') return `<button class="nc-done" data-dg-act="answer" data-dg-id="${id}">✅ ثبتِ نتیجه</button><button data-dg-act="postpone" data-dg-id="${id}">⏰ ۱ روز بعد</button>`;
+  return `<button class="nc-done" data-dg-act="${dgIsMe(r.owner_name)?'deliver':'reopen'}" data-dg-id="${id}">${dgIsMe(r.owner_name)?'📦 تحویل گرفتم':'↩️ هنوز کامل نیست'}</button><button data-dg-act="postpone" data-dg-id="${id}">⏰ ۱ روز بعد</button>`;
 }
 
 function updateDelegBadge(){
@@ -621,19 +664,19 @@ function renderDelegations(main){
   const sets = {open, waiting, deliver, late, closed};
   let list = (sets[dgFilter] || open).slice().sort((a,b)=> (b.raw.overdue?1:0)-(a.raw.overdue?1:0) || ((a.date||'9999')+(a.time||'00:00')).localeCompare((b.date||'9999')+(b.time||'00:00')));
   if(listSearchQuery.trim()){
-    const q = listSearchQuery.trim().toLowerCase();
-    list = list.filter(x=>[x.raw.title, x.raw.delegate_name, x.raw.requester_name, x.raw.customer, x.raw.answer_text].some(v=>(v||'').toLowerCase().includes(q)));
+    const q = dgNorm(listSearchQuery);
+    list = list.filter(x=>[x.raw.title, x.raw.delegate_name, x.raw.owner_name, x.raw.customer, x.raw.answer_text].some(v=>dgNorm(v).includes(q)));
   }
   const stat = (k, icon, label, n, cls) => `<button type="button" class="dg-stat ${cls} ${dgFilter===k?'on':''}" data-dg-filter="${k}"><span class="n">${fn(n)}</span><span class="l">${icon} ${label}</span></button>`;
   const chip = (k, label, n) => `<button type="button" class="${dgFilter===k?'active':''}" data-dg-filter="${k}">${label}${n!=null?` (${fn(n)})`:''}</button>`;
   main.innerHTML = `
-    <div class="page-title">🤝 سپرده‌ها و قول‌ها</div>
-    <div class="dg-intro">کاری را به کسی می‌سپاری ← جواب را می‌گیری ← جواب را به کسی که کار را به تو سپرده تحویل می‌دهی. هیچ‌چیز از دستت نمی‌افتد.</div>
-    <button class="btn btn-primary" data-dg-new style="margin-bottom:12px">+ سپردم</button>
-    <div class="dg-stats">${stat('waiting','⏳','منتظرِ جواب',waiting.length,'wait')}${stat('deliver','📣','باید تحویل بدهم',deliver.length,'ans')}${stat('late','🔴','دیرکرد',late.length,'late')}</div>
+    <div class="page-title">🤝 پیگیری و تحویل</div>
+    <div class="dg-intro">مسئولِ پیگیری کار را به یک پیگیری‌کننده ارجاع می‌دهد؛ پیگیری‌کننده نتیجه را ثبت می‌کند و مسئول آن را تحویل می‌گیرد. هر مرحله در بله اطلاع می‌دهد.</div>
+    <button class="btn btn-primary" data-dg-new style="margin-bottom:12px">+ ثبتِ پیگیری</button>
+    <div class="dg-stats">${stat('waiting','⏳','در حال پیگیری',waiting.length,'wait')}${stat('deliver','📦','منتظرِ تحویل',deliver.length,'ans')}${stat('late','🔴','دیرکرد',late.length,'late')}</div>
     <div class="hist-seg" style="margin:10px 0">${chip('open','همه‌یِ باز',open.length)}${chip('closed','✔️ بسته‌شده',closed.length)}</div>
-    <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در کار، نام، مشتری، جواب…" value="${escHtml(listSearchQuery)}"></div>
-    <div class="r-list">${list.length ? list.map(x=>renderDelegRow(x,{showDate:true})).join('') : `<div class="empty">${all.length ? 'در این فیلتر چیزی نیست ✨' : 'هنوز چیزی نسپرده‌ای.<br>روی «+ سپردم» بزن و اولین کار را ثبت کن.'}</div>`}</div>`;
+    <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در موضوع، نام، مشتری، نتیجه…" value="${escHtml(listSearchQuery)}"></div>
+    <div class="r-list">${list.length ? list.map(x=>renderDelegRow(x,{showDate:true})).join('') : `<div class="empty">${all.length ? 'در این فیلتر چیزی نیست ✨' : 'هنوز پیگیری‌ای ثبت نشده.<br>روی «+ ثبتِ پیگیری» بزن.'}</div>`}</div>`;
   main.querySelector('[data-dg-new]').addEventListener('click', ()=>openDelegModal(null));
   main.querySelectorAll('[data-dg-filter]').forEach(b=>b.addEventListener('click', ()=>{ dgFilter = (dgFilter===b.dataset.dgFilter && b.classList.contains('dg-stat')) ? 'open' : b.dataset.dgFilter; renderMain(); }));
   const inp = main.querySelector('#listSearchInput');
@@ -654,29 +697,29 @@ function wireDelegButtons(container){
       const finish = async (msg)=>{ showToast(msg); await refreshData(); renderMain(); };
       if(act==='answer') return openDelegAnswerSheet(r);
       if(act==='edit') return openDelegModal(r);
-      if(act==='copy-chase' || act==='copy-deliver'){
-        const text = act==='copy-chase' ? dgChaseText(r) : dgDeliverText(r);
+      if(act==='copy-chase'){
+        const text = dgChaseText(r);
         try{ await navigator.clipboard.writeText(text); showToast('📋 پیام کپی شد'); }catch(_){ window.prompt('پیام را کپی کنید:', text); }
         return;
       }
       b.disabled = true;
       let d = null;
       if(act==='deliver'){
-        if(!confirm(r.requester_name ? `جوابِ «${r.title}» را به ${r.requester_name} تحویل دادی؟` : `«${r.title}» بسته شود؟`)){ b.disabled = false; return; }
-        d = await dgCall('POST', `${id}/deliver/`, {});
-        if(d) return finish('✅ تحویل شد — بسته شد');
+        if(!confirm(`نتیجه‌یِ «${r.title}» را تحویل گرفتی؟`)){ b.disabled = false; return; }
+        d = await dgCall('POST', `${id}/deliver/`, dgActor());
+        if(d) return finish('✅ تحویل گرفته شد — بسته شد');
       } else if(act==='postpone'){
-        d = await dgCall('POST', `${id}/postpone/`, {days:1});
+        d = await dgCall('POST', `${id}/postpone/`, dgActor({days:1}));
         if(d) return finish('⏰ یک روز عقب افتاد');
       } else if(act==='reopen'){
-        d = await dgCall('POST', `${id}/reopen/`, {});
-        if(d) return finish('↩️ دوباره منتظرِ جواب شد');
+        d = await dgCall('POST', `${id}/reopen/`, dgActor());
+        if(d) return finish('↩️ دوباره «در حال پیگیری» شد');
       } else if(act==='cancel'){
-        if(!confirm('این مورد لغو شود؟ (در «بسته‌شده» می‌ماند)')){ b.disabled = false; return; }
-        d = await dgCall('POST', `${id}/cancel/`, {});
+        if(!confirm('این پیگیری لغو شود؟ (در «بسته‌شده» می‌ماند)')){ b.disabled = false; return; }
+        d = await dgCall('POST', `${id}/cancel/`, dgActor());
         if(d) return finish('🚫 لغو شد');
       } else if(act==='del'){
-        if(!confirm('حذفِ کاملِ این مورد؟ دیگر قابلِ بازیابی نیست (برایِ نگه‌داشتنِ سابقه «لغو» را بزنید).')){ b.disabled = false; return; }
+        if(!confirm('حذفِ کاملِ این پیگیری؟ دیگر قابلِ بازیابی نیست (برایِ نگه‌داشتنِ سابقه «لغو» را بزنید).')){ b.disabled = false; return; }
         d = await dgCall('DELETE', `${id}/`);
         if(d) return finish('🗑️ حذف شد');
       }
@@ -685,23 +728,24 @@ function wireDelegButtons(container){
   });
 }
 
-// ثبتِ «جواب گرفتم» — جواب را بنویس؛ اگر کسی کار را به تو سپرده، می‌شود «باید تحویل بدهم» (یا همین الان تحویل بده)
+// ثبتِ نتیجه‌یِ پیگیری
 function openDelegAnswerSheet(r){
+  const needs = dgNeedsDelivery(r), owner = dgIsMe(r.owner_name);
   const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `<div class="modal">
-    <h3>✅ جواب گرفتم</h3>
-    <div class="dg-line" style="margin-bottom:8px"><b>${escHtml(r.title)}</b><br><span class="dg-dim">از ${escHtml(r.delegate_name)}</span></div>
-    <div class="field"><label>جواب چه بود؟ (اختیاری — برایِ تحویل به ${escHtml(r.requester_name||'کسی که سپرده')} نگه داشته می‌شود)</label><textarea id="dgAns" placeholder="مثلاً: ۱۲٫۵ دلار، موجود است"></textarea></div>
+    <h3>✅ ثبتِ نتیجه‌یِ پیگیری</h3>
+    <div class="dg-line" style="margin-bottom:8px"><b>${escHtml(r.title)}</b>${r.customer?`<br><span class="dg-dim">مشتری: ${escHtml(r.customer)}</span>`:''}<br><span class="dg-dim">پیگیری‌کننده: ${escHtml(r.delegate_name)} · مسئول: ${escHtml(r.owner_name)}</span></div>
+    <div class="field"><label>نتیجه‌یِ پیگیری</label><textarea id="dgAns" placeholder="مثلاً: ۱۲٫۵ دلار، موجود است"></textarea></div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" id="dgAnsSave">${r.requester_name ? `ثبتِ جواب — بعداً به ${escHtml(r.requester_name)} تحویل می‌دهم` : 'ثبتِ جواب و بستنِ کار'}</button>
-      ${r.requester_name ? `<button class="btn btn-ghost" id="dgAnsClose">ثبتِ جواب و همین الان تحویل دادم</button>` : ''}
+      <button class="btn btn-primary" id="dgAnsSave">${needs ? `ثبتِ نتیجه — به ${escHtml(r.owner_name)} اطلاع داده می‌شود` : 'ثبتِ نتیجه و بستنِ کار'}</button>
+      ${(needs && owner) ? `<button class="btn btn-ghost" id="dgAnsClose">ثبتِ نتیجه و همین الان تحویل گرفتم</button>` : ''}
       <button class="btn btn-ghost" id="dgAnsCancel">انصراف</button>
     </div></div>`;
   document.body.appendChild(backdrop);
   const send = async (close)=>{
-    const d = await dgCall('POST', `${r.id}/answer/`, {answer_text: backdrop.querySelector('#dgAns').value.trim(), close: !!close});
+    const d = await dgCall('POST', `${r.id}/answer/`, dgActor({answer_text: backdrop.querySelector('#dgAns').value.trim(), close: !!close}));
     if(!d) return;
-    backdrop.remove(); showToast(d.status==='answered' ? `✅ ثبت شد — حالا جواب را به ${r.requester_name} بده` : '✅ ثبت شد — کار بسته شد');
+    backdrop.remove(); showToast(d.status==='answered' ? `✅ ثبت شد — به ${r.owner_name} اطلاع داده شد` : '✅ ثبت شد — کار بسته شد');
     await refreshData(); renderMain();
   };
   backdrop.querySelector('#dgAnsSave').addEventListener('click', ()=>send(false));
@@ -709,75 +753,73 @@ function openDelegAnswerSheet(r){
   backdrop.querySelector('#dgAnsCancel').addEventListener('click', ()=>backdrop.remove());
 }
 
-// فرمِ «سپردم» — کوتاه و فقط چیزهایِ لازم؛ بخشِ «کسی که کار را به من سپرده» اختیاری است
+// فرمِ «ثبتِ پیگیری» — دقیقاً فیلدهایی که حمیدرضا خواست، به همان ترتیب
 function openDelegModal(existing){
-  const isEdit = !!existing;
-  const known = allItems.filter(x=>x._type==='deleg').map(x=>x.raw);
-  const dNames = [...new Set(known.map(x=>x.delegate_name).filter(Boolean))], rNames = [...new Set(known.map(x=>x.requester_name).filter(Boolean))];
-  const e = existing || {};
+  const isEdit = !!existing, e = existing || {};
   const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `<div class="modal">
-    <h3>${isEdit ? 'ویرایشِ سپرده' : '🤝 سپردم'}</h3>
-    <div class="field"><label>چه کاری را سپردی؟</label><input id="dgTitle" type="text" placeholder="مثلاً: قیمتِ برد X را بگیر" value="${escHtml(e.title||'')}"></div>
-    <div class="field"><label>به چه کسی سپردی؟</label><input id="dgDelegate" type="text" list="dgDList" value="${escHtml(e.delegate_name||'')}"><datalist id="dgDList">${dNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist></div>
+    <h3>${isEdit ? 'ویرایشِ پیگیری' : '🤝 ثبتِ پیگیری'}</h3>
+    <div class="field"><label>مسئولِ پیگیری</label><select id="dgOwner"><option value="">در حال گرفتنِ فهرست…</option></select></div>
+    <div class="field"><label>پیگیری‌کننده</label><select id="dgDoer"><option value="">در حال گرفتنِ فهرست…</option></select></div>
+    <div class="field"><label>زمانِ ارجاع <span class="dg-dim">(خودکار)</span></label><input id="dgAssigned" type="text" readonly value="${isEdit && dgAssignedText(e) ? escHtml(dgAssignedText(e)) : 'با انتخابِ پیگیری‌کننده خودکار ثبت می‌شود'}"></div>
+    <div class="field dg-ac"><label>مشتری <span class="dg-dim">(جستجو در همه‌یِ مشتریانِ مدار)</span></label><input id="dgCust" type="text" autocomplete="off" placeholder="نامِ مشتری را بنویس…" value="${escHtml(e.customer||'')}"><div id="dgCustList" class="dg-ac-list" style="display:none"></div><div id="dgCustHint" class="dg-dim"></div></div>
+    <div class="field"><label>موضوعِ پیگیری</label><input id="dgTitle" type="text" placeholder="مثلاً: قیمتِ برد X را بگیر" value="${escHtml(e.title||'')}"></div>
     <div class="row2">
-      <div class="field"><label>شماره/آی‌دیِ او (اختیاری)</label><input id="dgContact" type="text" dir="ltr" placeholder="0912…" value="${escHtml(e.delegate_contact||'')}"></div>
-      <div class="field"><label>از چه راهی؟</label><select id="dgChannel">${DG_CHANNELS.map(([k,l])=>`<option value="${k}" ${e.channel===k?'selected':''}>${l}</option>`).join('')}</select></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>تا کِی جواب بدهد؟</label><input id="dgDue" type="text" readonly value="${escHtml(e.ask_due_date||tomorrowShamsi())}"></div>
+      <div class="field"><label>موعدِ تحویلِ پیگیری</label><input id="dgDue" type="text" readonly value="${escHtml(e.ask_due_date||tomorrowShamsi())}"></div>
       <div class="field"><label>ساعت (اختیاری)</label><input id="dgDueTime" type="time" value="${escHtml(e.ask_due_time||'')}"></div>
     </div>
-    <div class="dg-box">
-      <div class="dg-box-t">🙋 اگر این کار را کسی به تو سپرده و باید جوابش را به او بدهی (اختیاری)</div>
-      <div class="field"><label>چه کسی کار را به تو سپرده؟</label><input id="dgReq" type="text" list="dgRList" value="${escHtml(e.requester_name||'')}"><datalist id="dgRList">${rNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist></div>
-      <div class="row2">
-        <div class="field"><label>شمارهٔ او (اختیاری)</label><input id="dgReqContact" type="text" dir="ltr" value="${escHtml(e.requester_contact||'')}"></div>
-        <div class="field"><label>کِی جواب را به او می‌دهی؟</label><input id="dgDeliver" type="text" readonly value="${escHtml(e.deliver_due_date||'')}" placeholder="انتخاب تاریخ"></div>
-      </div>
-      <div id="dgWarn" class="dg-warn" style="display:none"></div>
-    </div>
-    <div class="field"><label>توضیح (اختیاری)</label><textarea id="dgDetail">${escHtml(e.detail||'')}</textarea></div>
+    <div class="field"><label>نتیجه‌یِ پیگیری <span class="dg-dim">(بعداً هم می‌شود ثبت کرد)</span></label><textarea id="dgResult" placeholder="خالی بگذار تا پیگیری‌کننده بعداً ثبت کند">${escHtml(e.answer_text||'')}</textarea></div>
     <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" id="dgSave">${isEdit?'ذخیره':'ثبت'}</button><button class="btn btn-ghost" id="dgCancel">انصراف</button></div></div>`;
   document.body.appendChild(backdrop);
   const q = s=>backdrop.querySelector(s);
-  const dueEl = q('#dgDue'), delEl = q('#dgDeliver');
-  dueEl.addEventListener('click', ()=>openCalendarPicker(dueEl)); delEl.addEventListener('click', ()=>openCalendarPicker(delEl));
-  const warn = ()=>{
-    const w = q('#dgWarn'); const a = dueEl.value.trim(), b = delEl.value.trim(), who = q('#dgReq').value.trim();
-    let msg = '';
-    if(b && !who) msg = 'برایِ تاریخِ تحویل، نامِ کسی را که کار را به تو سپرده بنویس.';
-    else if(a && b && b < a) msg = `⚠️ قول داده‌ای ${fmtDateHuman(b)} جواب بدهی، ولی جوابِ ${q('#dgDelegate').value.trim()||'او'} تا ${fmtDateHuman(a)} می‌رسد — موعدها نمی‌خوانند.`;
-    w.textContent = msg; w.style.display = msg ? '' : 'none';
+  const dueEl = q('#dgDue'); dueEl.addEventListener('click', ()=>openCalendarPicker(dueEl));
+  // ── فهرستِ افراد (مسئول و پیگیری‌کننده) ──
+  const fillSelect = (sel, names, selected, placeholder)=>{
+    sel.innerHTML = (placeholder?`<option value="">${placeholder}</option>`:'') + names.map(n=>`<option value="${escHtml(n)}" ${dgNorm(n)===dgNorm(selected||'')?'selected':''}>${escHtml(n)}</option>`).join('');
+    if(selected && !names.some(n=>dgNorm(n)===dgNorm(selected))) sel.insertAdjacentHTML('beforeend', `<option value="${escHtml(selected)}" selected>${escHtml(selected)}</option>`);
   };
-  ['#dgReq','#dgDelegate'].forEach(s=>q(s).addEventListener('input', warn));
-  q('#dgDue').addEventListener('change', warn); delEl.addEventListener('change', warn);
-  backdrop._t = setInterval(()=>{ if(!document.body.contains(backdrop)) clearInterval(backdrop._t); else warn(); }, 600);   // انتخابگرِ تاریخ مستقیم value می‌گذارد
-  // نامِ آشنا را که انتخاب کرد، شماره و راه را از سپرده‌یِ قبلی پر کن
-  q('#dgDelegate').addEventListener('change', ()=>{
-    const prev = known.find(x=>x.delegate_name===q('#dgDelegate').value.trim());
-    if(prev && !q('#dgContact').value) q('#dgContact').value = prev.delegate_contact||'';
-    if(prev && !q('#dgChannel').value) q('#dgChannel').value = prev.channel||'';
+  dgLoadPeople().then(p=>{
+    if(!document.body.contains(backdrop)) return;
+    fillSelect(q('#dgOwner'), p.responsibles, isEdit ? e.owner_name : (p.responsibles.find(n=>dgIsMe(n)) || p.responsibles[0]));
+    fillSelect(q('#dgDoer'), p.doers, isEdit ? e.delegate_name : '', 'انتخاب…');
+    if(!p.fromServer) q('#dgDoer').insertAdjacentHTML('afterend','<div class="dg-dim">⚠️ فهرستِ کارمندان از سرور نیامد؛ نام‌ها به‌صورتِ کوتاه نشان داده شد.</div>');
   });
-  q('#dgReq').addEventListener('change', ()=>{
-    const prev = known.find(x=>x.requester_name===q('#dgReq').value.trim());
-    if(prev && !q('#dgReqContact').value) q('#dgReqContact').value = prev.requester_contact||'';
+  // زمانِ ارجاع: خودکار با انتخابِ پیگیری‌کننده
+  const stamp = ()=>{ const d = new Date(); const s = sStr(jdToS(gToJD(d.getFullYear(), d.getMonth()+1, d.getDate()))); return `${fmtDateHuman(s)} · ${fn(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))}`; };
+  q('#dgDoer').addEventListener('change', ()=>{
+    if(!q('#dgDoer').value){ q('#dgAssigned').value = 'با انتخابِ پیگیری‌کننده خودکار ثبت می‌شود'; return; }
+    if(isEdit && q('#dgDoer').value === e.delegate_name){ q('#dgAssigned').value = dgAssignedText(e) || stamp(); return; }
+    q('#dgAssigned').value = stamp() + (isEdit ? ' (ارجاعِ تازه)' : '');
   });
+  // ── مشتری: جستجو + تکمیلِ خودکار ──
+  const list = q('#dgCustList'), cust = q('#dgCust'), hint = q('#dgCustHint');
+  const closeList = ()=>{ list.style.display = 'none'; };
+  const drawList = ()=>{
+    const v = dgNorm(cust.value);
+    if(!dgCustomers){ list.style.display = 'none'; hint.textContent = ''; return; }
+    const matches = (v ? dgCustomers.filter(c=>dgNorm(c.name).includes(v)) : dgCustomers.filter(c=>c.priority)).sort((a,b)=>{ const sa=dgNorm(a.name).startsWith(v)?0:1, sb=dgNorm(b.name).startsWith(v)?0:1; return sa-sb || (b.priority?1:0)-(a.priority?1:0); }).slice(0,8);
+    list.innerHTML = matches.map(c=>`<button type="button" class="dg-ac-it" data-name="${escHtml(c.name)}">${escHtml(c.name)}${c.priority?` <span class="dg-ac-pri">اولویت ${fn(c.priority)}</span>`:''}</button>`).join('');
+    list.style.display = matches.length ? '' : 'none';
+    list.querySelectorAll('.dg-ac-it').forEach(b=>b.addEventListener('mousedown', ev=>{ ev.preventDefault(); cust.value = b.dataset.name; closeList(); hint.textContent = ''; }));
+    const exact = dgCustomers.some(c=>dgNorm(c.name)===v);
+    hint.textContent = (v && !exact && !matches.length) ? 'این نام در مشتریانِ مدار نیست — همان‌طور که نوشتی ذخیره می‌شود.' : '';
+  };
+  dgLoadCustomers().then(()=>{ if(document.body.contains(backdrop)) drawList(); closeList(); });
+  cust.addEventListener('input', drawList); cust.addEventListener('focus', drawList); cust.addEventListener('blur', ()=>setTimeout(closeList,150));
   q('#dgCancel').addEventListener('click', ()=>backdrop.remove());
   q('#dgSave').addEventListener('click', async ()=>{
-    const body = { title:q('#dgTitle').value.trim(), delegate_name:q('#dgDelegate').value.trim(), delegate_contact:q('#dgContact').value.trim(),
-      channel:q('#dgChannel').value, ask_due_date:dueEl.value.trim(), ask_due_time:q('#dgDueTime').value,
-      requester_name:q('#dgReq').value.trim(), requester_contact:q('#dgReqContact').value.trim(), deliver_due_date:delEl.value.trim(),
-      detail:q('#dgDetail').value.trim() };
-    if(!body.title){ showToast('بنویس چه کاری را سپرده‌ای'); return; }
-    if(!body.delegate_name){ showToast('بنویس به چه کسی سپرده‌ای'); return; }
-    if(!body.ask_due_date){ showToast('تاریخِ «تا کِی جواب بدهد» را انتخاب کن'); return; }
-    if(body.deliver_due_date && !body.requester_name){ showToast('برایِ تاریخِ تحویل، نامِ کسی را که کار را به تو سپرده بنویس'); return; }
-    if(!isEdit){ body.owner_name = MY_NAME; body.asked_date = todayShamsi(); }
-    const d = isEdit ? await dgCall('PATCH', `${existing.id}/`, body) : await dgCall('POST', '', body);
+    const body = { owner_name:q('#dgOwner').value, delegate_name:q('#dgDoer').value, customer:cust.value.trim(), title:q('#dgTitle').value.trim(),
+      ask_due_date:dueEl.value.trim(), ask_due_time:q('#dgDueTime').value, answer_text:q('#dgResult').value.trim() };
+    if(!body.owner_name){ showToast('مسئولِ پیگیری را انتخاب کن'); return; }
+    if(!body.delegate_name){ showToast('پیگیری‌کننده را انتخاب کن'); return; }
+    if(!body.title){ showToast('موضوعِ پیگیری را بنویس'); return; }
+    if(!body.ask_due_date){ showToast('موعدِ تحویلِ پیگیری را انتخاب کن'); return; }
+    if(!isEdit){ body.asked_date = todayShamsi(); }
+    if(isEdit && body.answer_text === (e.answer_text||'')) delete body.answer_text;     // نتیجه دست‌نخورده → دوباره ثبت نشود
+    const d = isEdit ? await dgCall('PATCH', `${existing.id}/`, dgActor(body)) : await dgCall('POST', '', dgActor(body));
     if(!d) return;
-    backdrop.remove(); showToast('✅ ثبت شد — یادآوری می‌شوی');
-    if(!isEdit) dgFilter = 'open';     // تا مورد تازه بلافاصله دیده شود (حتی اگر روی فیلترِ «بسته‌شده» بودی)
+    backdrop.remove(); showToast(isEdit ? '✅ ذخیره شد' : '✅ ثبت شد — به پیگیری‌کننده در بله اطلاع داده شد');
+    if(!isEdit) dgFilter = 'open';
     await refreshData(); renderMain();
   });
   setTimeout(()=>{ const t = q('#dgTitle'); if(t && !isEdit) t.focus(); }, 60);
@@ -800,7 +842,8 @@ let selectedCalDate = null;
 }
 
 function fmtDateHuman(dateStr){
-  const [y,m,d] = dateStr.split('-').map(Number);
+  if(!dateStr || String(dateStr).split('-').length<3) return '';
+  const [y,m,d] = String(dateStr).split('-').map(Number);
   return fn(`${d} ${SMONTHS[m-1]} ${y}`);
 }
 
@@ -847,7 +890,7 @@ async function loadAllItems(){
   // فیلدِ assignee نداره (طبقِ خودِ مدلِ worklog)، پس همه‌ش نشون داده می‌شه
   const myFree = freeRaw.filter(r=>r.assignee_name === MY_NAME).map(normalizeFree);
   const recurring = recurRaw.map(normalizeRecurring);
-  const deleg = dgRaw.map(normalizeDeleg);     // 🤝 سپرده‌ها و قول‌ها
+  const deleg = dgRaw.map(normalizeDeleg);     // 🤝 پیگیری و تحویل
   return [...myFree, ...recurring, ...deleg];
 }
 
@@ -993,7 +1036,7 @@ function renderToday(main){
     ${overdue.length ? `<div class="over-box"><div class="ob-head"><span>⚠️ عقب‌افتاده (${fn(overdue.length)})</span>${freeOver.length?`<button data-move-overdue>همه به امروز</button>`:''}</div>
       ${overdue.map(r=>renderRow(r,{whenText:fmtDateHuman(r.date)})).join('')}</div>` : ''}
     </div><div class="tg-main">
-    <div class="sec-label" style="font-size:14px;color:var(--ink);margin-top:18px"><span>${dayTitle}</span><span style="font-size:11.5px;color:var(--ink-soft)">${fn(dayOpen.length)} کار</span></div>
+    <div class="sec-label" style="font-size:14px;color:var(--ink);margin-top:18px"><span>${dayTitle}</span><span style="font-size:11.5px;color:var(--ink-soft)">${fn(dayOpen.length)} کار <button class="btn btn-ghost btn-sm" type="button" data-new-reminder style="margin-inline-start:8px">＋ یادآوریِ جدید</button></span></div>
     ${renderTimeline(dayOpen, nextKey)}
     ${doneDay.length ? `<button class="done-bar" data-toggle-done><span>✓ ${fn(doneDay.length)} کار ${isToday?'امروز':''} انجام شد</span><span>${showDoneToday?'بستن':'نمایش'}</span></button>
       ${showDoneToday ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:7px">${doneDay.map(r=>renderRow(r,{hideChip:true, whenText:r.time?fn(r.time):''})).join('')}</div>` : ''}` : ''}
@@ -1009,7 +1052,7 @@ function renderFlatList(main, statuses, title, extraTop){
     filtered = filtered.filter(r => (r.title||'').toLowerCase().includes(q) || (r.customer||'').toLowerCase().includes(q) || (r.note||'').toLowerCase().includes(q));
   }
   main.innerHTML = `
-    <div class="page-title">${title}</div>
+    <div class="page-title add-row"><span>${title}</span>${statuses.includes('open') ? '<button class="btn btn-ghost btn-sm" type="button" data-new-reminder>＋ یادآوریِ جدید</button>' : ''}</div>
     ${extraTop||''}
     <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در عنوان، مشتری، توضیح..." value="${escHtml(listSearchQuery)}"></div>
     <div class="r-list">${filtered.length ? filtered.map(r=>renderRow(r,{showDate:true, hideChip:true})).join('') : '<div class="empty">چیزی نیست</div>'}</div>`;
@@ -1021,9 +1064,11 @@ function renderFlatList(main, statuses, title, extraTop){
     const again = document.getElementById('listSearchInput');
     if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(_){} }
   });
+  const _nr = main.querySelector('[data-new-reminder]'); if(_nr) _nr.addEventListener('click', ()=>openReminderModal(null));
 }
 
-function wireNewButtons(main){
+function wireNewButtons(container){
+  container.querySelectorAll('[data-new-reminder]').forEach(b=>{ if(b.dataset.nrWired) return; b.dataset.nrWired='1'; b.addEventListener('click', ()=>openReminderModal(null)); });
   main.querySelectorAll('[data-toggle-row]').forEach(el=>el.addEventListener('click', (e)=>{
     if(e.target.closest('button')) return;
     el.parentElement.classList.toggle('open');
@@ -1169,6 +1214,7 @@ function renderCalendar(main){
       </div>
       <div class="cal-grid" style="margin-bottom:6px">${WEEKDAY_NAMES.map(w=>`<div class="cal-wd">${w}</div>`).join('')}</div>
       <div class="cal-grid">${cells}</div>
+      <div style="margin:10px 0 4px"><button class="btn btn-ghost btn-sm" id="calSyncBtn2" type="button" title="نمایشِ یادآوری‌ها در تقویمِ گوشی و گوگل">🔗 اتصال به تقویمِ گوشی و گوگل</button></div>
       <div class="cal-legend">
         <span><span class="dot" style="background:var(--dot-rem)"></span>یادآوریِ باز</span>
         <span><span class="dot" style="background:var(--dot-ir-hol)"></span>تعطیلیِ شمسی (جمعه/رسمی)</span>
@@ -1188,6 +1234,7 @@ function renderCalendar(main){
     </div>
     </div></div>
   `;
+  const _cs = main.querySelector('#calSyncBtn2'); if(_cs) _cs.addEventListener('click', ()=>openCalendarSyncModal());
   main.querySelector('#calPrev').addEventListener('click', ()=>{ calMonth--; if(calMonth<1){calMonth=12;calYear--;} renderMain(); });
   main.querySelector('#calNext').addEventListener('click', ()=>{ calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderMain(); });
   function showDayDetail(dateStr){
@@ -1290,7 +1337,6 @@ function openReminderModal(existing, presetDate){
         <div class="type-seg">
           <button type="button" data-pick-type="free" class="${modalType==='free'?'active':''}">آزاد (یک‌بار)</button>
           <button type="button" data-pick-type="recurring" class="${modalType==='recurring'?'active':''}">دوره‌ای</button>
-          <button type="button" data-pick-type="deleg">🤝 سپردم</button>
         </div>` : ''}
         <div class="field"><label>${modalType==='free'?'شرح':'عنوان'}</label><input id="rTitle" type="text" value="${existing ? (existing.title||'') : ''}"></div>
         <div class="field"><label>مشتری (اختیاری)</label>
@@ -1315,7 +1361,6 @@ function openReminderModal(existing, presetDate){
     backdrop.querySelector('#rCancelBtn').addEventListener('click', ()=>backdrop.remove());
     if(!isEdit){
       backdrop.querySelectorAll('[data-pick-type]').forEach(b=>b.addEventListener('click', ()=>{
-        if(b.dataset.pickType === 'deleg'){ backdrop.remove(); openDelegModal(null); return; }
         modalType = b.dataset.pickType; draw();
       }));
     }
@@ -1398,7 +1443,6 @@ function openCalendarPicker(inputEl){
   },0);
 }
 
-document.getElementById('addBtn').addEventListener('click', ()=>{ if(currentTab==='deleg') openDelegModal(null); else openReminderModal(null); });
 // ⚠️ (۱۴۰۵/۰۷/۰۳) طبق درخواستِ صریحِ کاربر: اتصالِ یادآورها به تقویمِ خودِ
 // گوشی — با آلارمِ خودِ گوشی سرِ ساعت (یا ۹ صبح برایِ بی‌ساعت‌ها) و هشدارِ
 // «چند روز قبل» برایِ دوره‌ای‌ها. لینک از سرور گرفته می‌شه (بر اساسِ اسم).
@@ -1482,7 +1526,6 @@ async function renderGoogleCalSetup(box){
 }
 
 document.getElementById('quickTomorrowBtn').addEventListener('click', ()=>openQuickTomorrowModal());
-document.getElementById('calSyncBtn').addEventListener('click', ()=>openCalendarSyncModal());
 document.querySelectorAll('#mainTabs button').forEach(b=>b.addEventListener('click', ()=>{
   document.querySelectorAll('#mainTabs button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');

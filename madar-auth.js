@@ -219,7 +219,7 @@
     // ⚠️ (۱۴۰۵/۰۷/۱۵) گوشی: دکمه به یک دایره‌یِ کوچک (فقط 📥 و عدد) تبدیل می‌شود تا روی محتوا و منویِ پایین نیفتد
     '@media (max-width:700px){#madarInbox .mi-btn{width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;position:relative;font-size:17px}' +
     '#madarInbox .mi-lbl{display:none}' +
-    '#madarInbox .mi-n{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;font-size:10px;padding:0 4px;border:2px solid #1a1e2a;box-sizing:content-box}' +
+    '#madarInbox .mi-n{position:absolute;top:-7px;left:-7px;min-width:14px;height:14px;font-size:10px;line-height:1;padding:0 2px;border:2px solid #1a1e2a;box-sizing:content-box}' +
     '#madarInbox .mi-panel{bottom:52px}}';
   var inbox = {el: null, items: [], open: false};
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
