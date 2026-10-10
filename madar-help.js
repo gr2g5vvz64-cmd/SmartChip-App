@@ -11,7 +11,7 @@
   if (file === 'fx-ledger.html') return;                       // راهنمایِ مستقلِ خودش را دارد
   if (/[?&]m=/.test(location.search)) return;                  // حالتِ تمام‌صفحه‌یِ گوشی (crm.html?m=…)
 
-  var BUILD = '1405.07.19-6';
+  var BUILD = '1405.07.19-5';
   var GUIDES = [['📖 راهنمایِ کاملِ کارکنان', 'guide-staff.html'], ['🛠️ راهنمایِ مدیریتِ مدار', 'guide-admin.html']];
 
   var PAGES = {

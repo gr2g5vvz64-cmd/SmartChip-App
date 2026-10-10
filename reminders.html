@@ -659,7 +659,7 @@ function renderDelegRow(item, opts={}){
   return `<div class="r-row dg-card st-${item.status}${r.overdue?' dg-late':''}${opts.isNow?' is-now':''}" data-item-key="${key}">
     <div class="r-main" data-toggle-row>
       <span class="r-icon">${icon}</span>
-      <div class="r-body"><div class="r-title">${escHtml(r.title)}</div><div class="dg-chips">${badge}${late}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}</span>`:''}</div>
+      <div class="r-body"><div class="r-title" style="white-space:pre-line">${escHtml(r.title)}</div><div class="dg-chips">${badge}${late}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}</span>`:''}</div>
         <div class="dg-sum">${who}</div></div>
       ${opts.isNow ? '<span class="r-now">بعدی</span>' : (when ? `<span class="r-when">${when}</span>` : '')}
     </div>
@@ -759,7 +759,7 @@ function openDelegAnswerSheet(r){
   const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `<div class="modal">
     <h3>✅ ثبتِ نتیجه‌یِ پیگیری</h3>
-    <div class="dg-line" style="margin-bottom:8px"><b>${escHtml(r.title)}</b>${r.customer?`<br><span class="dg-dim">مشتری: ${escHtml(r.customer)}</span>`:''}<br><span class="dg-dim">پیگیری‌کننده: ${escHtml(r.delegate_name)} · مسئول: ${escHtml(r.owner_name)}</span></div>
+    <div class="dg-line" style="margin-bottom:8px"><b style="white-space:pre-line">${escHtml(r.title)}</b>${r.customer?`<br><span class="dg-dim">مشتری: ${escHtml(r.customer)}</span>`:''}<br><span class="dg-dim">پیگیری‌کننده: ${escHtml(r.delegate_name)} · مسئول: ${escHtml(r.owner_name)}</span></div>
     <div class="field"><label>نتیجه‌یِ پیگیری</label><textarea id="dgAns" placeholder="مثلاً: ۱۲٫۵ دلار، موجود است"></textarea></div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       <button class="btn btn-primary" id="dgAnsSave">${needs ? `ثبتِ نتیجه — به ${escHtml(r.owner_name)} اطلاع داده می‌شود` : 'ثبتِ نتیجه و بستنِ کار'}</button>
@@ -791,7 +791,7 @@ function openDelegModal(existing){
       <div class="field"><label>ساعتِ ارجاع</label><input id="dgAssignedTime" type="time" value="${escHtml(isEdit && e.assigned_time ? e.assigned_time : (()=>{const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');})())}"></div>
     </div>
     <div class="field dg-ac"><label>مشتری <span class="dg-dim">(جستجو در همه‌یِ مشتریانِ مدار)</span></label><input id="dgCust" type="text" autocomplete="off" placeholder="نامِ مشتری را بنویس…" value="${escHtml(e.customer||'')}"><div id="dgCustList" class="dg-ac-list" style="display:none"></div><div id="dgCustHint" class="dg-dim"></div></div>
-    <div class="field"><label>موضوعِ پیگیری</label><input id="dgTitle" type="text" placeholder="مثلاً: قیمتِ برد X را بگیر" value="${escHtml(e.title||'')}"></div>
+    <div class="field"><label>موضوعِ پیگیری</label><textarea id="dgTitle" rows="3" maxlength="500" placeholder="مثلاً: قیمتِ برد X را بگیر&#10;(چند موضوع؟ هر کدام در یک خط — با Enter یا Shift+Enter)" style="width:100%;resize:vertical;min-height:70px;font:inherit;line-height:1.8;white-space:pre-wrap">${escHtml(e.title||'')}</textarea></div>
     <div class="row2">
       <div class="field"><label>موعدِ تحویلِ پیگیری</label><input id="dgDue" type="text" readonly value="${escHtml(e.ask_due_date||tomorrowShamsi())}"></div>
       <div class="field"><label>ساعت (اختیاری)</label><input id="dgDueTime" type="time" value="${escHtml(e.ask_due_time||'')}"></div>
