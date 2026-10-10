@@ -25,6 +25,7 @@
 </script>
 <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) ورودِ امن — فایلِ مشترکِ همه‌ی صفحه‌ها -->
 <script src="./madar-auth.js"></script>
+<script src="./madar-tiles.js"></script>
 
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -276,22 +277,9 @@ function toggleTheme(){
 applyThemeButtonLabel();
 
 // ▼▼▼ آدرس‌های واقعی هر بخش را اینجا بگذار (بعد از میزبانی هرکدام، مثلاً GitHub Pages) ▼▼▼
-const APP_URLS = {
-  erp: 'erp.html',                 // تدارکات/بازرگانی/مالی/ردیابی محموله — نسخه‌ی فعلی: v16.1
-  crm: 'crm.html',                 // پیجویی فروش (جدید/در تماس/مثبت/منفی)
-  priceList: 'pricelist.html',     // ماشین‌حساب قیمت‌دهی — Apps Script کاملاً جدا
-  weights: 'weights.html',         // ⚠️ (۱۴۰۵/۰۷/۰۶) وزن‌نامه‌ی قطعات — جایگزینِ شیتِ Verified_Weights، فقط مدیر ویرایش می‌کنه
-  staffAdmin: 'staff-admin.html',  // فقط برای مدیر — افزودن/حذف کارمند
-  fxLedger: 'fx-ledger.html',      // ⚠️ (۱۴۰۵/۰۶/۱۸) دفتر ارزی — فقط مدیر، تسویه ریال⇄یوان با مشتریان/تأمین‌کننده
-  reminders: 'reminders.html',     // ⚠️ (۱۴۰۵/۰۶/۲۷) یادآوری‌ها — PWA کاملاً مستقل، کارِ فردا/آزاد/دوره‌ای/تقویم
-  weekly: 'weekly.html',           // ⚠️ (۱۴۰۵/۰۷/۱۹) گزارشِ هفتگیِ تیم — مدیریت و سرپرستان
-  org: 'org.html',                 // ⚠️ (۱۴۰۵/۰۷/۰۸) سازمان — منابعِ انسانی، اداری، کارتابلِ من
-  attendance: 'attendance.html',   // ⚠️ (۱۴۰۵/۰۷/۱۰) حضور و غیاب — کیوآرکدِ شخصیِ چرخان + گوشیِ حضور
-  guide: 'guide-staff.html',       // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای کارکنان — کامل و به‌روز
-  adminGuide: 'guide-admin.html',  // ⚠️ (۱۴۰۵/۰۷/۰۹) راهنمای مدیریتِ مدار — زیرساخت، حساب‌ها، روال‌ها (فقط مدیریت)
-  me: 'me.html',                   // ⚠️ (۱۴۰۵/۰۷/۱۹) داشبوردِ من — برایِ همه
-  access: 'access.html',           // ⚠️ (۱۴۰۵/۰۷/۱۹) پنلِ دسترسی — نقش و استثنایِ فردی (فقط مدیریت)
-};
+// ⚠️ (۱۴۰۵/۰۷/۱۹) آدرس‌ها، عنوان‌ها و مجوزِ هر کاشی از madar-tiles.js می‌آید (تنها فهرست؛ مدار موبایل هم از همان می‌سازد)
+const APP_URLS = {};
+MADAR_TILES.forEach(t=>{ APP_URLS[t.key] = t.href; });
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 // اگر از گوشی باز شده، کاشی‌های ERP و CRM به نسخه‌ی موبایلی (mobile.html) می‌روند —
@@ -326,27 +314,8 @@ const ROLE_LABEL = {
   warehouse_keeper:'انباردار', trade_expert:'کارشناسِ بازرگانی', procurement_staff:'تدارکات', service:'خدمات', parts_mgmt:'مدیریتِ قطعات', pcb_mgmt:'مدیریتِ برد',
   sales:'فروش', ops:'عملیات', finance:'مالی',
 };
-const TILE_META = {
-  attendance:{icon:'🕘', title:'حضور و غیاب', desc:'ثبتِ ورود و خروج با کیوآرکد و گوشی'},
-  weekly:   {icon:'📊', title:'گزارشِ هفتگیِ تیم', desc:'یادآوری‌ها و پیگیری‌هایِ تیم برایِ جلسه‌یِ سرپرستان'},
-  org:      {icon:'🏢', title:'سازمان', desc:'منابعِ انسانی · اداری · کارتابلِ من'},
-  erp:      {icon:'🏭', title:'ERP', desc:'تدارکات، بازرگانی، مالی، ردیابی محموله'},
-  crm:      {icon:'📞', title:'CRM فروش', desc:'پیجویی و ثبت تماس با مشتری'},
-  priceList:{icon:'💰', title:'Price List', desc:'ماشین‌حساب قیمت‌دهی قطعات'},
-  weights:  {icon:'⚖️', title:'وزن‌نامه‌ی قطعات', desc:'وزنِ قطعات — جستجو، ویرایش، خروجیِ Excel'},
-  staffAdmin:{icon:'👥', title:'مدیریت کارمندان', desc:'افزودن/حذف دسترسی نیروها'},
-  fxLedger: {icon:'💱', title:'دفتر ارزی', desc:'تسویه ریال⇄یوان با مشتریان و تأمین‌کننده'},
-  reminders:{icon:'⏰', title:'یادآوری‌ها', desc:'کارِ فردا، یادآوریِ آزاد و دوره‌ای، تقویم'},
-  guide:    {icon:'📖', title:'راهنمای کارکنان', desc:'مرحله‌به‌مرحله — از روزِ اول تا همه‌ی بخش‌ها'},
-  adminGuide:{icon:'🛠️', title:'راهنمای مدیریتِ مدار', desc:'سایت‌ها، حساب‌ها، تنظیمات و روال‌ها'},
-  me:       {icon:'🏠', title:'داشبوردِ من', desc:'کارتابل، پیگیری‌ها و میانبرهایِ خودم'},
-  access:   {icon:'🔑', title:'پنلِ دسترسی', desc:'هر نقش و هر نفر چه بخش‌هایی را ببیند'},
-};
-// ⚠️ (۱۴۰۵/۰۷/۱۹) هر کاشی ← مجوزِ مربوط در «پنلِ دسترسی»؛ ترتیبِ نمایش همین است.
-// اگر سرور هنوز پنلِ دسترسی نداشته باشد، همان نگاشتِ قدیمیِ ROLE_TILES کار می‌کند.
-const TILE_ORDER = ['me','attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','weekly','access','guide','adminGuide'];
-const TILE_PERM = { me:'page.me', attendance:'page.attendance', org:'page.org', erp:'page.erp', crm:'page.crm', priceList:'page.pricelist', weights:'page.weights',
-  staffAdmin:'page.staffadmin', fxLedger:'page.fxledger', reminders:'page.reminders', weekly:'page.weekly', access:'access.manage', guide:'page.guide', adminGuide:'page.adminguide' };
+const TILE_META = {}, TILE_ORDER = [], TILE_PERM = {};
+MADAR_TILES.forEach(t=>{ if(t.tile===false) return; TILE_META[t.key] = {icon:t.icon, title:t.title, desc:t.desc}; TILE_ORDER.push(t.key); TILE_PERM[t.key] = t.perm; });
 if(isMobileDevice()){
   TILE_META.erp.desc='مدار موبایل — کارتابل، ثبتِ تماس، مشتری';
   TILE_META.crm.desc='مدار موبایل — ثبتِ تماس، جستجویِ مشتری';
@@ -434,13 +403,7 @@ const TILE_ICON = {
   weights:'M12 3v18 M5 7h14 M5 7l-3 7a3 3 0 0 0 6 0z M19 7l-3 7a3 3 0 0 0 6 0z M8 21h8',
   guide:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z M4 5v16 M8 7h7'
 };
-const TILE_GROUPS = [
-  { id:'sales', title:'فروش و بازاریابی',      note:'مشتری، قیمت، پیگیری',          color:'#e8a23a', keys:['crm','priceList'] },
-  { id:'fin',   title:'مالی و بازرگانی',        note:'پول، ارز، محموله',             color:'#3fb5a3', keys:['fxLedger','erp'] },
-  { id:'mgmt',  title:'مدیریت',                 note:'دسترسی، کارکنان، تنظیمات',     color:'#9b8cf7', keys:['weekly','access','staffAdmin','adminGuide'] },
-  { id:'admin', title:'اداری و منابع انسانی',   note:'حضور، سازمان، کارهایِ روزانه', color:'#5b9bf0', keys:['attendance','org','reminders'] },
-  { id:'more',  title:'ابزارها و راهنما',       note:'وزن‌نامه و راهنماها',          color:'#8f9bb3', keys:['weights','guide'] }
-];
+const TILE_GROUPS = MADAR_GROUPS.map(g=>({ id:g.id, title:g.title, note:g.note, color:g.color, keys:MADAR_TILES.filter(t=>t.group===g.id && t.tile!==false).map(t=>t.key) }));
 function _tileSvg(key, size){
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(TILE_ICON[key]||'M4 4h16v16H4z')+'"/></svg>';
 }

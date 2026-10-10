@@ -25,6 +25,7 @@
 window.MADAR_NO_INBOX_BUTTON = true;   // کارتابل در خودِ مدار موبایل هست؛ دکمه‌ی شناور رویِ نوارِ پایین نیاد
 </script>
 <script src="./madar-auth.js"></script>
+<script src="./madar-tiles.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f1117">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -245,25 +246,31 @@ async function vJazb(){
 }
 
 // ── ☰ بیشتر
+// ⚠️ (۱۴۰۵/۰۷/۱۹) فهرستِ بخش‌ها از madar-tiles.js (همان که صفحه‌یِ اصلی استفاده می‌کند) و نمایش بر اساسِ «پنلِ دسترسی» — بخشِ تازه خودکار اینجا هم می‌آید.
 function vMore(){
-  const mg = S.desk && S.desk.is_mgmt;
   const L = (i, t, h, s) => `<a class="row" href="${h}"><span class="ic">${i}</span><span><div class="t">${t}</div>${s?`<div class="s">${s}</div>`:''}</span><span class="go">‹</span></a>`;
+  const ok = t => { try { return !window.MadarAccess || MadarAccess.can(t.perm); } catch(e){ return true; } };
+  const MOBILE_NATIVE = {org:1, attendance:1, reminders:1};                  // این‌ها بالا (کار با گوشی) هستند
+  const mobileDesc = {crm:'نسخه‌ی کامل — با دو انگشت زوم کنید', erp:'نسخه‌ی کامل — با دو انگشت زوم کنید'};
+  const groups = (window.MADAR_GROUPS || []).map(g => {
+    const items = (window.MADAR_TILES || []).filter(t => t.group === g.id && !MOBILE_NATIVE[t.key] && ok(t));
+    return items.length ? `<div class="sec-h">${g.title}</div><div class="card list" style="padding:4px 12px">${items.map(t => L(t.icon, t.title, t.href, mobileDesc[t.key] || t.desc)).join('')}</div>` : '';
+  }).join('');
+  const me = (window.MADAR_TILES || []).find(t => t.key === 'me');
   $('view').innerHTML = `
     <div class="sec-h">کار با گوشی</div><div class="card list" style="padding:4px 12px">
       ${L('📥','کارتابلِ کامل','org.html#inbox','ارجاع، نامه، مرخصی، تشویق و تنبیه')}${L('🕘','حضور و غیاب','attendance.html','ورود/خروج، کارکردِ من')}
-      ${L('⏰','یادآوری‌ها','reminders.html')}${L('🏖️','مرخصی و مأموریت','org.html#leave')}${L('🏢','سازمان','org.html','پرونده‌ی من، شرحِ وظایف')}
-      ${L('🎯','جذبِ مشتری','#jazb" onclick="go(\'jazb\');return false','فرمِ جذبِ سریع، ساختِ مشتری، مشتریان، داشبورد')}${L('↗️','ارجاعِ کار','org.html#inbox:refs:by_me')}</div>
-    <div class="sec-h">نسخه‌ی کامل (به پهنایِ مانیتور — با دو انگشت زوم کنید)</div><div class="card list" style="padding:4px 12px">
-      ${L('📞','CRM کامل','crm.html')}${L('🏭','ERP کامل','erp.html')}${L('⚖️','وزن‌نامه','weights.html')}${L('💰','Price List','pricelist.html')}
-      ${mg ? L('💱','دفترِ ارزی','fx-ledger.html') + L('👥','مدیریتِ کارمندان','staff-admin.html') : ''}</div>
-    <div class="sec-h">راهنما</div><div class="card list" style="padding:4px 12px">${L('📖','راهنمایِ کارکنان','guide-staff.html')}${L('🏠','صفحه‌ی اصلیِ مدار','index.html')}</div>
-    <div class="card" style="font-size:12px;color:var(--muted);line-height:2">📲 برایِ نصب: در Safari دکمه‌ی اشتراک‌گذاری ← Add to Home Screen ؛ در Chrome منویِ ⋮ ← Add to Home screen.</div>`;
+      ${L('⏰','یادآوری‌ها و پیگیری و تحویل','reminders.html','کارِ فردا، پیگیری، تقویم')}${L('🏖️','مرخصی و مأموریت','org.html#leave')}${L('🏢','سازمان','org.html','پرونده‌ی من، شرحِ وظایف')}
+      ${L('🎯','جذبِ مشتری','#jazb" onclick="go(\'jazb\');return false','فرمِ جذبِ سریع، ساختِ مشتری، مشتریان، داشبورد')}${L('↗️','ارجاعِ کار','org.html#inbox:refs:by_me')}${me && ok(me) ? L(me.icon, me.title, me.href, me.desc) : ''}</div>
+    ${groups}
+    <div class="card" style="font-size:12px;color:var(--muted);line-height:2">📲 برایِ نصب: در Safari دکمه‌ی اشتراک‌گذاری ← Add to Home Screen ؛ در Chrome منویِ ⋮ ← Add to Home screen.<br>🔒 فهرستِ بالا طبقِ «پنلِ دسترسی» است؛ بخشی که نمی‌بینید برایِ نقشِ شما باز نیست.</div>`;
 }
 
 (async function init(){
   if(!MadarAuth.token()){ MadarAuth.require(true); $('view').innerHTML = '<div class="empty">برایِ مدار موبایل با ورودِ امن وارد شوید.</div>'; status('bad','ورود لازم است'); return; }
   const v = (location.hash || '').slice(1);
   go(['home','desk','call','cust','more','jazb'].includes(v) ? v : 'home');
+  if(window.MadarAccess) MadarAccess.ready(() => { if(S.v === 'more') vMore(); });
   window.addEventListener('hashchange', () => { const h = (location.hash||'').slice(1); if(h !== S.v && ['home','desk','call','cust','more','jazb'].includes(h)) go(h); });
   setInterval(() => { if(document.visibilityState === 'visible' && (S.v === 'home' || S.v === 'desk')) api('desk/', 1).then(d => { S.desk = d; const t = d.cards.reduce((a,c)=>a+c.count,0); $('deskBd').hidden = !t; $('deskBd').textContent = fa(t); }).catch(()=>{}); }, 120000);
 })();
