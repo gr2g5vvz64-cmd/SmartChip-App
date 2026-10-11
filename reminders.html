@@ -603,8 +603,8 @@ async function apiDelete(type, id){
 const DG_API = 'https://api.smartchipelec.com/api/delegations/';
 const DG_STAFF_API = 'https://api.smartchipelec.com/api/staff/staff/';
 const DG_CUSTOMERS_API = 'https://api.smartchipelec.com/api/customers/customers/';
-const DG_FIRST_RESPONSIBLES = ['حمیدرضا', 'عباس'];
-const DG_FIRST_DOERS = ['شیوا', 'سمیه', 'مینا', 'حمیدرضا', 'عباس', 'احمد'];
+// ⚠️ (۱۴۰۵/۰۷/۲۰) فهرستِ افراد فقط و فقط از STAFF می‌آید (دیگر نامِ ثابت در کد نیست). مسئول = مدیریت/سرپرست‌ها؛ پیگیری‌کننده = همه‌یِ کارمندانِ فعال.
+const DG_MANAGER_ROLE = r => r==='owner' || r==='admin' || String(r||'').indexOf('sup_')===0;
 const DG_EVENTS = {sub_done:'☑️ موضوع بسته شد', sub_reopen:'↩️ موضوع باز شد', created:'🆕 ثبت', edited:'✏️ ویرایش', reassigned:'🔁 ارجاعِ تازه', answered:'💬 نتیجه', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
 let dgFilter = 'open';   // open | waiting | deliver | late | closed
 let dgStatsOpen = false, dgStatsData = null;   // ⚠️ (۱۴۰۵/۰۷/۱۹) آمارِ پیگیری (مدیر: همه · بقیه: فقط خودشان)
@@ -656,14 +656,13 @@ const dgActor = (b)=>Object.assign({actor: MY_NAME}, b||{});
 async function dgLoadPeople(){
   if(dgPeople) return dgPeople;
   let staff = [];
-  try{ const r = await fetchWithRetry(DG_STAFF_API); if(r.ok){ const j = await r.json(); staff = (Array.isArray(j)?j:[]).filter(s=>s && s.active!==false && s.name).map(s=>String(s.name).trim()); } }catch(e){}
-  const pick = (first)=>{
-    const hits = staff.filter(n=>dgNorm(n).split(' ')[0]===dgNorm(first));
-    if(MY_NAME && first===dgNorm(MY_NAME).split(' ')[0] && !hits.includes(MY_NAME)) hits.unshift(MY_NAME);
-    return hits.length ? [...new Set(hits)] : [first];
-  };
+  try{ const r = await fetchWithRetry(DG_STAFF_API); if(r.ok){ const j = await r.json(); staff = (Array.isArray(j)?j:[]).filter(s=>s && s.active!==false && s.name).map(s=>({name:String(s.name).trim(), role:s.role||''})); } }catch(e){}
   const uniq = (arr)=>[...new Set(arr)];
-  dgPeople = {responsibles: uniq(DG_FIRST_RESPONSIBLES.flatMap(pick)), doers: uniq(DG_FIRST_DOERS.flatMap(pick)), fromServer: staff.length>0};
+  const all = uniq(staff.map(s=>s.name));
+  let resp = uniq(staff.filter(s=>DG_MANAGER_ROLE(s.role)).map(s=>s.name));
+  if(MY_NAME && !resp.some(n=>dgNorm(n)===dgNorm(MY_NAME)) && all.some(n=>dgNorm(n)===dgNorm(MY_NAME))) resp.unshift(MY_NAME);
+  if(!resp.length) resp = all;
+  dgPeople = {responsibles: resp, doers: all, fromServer: staff.length>0};
   return dgPeople;
 }
 async function dgLoadCustomers(){
@@ -941,15 +940,7 @@ function openDelegModal(existing){
   backdrop.innerHTML = `<div class="modal">
     <h3>${isEdit ? 'ویرایشِ پیگیری' : '🤝 ثبتِ پیگیری'}</h3>
     <div class="field"><label>مسئولِ پیگیری</label><select id="dgOwner"><option value="">در حال گرفتنِ فهرست…</option></select></div>
-    <div class="field"><label>پیگیری‌کننده</label><select id="dgDoer"><option value="">در حال گرفتنِ فهرست…</option></select></div>
-    <div class="field" id="dgExt" style="display:none;border:1px dashed var(--border);border-radius:12px;padding:10px 12px">
-      <label>نامِ فردِ بیرون از شرکت</label><input id="dgExtName" type="text" maxlength="120" autocomplete="off" placeholder="مثلاً: آقای رضایی — شرکت …">
-      <div class="row2" style="margin-top:8px">
-        <div class="field"><label>شماره / آی‌دی <span class="dg-dim">(اختیاری)</span></label><input id="dgExtContact" type="text" dir="ltr" maxlength="120" placeholder="09123456789"></div>
-        <div class="field"><label>از چه راهی</label><select id="dgExtChannel"><option value="">—</option><option value="whatsapp">واتساپ</option><option value="telegram">تلگرام</option><option value="bale">بله</option><option value="sms">پیامک</option><option value="phone">تلفن</option><option value="in_person">حضوری</option></select></div>
-      </div>
-      <div class="dg-dim" style="margin-top:6px;line-height:1.9">بات فقط به کارمندان وصل است، پس برایِ او پیامِ خودکار نمی‌رود. پیگیری در خلاصه‌یِ صبحِ خودِ شما «منتظرِ او» می‌ماند؛ با شماره‌اش دکمه‌یِ «💬 پیگیری (واتساپ)» روی کارت فعال می‌شود.</div>
-    </div>
+    <div class="field"><label>پیگیری‌کننده</label><select id="dgDoer"><option value="">در حال گرفتنِ فهرست…</option></select><div class="dg-dim" style="margin-top:4px">نامِ کسی را نمی‌بینی؟ اول در <a href="staff-admin.html" target="_blank" rel="noopener" style="color:var(--accent)">مدیریت کارمندان</a> بساز؛ فهرست از همان‌جاست.</div></div>
     <div class="row2">
       <div class="field"><label>تاریخِ ارجاع <span class="dg-dim">(خودکار — قابلِ ویرایش)</span></label><input id="dgAssignedDate" type="text" readonly value="${escHtml(isEdit && e.assigned_date ? e.assigned_date : todayShamsi())}"></div>
       <div class="field"><label>ساعتِ ارجاع</label><input id="dgAssignedTime" type="time" value="${escHtml(isEdit && e.assigned_time ? e.assigned_time : (()=>{const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');})())}"></div>
@@ -975,24 +966,6 @@ function openDelegModal(existing){
     if(!document.body.contains(backdrop)) return;
     fillSelect(q('#dgOwner'), p.responsibles, isEdit ? e.owner_name : (p.responsibles.find(n=>dgIsMe(n)) || p.responsibles[0]));
     fillSelect(q('#dgDoer'), p.doers, isEdit ? e.delegate_name : '', 'انتخاب…');
-    // ⚠️ (۱۴۰۵/۰۷/۲۰) فردِ بیرون از شرکت: از فهرست «➕ فردِ بیرون…» را بزن، یا یکی از بیرونی‌هایِ قبلی را انتخاب کن
-    const doerSel = q('#dgDoer'), extBox = q('#dgExt'), extName = q('#dgExtName'), extContact = q('#dgExtContact'), extChannel = q('#dgExtChannel');
-    const prevExt = {};
-    allItems.filter(x=>x._type==='deleg').forEach(x=>{ const n = String(x.raw.delegate_name||'').trim(); const k = dgNorm(n); if(!n || dgIsMe(n) || p.doers.some(d=>dgNorm(d)===k) || prevExt[k]) return; prevExt[k] = {name:n, contact:x.raw.delegate_contact||'', channel:x.raw.channel||''}; });
-    const prevList = Object.values(prevExt).filter(x=>!(isEdit && dgNorm(x.name)===dgNorm(e.delegate_name)));
-    if(prevList.length) doerSel.insertAdjacentHTML('beforeend', '<optgroup label="بیرون از شرکت (قبلاً ثبت شده)">' + prevList.map(x=>`<option value="ext:${escHtml(x.name)}">${escHtml(x.name)}</option>`).join('') + '</optgroup>');
-    doerSel.insertAdjacentHTML('beforeend', '<option value="__ext__">➕ فردِ بیرون از شرکت…</option>');
-    const showExt = (name, contact, channel)=>{ extBox.style.display = ''; extName.value = name||''; extContact.value = contact||''; extChannel.value = channel||''; };
-    doerSel.addEventListener('change', ()=>{
-      const v = doerSel.value;
-      if(v === '__ext__'){ showExt('', '', ''); extName.focus(); }
-      else if(v.indexOf('ext:') === 0){ const pe = prevExt[dgNorm(v.slice(4))] || {name:v.slice(4)}; showExt(pe.name, pe.contact, pe.channel); }
-      else extBox.style.display = 'none';
-    });
-    if(isEdit && e.delegate_name && !p.doers.some(d=>dgNorm(d)===dgNorm(e.delegate_name))){      // پیگیری‌کننده‌یِ بیرونی را در ویرایش هم بتوان اصلاح کرد
-      doerSel.querySelectorAll('option').forEach(o=>{ if(o.value === e.delegate_name) o.remove(); });
-      doerSel.value = '__ext__'; showExt(e.delegate_name, e.delegate_contact, e.channel);
-    }
     if(!p.fromServer) q('#dgDoer').insertAdjacentHTML('afterend','<div class="dg-dim">⚠️ فهرستِ کارمندان از سرور نیامد؛ نام‌ها به‌صورتِ کوتاه نشان داده شد.</div>');
   });
   // زمانِ ارجاع: پیش‌فرض «همین الان» و قابلِ ویرایش (اگر قبلاً گفته‌اید، تاریخ/ساعتِ واقعی را بگذارید).
@@ -1023,23 +996,20 @@ function openDelegModal(existing){
   cust.addEventListener('input', drawList); cust.addEventListener('focus', drawList); cust.addEventListener('blur', ()=>setTimeout(closeList,150));
   q('#dgCancel').addEventListener('click', ()=>backdrop.remove());
   q('#dgSave').addEventListener('click', async ()=>{
-    const extOn = q('#dgExt').style.display !== 'none';
-    const body = { owner_name:q('#dgOwner').value, delegate_name:(extOn ? q('#dgExtName').value.trim() : q('#dgDoer').value), customer:cust.value.trim(), title:q('#dgTitle').value.trim(),
+    const body = { owner_name:q('#dgOwner').value, delegate_name:q('#dgDoer').value, customer:cust.value.trim(), title:q('#dgTitle').value.trim(),
       ask_due_date:dueEl.value.trim(), ask_due_time:q('#dgDueTime').value, answer_text:q('#dgResult').value.trim() };
-    if(extOn){ body.delegate_contact = q('#dgExtContact').value.trim(); body.channel = q('#dgExtChannel').value; }
-    else if(isEdit){ body.delegate_contact = ''; body.channel = ''; }
     const asgChanged = !isEdit || asgTouched || (e.assigned_date !== asgDate.value) || (e.assigned_time !== asgTime.value);
     if(asgChanged && asgDate.value){ body.assigned_date = asgDate.value.trim(); body.assigned_time = asgTime.value || ''; }
     const errBox = q('#dgErr'); errBox.style.display = 'none';
     if(!body.owner_name){ showToast('مسئولِ پیگیری را انتخاب کن'); return; }
-    if(!body.delegate_name){ showToast(extOn ? 'نامِ فردِ بیرون از شرکت را بنویس' : 'پیگیری‌کننده را انتخاب کن'); return; }
+    if(!body.delegate_name){ showToast('پیگیری‌کننده را انتخاب کن'); return; }
     if(!body.title){ showToast('موضوعِ پیگیری را بنویس'); return; }
     if(!body.ask_due_date){ showToast('موعدِ تحویلِ پیگیری را انتخاب کن'); return; }
     if(!isEdit){ body.asked_date = todayShamsi(); }
     if(isEdit && body.answer_text === (e.answer_text||'')) delete body.answer_text;     // نتیجه دست‌نخورده → دوباره ثبت نشود
     const d = isEdit ? await dgCall('PATCH', `${existing.id}/`, dgActor(body)) : await dgCall('POST', '', dgActor(body));
     if(!d){ errBox.textContent = '❌ ' + (window._dgLastErr || 'ثبت نشد — دوباره امتحان کن'); errBox.style.display = ''; return; }
-    backdrop.remove(); showToast(isEdit ? '✅ ذخیره شد' : (extOn ? '✅ ثبت شد — فردِ بیرونی است؛ پیامِ خودکار نمی‌رود (از دکمه‌یِ واتساپ/کپیِ پیامِ کارت استفاده کن)' : '✅ ثبت شد — به پیگیری‌کننده در بله اطلاع داده شد'));
+    backdrop.remove(); showToast(isEdit ? '✅ ذخیره شد' : '✅ ثبت شد — به پیگیری‌کننده در بله اطلاع داده شد');
     if(!isEdit) dgFilter = 'open';
     await refreshData(); renderMain();
   });
