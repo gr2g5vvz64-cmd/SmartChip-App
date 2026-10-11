@@ -78,7 +78,7 @@ html[data-theme="light"] {
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{min-height:100%}
-body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;display:flex;flex-direction:column;align-items:center;padding:56px 20px 28px;-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden}
+body{font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;display:flex;flex-direction:column;align-items:center;padding:0 20px 8px;-webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden}
 /* زمینه: نورِ ملایم بالای صفحه + ردهایِ کم‌رنگِ مدار */
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(900px 420px at 50% -80px,var(--glow),transparent 70%)}
@@ -135,11 +135,11 @@ body > *{position:relative;z-index:1}
 
 /* ── ⚠️ (۱۴۰۵/۰۷/۱۹) صفحه‌ی اصلیِ بخش‌بندی‌شده: گروه‌ها، کاشیِ افقی، جستجو ── */
 .groups{width:min(1040px,100%);display:flex;flex-direction:column;gap:30px}
-.me-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:20px 22px;border:0;border-radius:22px;background:linear-gradient(120deg,#ffd166,#ff8a3d 55%,#ff5d73);color:#1a1206;text-decoration:none;box-shadow:0 14px 34px rgba(255,120,60,.26);transition:transform .2s,box-shadow .2s}
-.me-hero:hover,.me-hero:focus-visible{transform:translateY(-2px);box-shadow:0 18px 40px rgba(255,120,60,.38);outline:none}
-.me-hero .gt-ic{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.38);border:0;box-shadow:none;color:#1a1206}
-.me-hero-t{font-size:19px;font-weight:900}
-.me-hero-d{font-size:12.5px;color:rgba(26,18,6,.78);margin-top:3px}
+.me-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:clamp(10px,1.5vh,18px) 22px;border:0;border-radius:20px;background:linear-gradient(120deg,#ff5470,#d6204b 55%,#8f1238);color:#fff;text-decoration:none;box-shadow:0 14px 34px rgba(214,32,75,.35);transition:transform .2s,box-shadow .2s;margin-bottom:clamp(10px,1.4vh,16px)}
+.me-hero:hover,.me-hero:focus-visible{transform:translateY(-2px);box-shadow:0 18px 40px rgba(214,32,75,.5);outline:none}
+.me-hero .gt-ic{width:clamp(40px,5.2vh,56px);height:clamp(40px,5.2vh,56px);border-radius:15px;background:rgba(255,255,255,.22);border:0;box-shadow:none;color:#fff}
+.me-hero-t{font-size:clamp(16px,2.3vh,22px);font-weight:900}
+.me-hero-d{font-size:12.5px;color:rgba(255,255,255,.88);margin-top:2px}
 .g-search{width:min(1040px,100%);margin-bottom:22px;display:flex;align-items:center;gap:10px;padding:0 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
 .g-search:focus-within{border-color:var(--accent)}
 .g-search svg{flex-shrink:0;stroke:var(--muted)}
@@ -168,7 +168,6 @@ body > *{position:relative;z-index:1}
 #themeToggleBtn:hover,#roadmapBtn:hover{border-color:var(--accent)!important}
 @media(max-width:600px){
   body{padding:70px 10px 84px}
-  #themeToggleBtn{top:12px!important;left:12px!important;padding:5px 11px!important;font-size:11px!important}
   #roadmapBtn{bottom:14px!important;left:12px!important;width:40px!important;height:40px!important;font-size:16px!important}
   .motto{margin:26px auto 22px}
   .eyebrow{font-size:11.5px;gap:8px}
@@ -197,6 +196,65 @@ body > *{position:relative;z-index:1}
 .hol-note{font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.8}
 .hol-tag{font-size:10px;color:var(--faint);border:1px solid var(--border);border-radius:8px;padding:0 6px;margin-right:6px;font-weight:500}
 @media (prefers-reduced-motion:reduce){.trace path{animation:none;stroke-dashoffset:0}.trace circle{animation:none;opacity:1}.tile{transition:none}}
+
+/* ═══ ⚠️ (۱۴۰۵/۰۷/۲۰) صفحه‌یِ اصلیِ مربعی: سرصفحه‌یِ بزرگ‌شونده با ارتفاع، مربعِ گروه‌ها، پنلِ بازشونده تا لبهٔ پایین ═══ */
+body{min-height:100vh;min-height:100dvh}
+.g-search[hidden],.me-hero[hidden],.rec[hidden],.user-info[hidden]{display:none}
+.topbar{position:sticky;top:0;z-index:60;width:calc(100% + 40px);margin:0 -20px;display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(15,17,23,.88);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.topbar .user-info{margin:0;white-space:nowrap;padding:6px 14px}
+.topbar .g-search{margin:0;width:auto;flex:1;max-width:420px;border-radius:20px}
+.topbar .g-search input{padding:7px 0;font-size:12.5px}
+.tbtn{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text);font-family:'Vazirmatn',sans-serif;cursor:pointer;white-space:nowrap}
+.brand{margin-top:clamp(6px,1.6vh,22px)}
+.eyebrow{font-size:clamp(11.5px,1.55vh,15px);margin-bottom:0}
+.logo{font-size:clamp(48px,min(13.5vh,22vw),150px)}
+.trace{width:min(clamp(260px,40vh,460px),78vw);height:auto;aspect-ratio:360/22;margin-top:0}
+.sub{font-size:clamp(12px,1.7vh,16px);margin-top:clamp(2px,.5vh,8px)}
+.motto{margin:clamp(8px,1.8vh,24px) auto clamp(10px,2vh,26px);max-width:min(900px,96vw)}
+.motto-label{font-size:clamp(10px,1.3vh,13px);margin-bottom:clamp(5px,1vh,12px)}
+.motto-fa{font-size:clamp(15px,min(3vh,5vw),28px);line-height:1.75}
+.motto-fa .strong{display:inline;margin:0 6px 0 0;font-size:clamp(17px,min(3.4vh,5.6vw),32px)}
+.motto-en{font-size:clamp(10.5px,min(1.65vh,3vw),15px);margin-top:clamp(3px,.7vh,8px)}
+#mainState{flex:1}
+#tilesContainer.groups{flex:1;gap:0}
+.stack{flex:1;display:flex;flex-direction:column;gap:14px}.stack>.grp{flex:1}
+.rec{margin-bottom:clamp(8px,1.2vh,14px)}
+.rec h4{font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.rec-r{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.rc{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:14px;text-decoration:none;color:var(--text);background:color-mix(in srgb,var(--g) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--g) 35%,var(--border));transition:border-color .2s,transform .2s}
+.rc:hover,.rc:focus-visible{border-color:var(--g);transform:translateY(-2px);outline:none}
+.rc-ic{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#0d0f15;background:linear-gradient(145deg,color-mix(in srgb,var(--g) 70%,#fff),var(--g))}
+.rc b{display:block;font-size:13px}.rc i{display:block;font-style:normal;font-size:10.5px;color:var(--g);margin-top:1px}
+.gsq-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.gsq{cursor:pointer;font:inherit;color:var(--text);text-align:center;border-radius:18px;padding:clamp(8px,1.5vh,14px) 10px clamp(7px,1.2vh,11px);border:1px solid color-mix(in srgb,var(--g) 40%,var(--border));background:radial-gradient(120% 120% at 100% 0%,color-mix(in srgb,var(--g) 32%,var(--bg)),color-mix(in srgb,var(--g) 9%,var(--bg)) 70%);transition:transform .2s,border-color .2s,box-shadow .2s}
+.gsq:hover,.gsq:focus-visible{transform:translateY(-3px);border-color:var(--g);outline:none}
+.gsq.on{border-color:var(--g);box-shadow:0 0 0 2px var(--g),0 12px 30px color-mix(in srgb,var(--g) 30%,transparent);transform:translateY(-3px)}
+.gsq-ic{display:flex;align-items:center;justify-content:center;width:clamp(36px,5vh,48px);height:clamp(36px,5vh,48px);border-radius:14px;margin:0 auto clamp(4px,.8vh,8px);color:#0d0f15;background:linear-gradient(145deg,color-mix(in srgb,var(--g) 70%,#fff),var(--g));box-shadow:0 8px 20px color-mix(in srgb,var(--g) 45%,transparent)}
+.gsq-t{display:block;font-weight:900;font-size:13.5px}
+.gsq-n{display:block;font-size:10.5px;line-height:1.5;margin-top:2px;color:color-mix(in srgb,var(--g) 55%,var(--muted))}
+#detBox{flex:1;display:flex;flex-direction:column;margin-top:clamp(8px,1.2vh,14px);scroll-margin-top:70px}
+#detBox>.grp{flex:1}
+.grp.in{animation:gin .25s ease}
+@keyframes gin{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.grp.in{animation:none}.gsq,.rc{transition:none}}
+.foot{margin-top:8px;font-size:9px}
+@media(max-width:600px){
+  body{padding:0 10px 84px}
+  .topbar{width:calc(100% + 20px);margin:0 -10px;flex-wrap:wrap;padding:8px 10px;gap:8px}
+  .topbar .user-info{font-size:11px;padding:5px 12px}
+  .topbar .g-search{order:5;flex:1 1 100%;max-width:none}
+  .gsq-row{grid-template-columns:repeat(2,1fr);gap:9px}
+}
+@supports not (background:color-mix(in srgb,red,blue)){
+  .grp{background:var(--surface);border:1px solid var(--g)}
+  .gt,.rc{background:var(--surface);border-color:var(--border)}
+  .gsq{background:var(--surface);border-color:var(--g)}
+  .gt-ic,.gsq-ic,.rc-ic{background:var(--g,var(--accent))}
+  .g-title{background:var(--g)}
+  .g-note,.gsq-n{color:var(--muted)}
+  .g-line{background:var(--border)}
+  .topbar{background:var(--bg)}
+}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -204,10 +262,21 @@ body > *{position:relative;z-index:1}
 </head>
 <body>
 
-<button id="themeToggleBtn" onclick="toggleTheme()" style="position:fixed;top:18px;left:18px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--text);font-family:'Vazirmatn',sans-serif;cursor:pointer;z-index:50;" title="تغییر حالت شب/روز">🌙 حالت روز</button>
+
 <!-- ⚠️ (۱۴۰۵/۰۶/۱۸) دکمه‌ی نقشه‌ی راه — طبق درخواست صریح کاربر: کوچیک،
      نه به‌اندازه‌ی کاشی‌های اصلی، همیشه گوشه‌ی صفحه در دسترس. -->
 <button id="roadmapBtn" onclick="openRoadmapModal()" style="position:fixed;bottom:18px;left:18px;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15);" title="کارهای در صف و آینده">🗺️</button>
+
+<!-- ⚠️ (۱۴۰۵/۰۷/۲۰) نوارِ بالا: کاربر + جستجو + شب/روز (قبلاً هرکدام جایی بودند) -->
+<div class="topbar">
+  <div class="user-info" id="userInfoText" hidden></div>
+  <div class="g-search" id="gSearchWrap" hidden>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
+    <input id="gSearch" type="search" placeholder="جستجوی بخش — مثلاً «چک» یا «حضور»" aria-label="جستجوی بخش‌ها" autocomplete="off">
+  </div>
+  <span style="flex:1"></span>
+  <button id="themeToggleBtn" class="tbtn" onclick="toggleTheme()" title="تغییر حالت شب/روز">🌙 حالت روز</button>
+</div>
 
 <header class="brand">
   <div class="eyebrow"><b>SMARTCHIP</b><i></i><span class="os">BUSINESS OS</span></div>
@@ -242,11 +311,6 @@ body > *{position:relative;z-index:1}
 </div>
 
 <div id="mainState" style="display:none;width:100%;flex-direction:column;align-items:center;">
-  <div class="user-info" id="userInfoText"></div>
-  <div class="g-search" id="gSearchWrap" hidden>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M20 20l-4-4"/></svg>
-    <input id="gSearch" type="search" placeholder="جستجوی بخش — مثلاً «چک» یا «حضور»" aria-label="جستجوی بخش‌ها" autocomplete="off">
-  </div>
   <div class="groups" id="tilesContainer"></div>
   <div class="g-empty" id="gEmpty" hidden>بخشی با این نام پیدا نشد</div>
 </div>
@@ -412,48 +476,94 @@ function _tileSvg(key, size){
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(TILE_ICON[key]||'M4 4h16v16H4z')+'"/></svg>';
 }
 function _normFa(t){ return String(t||'').replace(/ي/g,'ی').replace(/ك/g,'ک').toLowerCase(); }
+const USE_KEY='madar_use_v1', GRP_KEY='madar_group_v1';
+function _lsGet(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function _lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+// ⚠️ (۱۴۰۵/۰۷/۲۰) صفحه‌یِ مربعی: مربعِ هر گروه ← با کلیک، ابزارهایش پایین باز می‌شود. «پرکاربردهایِ من» از روی استفاده‌یِ خودِ هر نفر (در همین مرورگر).
 function renderGroupedTiles(allowedTiles, isMob, newTab){
   const box = document.getElementById('tilesContainer');
   const allowed = new Set(allowedTiles);
   const placed = new Set(['me']);
   TILE_GROUPS.forEach(g=>g.keys.forEach(k=>placed.add(k)));
   const extra = allowedTiles.filter(k=>!placed.has(k) && TILE_META[k]);     // کاشیِ تازه‌ای که هنوز در گروهی نیست ← «ابزارها»
+  const G = [];
+  TILE_GROUPS.forEach(g=>{
+    const keys = g.keys.concat(g.id==='more'?extra:[]).filter(k=>allowed.has(k) && TILE_META[k]);
+    if(keys.length) G.push({id:g.id,title:g.title,note:g.note,color:g.color,icon:g.icon||keys[0],keys:keys});
+  });
+  const count = G.reduce((a,g)=>a+g.keys.length,0);
+  const keyGrp = {}; G.forEach(g=>g.keys.forEach(k=>{ keyGrp[k]=g; }));
+  const tileHtml = (k,color)=>{
+    const m = TILE_META[k];
+    const fb = (isMob && (k==='erp'||k==='crm'))
+      ? '<a href="'+(k==='erp'?'erp.html':'crm.html')+'" style="display:block;margin-top:4px;font-size:10px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ نسخه‌ی کامل</a>' : '';
+    return '<div class="gt-cell" data-q="'+_normFa(m.title+' '+m.desc)+'"><a class="gt" data-k="'+k+'" style="--g:'+color+'" href="'+APP_URLS[k]+'"'+newTab+'><span class="gt-ic">'+_tileSvg(k,22)+'</span><span><div class="gt-t">'+m.title+'</div><div class="gt-d">'+m.desc+'</div></span></a>'+fb+'</div>';
+  };
+  const panel = g => '<section class="grp in" data-g="'+g.id+'" style="--g:'+g.color+'"><div class="g-head"><span class="g-title">'+g.title+'</span><span class="g-note">'+g.note+'</span><span class="g-line"></span></div><div class="g-grid">'+g.keys.map(k=>tileHtml(k,g.color)).join('')+'</div></section>';
+  const sq = G.length > 2;                                                   // با ۱–۲ گروه مربع لازم نیست؛ مستقیم باز نشان بده
   let html = '';
   if(allowed.has('me') && TILE_META.me){
     const m = TILE_META.me;
-    html += '<a class="me-hero" href="'+APP_URLS.me+'"'+newTab+'><span class="gt-ic" style="--g:var(--accent)">'+_tileSvg('me',26)+'</span><span style="flex:1;min-width:200px"><div class="me-hero-t">'+m.title+'</div><div class="me-hero-d">'+m.desc+'</div></span></a>';
+    html += '<a class="me-hero" href="'+APP_URLS.me+'"'+newTab+'><span class="gt-ic" style="--g:#fff">'+_tileSvg('me',26)+'</span><span style="flex:1;min-width:200px"><div class="me-hero-t">'+m.title+'</div><div class="me-hero-d">'+m.desc+'</div></span></a>';
   }
-  let count = 0;
-  TILE_GROUPS.forEach(g=>{
-    const keys = g.keys.concat(g.id==='more'?extra:[]).filter(k=>allowed.has(k) && TILE_META[k]);
-    if(!keys.length) return;
-    count += keys.length;
-    html += '<section class="grp" style="--g:'+g.color+'"><div class="g-head"><span class="g-dot"></span><span class="g-title">'+g.title+'</span><span class="g-note">'+g.note+'</span><span class="g-line"></span></div><div class="g-grid">'
-      + keys.map(k=>{
-          const m = TILE_META[k];
-          const fb = (isMob && (k==='erp'||k==='crm'))
-            ? '<a href="'+(k==='erp'?'erp.html':'crm.html')+'" style="display:block;margin-top:4px;font-size:10px;color:var(--muted);text-decoration:underline;text-align:center;">🖥️ نسخه‌ی کامل</a>' : '';
-          return '<div class="gt-cell" data-q="'+_normFa(m.title+' '+m.desc)+'"><a class="gt" href="'+APP_URLS[k]+'"'+newTab+'><span class="gt-ic">'+_tileSvg(k,22)+'</span><span><div class="gt-t">'+m.title+'</div><div class="gt-d">'+m.desc+'</div></span></a>'+fb+'</div>';
-        }).join('')
-      + '</div></section>';
-  });
-  if(isMob) html += '<div style="text-align:center;padding:4px 0"><a href="m.html" class="tile" style="display:block;border-color:rgba(240,165,0,.5)"><div class="tile-icon">📱</div><div class="tile-title">مدار موبایل</div><div class="tile-desc">کارتابل، ورود/خروج، ثبتِ تماس، مشتری — مخصوصِ گوشی</div></a></div>';
+  const use = _lsGet(USE_KEY,{});
+  const rec = Object.keys(use).filter(k=>keyGrp[k]).sort((a,b)=>use[b]-use[a]).slice(0,4);
+  if(rec.length){
+    html += '<div class="rec"><h4>⭐ پرکاربردهایِ من</h4><div class="rec-r">'
+      + rec.map(k=>{ const g=keyGrp[k], m=TILE_META[k]; return '<a class="rc" data-k="'+k+'" style="--g:'+g.color+'" href="'+APP_URLS[k]+'"'+newTab+'><span class="rc-ic">'+_tileSvg(k,19)+'</span><span><b>'+m.title+'</b><i>'+g.title+'</i></span></a>'; }).join('')
+      + '</div></div>';
+  }
+  if(sq){
+    html += '<div class="gsq-row">'+G.map(g=>'<button type="button" class="gsq" data-g="'+g.id+'" aria-expanded="false" style="--g:'+g.color+'"><span class="gsq-ic">'+_tileSvg(g.icon,26)+'</span><span class="gsq-t">'+g.title+'</span><span class="gsq-n">'+g.note+'</span></button>').join('')+'</div><div id="detBox"></div>';
+  } else {
+    html += '<div class="stack">'+G.map(panel).join('')+'</div>';
+  }
+  if(isMob) html += '<div style="text-align:center;padding:14px 0 4px"><a href="m.html" class="tile" style="display:block;border-color:rgba(240,165,0,.5)"><div class="tile-icon">📱</div><div class="tile-title">مدار موبایل</div><div class="tile-desc">کارتابل، ورود/خروج، ثبتِ تماس، مشتری — مخصوصِ گوشی</div></a></div>';
   if(!count && !allowed.has('me')) html = '<div style="color:var(--muted);font-size:12px;text-align:center">برای نقش شما هیچ بخشی فعال نشده — با مدیر تماس بگیر</div>';
   box.innerHTML = html;
+  const bump = e=>{ const a = e.target.closest && e.target.closest('a[data-k]'); if(!a) return; const u=_lsGet(USE_KEY,{}); u[a.getAttribute('data-k')]=(u[a.getAttribute('data-k')]||0)+1; _lsSet(USE_KEY,u); };
+  box.onclick = bump; box.onauxclick = bump;
+  // مربع‌ها
+  const det = document.getElementById('detBox');
+  let cur = null;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function openG(id, scroll){
+    const g = G.find(x=>x.id===id) || G[0]; if(!g || !det) return;
+    cur = g.id;
+    box.querySelectorAll('.gsq').forEach(b=>{ const on=b.getAttribute('data-g')===cur; b.classList.toggle('on',on); b.setAttribute('aria-expanded',on?'true':'false'); });
+    det.innerHTML = panel(g);
+    _lsSet(GRP_KEY,cur);
+    if(scroll) det.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});
+  }
+  if(sq){
+    box.querySelectorAll('.gsq').forEach(b=>b.addEventListener('click',()=>{ const inp=document.getElementById('gSearch'); if(inp && inp.value){ inp.value=''; inp.oninput&&inp.oninput(); } openG(b.getAttribute('data-g'),true); }));
+    openG(_lsGet(GRP_KEY,null),false);
+  }
   // جستجو: فقط وقتی بخش‌ها زیاد است
   const wrap = document.getElementById('gSearchWrap'), inp = document.getElementById('gSearch');
   if(wrap && inp && count >= 5){
     wrap.hidden = false;
     inp.oninput = function(){
       const q = _normFa(inp.value).trim();
+      const hero = box.querySelector('.me-hero'), recBox = box.querySelector('.rec');
+      if(hero) hero.hidden = !!q; if(recBox) recBox.hidden = !!q;
+      const empty = document.getElementById('gEmpty');
+      if(sq){
+        if(!q){ empty.hidden = true; openG(cur,false); return; }
+        box.querySelectorAll('.gsq').forEach(b=>{ b.classList.remove('on'); b.setAttribute('aria-expanded','false'); });
+        let cells = '', n = 0;
+        G.forEach(g=>g.keys.forEach(k=>{ const m=TILE_META[k]; if(_normFa(m.title+' '+m.desc).indexOf(q)>=0){ cells += tileHtml(k,g.color); n++; } }));
+        det.innerHTML = n ? '<section class="grp in" style="--g:var(--muted)"><div class="g-head"><span class="g-title">نتیجه‌یِ جستجو</span><span class="g-note">'+n+' مورد، از همه‌یِ گروه‌ها</span><span class="g-line"></span></div><div class="g-grid">'+cells+'</div></section>' : '';
+        empty.hidden = n > 0;
+        return;
+      }
       let any = false;
       box.querySelectorAll('.grp').forEach(sec=>{
         let vis = 0;
         sec.querySelectorAll('.gt-cell').forEach(c=>{ const ok = !q || c.getAttribute('data-q').indexOf(q) >= 0; c.hidden = !ok; if(ok) vis++; });
         sec.hidden = vis === 0; if(vis) any = true;
       });
-      const hero = box.querySelector('.me-hero'); if(hero) hero.hidden = !!q;
-      document.getElementById('gEmpty').hidden = !q || any;
+      empty.hidden = !q || any;
     };
   }
 }
@@ -475,6 +585,7 @@ async function init(){
     return;
   }
   document.getElementById('mainState').style.display='flex';
+  document.getElementById('userInfoText').hidden=false;
   document.getElementById('userInfoText').innerHTML=`${userInfo.name||userInfo.email} — ${roleLabel(userInfo.role)} &nbsp;|&nbsp; <a href="#" onclick="clearStoredEmail();location.reload();return false;" style="color:var(--accent);">تغییر کاربر</a>`;
   // ⚠️ (۱۴۰۵/۰۷/۰۸) رفعِ باگ: نقش‌هایِ جدید (owner، sup_sales، sales_expert، accounting…) در ROLE_TILES نبودن
   //   → مثلاً مدیر با نقشِ owner هیچ کاشی‌ای نمی‌دید. حالا هر نقش به گروهش نگاشت می‌شه؛ نقشِ ناشناخته هم حداقل «سازمان» و «راهنما» رو می‌بینه.

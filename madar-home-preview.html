@@ -1,0 +1,108 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پیش‌نمایشِ صفحه‌یِ اصلیِ مدار — مربع‌هایِ گروه</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#0d0f15;color:#f4f5f8;font-family:Vazirmatn,Tahoma,sans-serif;line-height:1.6;padding-bottom:70px}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(13,15,21,.85);backdrop-filter:blur(8px);border-bottom:1px solid #1f2433}
+.pill{display:flex;align-items:center;gap:8px;background:#1a1e2a;border:1px solid #323952;border-radius:20px;padding:6px 14px;font-size:12px;color:#9aa2bd}
+.pill b{color:#f4f5f8;font-weight:700}.pill u{color:#f0a500;cursor:pointer}
+.sp{flex:1}.tg{background:#1a1e2a;border:1px solid #323952;border-radius:20px;padding:6px 14px;font-size:12px}
+.hd{text-align:center;padding:26px 16px 8px}.hd h1{font-size:clamp(68px,13vw,118px);font-weight:900;line-height:1.05;letter-spacing:-1px;background:linear-gradient(160deg,#ffcf5a 0%,#f0a500 45%,#e8630a 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 6px 26px rgba(240,165,0,.18))}.trace{display:block;margin:4px auto 0;width:min(360px,78vw);height:22px}.trace path{fill:none;stroke:rgba(240,165,0,.55);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.trace circle{fill:#f0a500}
+.eye{display:flex;justify-content:center;align-items:center;gap:10px;font-size:13px;letter-spacing:.28em;color:#9aa2bd;font-weight:600;margin-bottom:6px}.eye b{color:#f4f5f8;font-weight:800}.eye i{width:5px;height:5px;border-radius:50%;background:#f0a500}
+.motto{margin:30px auto 26px;max-width:620px;padding:0 12px;text-align:center}
+.ml{display:flex;align-items:center;justify-content:center;gap:12px;font-size:10.5px;font-weight:700;letter-spacing:.3em;color:#f0a500;margin-bottom:14px}
+.ml::before,.ml::after{content:'';height:1px;flex:0 1 90px;background:linear-gradient(90deg,transparent,rgba(240,165,0,.55))}.ml::after{background:linear-gradient(270deg,transparent,rgba(240,165,0,.55))}
+.ml span{display:inline-flex;align-items:center;gap:10px}.ml span::before,.ml span::after{content:'';width:6px;height:6px;border-radius:50%;background:#f0a500}
+.mf{font-size:clamp(17px,2.6vw,21px);font-weight:500;line-height:1.95}.mf .st{display:block;font-size:clamp(20px,3.1vw,26px);font-weight:800;background:linear-gradient(90deg,#ffcf5a,#f0a500);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.me{margin-top:12px;font-size:12px;color:#6b7390;font-style:italic}
+.hd p.sb{color:#9aa2bd;font-size:12.5px;margin-top:8px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.hero{display:flex;align-items:center;gap:16px;padding:18px 22px;border-radius:22px;margin-bottom:20px;color:#fff;background:linear-gradient(120deg,#ff5470,#d6204b 55%,#8f1238);box-shadow:0 14px 34px rgba(214,32,75,.35)}
+.hero .hi{width:52px;height:52px;border-radius:15px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center}.hero svg{width:28px;height:28px}
+.hero b{font-size:18px;font-weight:900;display:block}.hero span{font-size:12.5px;opacity:.88}
+.sq{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:6px}
+.s{cursor:pointer;border-radius:20px;padding:18px 12px 14px;text-align:center;border:1px solid color-mix(in srgb,var(--gc) 40%,#232838);background:radial-gradient(120% 120% at 100% 0%,color-mix(in srgb,var(--gc) 32%,#0d0f15),color-mix(in srgb,var(--gc) 9%,#0d0f15) 70%);transition:.2s;font:inherit;color:inherit}
+.s:hover{transform:translateY(-3px);border-color:var(--gc)}
+.s .ic{width:54px;height:54px;border-radius:16px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;color:#0d0f15;background:linear-gradient(145deg,color-mix(in srgb,var(--gc) 70%,#fff),var(--gc));box-shadow:0 8px 20px color-mix(in srgb,var(--gc) 45%,transparent)}
+.s .ic svg{width:27px;height:27px}.s .t{font-weight:900;font-size:14px}.s .c{font-size:11px;line-height:1.5;color:color-mix(in srgb,var(--gc) 55%,#aab2c9);margin-top:2px}
+.s.on{border-color:var(--gc);box-shadow:0 0 0 2px var(--gc),0 12px 30px color-mix(in srgb,var(--gc) 30%,transparent);transform:translateY(-3px)}
+.arrow{height:14px;position:relative}.arrow i{position:absolute;top:0;width:0;height:0;border:10px solid transparent;border-top:0;border-bottom:12px solid var(--gc,transparent);transform:translateX(50%);transition:right .25s}
+.det{margin-top:14px;border-radius:22px;padding:16px;scroll-margin-top:70px;border:1px solid color-mix(in srgb,var(--gc) 45%,#1c2030);background:radial-gradient(90% 140% at 100% 0%,color-mix(in srgb,var(--gc) 28%,#0d0f15),color-mix(in srgb,var(--gc) 8%,#0d0f15) 60%,#0d0f15)}
+.gh{display:flex;align-items:center;gap:10px;margin-bottom:13px}.chip{padding:3px 14px;border-radius:99px;font-size:14.5px;font-weight:900;color:#0d0f15;background:linear-gradient(135deg,var(--gc),color-mix(in srgb,var(--gc) 65%,#fff))}
+.gh .n{font-size:11.5px;color:color-mix(in srgb,var(--gc) 50%,#c3c9dc)}.gh .l{flex:1;height:1px;background:color-mix(in srgb,var(--gc) 35%,transparent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.gt{display:flex;gap:12px;padding:14px;border-radius:15px;background:color-mix(in srgb,var(--gc) 10%,#161a26);border:1px solid color-mix(in srgb,var(--gc) 28%,#262c40)}
+.gt .ic{width:42px;height:42px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#0d0f15;background:linear-gradient(145deg,color-mix(in srgb,var(--gc) 70%,#fff),var(--gc))}
+.gt .ic svg{width:22px;height:22px}.tt{font-weight:800;font-size:14px}.dd{font-size:11.5px;color:#aab2c9;margin-top:3px}
+.srch{display:flex;align-items:center;gap:10px;padding:0 16px;border:1px solid #323952;border-radius:12px;background:#1a1e2a;margin-bottom:18px}.srch input{flex:1;background:transparent;border:0;outline:0;color:#f4f5f8;font:inherit;font-size:13.5px;padding:13px 0}
+.rec{margin-bottom:18px}.rec h4{font-size:12px;color:#9aa2bd;font-weight:700;margin-bottom:8px}.rec .r{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.chipb{flex:1;min-width:150px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--gc) 12%,#161a26);border:1px solid color-mix(in srgb,var(--gc) 35%,#262c40);cursor:pointer}
+.chipb .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#0d0f15;background:linear-gradient(145deg,color-mix(in srgb,var(--gc) 70%,#fff),var(--gc))}.chipb .ic svg{width:19px;height:19px}.chipb b{font-size:13px}
+.gtag{font-size:10.5px;color:var(--gc);margin-top:2px}
+.hint{text-align:center;color:#6b7390;font-size:12px;margin:12px 0}
+@media(max-width:700px){.sq{grid-template-columns:repeat(2,1fr)}.s:last-child{grid-column:span 2}.hd h1{font-size:48px}}
+
+.top{padding:8px 16px;gap:12px}.srch.tb{margin:0;flex:1;max-width:420px;border-radius:20px}.srch.tb input{padding:7px 0;font-size:12.5px}
+.hd{padding:10px 16px 0}
+.eye{font-size:11.5px!important;margin-bottom:0!important}
+.hd h1{font-size:clamp(46px,10.5vh,92px)!important}
+.trace{height:16px!important;margin-top:0!important}
+.hd p.sb{margin-top:2px!important;font-size:12px!important}
+.motto{margin:10px auto 12px!important}.ml{margin-bottom:6px!important}
+.mf{font-size:clamp(14px,2.3vh,18px)!important;line-height:1.7!important}.mf .st{display:inline!important;font-size:clamp(15px,2.6vh,20px)!important;margin-right:6px}
+.me{margin-top:3px!important;font-size:11px!important}
+.hero{padding:10px 18px!important;margin-bottom:10px!important;border-radius:18px!important}.hero .hi{width:40px!important;height:40px!important;border-radius:12px!important}.hero .hi svg{width:22px!important;height:22px!important}.hero b{font-size:16px!important}.hero span{font-size:12px!important}
+.rec{margin-bottom:10px!important}.rec h4{margin-bottom:5px!important;font-size:11.5px!important}.chipb{padding:7px 12px!important}
+.s{padding:12px 10px 10px!important;border-radius:18px!important}.s .ic{width:42px!important;height:42px!important;margin-bottom:6px!important;border-radius:13px!important}.s .ic svg{width:22px!important;height:22px!important}.s .t{font-size:13.5px!important}.s .c{font-size:10.5px!important}
+.det{margin-top:10px!important}
+@media(max-width:700px){.srch.tb{display:none}.hd h1{font-size:46px!important}}
+</style></head><body>
+<div class="top"><div class="pill">👤 <b>حمیدرضا چاوشی ابیانه</b> — مدیریت | <u>تغییر کاربر</u></div><div class="srch tb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa2bd" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="q" placeholder="جستجوی بخش — مثلاً «چک» یا «حضور»"></div><span class="sp"></span><span class="tg">🌙 حالت روز</span></div>
+<div class="hd"><div class="eye" dir="ltr"><b>SMARTCHIP</b><i></i><span>BUSINESS OS</span></div><h1>مدار</h1><svg class="trace" viewBox="0 0 360 22"><path d="M8 11 H120 L134 4 H226 L240 18 H352"/><circle cx="8" cy="11" r="4"/><circle cx="352" cy="18" r="4"/></svg><p class="sb">مسیری که همه‌چیز از آن عبور می‌کند</p>
+<figure class="motto"><div class="ml"><span>شعارِ ما</span></div><p class="mf">نامت باید پیش از آنکه پا به اتاق بگذاری، معامله را ببندد.<span class="st">این اعتبار را بساز.</span></p><p class="me" dir="ltr">Your name should close deals before you even enter the room. Build that reputation.</p></figure></div>
+<div class="wrap">
+<div class="hero"><div class="hi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></div><div><b>داشبوردِ من</b><span>کارتابل، پیگیری‌ها و میانبرهایِ خودم</span></div></div>
+<div class="rec"><h4>⭐ پرکاربردهایِ من <span style="color:#6b7390;font-weight:400">— خودکار از روی آخرین استفاده‌ات</span></h4><div class="r" id="rec"></div></div><div class="sq" id="sq"></div>
+<div id="det"></div>
+</div>
+<script>
+const G=[{"id": "sales", "title": "فروش و بازاریابی", "note": "مشتری، قیمت، پیگیری", "color": "#e8a23a"}, {"id": "fin", "title": "مالی و بازرگانی", "note": "پول، ارز، محموله", "color": "#3fb5a3"}, {"id": "mgmt", "title": "مدیریت", "note": "دسترسی، کارکنان، تنظیمات", "color": "#9b8cf7"}, {"id": "admin", "title": "اداری و منابع انسانی", "note": "حضور، سازمان، کارهایِ روزانه", "color": "#5b9bf0"}, {"id": "more", "title": "ابزارها و راهنما", "note": "وزن‌نامه و راهنماها", "color": "#8f9bb3"}], T=[{"key": "me", "title": "داشبوردِ من", "desc": "کارتابل، پیگیری‌ها و میانبرهایِ خودم", "group": "me"}, {"key": "crm", "title": "CRM فروش", "desc": "پیجویی و ثبت تماس با مشتری", "group": "sales"}, {"key": "priceList", "title": "Price List", "desc": "ماشین‌حساب قیمت‌دهی قطعات", "group": "sales"}, {"key": "fxLedger", "title": "دفتر ارزی", "desc": "تسویه ریال⇄یوان با مشتریان و تأمین‌کننده", "group": "fin"}, {"key": "erp", "title": "ERP", "desc": "تدارکات، بازرگانی، مالی، ردیابی محموله", "group": "fin"}, {"key": "weekly", "title": "گزارشِ هفتگیِ تیم", "desc": "یادآوری‌ها و پیگیری‌هایِ تیم برایِ جلسه‌یِ سرپرستان", "group": "mgmt"}, {"key": "access", "title": "پنلِ دسترسی", "desc": "هر نقش و هر نفر چه بخش‌هایی را ببیند", "group": "mgmt"}, {"key": "announce", "title": "اعلانِ عمومی", "desc": "یک پیام به بله/تلگرامِ همه‌یِ کارمندان", "group": "mgmt"}, {"key": "staffAdmin", "title": "مدیریت کارمندان", "desc": "افزودن/حذف دسترسی نیروها", "group": "mgmt"}, {"key": "adminGuide", "title": "راهنمای مدیریتِ مدار", "desc": "سایت‌ها، حساب‌ها، تنظیمات و روال‌ها", "group": "mgmt"}, {"key": "attendance", "title": "حضور و غیاب", "desc": "ثبتِ ورود و خروج با کیوآرکد و گوشی", "group": "admin"}, {"key": "org", "title": "سازمان", "desc": "منابعِ انسانی · اداری · کارتابلِ من", "group": "admin"}, {"key": "reminders", "title": "یادآوری‌ها", "desc": "کارِ فردا، یادآوریِ آزاد و دوره‌ای، تقویم، پیگیری و تحویل", "group": "admin"}, {"key": "weights", "title": "وزن‌نامه‌ی قطعات", "desc": "وزنِ قطعات — جستجو، ویرایش، خروجیِ Excel", "group": "more"}, {"key": "guide", "title": "راهنمای کارکنان", "desc": "مرحله‌به‌مرحله — از روزِ اول تا همه‌ی بخش‌ها", "group": "more"}]; const ICON={
+  me:'M3 3h8v8H3z M13 3h8v5h-8z M13 10h8v11h-8z M3 13h8v8H3z',
+  crm:'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+  priceList:'M3 12V4h8l10 10-8 8z M7.5 8.5h.01',
+  fxLedger:'M4 8h14l-3-3 M20 16H6l3 3',
+  erp:'M3 21V11l6 3.5V11l6 3.5V5h4v16z',
+  access:'M14 10a4 4 0 1 1-1 2.6L4 21v-3h3v-3h3l2.5-2.5',
+  staffAdmin:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20a6 6 0 0 1 12 0 M17 11a3 3 0 1 0 0-5 M21 20a5 5 0 0 0-4-5',
+  announce:'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z M16 8a5 5 0 0 1 0 8 M19 5a9 9 0 0 1 0 14',
+  adminGuide:'M14.7 6.3a4 4 0 0 0 5 5L11 20a2 2 0 0 1-3-3z',
+  attendance:'M12 7v5l3 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  weekly:'M4 20V10 M10 20V4 M16 20v-7 M22 20H2',
+  org:'M4 21V4h10v17 M14 9h6v12 M8 8h2 M8 12h2 M8 16h2 M3 21h18',
+  reminders:'M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7 M10 20a2 2 0 0 0 4 0',
+  weights:'M12 3v18 M5 7h14 M5 7l-3 7a3 3 0 0 0 6 0z M19 7l-3 7a3 3 0 0 0 6 0z M8 21h8',
+  guide:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z M4 5v16 M8 7h7'};
+const NEW={sales:'#ff8a3d',fin:'#2fd37a',mgmt:'#e055f5',admin:'#29b6f6',more:'#f2c94c'};
+const GIC={sales:'phone',fin:'fxLedger',mgmt:'access',admin:'attendance',more:'weights'};
+const svg=k=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="'+(ICON[k]||'M4 4h16v16H4z')+'"/></svg>';
+const gi=g=>svg(({sales:'crm',fin:'fxLedger',mgmt:'access',admin:'attendance',more:'weights'})[g.id]);
+let cur=null;
+document.getElementById('sq').innerHTML=G.map(g=>{const n=T.filter(t=>t.group===g.id).length;return `<button class="s" data-g="${g.id}" style="--gc:${NEW[g.id]}"><div class="ic">${gi(g)}</div><div class="t">${g.title}</div><div class="c">${g.note}</div></button>`}).join('');
+function open(id,scroll){cur=id;const g=G.find(x=>x.id===id);const c=NEW[id];
+document.querySelectorAll('.s').forEach(b=>b.classList.toggle('on',b.dataset.g===id));
+
+document.getElementById('det').innerHTML=`<div class="det" id="d" style="--gc:${c}"><div class="gh"><span class="chip">${g.title}</span><span class="n">${g.note}</span><span class="l"></span></div><div class="grid">${T.filter(t=>t.group===id).map(t=>`<div class="gt"><div class="ic">${svg(t.key)}</div><div><div class="tt">${t.title}</div><div class="dd">${t.desc}</div></div></div>`).join('')}</div></div>`;
+if(scroll)document.getElementById('d').scrollIntoView({behavior:'smooth',block:'start'});}
+document.querySelectorAll('.s').forEach(b=>b.onclick=()=>open(b.dataset.g,true));
+
+const REC=['attendance','reminders','fxLedger','crm'];
+const grp=k=>T.find(t=>t.key===k).group;
+document.getElementById('rec').innerHTML=REC.map(k=>{const t=T.find(x=>x.key===k);return `<div class="chipb" style="--gc:${NEW[t.group]}"><div class="ic">${svg(k)}</div><div><b>${t.title}</b><div class="gtag">${G.find(g=>g.id===t.group).title}</div></div></div>`}).join('');
+document.getElementById('q').oninput=e=>{const v=e.target.value.trim();if(!v){open(cur||'admin',false);return}
+ document.querySelectorAll('.s').forEach(b=>b.classList.remove('on'));
+ const m=T.filter(t=>(t.title+' '+t.desc).includes(v));
+ document.getElementById('det').innerHTML=`<div class="det" style="--gc:#9aa2bd"><div class="gh"><span class="chip">نتیجهٔ جستجو</span><span class="n">${m.length} مورد، از همهٔ گروه‌ها</span><span class="l"></span></div><div class="grid">${m.map(t=>`<div class="gt" style="--gc:${NEW[t.group]}"><div class="ic">${svg(t.key)}</div><div><div class="tt">${t.title}</div><div class="dd">${t.desc}</div></div></div>`).join('')||'<div class="dd">چیزی پیدا نشد</div>'}</div></div>`};
+open('admin',false);
+
+</script></body></html>

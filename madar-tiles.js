@@ -7,11 +7,11 @@
  * ⚠️ بعد از افزودنِ ردیفِ تازه: اگر کاشیِ index نیاز به آیکونِ SVG دارد، TILE_ICON در index.html را هم کامل کنید.
  */
 window.MADAR_GROUPS = [
-  { id:'sales', title:'فروش و بازاریابی',    note:'مشتری، قیمت، پیگیری',        color:'#ff8a3d' },
-  { id:'fin',   title:'مالی و بازرگانی',      note:'پول، ارز، محموله',           color:'#2fd37a' },
-  { id:'mgmt',  title:'مدیریت',               note:'دسترسی، کارکنان، تنظیمات',   color:'#e055f5' },
-  { id:'admin', title:'اداری و منابع انسانی', note:'حضور، سازمان، کارهایِ روزانه', color:'#29b6f6' },
-  { id:'more',  title:'ابزارها و راهنما',     note:'وزن‌نامه و راهنماها',         color:'#f2c94c' }
+  { id:'sales', title:'فروش و بازاریابی',    note:'مشتری، قیمت، پیگیری',        color:'#ff8a3d', icon:'crm' },
+  { id:'fin',   title:'مالی و بازرگانی',      note:'پول، ارز، محموله',           color:'#2fd37a', icon:'fxLedger' },
+  { id:'mgmt',  title:'مدیریت',               note:'دسترسی، کارکنان، تنظیمات',   color:'#e055f5', icon:'access' },
+  { id:'admin', title:'اداری و منابع انسانی', note:'حضور، سازمان، کارهایِ روزانه', color:'#29b6f6', icon:'attendance' },
+  { id:'more',  title:'ابزارها و راهنما',     note:'وزن‌نامه و راهنماها',         color:'#f2c94c', icon:'weights' }
 ];
 window.MADAR_TILES = [
   { key:'me',         icon:'🏠', title:'داشبوردِ من',          desc:'کارتابل، پیگیری‌ها و میانبرهایِ خودم',                 href:'me.html',          perm:'page.me',          group:'me' },
