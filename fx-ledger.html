@@ -101,6 +101,28 @@
   .ph-q{ font-weight:800; font-size:12.5px; margin-top:8px; color:var(--ink); }
   #fxHelpFab{ position:fixed; left:14px; bottom:66px; z-index:40; padding:9px 14px; border-radius:22px; border:1px solid var(--border); background:var(--surface); box-shadow:0 2px 10px rgba(0,0,0,.25); font-weight:700; font-size:12.5px; cursor:pointer; }
   @media (max-width:700px){ #fxHelpFab{ left:66px; bottom:16px; width:42px; height:42px; padding:0; font-size:0; border-radius:50%; display:flex; align-items:center; justify-content:center; } #fxHelpFab::before{ content:'❓'; font-size:17px; } }
+  /* 📌 کارهایِ باز (۱۴۰۵/۰۷/۱۹) */
+  #fxOwFab{ position:fixed; left:14px; bottom:116px; z-index:41; display:none; align-items:center; gap:8px; padding:9px 14px; border-radius:22px; border:none; background:#b45309; color:#fff; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 2px 12px rgba(0,0,0,.35); font-family:inherit; }
+  #fxOwFab.on{ display:inline-flex; }
+  #fxOwFab b{ background:#fff; color:#b45309; border-radius:99px; min-width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11.5px; padding:0 5px; }
+  @media (max-width:700px){ #fxOwFab{ left:14px; bottom:16px; width:44px; height:44px; padding:0; justify-content:center; border-radius:50%; } #fxOwFab .lbl{ display:none; } #fxOwFab b{ position:absolute; top:-5px; right:-5px; } }
+  .nav-badge{ margin-right:auto; background:#b45309; color:#fff; border-radius:99px; min-width:18px; height:18px; padding:0 5px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
+  .ow-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr)); gap:14px; align-items:start; }
+  .ow-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+  .ow-head{ display:flex; align-items:center; gap:8px; }
+  .ow-head .ow-t{ font-weight:800; font-size:14.5px; }
+  .ow-count{ margin-right:auto; background:#b45309; color:#fff; border-radius:99px; padding:1px 10px; font-size:12px; font-weight:800; }
+  .ow-hint{ font-size:11.5px; color:var(--ink-soft); line-height:1.8; margin:4px 0 8px; }
+  .ow-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--border); }
+  .ow-main{ flex:1; min-width:0; }
+  .ow-main .t{ font-weight:700; font-size:13px; }
+  .ow-main .s{ font-size:11.5px; color:var(--ink-soft); line-height:1.7; }
+  .ow-amt{ font-weight:800; font-size:12.5px; white-space:nowrap; }
+  .ow-act{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .ow-more{ font-size:12px; color:var(--ink-soft); text-align:center; padding:8px 0 0; border-top:1px solid var(--border); cursor:pointer; font-weight:700; }
+  .ow-ok{ text-align:center; padding:40px 20px; font-size:15px; font-weight:800; color:var(--ok); }
+  .ow-note{ font-size:11px; color:var(--ink-faint); }
+  @media (max-width:560px){ .ow-row{ flex-wrap:wrap; } .ow-act{ width:100%; justify-content:flex-start; } }
   fx-i{ font-weight:800; font-size:calc(1em + 2px); }
   fx-d{ font-weight:400; }
   /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواستِ صریحِ کاربر: در کلِ دفترِ ارزی، همه‌ی
@@ -871,6 +893,7 @@ async function loadAll(){
   fxLastLoadChanged = (fp !== fxDataFp);
   if(fxLastLoadChanged){ fxDataFp = fp; fxDataVersion++; }
   fxSaveCache();
+  setTimeout(()=>{ try{ fxOpenWorkTick(); }catch(e){} }, 0);
   return true;
 }
 let fxDataFp = null, fxDataVersion = 0, fxLastLoadChanged = true;
@@ -885,7 +908,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.14-18';
+const FX_BUILD = '1405.07.19-01';
 const NAV_QUICK = [
   {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
   {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
@@ -898,6 +921,7 @@ const NAV_QUICK = [
 const NAV_STRUCTURE = [
   {type:'section', id:'sec-overview', label:'نمای کلی', color:'#5B8DEF', children:[
     {id:'dashboard', icon:'🏠', label:'داشبورد'},
+    {id:'open-work', icon:'📌', label:'کارهایِ باز', perm:'fx.edit'},
     {id:'yuan-position', icon:'💱', label:'حسابِ یوانیِ ما'},
     {id:'management', icon:'📊', label:'تحلیلِ مدیریتی', perm:'dash.mgmt'},
   ]},
@@ -925,7 +949,7 @@ function renderNavHtml(){
   const quick = `<div class="qa-box" data-perm="fx.edit"><div class="qa-title">➕ ثبتِ سریع</div><div class="qa-grid">${
     NAV_QUICK.map(q=>`<button type="button" class="qa-btn" data-action="${q.action}" title="${q.tip}"><span class="qa-ico">${q.icon}</span><span class="qa-lbl">${q.label}</span></button>`).join('')}</div></div>`;
   const secs = NAV_STRUCTURE.map(s=>`<div class="nav-sec" style="--sec:${s.color}"><div class="nav-sec-label"><span class="nav-sec-bar"></span>${s.label}</div>${
-    s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"${c.perm?` data-perm="${c.perm}"`:''}><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span></button>`).join('')}</div>`).join('');
+    s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"${c.perm?` data-perm="${c.perm}"`:''}><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span>${c.id==='open-work' ? `<span class="nav-badge" style="${(fxOW && fxOW.total) ? '' : 'display:none'}">${(fxOW && fxOW.total) || ''}</span>` : ''}</button>`).join('')}</div>`).join('');
   return quick + secs;
 }
 let currentTab = 'dashboard';
@@ -969,6 +993,7 @@ function render(){
     });
   });
   renderMain();
+  fxOwPaint();
 }
 
 async function renderMain(){
@@ -978,6 +1003,7 @@ async function renderMain(){
   // نمی‌کنیم و صبر می‌کنیم؛ هر تب خودش وقتی دیتایِ تازه رسید main.innerHTML رو عوض می‌کنه —
   // وگرنه هر تلاشِ خاموشِ پس‌زمینه یک چشمک به «در حال بارگذاری» می‌زد، حتی وقتی صفحه از قبل پر بود.
   if(currentTab === 'dashboard') return renderDashboard(main);
+  if(currentTab === 'open-work') return renderOpenWork(main);
   if(currentTab === 'management') return renderManagement(main);
   if(currentTab === 'yuan-position') return renderYuanPosition(main);
   if(currentTab === 'help') return renderHelp(main);
@@ -4861,6 +4887,15 @@ const FX_HELP = {
       ['به تفکیکِ مشتری', 'هر مشتری را باز کنید: حواله‌هایی که با پولِ او زده شده، پولِ شرکت که برایِ او گذاشته‌اید و نگه‌داری‌هایش.'],
       ['رزرو برایِ پیش‌فاکتور', 'کنارِ هر حواله انتخاب کنید «این یوان برایِ کدام پیش‌فاکتور است». پیش‌فرض بدونِ رزرو (FIFO). بیشتر از مبلغِ همان پیش‌فاکتور نمی‌گیرد و مازاد به فاکتورِ بعدی می‌رسد.'],
       ['تطبیق (کارتِ بالا)', 'یوانِ نزدِ تأمین‌کننده‌ها − بدهی به مشتری‌ها − موجودیِ عمومیِ شرکت. صفر = همه‌چیز مالک دارد؛ غیرِ صفر «راهنماست» نه ایراد.']]],
+    'open-work': ['کارهایِ باز', 'همه‌چیزی که باید تعیین‌تکلیف شود، یک‌جا — و علامتِ ⚠️ در گوشه‌یِ صفحه‌ها تا وقتی کارِ باز هست.', [
+      ['🔒 قفل‌نشده', 'فاکتورِ فروش/خریدی که کامل تسویه شده ولی هنوز قفل (ثبتِ نرخِ هلو) نشده. «🔒 قفل کن» همان پنجره‌یِ قفل را باز می‌کند.'],
+      ['🔗 لینک‌نشده', 'فاکتورِ فروشی که هیچ خریدی بهش وصل نیست، و خریدی که به هیچ فاکتورِ فروشی وصل نیست. سودِ سفارش فقط با لینک معلوم می‌شود.'],
+      ['💤 پولِ مشتری، منتظرِ حواله', 'واریزی‌هایی که هنوز به هیچ حواله‌ای وصل نشده‌اند.'],
+      ['🔄 حواله‌یِ بدونِ صاحب', 'بخشی از ریالِ حواله که نه به واریزیِ مشتری وصل است و نه «پولِ مازادِ خودمان» علامت خورده — «باز کردن» فرمِ همان حواله را باز می‌کند.'],
+      ['🏢 پولِ ما، منتظرِ مشتری', 'پولِ خودِ شرکت که برایِ مشتری خرج شده (موجودیِ یوانِ رزروشده یا پیش‌پرداختِ سرمایه‌ای) و مشتری هنوز نپرداخته.'],
+      ['⏳ بیش از ۳۰ روز', 'مطالباتِ فاکتورِ فروش که بیش از ۳۰ روز تسویه نشده.'],
+      ['✓ نیازی نیست', 'موردی که عمداً همین‌طور است. از شمارنده کنار می‌رود ولی پاک نمی‌شود؛ در «نادیده‌گرفته‌شده‌ها» می‌ماند و برمی‌گردد.'],
+      ['🔎 تفاوتِ مبلغ', 'خلاصه‌یِ «صحت‌سنجیِ اعداد» (که ناسازگاریِ مبلغ‌ها را می‌گیرد) — برایِ جزئیات همان صفحه را باز کنید.']]],
     'reconcile': ['صحت‌سنجیِ اعداد', 'چند بررسیِ مستقل رویِ کلِ دفتر؛ چیزی را تغییر نمی‌دهد.', [
       ['🔴 ایراد', 'اعدادی که باید یکی باشند و نیستند، یا دادهٔ غیرممکن (مثلاً تخصیص بیشتر از واریزی).'],
       ['🟠 هشدار', 'احتمالاً اشتباهِ ورودی: نامِ تکراری با املایِ متفاوت، سرمایه‌یِ منفی، نگه‌داری یا رزروِ بی‌مالک.'],
@@ -4980,6 +5015,12 @@ const FX_HELP_PLAIN = {
     steps: ['مانده‌یِ «مثبت» = ما به او بدهکاریم؛ «منفی» = پیش‌پرداخت، یعنی پولِ ما نزدِ اوست.', 'روی ردیفِ حواله «🔒 نگه‌داری برایِ مشتری» را بزنید اگر آن یوان پولِ تأمین‌کننده نیست و فقط برایِ خریدِ آینده‌یِ مشتری نزدِ او مانده.', 'ردیفِ 🔒 ← «ویرایش/برداشتن» ← «🔁 انتقال»: وقتی مشتری آن یوان را بابتِ خریدش به یک تأمین‌کننده می‌دهد.'],
     example: 'حواله‌ی ۱۰٬۰۰۰ یوانی که برایِ مشتری نگه داشته‌اید، بدهیِ فاکتورهایِ همین تأمین‌کننده را کم نمی‌کند.',
     tips: ['«⚙️ تعدیلِ مستقیمِ یوانی» و «🏁 مانده‌یِ اولیه» برایِ مواردِ دستی و حسابِ قبل از مدار است.'],
+  },
+  'open-work': {
+    what: 'فهرستِ هر چیزی که منتظرِ تصمیمِ شماست: فاکتورِ قفل‌نشده، لینک‌نشده، پولِ راکد، حواله‌یِ بدونِ صاحب، پولِ خودِ شرکت که مشتری نپرداخته، و مطالباتِ قدیمی. تا وقتی کارِ بازی هست، علامتِ ⚠️ گوشه‌یِ صفحه‌ها می‌ماند.',
+    steps: ['هر ردیف یک دکمه‌یِ اقدام دارد: «🔒 قفل کن» یا «باز کردن ›» که شما را به همان دفتر/حواله می‌برد.', 'اگر موردی عمداً همین‌طور است، «✓ نیازی نیست» را بزنید (دلیل بنویسید). پاک نمی‌شود و از «نادیده‌گرفته‌شده‌ها» برمی‌گردد.', 'وقتی کار را انجام دادید خودش از فهرست می‌رود.'],
+    example: 'خریدِ «X2» عمداً به فاکتورِ فروش وصل نمی‌شود (موجودیِ شرکت است) ← «✓ نیازی نیست» با دلیلِ «موجودیِ شرکت».',
+    tips: ['فقط مدیر و کسانی که «ثبت و ویرایش در دفترِ ارزی» دارند این صفحه و علامتِ ⚠️ را می‌بینند.', 'تفاوتِ مبلغ‌ها در «🔎 صحت‌سنجیِ اعداد» است؛ خلاصه‌اش پایینِ همین صفحه می‌آید.'],
   },
   'reconcile': {
     what: 'ابزارِ کنترل: چند بررسیِ مستقل رویِ کلِ دفتر می‌کند تا ببیند اعداد با هم می‌خوانند. فقط می‌خواند و چیزی را تغییر نمی‌دهد.',
@@ -5731,6 +5772,168 @@ async function openHawaleHoldModal(hawaleId, ev, supplierName){
     if(!MadarAccess.can('dash.mgmt') && typeof currentTab!=='undefined' && currentTab==='management'){ try{ currentTab='dashboard'; render(); }catch(e){} }
   });
 })();
+
+// ══════════════════════════════════════════════════════════════
+// 📌 کارهایِ باز (۱۴۰۵/۰۷/۱۹) — طبقِ درخواستِ صریحِ کاربر: یک صفحه برایِ هر چیزی که باید تعیین‌تکلیف شود +
+// علامتِ ⚠️ در گوشه‌یِ همه‌یِ صفحه‌ها تا وقتی کارِ بازی هست. سرور: GET /api/ledger/accounts/open-work/ (فقط می‌خواند)
+// و POST /api/ledger/accounts/open-work-dismiss/ («نیازی نیست» — فقط یک یادداشت، هیچ داده‌یِ مالی تغییر نمی‌کند).
+// ══════════════════════════════════════════════════════════════
+let fxOW = null, fxOWTs = 0, fxOWVer = -1, fxOWBusy = null, fxOWErr = '';
+const fxOwExpanded = new Set();
+let fxOwRecon = null;
+async function fxOpenWorkLoad(){
+  if(fxOWBusy) return fxOWBusy;
+  fxOWBusy = (async()=>{
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/open-work/', undefined, 1, 1500, 60000);
+      if(r.ok){ fxOW = await r.json(); fxOWTs = Date.now(); fxOWVer = fxDataVersion; fxOWErr = ''; }
+      else fxOWErr = r.status===404 ? 'نسخه‌یِ جدیدِ بک‌اند (views.py) هنوز روی سرور نیست' : ('پاسخِ سرور: '+r.status);
+    }catch(e){ fxOWErr = 'ارتباط با سرور برقرار نشد'; }
+    fxOWBusy = null; fxOwPaint(); return fxOW;
+  })();
+  return fxOWBusy;
+}
+function fxOpenWorkTick(){
+  if(!dataReady || failedTotal || fxOWBusy) return;
+  if(window.MadarAccess && MadarAccess.can && !MadarAccess.can('fx.edit')) return;
+  const stale = !fxOW || fxOWVer !== fxDataVersion || (Date.now()-fxOWTs) > 10*60*1000;
+  if(stale && (Date.now()-fxOWTs) > 45000){
+    fxOpenWorkLoad().then(()=>{ if(currentTab==='open-work'){ const m = document.getElementById('main'); if(m) renderOpenWork(m, true); } });
+  }
+}
+function fxOwPaint(){
+  const n = fxOW ? (fxOW.total||0) : 0;
+  let b = document.getElementById('fxOwFab');
+  if(!b){
+    b = document.createElement('button'); b.id = 'fxOwFab'; b.type = 'button'; b.setAttribute('data-perm','fx.edit');
+    b.addEventListener('click', ()=>{ currentTab = 'open-work'; currentCustomer = null; if(typeof currentSupplier!=='undefined') currentSupplier = null; render(); });
+    document.body.appendChild(b);
+  }
+  b.innerHTML = `<span>⚠️</span><span class="lbl">کارهایِ باز</span><b>${n>99?'99+':n}</b>`;
+  b.title = n + ' کارِ باز — برایِ دیدن و تعیین‌تکلیف بزنید';
+  b.classList.toggle('on', n>0 && currentTab!=='open-work');
+  const nb = document.querySelector('.nav-item[data-tab="open-work"] .nav-badge');
+  if(nb){ nb.textContent = n || ''; nb.style.display = n ? '' : 'none'; }
+}
+function fxOwGo(nav){
+  if(!nav) return;
+  currentCustomer = null; if(typeof currentSupplier!=='undefined') currentSupplier = null;
+  if(nav.tab==='customers'){ currentTab = 'customers'; currentCustomer = nav.name; }
+  else if(nav.tab==='supplier'){ currentTab = 'supplier'; currentSupplier = nav.name; }
+  else if(nav.tab==='yuan-position'){ currentTab = 'yuan-position'; yuanPosFocus = nav.name; }
+  else if(nav.tab==='hawales'){ currentTab = 'hawales'; }
+  render();
+  if(nav.tab==='hawales' && nav.hawaleId){
+    setTimeout(()=>{ const h = (state.hawales||[]).find(x=>x.id==nav.hawaleId); if(h) openHawaleModal(h); }, 350);
+  }
+}
+function fxOwDismissDialog(keys, section, titles, many){
+  const bd = document.createElement('div'); bd.className = 'modal-backdrop';
+  bd.innerHTML = `<div class="modal" style="max-width:460px">
+    <h3>✓ ${many ? 'نادیده‌گرفتنِ '+keys.length+' موردِ این بخش' : 'نیازی به اقدام نیست'}</h3>
+    <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.9;margin-bottom:10px">این مورد از شمارنده و هشدار کنار می‌رود، ولی پاک نمی‌شود — در «نادیده‌گرفته‌شده‌ها» می‌ماند و هر وقت خواستید برمی‌گردد. اگر مبلغِ آن عوض شود دوباره به‌عنوانِ کارِ باز برمی‌گردد.</div>
+    <div class="field"><label>دلیل (اختیاری)</label><input id="owNote" type="text" maxlength="200" placeholder="مثلاً: موجودیِ شرکت است، نیازی به لینک ندارد"></div>
+    <div class="modal-actions"><button class="btn btn-primary" data-ok>✓ ثبت</button><button class="btn btn-ghost" data-x>انصراف</button></div></div>`;
+  document.body.appendChild(bd);
+  bd.addEventListener('click', e=>{ if(e.target===bd) bd.remove(); });
+  bd.querySelector('[data-x]').onclick = ()=>bd.remove();
+  setTimeout(()=>bd.querySelector('#owNote').focus(), 30);
+  bd.querySelector('[data-ok]').onclick = async ()=>{
+    const note = bd.querySelector('#owNote').value.trim();
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/open-work-dismiss/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({keys, note, section, titles})});
+      const d = await r.json().catch(()=>({}));
+      if(!r.ok || !d.ok){ showToast('❌ '+(d.error||'ثبت نشد')); return; }
+      bd.remove(); showToast('✅ کنار گذاشته شد');
+      await fxOpenWorkLoad(); const m = document.getElementById('main'); if(m && currentTab==='open-work') renderOpenWork(m, true);
+    }catch(e){ showToast('❌ سرور جواب نداد'); }
+  };
+}
+async function fxOwRestore(key){
+  try{
+    const r = await fetchWithRetry(FX_API+'accounts/open-work-dismiss/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({keys:[key], restore:true})});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || !d.ok){ showToast('❌ '+(d.error||'برنگشت')); return; }
+    showToast('↩️ برگشت به کارهایِ باز');
+    await fxOpenWorkLoad(); const m = document.getElementById('main'); if(m && currentTab==='open-work') renderOpenWork(m, true);
+  }catch(e){ showToast('❌ سرور جواب نداد'); }
+}
+function fxOwAmt(it){
+  const p = [];
+  if(it.rial) p.push(fmtRial(it.rial));
+  if(it.yuan) p.push(fmt(it.yuan,2)+' ¥');
+  return p.join(' · ');
+}
+async function renderOpenWork(main, quiet){
+  const head = `<div class="page-head"><h2>📌 کارهایِ باز</h2><div class="sub" style="font-size:12.5px;color:var(--ink-soft)">هر چه نیازِ به تصمیمِ شما دارد، یک‌جا. فقط می‌خواند — چیزی را خودکار تغییر نمی‌دهد.</div></div>`;
+  if(!fxOW && !quiet){ main.innerHTML = head + '<div class="empty">⏳ در حالِ بررسیِ کلِ دفتر…</div>'; }
+  if(!fxOW || (!quiet && (Date.now()-fxOWTs) > 60000)){
+    const was = fxOW;
+    const p = fxOpenWorkLoad();
+    if(!was) await p; else p.then(()=>{ if(currentTab==='open-work' && document.body.contains(main)) renderOpenWork(main, true); });
+  }
+  if(currentTab !== 'open-work' || !document.body.contains(main)) return;
+  if(!fxOW){
+    main.innerHTML = head + `<div class="empty">❌ ${fxc_esc(fxOWErr||'نشد')}<br><button class="btn btn-ghost btn-sm" id="owRetry" style="margin-top:10px">تلاشِ دوباره</button></div>`;
+    main.querySelector('#owRetry').addEventListener('click', ()=>renderOpenWork(main));
+    return;
+  }
+  const d = fxOW, LIM = 6;
+  const secs = d.sections.filter(x=>x.count>0 || x.items.some(i=>!i.dismissed));
+  const clean = d.sections.filter(x=>!x.count);
+  const row = (sec, it)=>{
+    const btns = [];
+    if(it.lock) btns.push(`<button class="btn btn-primary btn-sm" data-ow-lock="${fxc_esc(it.key)}">🔒 قفل کن</button>`);
+    if(it.nav) btns.push(`<button class="btn btn-ghost btn-sm" data-ow-go="${fxc_esc(it.key)}">باز کردن ›</button>`);
+    if(it.canDismiss) btns.push(`<button class="btn btn-ghost btn-sm" data-ow-dis="${fxc_esc(it.key)}" title="این مورد نیازی به اقدام ندارد">✓ نیازی نیست</button>`);
+    return `<div class="ow-row"><div class="ow-main"><div class="t">${fxc_esc(it.title)}</div><div class="s">${fxc_esc(it.sub||'')}${it.date?` <span class="ow-note">· ${fxc_esc(it.date)}</span>`:''}</div></div>
+      <div class="ow-amt">${fxOwAmt(it)}</div><div class="ow-act">${btns.join('')}</div></div>`;
+  };
+  const card = (sec)=>{
+    const act = sec.items.filter(i=>!i.dismissed);
+    const open = fxOwExpanded.has(sec.id);
+    const shown = open ? act : act.slice(0, LIM);
+    const canAll = act.some(i=>i.canDismiss) && act.length > 1;
+    return `<div class="ow-card" data-sec="${sec.id}"><div class="ow-head"><span style="font-size:18px">${sec.icon}</span><span class="ow-t">${fxc_esc(sec.title)}</span><span class="ow-count">${sec.count}</span></div>
+      <div class="ow-hint">${fxc_esc(sec.hint)}</div>${shown.map(i=>row(sec,i)).join('')}
+      ${act.length > LIM ? `<div class="ow-more" data-ow-more="${sec.id}">${open ? '▲ جمع کن' : `▼ نمایشِ همه (${act.length})`}</div>` : ''}
+      ${canAll ? `<div class="ow-more" data-ow-all="${sec.id}" style="font-weight:600">✓ همه‌یِ این بخش نیازی به اقدام ندارد…</div>` : ''}</div>`;
+  };
+  const dismissed = d.sections.flatMap(s=>s.items.filter(i=>i.dismissed).map(i=>({...i, sec:s})));
+  main.innerHTML = head + (d.total
+    ? `<div class="card" style="margin-bottom:14px;border-right:4px solid #b45309"><b style="font-size:15px">⚠️ ${d.total} کارِ باز</b>
+        <span style="font-size:12px;color:var(--ink-soft)"> — ${secs.filter(x=>x.count).map(x=>x.icon+' '+x.count).join(' · ')}</span></div>`
+    : `<div class="card ow-ok">🎉 هیچ کارِ بازی نیست — همه‌چیز تعیین‌تکلیف شده</div>`)
+    + `<div class="ow-grid">${secs.filter(x=>x.count).map(card).join('')}</div>`
+    + (clean.length && d.total ? `<div class="ow-note" style="margin:12px 2px">✅ بدونِ کارِ باز: ${clean.map(x=>x.icon+' '+fxc_esc(x.title)).join(' · ')}</div>` : '')
+    + `<div class="card" id="owRecon" style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:18px">🔎</span><div style="flex:1;min-width:200px"><b>تفاوتِ مبلغ و ناسازگاریِ اعداد</b><div class="ow-note" id="owReconTxt">در حالِ بررسی…</div></div><button class="btn btn-ghost btn-sm" id="owReconGo">صحت‌سنجیِ اعداد ›</button></div>`
+    + (dismissed.length ? `<details style="margin-top:14px" class="card"><summary style="cursor:pointer;font-weight:700">🗂 نادیده‌گرفته‌شده‌ها (${dismissed.length})</summary>${dismissed.map(i=>`
+        <div class="ow-row"><div class="ow-main"><div class="t">${i.sec.icon} ${fxc_esc(i.title)}</div><div class="s">${fxc_esc(i.sub||'')}${i.note?` — «${fxc_esc(i.note)}»`:''}${i.by?` <span class="ow-note">· ${fxc_esc(i.by)}</span>`:''}</div></div>
+        <div class="ow-act"><button class="btn btn-ghost btn-sm" data-ow-restore="${fxc_esc(i.key)}">↩️ برگردان</button></div></div>`).join('')}</details>` : '')
+    + `<div class="ow-note" style="margin-top:10px">آخرین بررسی: ${d.generatedAt ? new Date(d.generatedAt).toLocaleTimeString('fa-IR') : ''} <button class="btn btn-ghost btn-sm" id="owRerun" style="margin-right:6px">🔄 دوباره بررسی کن</button></div>`;
+  const all = d.sections.flatMap(s=>s.items.map(i=>({...i, sec:s})));
+  const find = k => all.find(i=>i.key===k);
+  main.querySelectorAll('[data-ow-go]').forEach(b=>b.addEventListener('click', ()=>{ const i = find(b.dataset.owGo); if(i) fxOwGo(i.nav); }));
+  main.querySelectorAll('[data-ow-lock]').forEach(b=>b.addEventListener('click', ()=>{
+    const i = find(b.dataset.owLock); if(!i || !i.lock) return;
+    fxLockDialog({kind:i.lock.kind, id:i.lock.id, computed:i.lock.rate, yuan:i.lock.yuan, label:i.lock.label, done: async ()=>{ await loadAll(); await fxOpenWorkLoad(); renderOpenWork(main, true); }});
+  }));
+  main.querySelectorAll('[data-ow-dis]').forEach(b=>b.addEventListener('click', ()=>{ const i = find(b.dataset.owDis); if(i) fxOwDismissDialog([i.key], i.sec.id, {[i.key]: i.title}, false); }));
+  main.querySelectorAll('[data-ow-all]').forEach(b=>b.addEventListener('click', ()=>{
+    const sec = d.sections.find(x=>x.id===b.dataset.owAll); const its = sec.items.filter(i=>!i.dismissed && i.canDismiss);
+    fxOwDismissDialog(its.map(i=>i.key), sec.id, Object.fromEntries(its.map(i=>[i.key,i.title])), true);
+  }));
+  main.querySelectorAll('[data-ow-more]').forEach(b=>b.addEventListener('click', ()=>{ const k = b.dataset.owMore; fxOwExpanded.has(k) ? fxOwExpanded.delete(k) : fxOwExpanded.add(k); renderOpenWork(main, true); }));
+  main.querySelectorAll('[data-ow-restore]').forEach(b=>b.addEventListener('click', ()=>fxOwRestore(b.dataset.owRestore)));
+  main.querySelector('#owRerun').addEventListener('click', async ()=>{ await loadAll(); await fxOpenWorkLoad(); renderOpenWork(main, true); });
+  main.querySelector('#owReconGo').addEventListener('click', ()=>{ currentTab = 'reconcile'; currentCustomer = null; render(); });
+  // صحت‌سنجی (تفاوتِ مبلغ) — تنبل و جدا، تا صفحه معطل نشود
+  const paintRecon = (c)=>{ const t = main.querySelector('#owReconTxt'); if(!t) return;
+    t.textContent = !c ? 'نشان داده نشد' : (c.error ? `🔴 ${c.error} ایرادِ جدی` : '') + (c.error&&c.warn?' · ':'') + (c.warn ? `🟠 ${c.warn} هشدار` : '') + (!c.error&&!c.warn ? '🟢 هیچ ناسازگاریِ مبلغی پیدا نشد' : ' — برایِ جزئیات صحت‌سنجی را باز کنید'); };
+  if(fxOwRecon && (Date.now()-fxOwRecon.ts) < 5*60*1000) paintRecon(fxOwRecon.c);
+  else fetchWithRetry(FX_API+'accounts/reconcile/', undefined, 1, 1500, 60000).then(r=>r.ok?r.json():null).then(j=>{ if(j && j.counts){ fxOwRecon = {ts:Date.now(), c:j.counts}; } paintRecon(j && j.counts); }).catch(()=>paintRecon(null));
+}
+
 // ---- Boot ----
 (function(){
   // ⚠️ (۱۴۰۵/۰۷/۱۰) دقیقاً مثلِ ERP: اگه از قبل یک نسخه‌ی موفق تویِ حافظه‌ی مرورگر باشه (حداکثر
