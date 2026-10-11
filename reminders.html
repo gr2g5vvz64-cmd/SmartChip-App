@@ -622,7 +622,7 @@ function dgStatsHtml(d){
       d.people.map(p=>`<tr><td>${escHtml(p.name)}</td><td>${fn(p.open)}</td><td class="${p.overdue?'bad':''}">${fn(p.overdue)}</td><td>${fn(p.done30)}</td><td>${dgHrs(p.avg_hours)}</td><td>${p.ontime_pct==null?'—':fn(p.ontime_pct)+'٪'}</td></tr>`).join('') + `</table>`;
   }
   if((d.oldest||[]).length) h += `<div class="dg-sh">🔴 قدیمی‌ترین دیرکردها</div>` + d.oldest.map(o=>`<div class="dg-line">• ${escHtml(o.title)} — ${escHtml(o.doer)}${o.customer?' · '+escHtml(o.customer):''} <b class="bad">${fn(o.days)} روز</b></div>`).join('');
-  if((d.customers||[]).length) h += `<div class="dg-sh">🏢 مشتریانِ با بیشترین پیگیریِ باز</div>` + d.customers.map(c=>`<div class="dg-line">• ${escHtml(c.name)} — ${fn(c.open)}</div>`).join('');
+  if((d.customers||[]).length) h += `<div class="dg-sh">🏢 مشتریانِ با بیشترین کارِ باز</div>` + d.customers.map(c=>`<div class="dg-line">• ${escHtml(c.name)} — ${fn(c.open)} کارِ باز</div>`).join('');
   return h;
 }
 async function dgLoadStats(force){
