@@ -375,6 +375,9 @@
   .dg-stbl{ width:100%; border-collapse:collapse; font-size:12px; margin:6px 0 }
   .dg-stbl th, .dg-stbl td{ padding:5px 4px; border-bottom:1px solid var(--line); text-align:center } .dg-stbl th:first-child, .dg-stbl td:first-child{ text-align:right }
   .dg-sh{ font-weight:700; font-size:12.5px; margin:10px 0 4px }
+  .dg-pend{ background:var(--card); border:1.5px dashed var(--brass); border-radius:10px; padding:8px 10px; margin-top:8px }
+  .dg-pend .dg-asub b{ text-decoration:none }
+  .dg-pbtn{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px }
   .theme-btn{ margin-inline-start:auto; align-self:center; background:var(--card); border:1.5px solid var(--line); color:var(--ink); border-radius:20px; padding:6px 12px; font-size:12px; font-family:inherit; cursor:pointer }
 </style>
 </head>
@@ -728,15 +731,17 @@ function renderDelegRow(item, opts={}){
     : r.status==='answered' ? `<span class="dg-chip ans">📦 منتظرِ تحویل</span>`
     : r.status==='delivered' ? `<span class="dg-chip done">✅ تحویل شد</span>` : `<span class="dg-chip off">🚫 لغو</span>`;
   const late = r.overdue ? `<span class="dg-chip late">🔴 ${fn(r.overdue_days)} روز دیرکرد</span>` : '';
-  const subs = dgSubs(r), openSubs = subs.filter(x=>!x.done), archSubs = subs.filter(x=>x.done);
+  const subs = dgSubs(r), openSubs = subs.filter(x=>!x.done), pendSubs = subs.filter(x=>x.done && x.ok===false), archSubs = subs.filter(x=>x.done && x.ok!==false);
+  const iOwn = dgIsMe(r.owner_name);
   const cc = dgCustOpenCount(r);
   const titleHtml = subs.length
-    ? `<div class="r-title dg-tl">${openSubs.length ? openSubs.map(x=>`<div class="dg-tline">– ${escHtml(x.text)}</div>`).join('') : '<div class="dg-tline dg-dim">همه‌یِ موضوع‌ها بسته شد</div>'}</div>`
+    ? `<div class="r-title dg-tl">${(openSubs.length||pendSubs.length) ? openSubs.map(x=>`<div class="dg-tline">– ${escHtml(x.text)}</div>`).join('') + pendSubs.map(x=>`<div class="dg-tline">✍️ ${escHtml(x.text)}</div>`).join('') : '<div class="dg-tline dg-dim">همه‌یِ موضوع‌ها تأیید و بایگانی شد</div>'}</div>`
     : `<div class="r-title" style="white-space:pre-line">${escHtml(r.title)}</div>`;
   const canTick = r.status==='waiting' || r.status==='answered';
   const subHtml = subs.length ? `<div class="dg-subs">
     ${openSubs.map(x=>`<label class="dg-sub"><input type="checkbox" ${canTick?'':'disabled'} data-dg-sub="${x.id}" data-dg-id="${r.id}"><span>${escHtml(x.text)}</span></label>`).join('')}
-    ${archSubs.length ? `<details class="dg-arch"><summary>📁 بایگانیِ موضوع‌ها (${fn(archSubs.length)})</summary>${archSubs.map(x=>`<div class="dg-asub">☑ <b>${escHtml(x.text)}</b>${x.note?`<div class="dg-note">💬 ${escHtml(x.note)}</div>`:''}<div class="dg-dim">${x.done_at?fmtDateHuman(x.done_at):''} · ${escHtml(x.done_by||'')} ${canTick?`<button type="button" class="icon-btn dg-b" data-dg-sub-open="${x.id}" data-dg-id="${r.id}">↩ بازگرداندن</button>`:''}</div></div>`).join('')}</details>` : ''}
+    ${pendSubs.length ? `<div class="dg-pend"><div class="dg-sh">✍️ جوابِ رسیده — ${iOwn?'منتظرِ تأییدِ شما':'منتظرِ تأییدِ مسئول'}</div>${pendSubs.map(x=>`<div class="dg-asub">☐ <b>${escHtml(x.text)}</b><div class="dg-note">💬 ${escHtml(x.note||'')}</div><div class="dg-dim">${x.done_at?fmtDateHuman(x.done_at):''} · ${escHtml(x.done_by||'')}</div><div class="dg-pbtn">${iOwn?`<button type="button" class="icon-btn dg-b dg-primary" data-dg-sub-confirm="${x.id}" data-dg-id="${r.id}">✅ تأیید و بایگانی</button><button type="button" class="icon-btn dg-b" data-dg-sub-open="${x.id}" data-dg-id="${r.id}">↩️ کامل نیست</button>`:`<button type="button" class="icon-btn dg-b" data-dg-sub-open="${x.id}" data-dg-id="${r.id}">✏️ ویرایشِ جواب</button>`}</div></div>`).join('')}</div>` : ''}
+    ${archSubs.length ? `<details class="dg-arch"><summary>📁 بایگانیِ موضوع‌ها (${fn(archSubs.length)})</summary>${archSubs.map(x=>`<div class="dg-asub">☑ <b>${escHtml(x.text)}</b>${x.note?`<div class="dg-note">💬 ${escHtml(x.note)}</div>`:''}<div class="dg-dim">${x.done_at?fmtDateHuman(x.done_at):''} · ${escHtml(x.done_by||'')} ${(canTick && iOwn)?`<button type="button" class="icon-btn dg-b" data-dg-sub-open="${x.id}" data-dg-id="${r.id}">↩ بازگرداندن</button>`:''}</div></div>`).join('')}</details>` : ''}
   </div>` : '';
   const lines = [];
   lines.push(`<div class="dg-line">🧑‍💼 <b>مسئولِ پیگیری:</b> ${escHtml(r.owner_name)}${dgIsMe(r.owner_name)?' <span class="dg-dim">(شما)</span>':''}</div>`);
@@ -754,7 +759,7 @@ function renderDelegRow(item, opts={}){
   return `<div class="r-row dg-card st-${item.status}${r.overdue?' dg-late':''}${opts.isNow?' is-now':''}" data-item-key="${key}">
     <div class="r-main" data-toggle-row>
       <span class="r-icon">${icon}</span>
-      <div class="r-body">${titleHtml}<div class="dg-chips">${badge}${late}${openSubs.length>1?`<span class="dg-chip wait">${fn(openSubs.length)} موضوعِ باز</span>`:''}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}${cc>1?` · ${fn(cc)} کارِ باز`:''}</span>`:''}</div>
+      <div class="r-body">${titleHtml}<div class="dg-chips">${badge}${late}${openSubs.length>1?`<span class="dg-chip wait">${fn(openSubs.length)} موضوعِ باز</span>`:''}${pendSubs.length?`<span class="dg-chip ans">✍️ ${fn(pendSubs.length)} جوابِ رسیده${iOwn?' — تأیید کنید':''}</span>`:''}${r.customer?`<span class="dg-chip cust">${escHtml(r.customer)}${cc>1?` · ${fn(cc)} کارِ باز`:''}</span>`:''}</div>
         <div class="dg-sum">${who}</div></div>
       ${opts.isNow ? '<span class="r-now">بعدی</span>' : (when ? `<span class="r-when">${when}</span>` : '')}
     </div>
@@ -810,13 +815,14 @@ function renderDelegations(main){
 }
 
 function openSubSheet(r, sub, cb){
+  const iOwn = dgIsMe(r.owner_name);
   const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `<div class="modal">
-    <h3>☑️ بستنِ موضوع</h3>
+    <h3>${iOwn?'☑️ بستنِ موضوع':'✍️ جوابِ این موضوع'}</h3>
     <div class="dg-line" style="margin-bottom:8px"><b>${escHtml(sub.text)}</b>${r.customer?`<br><span class="dg-dim">مشتری: ${escHtml(r.customer)}</span>`:''}</div>
-    <div class="field"><label>هر چه گفت / نتیجه‌ی کار <span class="dg-dim">(با تاریخ بایگانی می‌شود)</span></label><textarea id="dgSubNote" rows="4" placeholder="مثلاً: قیمت ۳٫۲ دلار شد، مشتری قبول کرد"></textarea></div>
+    <div class="field"><label>${iOwn?'هر چه گفت / نتیجه‌ی کار <span class="dg-dim">(با تاریخ بایگانی می‌شود)</span>':'جواب و توضیحاتت <b style="color:var(--brick)">(الزامی)</b> <span class="dg-dim">— همین‌ها برایِ '+escHtml(r.owner_name)+' فرستاده می‌شود و تا تأییدِ او در فهرست می‌ماند</span>'}</label><textarea id="dgSubNote" rows="4" placeholder="مثلاً: قیمت ۳٫۲ دلار شد، مشتری قبول کرد"></textarea></div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" id="dgSubSave">☑️ ثبت و بایگانی</button>
+      <button class="btn btn-primary" id="dgSubSave">${iOwn?'☑️ ثبت و بایگانی':'📨 ثبتِ جواب و اطلاع به '+escHtml(r.owner_name)}</button>
       <button class="btn btn-ghost" id="dgSubCancel">انصراف</button>
     </div></div>`;
   document.body.appendChild(backdrop);
@@ -824,10 +830,11 @@ function openSubSheet(r, sub, cb){
   backdrop.querySelector('#dgSubCancel').addEventListener('click', cancel);
   backdrop.addEventListener('click', e=>{ if(e.target===backdrop) cancel(); });
   backdrop.querySelector('#dgSubSave').addEventListener('click', async ()=>{
+    if(!iOwn && !backdrop.querySelector('#dgSubNote').value.trim()){ showToast('جواب/توضیح را بنویس تا به '+r.owner_name+' برسد'); backdrop.querySelector('#dgSubNote').focus(); return; }
     const d = await dgCall('POST', `${r.id}/sub/${sub.id}/`, dgActor({done:true, note: backdrop.querySelector('#dgSubNote').value.trim()}));
     if(!d) return;
     backdrop.remove();
-    showToast(d.status==='delivered' ? '✅ همه‌ی موضوع‌ها بسته شد — پیگیری بسته شد' : '☑️ بایگانی شد');
+    showToast(iOwn ? '☑️ بایگانی شد' : (d.status==='answered' ? '✅ همه‌ی موضوع‌ها جواب داده شد — منتظرِ تأییدِ '+r.owner_name : '📨 جواب ثبت شد و برایِ '+r.owner_name+' رفت'));
     await refreshData(); renderMain();
   });
   setTimeout(()=>{ const t = backdrop.querySelector('#dgSubNote'); if(t) t.focus(); }, 50);
@@ -842,6 +849,14 @@ function wireDelegButtons(container){
       const it = allItems.find(x=>x._type==='deleg' && x.id===+cb.dataset.dgId); if(!it) return;
       const sub = dgSubs(it.raw).find(x=>x.id===+cb.dataset.dgSub); if(!sub){ cb.checked = false; return; }
       openSubSheet(it.raw, sub, cb);
+    });
+  });
+  container.querySelectorAll('[data-dg-sub-confirm]').forEach(b=>{
+    if(b.dataset.dgWired) return; b.dataset.dgWired = '1';
+    b.addEventListener('click', async e=>{
+      e.stopPropagation(); b.disabled = true;
+      const d = await dgCall('POST', `${+b.dataset.dgId}/sub/${+b.dataset.dgSubConfirm}/`, dgActor({confirm:true}));
+      if(d){ showToast('✅ تأیید و بایگانی شد'); await refreshData(); renderMain(); } else b.disabled = false;
     });
   });
   container.querySelectorAll('[data-dg-sub-open]').forEach(b=>{
@@ -900,7 +915,7 @@ function openDelegAnswerSheet(r){
   backdrop.innerHTML = `<div class="modal">
     <h3>✅ ثبتِ نتیجه‌یِ پیگیری</h3>
     <div class="dg-line" style="margin-bottom:8px"><b style="white-space:pre-line">${escHtml(r.title)}</b>${r.customer?`<br><span class="dg-dim">مشتری: ${escHtml(r.customer)}</span>`:''}<br><span class="dg-dim">پیگیری‌کننده: ${escHtml(r.delegate_name)} · مسئول: ${escHtml(r.owner_name)}</span></div>
-    <div class="field"><label>نتیجه‌یِ پیگیری</label><textarea id="dgAns" placeholder="مثلاً: ۱۲٫۵ دلار، موجود است"></textarea></div>
+    <div class="field"><label>نتیجه و توضیحاتِ پیگیری ${owner?'':'<b style="color:var(--brick)">(الزامی)</b>'} ${needs?`<span class="dg-dim">— برایِ ${escHtml(r.owner_name)} فرستاده می‌شود و تا «تحویل گرفتم»ِ او در فهرست می‌ماند</span>`:''}</label><textarea id="dgAns" rows="5" placeholder="مثلاً: ۱۲٫۵ دلار، موجود است. فاکتور فردا می‌رسد."></textarea></div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       <button class="btn btn-primary" id="dgAnsSave">${needs ? `ثبتِ نتیجه — به ${escHtml(r.owner_name)} اطلاع داده می‌شود` : 'ثبتِ نتیجه و بستنِ کار'}</button>
       ${(needs && owner) ? `<button class="btn btn-ghost" id="dgAnsClose">ثبتِ نتیجه و همین الان تحویل گرفتم</button>` : ''}
@@ -908,6 +923,7 @@ function openDelegAnswerSheet(r){
     </div></div>`;
   document.body.appendChild(backdrop);
   const send = async (close)=>{
+    if(!owner && !backdrop.querySelector('#dgAns').value.trim()){ showToast('نتیجه/توضیح را بنویس تا به '+r.owner_name+' برسد'); backdrop.querySelector('#dgAns').focus(); return; }
     const d = await dgCall('POST', `${r.id}/answer/`, dgActor({answer_text: backdrop.querySelector('#dgAns').value.trim(), close: !!close}));
     if(!d) return;
     backdrop.remove(); showToast(d.status==='answered' ? `✅ ثبت شد — به ${r.owner_name} اطلاع داده شد` : '✅ ثبت شد — کار بسته شد');
