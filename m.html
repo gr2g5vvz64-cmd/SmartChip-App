@@ -89,6 +89,9 @@ a{color:inherit;text-decoration:none}
 .nav button.on{color:var(--accent)}
 .nav .bd{position:absolute;top:2px;left:calc(50% - 22px);background:var(--red);color:#fff;font-size:9.5px;border-radius:8px;padding:0 5px;min-width:16px}
 .list a.row{color:inherit}
+.sec-h.gh{margin:18px 4px 8px}.sec-h.gh span{display:inline-block;padding:2px 13px;border-radius:99px;font-size:12.5px;font-weight:900;letter-spacing:0;color:#0d0f15;background:linear-gradient(135deg,var(--g),color-mix(in srgb,var(--g) 65%,#fff))}
+.card.gl{border-color:color-mix(in srgb,var(--g) 40%,var(--border));background:radial-gradient(90% 160% at 100% 0%,color-mix(in srgb,var(--g) 22%,var(--bg)),color-mix(in srgb,var(--g) 7%,var(--bg)) 60%,var(--bg))}
+.card.gl .row .ic{background:color-mix(in srgb,var(--g) 18%,transparent);border-radius:10px}
 .sec-h{font-size:11px;font-weight:800;color:var(--faint);margin:14px 4px 6px;letter-spacing:.04em}
 </style>
 <script src="./madar-theme.js"></script>
@@ -257,7 +260,7 @@ function vMore(){
   const mobileDesc = {crm:'نسخه‌ی کامل — با دو انگشت زوم کنید', erp:'نسخه‌ی کامل — با دو انگشت زوم کنید'};
   const groups = (window.MADAR_GROUPS || []).map(g => {
     const items = (window.MADAR_TILES || []).filter(t => t.group === g.id && !MOBILE_NATIVE[t.key] && ok(t));
-    return items.length ? `<div class="sec-h">${g.title}</div><div class="card list" style="padding:4px 12px">${items.map(t => L(t.icon, t.title, t.href, mobileDesc[t.key] || t.desc)).join('')}</div>` : '';
+    return items.length ? `<div class="sec-h gh" style="--g:${g.color}"><span>${g.title}</span></div><div class="card list gl" style="--g:${g.color};padding:4px 12px">${items.map(t => L(t.icon, t.title, t.href, mobileDesc[t.key] || t.desc)).join('')}</div>` : '';
   }).join('');
   const me = (window.MADAR_TILES || []).find(t => t.key === 'me');
   $('view').innerHTML = `
