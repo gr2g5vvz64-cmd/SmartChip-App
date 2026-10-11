@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>📢 اعلانِ عمومی — مدار</title>
+<!-- ⚠️ (۱۴۰۵/۰۷/۱۹) صفحه‌یِ تازه: مدیر یک پیام می‌نویسد، به بله/تلگرامِ همه (یا چند نفرِ انتخابی) می‌رود. فقط مدیریت (owner/admin). -->
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px 110px}
+a{color:inherit;text-decoration:none}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:22px;margin:4px 0 0}.sub{color:var(--soft);font-size:12.5px}.home{color:var(--acc);font-size:12.5px}
+button,input,select,textarea{font:inherit;color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+.card h2{font-size:14.5px;margin:0 0 8px}
+textarea{width:100%;min-height:130px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:vertical;line-height:1.9}
+.btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer}
+.btn.pri{background:var(--acc);color:#1b1400;border-color:var(--acc);font-weight:700}
+.btn:disabled{opacity:.5;cursor:default}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.cnt{font-size:11.5px;color:var(--soft);text-align:left}
+.aud{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 8px}
+.aud label{cursor:pointer;font-size:13px}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:6px}
+.person{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12.5px;cursor:pointer}
+.person.off{opacity:.55}
+.tag{font-size:10.5px;border-radius:8px;padding:0 7px;border:1px solid var(--line);color:var(--soft);margin-inline-start:auto;white-space:nowrap}
+.tag.ok{color:var(--ok);border-color:rgba(52,211,153,.5)}.tag.no{color:var(--warn);border-color:rgba(251,146,60,.5)}
+.bubble{background:#1c2a3a;border:1px solid #2c4057;border-radius:14px 14px 4px 14px;padding:10px 14px;white-space:pre-wrap;font-size:13px;line-height:1.9;max-width:420px}
+.hint{font-size:12px;color:var(--soft);margin-top:6px}
+.msg{padding:10px 12px;border-radius:10px;font-size:13px;margin:8px 0}.msg.ok{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4)}.msg.bad{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4)}
+.h{border-top:1px solid var(--line);padding:10px 0}.h:first-child{border-top:0}.h .m{font-size:11.5px;color:var(--soft)}.h .t{white-space:pre-wrap;font-size:13px;margin-top:2px}
+.empty{color:var(--soft);text-align:center;padding:18px}
+@media (max-width:700px){.wrap{padding:12px 12px 110px}}
+</style>
+<script src="./madar-theme.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><div class="sub" id="today"></div><h1>📢 اعلانِ عمومی</h1><div class="sub">یک پیام بنویس؛ به بله/تلگرامِ همه‌یِ کارمندان (یا چند نفرِ انتخابی) می‌رود</div></div>
+    <a class="home" href="index.html">← صفحه‌یِ اصلی</a>
+  </div>
+
+  <div id="denied" class="msg bad" style="display:none">این صفحه فقط برایِ مدیریت است.</div>
+
+  <div id="app" style="display:none">
+    <div class="card">
+      <h2>✍️ متنِ اعلان</h2>
+      <div class="chips">
+        <button class="btn" data-tpl="new">🆕 تغییرِ تازه در مدار</button>
+        <button class="btn" data-tpl="fix">🔧 اصلاحِ مشکل</button>
+        <button class="btn" data-tpl="note">📌 یادآوریِ عمومی</button>
+      </div>
+      <textarea id="txt" maxlength="1500" placeholder="مثلاً: ✅ از امروز موعدِ پیگیری‌ها در گوگل کلندرتان هم می‌آید…"></textarea>
+      <div class="cnt"><span id="cnt">۰</span> / ۱۵۰۰</div>
+    </div>
+
+    <div class="card">
+      <h2>👥 به چه کسانی؟</h2>
+      <div class="aud">
+        <label><input type="radio" name="aud" value="all" checked> همه‌یِ کارمندانِ فعال</label>
+        <label><input type="radio" name="aud" value="pick"> انتخابِ چند نفر</label>
+      </div>
+      <div id="people" class="people" style="display:none"></div>
+      <div class="hint" id="reach"></div>
+    </div>
+
+    <div class="card">
+      <h2>👁️ پیش‌نمایش (همان‌طور که در بله می‌رسد)</h2>
+      <div class="bubble" id="prev">—</div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn pri" id="send" disabled>📤 ارسال</button>
+      <span class="hint" id="sendHint">ارسال برگشت‌پذیر نیست؛ قبل از فرستادن یک بار پیش‌نمایش را بخوان.</span>
+    </div>
+    <div id="result"></div>
+
+    <div class="card" style="margin-top:18px">
+      <h2>🕘 اعلان‌هایِ قبلی</h2>
+      <div id="hist"><div class="empty">در حالِ بارگذاری…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='https://api.smartchipelec.com/api/announce/';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fa=n=>String(n).replace(/\d/g,x=>'۰۱۲۳۴۵۶۷۸۹'[x]);
+const TPL={
+  new:'🆕 تغییرِ تازه در مدار\n• \n• \n\nبرایِ دیدنِ تغییرها یک بار صفحه را تازه کنید (در گوشی: صفحه را ببندید و دوباره باز کنید).',
+  fix:'🔧 مشکلِ «...» برطرف شد.\nاگر هنوز آن را دیدید، صفحه را تازه کنید و به ما بگویید.',
+  note:'📌 یادآوری: '
+};
+let PEOPLE=[], sender='';
+function mode(){ return document.querySelector('input[name=aud]:checked').value; }
+function picked(){ return [...document.querySelectorAll('.person input:checked')].map(x=>x.value); }
+function bubble(){ const t=$('txt').value.trim(); $('prev').textContent = t ? ('📢 اعلانِ مدار\n\n'+t+'\n\n— '+(sender||'مدیریت')) : '—'; }
+function renderPeople(){
+  $('people').innerHTML = PEOPLE.map(p=>`<label class="person ${p.bale||p.telegram?'':'off'}"><input type="checkbox" value="${esc(p.name)}" ${p.bale||p.telegram?'checked':''}> ${esc(p.name)}<span class="tag ${p.bale||p.telegram?'ok':'no'}">${p.bale?'بله':p.telegram?'تلگرام':'وصل نیست'}</span></label>`).join('');
+  $('people').querySelectorAll('input').forEach(i=>i.addEventListener('change', recalc));
+}
+let dryTimer=null;
+function recalc(){
+  bubble();
+  const t=$('txt').value.trim(); $('cnt').textContent=fa(t.length);
+  const names = mode()==='pick' ? picked() : [];
+  const total = mode()==='pick' ? names.length : PEOPLE.length;
+  const reach = (mode()==='pick' ? PEOPLE.filter(p=>names.includes(p.name)) : PEOPLE).filter(p=>p.bale||p.telegram);
+  const miss = (mode()==='pick' ? PEOPLE.filter(p=>names.includes(p.name)) : PEOPLE).filter(p=>!(p.bale||p.telegram));
+  $('reach').innerHTML = `به <b>${fa(reach.length)}</b> نفر می‌رسد` + (miss.length ? ` · <span style="color:var(--warn)">${fa(miss.length)} نفر بله/تلگرام ندارند: ${esc(miss.map(m=>m.name).join('، '))}</span>` : '');
+  $('send').disabled = !(t && reach.length);
+}
+async function load(){
+  try{
+    const r=await fetch(API); const d=await r.json().catch(()=>({}));
+    if(r.status===403){ $('denied').style.display=''; return; }
+    if(!r.ok||!d.ok) throw new Error(d.error||'خطا');
+    PEOPLE=d.people||[]; $('app').style.display=''; renderPeople(); recalc(); renderHist(d.history||[]);
+  }catch(e){ $('denied').textContent='❌ '+(e.message||'ارتباط با سرور برقرار نشد')+' — اگر بک‌اندِ «اعلان» هنوز نصب نشده، اول نصب شود.'; $('denied').style.display=''; }
+}
+function renderHist(h){
+  $('hist').innerHTML = h.length ? h.map(a=>`<div class="h"><div class="m">${esc(a.at.replace('T',' '))} · ${esc(a.sender)} · رسید به ${fa(a.sent)} نفر${a.failed&&a.failed.length?` · نرسید به ${fa(a.failed.length)}: ${esc(a.failed.map(f=>f.name).join('، '))}`:''}</div><div class="t">${esc(a.text)}</div></div>`).join('') : '<div class="empty">هنوز اعلانی نفرستاده‌اید.</div>';
+}
+document.querySelectorAll('[data-tpl]').forEach(b=>b.addEventListener('click',()=>{ const t=$('txt'); if(t.value.trim() && !confirm('متنِ فعلی با قالب عوض شود؟')) return; t.value=TPL[b.dataset.tpl]; t.focus(); recalc(); }));
+$('txt').addEventListener('input', recalc);
+document.querySelectorAll('input[name=aud]').forEach(r=>r.addEventListener('change',()=>{ $('people').style.display = mode()==='pick' ? '' : 'none'; recalc(); }));
+$('send').addEventListener('click', async ()=>{
+  const t=$('txt').value.trim(); if(!t) return;
+  const names = mode()==='pick' ? picked() : [];
+  if(mode()==='pick' && !names.length){ alert('حداقل یک نفر را انتخاب کن'); return; }
+  if(!confirm('این اعلان همین حالا فرستاده شود؟')) return;
+  $('send').disabled=true; $('result').innerHTML='';
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t,names})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok) throw new Error(d.error||'ارسال نشد');
+    $('result').innerHTML=`<div class="msg ok">✅ فرستاده شد: ${fa(d.sent)} نفر</div>` + ((d.failed||[]).length?`<div class="msg bad">نرسید به: ${esc(d.failed.map(f=>f.name+' ('+f.why+')').join('، '))}</div>`:'');
+    $('txt').value=''; recalc();
+    const h=await fetch(API).then(x=>x.json()).catch(()=>null); if(h&&h.ok) renderHist(h.history||[]);
+  }catch(e){ $('result').innerHTML=`<div class="msg bad">❌ ${esc(e.message)}</div>`; $('send').disabled=false; }
+});
+$('today').textContent=new Date().toLocaleDateString('fa-IR',{calendar:'persian',weekday:'long',day:'numeric',month:'long',year:'numeric'});
+MadarAccess.ready(()=>{ sender=(MadarAccess.name&&MadarAccess.name())||(window.MadarAuth&&MadarAuth.name&&MadarAuth.name())||''; load(); });
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>

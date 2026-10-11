@@ -21,6 +21,7 @@ window.MADAR_TILES = [
   { key:'erp',        icon:'🏭', title:'ERP',                  desc:'تدارکات، بازرگانی، مالی، ردیابی محموله',               href:'erp.html',         perm:'page.erp',         group:'fin' },
   { key:'weekly',     icon:'📊', title:'گزارشِ هفتگیِ تیم',    desc:'یادآوری‌ها و پیگیری‌هایِ تیم برایِ جلسه‌یِ سرپرستان',    href:'weekly.html',      perm:'page.weekly',      group:'mgmt' },
   { key:'access',     icon:'🔑', title:'پنلِ دسترسی',          desc:'هر نقش و هر نفر چه بخش‌هایی را ببیند',                  href:'access.html',      perm:'access.manage',    group:'mgmt' },
+  { key:'announce',   icon:'📢', title:'اعلانِ عمومی',        desc:'یک پیام به بله/تلگرامِ همه‌یِ کارمندان',                href:'announce.html',    perm:'access.manage',   group:'mgmt' },
   { key:'staffAdmin', icon:'👥', title:'مدیریت کارمندان',      desc:'افزودن/حذف دسترسی نیروها',                              href:'staff-admin.html', perm:'page.staffadmin',  group:'mgmt' },
   { key:'adminGuide', icon:'🛠️', title:'راهنمای مدیریتِ مدار', desc:'سایت‌ها، حساب‌ها، تنظیمات و روال‌ها',                   href:'guide-admin.html', perm:'page.adminguide',  group:'mgmt' },
   { key:'attendance', icon:'🕘', title:'حضور و غیاب',          desc:'ثبتِ ورود و خروج با کیوآرکد و گوشی',                    href:'attendance.html',  perm:'page.attendance',  group:'admin' },

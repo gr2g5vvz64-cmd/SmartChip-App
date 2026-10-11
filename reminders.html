@@ -364,6 +364,17 @@
   /* دکمه/تبِ فعال در تیره: کهربایی با متنِ تیره (به‌جای سفیدِ تخت) */
   html:not([data-theme="light"]) .btn-primary, html:not([data-theme="light"]) .type-seg button.active, html:not([data-theme="light"]) .bf-chip.on, html:not([data-theme="light"]) .wd.sel, html:not([data-theme="light"]) .hist-seg button.active, html:not([data-theme="light"]) .dg-b.dg-primary, html:not([data-theme="light"]) .bnav button.active, html:not([data-theme="light"]) .dg-ac-pri{ background:#f0a500; color:#141821; border-color:#f0a500 }
   html:not([data-theme="light"]) .wd.sel .w{ color:#141821 } html:not([data-theme="light"]) .wd.sel.has .d{ background:#141821 }
+  /* آمارِ پیگیری */
+  .dg-sbox-wrap{ background:var(--card); border:1.5px solid var(--line); border-radius:12px; padding:8px 12px; margin:10px 0 }
+  .dg-sbox-wrap summary{ cursor:pointer; font-weight:700; font-size:13.5px; list-style:none }
+  .dg-sbox-wrap summary::-webkit-details-marker{ display:none }
+  .dg-sgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(86px,1fr)); gap:8px; margin-bottom:10px }
+  .dg-sbox{ border:1.5px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center; display:flex; flex-direction:column; gap:2px }
+  .dg-sbox .n{ font-size:18px; font-weight:800 } .dg-sbox .l{ font-size:10.5px; color:var(--ink-soft) }
+  .dg-sbox.bad .n, .dg-stbl td.bad, b.bad{ color:var(--brick) }
+  .dg-stbl{ width:100%; border-collapse:collapse; font-size:12px; margin:6px 0 }
+  .dg-stbl th, .dg-stbl td{ padding:5px 4px; border-bottom:1px solid var(--line); text-align:center } .dg-stbl th:first-child, .dg-stbl td:first-child{ text-align:right }
+  .dg-sh{ font-weight:700; font-size:12.5px; margin:10px 0 4px }
   .theme-btn{ margin-inline-start:auto; align-self:center; background:var(--card); border:1.5px solid var(--line); color:var(--ink); border-radius:20px; padding:6px 12px; font-size:12px; font-family:inherit; cursor:pointer }
 </style>
 </head>
@@ -593,6 +604,30 @@ const DG_FIRST_RESPONSIBLES = ['حمیدرضا', 'عباس'];
 const DG_FIRST_DOERS = ['شیوا', 'سمیه', 'مینا', 'حمیدرضا', 'عباس', 'احمد'];
 const DG_EVENTS = {sub_done:'☑️ موضوع بسته شد', sub_reopen:'↩️ موضوع باز شد', created:'🆕 ثبت', edited:'✏️ ویرایش', reassigned:'🔁 ارجاعِ تازه', answered:'💬 نتیجه', delivered:'✅ تحویل/بسته', postponed:'⏰ عقب‌انداختن', reopened:'↩️ بازگشت', canceled:'🚫 لغو'};
 let dgFilter = 'open';   // open | waiting | deliver | late | closed
+let dgStatsOpen = false, dgStatsData = null;   // ⚠️ (۱۴۰۵/۰۷/۱۹) آمارِ پیگیری (مدیر: همه · بقیه: فقط خودشان)
+function dgHrs(h){ if(h==null) return '—'; if(h<1) return fn(Math.round(h*60))+' دقیقه'; if(h<48) return fn(Math.round(h))+' ساعت'; return fn(Math.round(h/24))+' روز'; }
+function dgStatsHtml(d){
+  if(!d) return '<div class="dg-dim" style="padding:8px">⏳ در حالِ گرفتنِ آمار…</div>';
+  if(d.error) return `<div class="dg-dim" style="padding:8px">${escHtml(d.error)}</div>`;
+  const t = d.totals||{}, all = d.scope==='all';
+  const box = (n,l,c)=>`<div class="dg-sbox ${c||''}"><span class="n">${n}</span><span class="l">${l}</span></div>`;
+  const pct = t.ontime_pct==null ? '—' : fn(t.ontime_pct)+'٪';
+  let h = `<div class="dg-dim" style="margin-bottom:8px">${all?'همه‌یِ شرکت':'فقط پیگیری‌هایِ خودتان'} · ۳۰ روزِ گذشته</div>
+    <div class="dg-sgrid">${box(fn(t.open||0),'باز')}${box(fn(t.overdue||0),'دیرکرد',(t.overdue?'bad':''))}${box(fn(t.done30||0),'نتیجه‌دارِ ماه')}${box(dgHrs(t.avg_hours),'میانگینِ زمانِ پاسخ')}${box(pct,'به‌موقع')}</div>`;
+  if((d.people||[]).length){
+    h += `<table class="dg-stbl"><tr><th>پیگیری‌کننده</th><th>باز</th><th>دیرکرد</th><th>ماه</th><th>میانگین</th><th>به‌موقع</th></tr>` +
+      d.people.map(p=>`<tr><td>${escHtml(p.name)}</td><td>${fn(p.open)}</td><td class="${p.overdue?'bad':''}">${fn(p.overdue)}</td><td>${fn(p.done30)}</td><td>${dgHrs(p.avg_hours)}</td><td>${p.ontime_pct==null?'—':fn(p.ontime_pct)+'٪'}</td></tr>`).join('') + `</table>`;
+  }
+  if((d.oldest||[]).length) h += `<div class="dg-sh">🔴 قدیمی‌ترین دیرکردها</div>` + d.oldest.map(o=>`<div class="dg-line">• ${escHtml(o.title)} — ${escHtml(o.doer)}${o.customer?' · '+escHtml(o.customer):''} <b class="bad">${fn(o.days)} روز</b></div>`).join('');
+  if((d.customers||[]).length) h += `<div class="dg-sh">🏢 مشتریانِ با بیشترین پیگیریِ باز</div>` + d.customers.map(c=>`<div class="dg-line">• ${escHtml(c.name)} — ${fn(c.open)}</div>`).join('');
+  return h;
+}
+async function dgLoadStats(force){
+  if(dgStatsData && !force) return;
+  const d = await dgCall('GET', 'stats/?owner=' + encodeURIComponent(MY_NAME));
+  dgStatsData = d || {error:'آمار گرفته نشد (سرور به‌روز نیست؟)'};
+  const b = document.getElementById('dgStatsBody'); if(b) b.innerHTML = dgStatsHtml(dgStatsData);
+}
 let dgPeople = null, dgCustomers = null;
 
 const dgNorm = s => fa2enSafe(String(s||'').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ').replace(/\s+/g,' ').trim().toLowerCase());
@@ -759,10 +794,13 @@ function renderDelegations(main){
     <div class="dg-intro">مسئولِ پیگیری کار را به یک پیگیری‌کننده ارجاع می‌دهد؛ پیگیری‌کننده نتیجه را ثبت می‌کند و مسئول آن را تحویل می‌گیرد. هر مرحله در بله اطلاع می‌دهد.</div>
     <button class="btn btn-primary" data-dg-new style="margin-bottom:12px">+ ثبتِ پیگیری</button>
     <div class="dg-stats">${stat('waiting','⏳','در حال پیگیری',waiting.length,'wait')}${stat('deliver','📦','منتظرِ تحویل',deliver.length,'ans')}${stat('late','🔴','دیرکرد',late.length,'late')}</div>
+    <details class="dg-sbox-wrap" id="dgStatsBox" ${dgStatsOpen?'open':''}><summary>📊 آمارِ پیگیری</summary><div id="dgStatsBody">${dgStatsHtml(dgStatsData)}</div></details>
     <div class="hist-seg" style="margin:10px 0">${chip('open','همه‌یِ باز',open.length)}${chip('closed','✔️ بسته‌شده',closed.length)}</div>
     <div class="field" style="margin-bottom:10px"><input id="listSearchInput" type="text" placeholder="🔍 جستجو در موضوع، نام، مشتری، نتیجه…" value="${escHtml(listSearchQuery)}"></div>
     <div class="r-list">${list.length ? list.map(x=>renderDelegRow(x,{showDate:true})).join('') : `<div class="empty">${all.length ? 'در این فیلتر چیزی نیست ✨' : 'هنوز پیگیری‌ای ثبت نشده.<br>روی «+ ثبتِ پیگیری» بزن.'}</div>`}</div>`;
   main.querySelector('[data-dg-new]').addEventListener('click', ()=>openDelegModal(null));
+  const sb = main.querySelector('#dgStatsBox');
+  if(sb){ sb.addEventListener('toggle', ()=>{ dgStatsOpen = sb.open; if(sb.open) dgLoadStats(); }); if(dgStatsOpen) dgLoadStats(); }
   main.querySelectorAll('[data-dg-filter]').forEach(b=>b.addEventListener('click', ()=>{ dgFilter = (dgFilter===b.dataset.dgFilter && b.classList.contains('dg-stat')) ? 'open' : b.dataset.dgFilter; renderMain(); }));
   const inp = main.querySelector('#listSearchInput');
   inp.addEventListener('input', (e)=>{
