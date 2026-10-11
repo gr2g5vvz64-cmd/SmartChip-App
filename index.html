@@ -93,6 +93,7 @@ body > *{position:relative;z-index:1}
 .eyebrow b{color:var(--text);font-weight:800}
 .eyebrow i{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
 .eyebrow span{letter-spacing:0;font-weight:700;direction:rtl}
+.eyebrow span.os{letter-spacing:.28em;font-weight:600;direction:ltr}
 .logo{font-size:clamp(68px,13vw,118px);font-weight:900;line-height:1.05;letter-spacing:-1px;
   background:linear-gradient(160deg,var(--accent-hi) 0%,var(--accent) 45%,var(--accent2) 100%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
@@ -208,7 +209,7 @@ body > *{position:relative;z-index:1}
 <button id="roadmapBtn" onclick="openRoadmapModal()" style="position:fixed;bottom:18px;left:18px;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15);" title="کارهای در صف و آینده">🗺️</button>
 
 <header class="brand">
-  <div class="eyebrow"><b>SMARTCHIP</b><i></i><span>اسمارت‌چیپ</span></div>
+  <div class="eyebrow"><b>SMARTCHIP</b><i></i><span class="os">BUSINESS OS</span></div>
   <h1 class="logo">مدار</h1>
   <svg class="trace" viewBox="0 0 360 22" aria-hidden="true">
     <path d="M8 11 H120 L134 4 H226 L240 18 H352"/>
