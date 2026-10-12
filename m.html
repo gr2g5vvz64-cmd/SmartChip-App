@@ -267,7 +267,7 @@ function vMore(){
   const MOBILE_NATIVE = {org:1, attendance:1, reminders:1};                  // این‌ها بالا (کار با گوشی) هستند
   const mobileDesc = {crm:'نسخه‌ی کامل — با دو انگشت زوم کنید', erp:'نسخه‌ی کامل — با دو انگشت زوم کنید'};
   const groups = (window.MADAR_GROUPS || []).map(g => {
-    const items = (window.MADAR_TILES || []).filter(t => t.group === g.id && !MOBILE_NATIVE[t.key] && ok(t));
+    const items = (window.MADAR_TILES || []).filter(t => [].concat(t.group).indexOf(g.id) > -1 && !MOBILE_NATIVE[t.key] && ok(t));
     return items.length ? `<div class="sec-h gh" style="--g:${g.color}"><span>${g.title}</span></div><div class="sqg" style="--g:${g.color}">${items.map(t => `<a class="sq" href="${t.href}"><span class="sqi">${t.icon}</span><span class="sqt">${t.title}</span></a>`).join('')}</div>` : '';
   }).join('');
   const me = (window.MADAR_TILES || []).find(t => t.key === 'me');
