@@ -971,7 +971,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-06';
+const FX_BUILD = '1405.07.21-07';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -3368,6 +3368,33 @@ async function renderSuppliersList(main, cachedSummary){
   }));
 }
 
+// ⚠️ (۱۴۰۵/۰۷/۲۱) «مانده‌یِ یوانیِ این تأمین‌کننده به تفکیکِ مشتری» — جمعِ همه‌یِ ردیف‌ها دقیقاً برابرِ مانده‌یِ دفتر است.
+function fxSupplierCustomerBreakdownHtml(data){
+  const b = data.customerBreakdown;
+  if(!b) return '';
+  const fy = (v)=> (v>0.0001?'+':(v<-0.0001?'−':'')) + fmtYuan(Math.abs(v));
+  const custRows = (b.customers||[]).map(r=>`<tr>
+    <td><strong>${fxc_esc(r.customer)}</strong></td>
+    <td class="num">${fmtYuan(r.invoiceYuan)}</td>
+    <td class="num">${fmtYuan(r.paidYuan)}</td>
+    <td class="num" style="font-weight:800">${fy(r.balanceYuan)}</td>
+    <td style="font-size:11px;color:var(--ink-soft)">${r.balanceYuan>10 ? '⏳ منتظرِ پول/حواله‌یِ این مشتری' : (r.balanceYuan<-10 ? '💰 پیش‌پرداختِ این مشتری (یوانِ بیشتر از فاکتور)' : '✅ تسویه')}</td></tr>`).join('');
+  const extra = (label, v, hint)=> Math.abs(v)>0.0001 ? `<tr style="background:var(--surface)"><td>${label}</td><td colspan="2" style="font-size:11px;color:var(--ink-soft)">${hint}</td><td class="num" style="font-weight:800">${fy(v)}</td><td></td></tr>` : '';
+  const ok = Math.abs(b.diffYuan) < 0.01;
+  return `<div class="section-title">👥 مانده‌یِ یوانی به تفکیکِ مشتری</div>
+    <div class="table-wrap" style="margin-bottom:20px"><table>
+      <thead><tr><th>مشتری</th><th>فاکتورهایِ خریدِ او (یوان)</th><th>یوانِ پرداخت‌شده با پولِ او</th><th>مانده (یوان)</th><th>وضعیت</th></tr></thead>
+      <tbody>${custRows || '<tr class="empty-row"><td colspan="5">فاکتورِ خریدِ وصل‌به‌مشتری یا حواله‌یِ مشتری‌داری ثبت نشده</td></tr>'}
+        ${extra('فاکتورهایِ خریدِ بدونِ مشتری', b.unlinkedInvoiceYuan, 'به هیچ فاکتورِ فروشی وصل نیستند')}
+        ${extra('حواله‌هایِ بدونِ مشتری (پولِ مازادِ شرکت)', -b.companyHawaleYuan, 'یوانی که ما زده‌ایم و هنوز به واریزِ هیچ مشتری وصل/فروخته نشده؛ تأمین‌کننده را تسویه می‌کند ولی مشتری را نمی‌بندد')}
+        ${extra('تعدیل‌هایِ یوانی و مانده‌یِ اولیه', b.adjustmentOpeningYuan, '')}
+      </tbody>
+      <tfoot><tr style="font-weight:800;background:var(--surface)"><td colspan="3" style="text-align:left">جمعِ کل = مانده‌یِ یوانیِ دفترِ این تأمین‌کننده</td><td class="num">${fy(b.calcYuan)}</td>
+        <td>${ok ? '<span class="status-chip closed">✅ با دفترِ کامل برابر است</span>' : '<span class="status-chip open">⚠️ اختلاف '+fmtYuan(Math.abs(b.diffYuan))+' با دفترِ کامل</span>'}</td></tr></tfoot>
+    </table></div>
+    <div class="warn-note" style="margin:-10px 0 18px">مثبت = ما هنوز به تأمین‌کننده یوانِ این مشتری را بدهکاریم (منتظرِ پولِ او). منفی = یوانِ بیشتری از فاکتور برایِ او/شرکت رفته است.</div>`;
+}
+
 async function apiGetSupplierLedger(supplier){
   try{ const r = await fetchWithRetry(FX_API+'supplier-ledger/?supplier='+encodeURIComponent(supplier)); return r.ok ? r.json() : null; }
   catch(err){ return null; }
@@ -3525,6 +3552,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       <div class="card stat-card"><div class="stat-label">مازادِ یوانی (اگه هست)</div><div class="stat-value yuan num">${data.excessYuan>0.01 ? fmtYuan(data.excessYuan) : '—'}</div></div>
     </div>
 
+    ${fxSupplierCustomerBreakdownHtml(data)}
     <div class="section-title">وضعیتِ فاکتورهای خرید</div>
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierInvoicesSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierInvoicesSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
