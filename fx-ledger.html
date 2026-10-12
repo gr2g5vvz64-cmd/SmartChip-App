@@ -971,7 +971,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-08';
+const FX_BUILD = '1405.07.21-09';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -3414,22 +3414,24 @@ function fxSupplierCustomerBreakdownHtml(data){
     <td><strong>${fxc_esc(r.customer)}</strong></td>
     <td class="num">${fmtYuan(r.invoiceYuan)}</td>
     <td class="num">${fmtYuan(r.paidYuan)}</td>
+    <td class="num">${r.heldYuan>0.0001 ? fmtYuan(r.heldYuan) : '—'}</td>
     <td class="num" style="font-weight:800">${fy(r.balanceYuan)}</td>
-    <td style="font-size:11px;color:var(--ink-soft)">${r.balanceYuan>10 ? '⏳ منتظرِ پول/حواله‌یِ این مشتری' : (r.balanceYuan<-10 ? '💰 پیش‌پرداختِ این مشتری (یوانِ بیشتر از فاکتور)' : '✅ تسویه')}</td></tr>`).join('');
-  const extra = (label, v, hint)=> Math.abs(v)>0.0001 ? `<tr style="background:var(--surface)"><td>${label}</td><td colspan="2" style="font-size:11px;color:var(--ink-soft)">${hint}</td><td class="num" style="font-weight:800">${fy(v)}</td><td></td></tr>` : '';
+    <td class="num" style="font-weight:800">${fy(r.balanceYuan - (r.heldYuan||0))}</td>
+    <td style="font-size:11px;color:var(--ink-soft)">${(r.invoiceYuan<0.0001 && (r.paidYuan>0.0001||r.heldYuan>0.0001)) ? '🔗 یوان دارد ولی فاکتورِ خریدش وصل نیست' : ((r.balanceYuan-(r.heldYuan||0))>10 ? '⏳ منتظرِ پول/حواله‌یِ این مشتری' : ((r.balanceYuan-(r.heldYuan||0))<-10 ? '💰 پیش‌پرداختِ این مشتری (یوانِ بیشتر از فاکتور)' : '✅ تسویه'))}</td></tr>`).join('');
+  const extra = (label, v, hint)=> Math.abs(v)>0.0001 ? `<tr style="background:var(--surface)"><td>${label}</td><td colspan="3" style="font-size:11px;color:var(--ink-soft)">${hint}</td><td class="num" style="font-weight:800">${fy(v)}</td><td></td><td></td></tr>` : '';
   const ok = Math.abs(b.diffYuan) < 0.01;
   return `<div class="section-title">👥 مانده‌یِ یوانی به تفکیکِ مشتری</div>
     <div class="table-wrap" style="margin-bottom:20px"><table>
-      <thead><tr><th>مشتری</th><th>فاکتورهایِ خریدِ او (یوان)</th><th>یوانِ پرداخت‌شده با پولِ او</th><th>مانده (یوان)</th><th>وضعیت</th></tr></thead>
-      <tbody>${custRows || '<tr class="empty-row"><td colspan="5">فاکتورِ خریدِ وصل‌به‌مشتری یا حواله‌یِ مشتری‌داری ثبت نشده</td></tr>'}
+      <thead><tr><th>مشتری</th><th>فاکتورهایِ خریدِ او (یوان)</th><th>یوانِ پرداخت‌شده با پولِ او</th><th>نگه‌داری‌شده برایِ او</th><th>مانده (یوان)</th><th>مانده با احتسابِ نگه‌داری</th><th>وضعیت</th></tr></thead>
+      <tbody>${custRows || '<tr class="empty-row"><td colspan="7">فاکتورِ خریدِ وصل‌به‌مشتری یا حواله‌یِ مشتری‌داری ثبت نشده</td></tr>'}
         ${extra('فاکتورهایِ خریدِ بدونِ مشتری', b.unlinkedInvoiceYuan, 'به هیچ فاکتورِ فروشی وصل نیستند')}
         ${extra('حواله‌هایِ بدونِ مشتری (پولِ مازادِ شرکت)', -b.companyHawaleYuan, 'یوانی که ما زده‌ایم و هنوز به واریزِ هیچ مشتری وصل/فروخته نشده؛ تأمین‌کننده را تسویه می‌کند ولی مشتری را نمی‌بندد')}
         ${extra('تعدیل‌هایِ یوانی و مانده‌یِ اولیه', b.adjustmentOpeningYuan, '')}
       </tbody>
-      <tfoot><tr style="font-weight:800;background:var(--surface)"><td colspan="3" style="text-align:left">جمعِ کل = مانده‌یِ یوانیِ دفترِ این تأمین‌کننده</td><td class="num">${fy(b.calcYuan)}</td>
+      <tfoot><tr style="font-weight:800;background:var(--surface)"><td colspan="4" style="text-align:left">جمعِ کل = مانده‌یِ یوانیِ دفترِ این تأمین‌کننده</td><td class="num">${fy(b.calcYuan)}</td><td></td>
         <td>${ok ? '<span class="status-chip closed">✅ با دفترِ کامل برابر است</span>' : '<span class="status-chip open">⚠️ اختلاف '+fmtYuan(Math.abs(b.diffYuan))+' با دفترِ کامل</span>'}</td></tr></tfoot>
     </table></div>
-    <div class="warn-note" style="margin:-10px 0 18px">مثبت = ما هنوز به تأمین‌کننده یوانِ این مشتری را بدهکاریم (منتظرِ پولِ او). منفی = یوانِ بیشتری از فاکتور برایِ او/شرکت رفته است.</div>`;
+    <div class="warn-note" style="margin:-10px 0 18px">«نگه‌داری‌شده» یوانِ مشتری است که نزدِ تأمین‌کننده نگه داشته‌ایم و هنوز روی فاکتورِ خاصی ننشسته؛ در دفترِ تأمین‌کننده نیست ولی از مانده‌یِ مشتری کم می‌شود. مثبت = ما هنوز به تأمین‌کننده یوانِ این مشتری را بدهکاریم (منتظرِ پولِ او). منفی = یوانِ بیشتری از فاکتور برایِ او/شرکت رفته است.</div>`;
 }
 
 async function apiGetSupplierLedger(supplier){
