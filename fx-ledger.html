@@ -971,7 +971,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-07';
+const FX_BUILD = '1405.07.21-08';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -3368,6 +3368,43 @@ async function renderSuppliersList(main, cachedSummary){
   }));
 }
 
+// ⚠️ (۱۴۰۵/۰۷/۲۱) «🔗 وصل به مشتری» برایِ فاکتورِ خریدِ بدونِ مشتری — مشتری را انتخاب می‌کنید، بعد یکی از فاکتورها/پیش‌فاکتورهایِ همان مشتری
+// (فاکتورِ فروش اقلامِ ریز ندارد؛ فقط نامِ مشتری و مبلغ). اگر چند قلمِ هم‌سند دارید، می‌شود یکجا برایِ همه‌یِ اقلامِ آن سند وصل کرد.
+function openLinkExpenseModal(inv, data, done){
+  if(!inv) return;
+  const custNames = [...new Set(state.orders.map(o=>o.customer_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fa'));
+  const sameDoc = inv.docGroup ? data.invoiceStatus.filter(x=>x.docGroup===inv.docGroup && x.needsLink) : [];
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `<div class="modal">
+    <h3>🔗 وصل کردنِ خرید به مشتری</h3>
+    <div class="field-guide">${fxc_esc(inv.partNumber||'')} — ${fmtYuan(inv.yuanAmount)} — ${fxc_esc(inv.date)}<br>تا به مشتری وصل نشود، قفلِ هلو نمی‌آید و با پولِ مشتریِ دیگر بسته نمی‌شود.</div>
+    <div class="field" style="margin-bottom:10px"><label>مشتری</label>
+      <input id="lkCust" type="text" list="lkCustList" placeholder="نامِ مشتری را بنویسید یا انتخاب کنید"><datalist id="lkCustList">${custNames.map(n=>`<option value="${fxc_esc(n)}">`).join('')}</datalist></div>
+    <div class="field" style="margin-bottom:10px"><label>فاکتور / پیش‌فاکتورِ آن مشتری</label><select id="lkOrder"><option value="">— اول مشتری را انتخاب کنید —</option></select></div>
+    ${sameDoc.length>1 ? `<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:10px"><input type="checkbox" id="lkAll" checked> برایِ همه‌یِ ${sameDoc.length} قلمِ این سند (${fxc_esc(inv.docGroup)}) که مشتری ندارند</label>` : ''}
+    <div class="modal-actions"><button class="btn btn-primary" id="lkSave">ذخیره</button><button class="btn btn-ghost" id="lkCancel">انصراف</button></div></div>`;
+  document.body.appendChild(backdrop);
+  const $ = (i)=>backdrop.querySelector(i);
+  $('#lkCancel').addEventListener('click', ()=>backdrop.remove());
+  const fill = ()=>{
+    const name = $('#lkCust').value.trim();
+    const os = state.orders.filter(o=>normalizeFa(o.customer_name)===normalizeFa(name)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    $('#lkOrder').innerHTML = os.length ? os.map(o=>`<option value="${o.id}">${o.order_type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoice_no?(' '+fxc_esc(o.invoice_no)):''} — ${fxc_esc(o.date)} — ${fmt(o.yuan_amount,2)} ¥</option>`).join('') : '<option value="">— برایِ این مشتری فاکتوری ثبت نشده —</option>';
+  };
+  $('#lkCust').addEventListener('input', fill); $('#lkCust').addEventListener('change', fill);
+  $('#lkSave').addEventListener('click', async ()=>{
+    const oid = $('#lkOrder').value;
+    if(!oid){ showToast('مشتری و فاکتورِ او را انتخاب کنید'); return; }
+    const all = $('#lkAll') && $('#lkAll').checked ? sameDoc : [inv];
+    let ok = 0;
+    for(const x of all){ const r = await apiUpdate('expenses', x.id, {order: oid}); if(r) ok++; }
+    if(!ok) return;
+    backdrop.remove(); showToast('✅ '+ok+' قلم به مشتری وصل شد');
+    await loadAll(); done();
+  });
+}
+
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «مانده‌یِ یوانیِ این تأمین‌کننده به تفکیکِ مشتری» — جمعِ همه‌یِ ردیف‌ها دقیقاً برابرِ مانده‌یِ دفتر است.
 function fxSupplierCustomerBreakdownHtml(data){
   const b = data.customerBreakdown;
@@ -3570,13 +3607,14 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
             <td>${prov ? '<span class="fx-prov-chip">⚠️ قیمتِ موقت — تسویه قطعی نیست</span>' : (o.coverCustomer
               ? (o.closed ? '<span class="status-chip closed">✅ پر شد با یوانِ «'+fxc_esc(o.coverCustomer)+'»</span>' : '<span class="status-chip open">⏳ منتظرِ یوانِ «'+fxc_esc(o.coverCustomer)+'»</span>')
                 + '<div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">با تأمین‌کننده: '+(o.supplierClosed?'✅ تسویه شده':'⏳ باز')+(o.coveredYuan!=null && !o.closed ? ' · پوشش‌یافته '+fmtYuan(o.coveredYuan) : '')+'</div>'
-              : (o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>'))}</td>
+              : (o.needsLink ? '<span class="status-chip open" style="background:#7a2e2e;color:#fff">🔗 مشتری وصل نیست</span><div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">با تأمین‌کننده: '+(o.supplierClosed?'✅ تسویه شده':'⏳ باز')+'</div>'
+                : (o.closed ? '<span class="status-chip closed">✅ تسویه‌شده</span>' : '<span class="status-chip open">⏳ باز</span>')))}</td>
             <td class="num">${o.weightedAvgRate ? fmt(o.weightedAvgRate,0) : '—'}</td>
             <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
             <td>${o.isLocked
               ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button><div class="fx-lockinfo" data-lockinfo="expense-'+o.id+'"></div>' + (prov ? '<div class="fx-prov-chip">⚠️ با قیمتِ موقت قفل شده — باز کنید و اصلاح کنید</div>' : '')
               : (prov ? '<span style="color:var(--prov-ink);font-size:11px;font-weight:700">اول قیمتِ واقعی رو وارد کنید</span>'
-                : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">'+(o.coverCustomer ? 'تا پر شدنِ فاکتور با یوانِ «'+fxc_esc(o.coverCustomer)+'» قفل نمی‌شود' : 'هنوز بسته نشده')+'</span>'))}</td>
+                : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : (o.needsLink ? '<button class="btn btn-primary btn-sm" data-link-exp="'+o.id+'">🔗 وصل به مشتری</button>' : '<span style="color:var(--ink-soft);font-size:11px">'+(o.coverCustomer ? 'تا پر شدنِ فاکتور با یوانِ «'+fxc_esc(o.coverCustomer)+'» قفل نمی‌شود' : 'هنوز بسته نشده')+'</span>')))}</td>
           </tr>`; }).join('')}
         </tbody>
         ${data.invoiceStatus.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
@@ -3856,6 +3894,10 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   }));
   main.querySelectorAll('[data-hist-exp]').forEach(b=>b.addEventListener('click', ()=>{
     showHistoryModal(data.invoiceStatus.find(x=>x.id==b.dataset.histExp) || state.expenses.find(x=>x.id==b.dataset.histExp));
+  }));
+  main.querySelectorAll('[data-link-exp]').forEach(b=>b.addEventListener('click', ()=>{
+    const o = data.invoiceStatus.find(x=>x.id==b.dataset.linkExp);
+    openLinkExpenseModal(o, data, ()=>renderSupplierLedger(main));
   }));
   main.querySelectorAll('[data-lock-exp]').forEach(b=>b.addEventListener('click', ()=>{
     if(fxIsProvisionalId(b.dataset.lockExp)){ showToast('⚠️ قیمتِ این قلم هنوز موقته (۱ یوان) — اول قیمتِ واقعی رو وارد کنید'); return; }
