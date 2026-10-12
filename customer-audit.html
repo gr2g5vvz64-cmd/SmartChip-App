@@ -24,7 +24,7 @@
 :root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
-.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 110px}
+.wrap{max-width:none;margin:0 auto;padding:18px clamp(16px,2.4vw,48px) 110px}
 a{color:var(--acc);text-decoration:none}
 h1{font-size:21px;margin:6px 0 2px}h2{font-size:15px;margin:22px 0 8px}.sub{color:var(--soft);font-size:12.5px;margin-bottom:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
@@ -42,6 +42,11 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:7px 9px
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#000c;border:1px solid var(--line);border-radius:12px;padding:8px 16px;display:none;z-index:50}
 .box{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.35);border-radius:12px;padding:10px 14px;font-size:12.5px;margin-bottom:12px}
+.pk{display:flex;gap:6px;flex-wrap:wrap;align-items:center;position:relative}
+.pk .ps{min-width:230px}.pk .pl{position:absolute;top:100%;right:0;z-index:20;background:var(--card2);border:1px solid var(--line);border-radius:10px;min-width:300px;max-height:260px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.pk .pl div{padding:6px 10px;cursor:pointer;font-size:12.5px;border-bottom:1px solid #262c3d}.pk .pl div:hover{background:rgba(240,165,0,.14)}.pk .pl small{color:var(--soft)}
+.pk .sel{font-size:12px;color:var(--ok);font-weight:700}.btn[disabled]{opacity:.4;cursor:default}
+.chip{background:rgba(240,165,0,.12);border:1px solid rgba(240,165,0,.5);color:var(--acc);border-radius:10px;padding:1px 10px;font-size:11.5px;cursor:pointer}
 </style>
 <script src="./madar-theme.js"></script>
 </head>
@@ -59,6 +64,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:7px 9px
   <div id="aud"><div class="empty">در حالِ بارگذاری…</div></div>
 </div>
 <div class="toast" id="toast"></div>
+<script src="./madar-customer-card.js"></script>
 <script>
 const API='https://api.smartchipelec.com';
 const $=id=>document.getElementById(id);
@@ -75,11 +81,11 @@ async function call(path,body){
   if(!r.ok||!j||j.ok===false){ const er=new Error((j&&j.error)||('خطا '+r.status)); er.data=j; throw er; }
   return j;
 }
-let A=null;
+let A=null, CUST=[];
 async function load(){
   try{ A=await call('/api/customers/identity/audit/'); }catch(e){ $('aud').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'<br>این صفحه فقط برایِ مدیریت است. اگر تازه نصب شده، <code>python manage.py migrate</code> لازم است.</div>'; return; }
   const s=A.summary;
-  const opts=A.customers.map(c=>`<option value="${c.id}">${esc(c.name)} (${esc(c.abbr)})</option>`).join('');
+  CUST=A.customers.map(c=>Object.assign({},c,{k:MadarCC.norm(c.name+' '+c.abbr)}));
   $('aud').innerHTML=`
    <div class="kp"><div><b>${fa(s.customers)}</b>مشتریِ اصلی</div><div><b>${fa(s.aliases)}</b>نامِ دیگرِ ثبت‌شده</div>
      <div><b class="${s.orphan_names?'bad':'good'}">${fa(s.orphan_names)}</b>نامِ بی‌تطبیق</div>
@@ -92,12 +98,27 @@ async function load(){
    <h2>نام‌هایِ بی‌تطبیق (${fa(s.orphan_names)})</h2>
    ${A.orphans.length?`<div class="card" style="overflow:auto"><table><thead><tr><th>نام در سیستم</th><th>رکورد</th><th>کجا</th><th>پیشنهاد / وصل‌کردن</th></tr></thead><tbody>
    ${A.orphans.map((o,i)=>`<tr><td><b>${esc(o.name)}</b></td><td>${fa(o.count)}</td><td>${[...new Set(o.sources)].map(x=>'<span class="tag">'+esc(x)+'</span>').join('')}</td>
-     <td><div class="row"><select data-i="${i}">${(o.suggestions||[]).map(x=>`<option value="${x.id}">★ ${esc(x.name)}</option>`).join('')}<option value="">— انتخابِ مشتری —</option>${opts}</select><button class="btn pri" data-al="${i}">وصل کن</button></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">✅ همه‌یِ نام‌ها به یک مشتریِ اصلی می‌رسند.</div>'}
+     <td><div class="pk" data-i="${i}">${(o.suggestions||[]).map(x=>`<span class="chip" data-pick="${x.id}" data-nm="${esc(x.name)}">★ ${esc(x.name)}</span>`).join('')}<input class="ps" placeholder="🔍 جستجویِ مشتری (نام یا کد)…" autocomplete="off"><div class="pl" hidden></div><span class="sel"></span><button class="btn pri" data-al="${i}" disabled>وصل کن</button></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">✅ همه‌یِ نام‌ها به یک مشتریِ اصلی می‌رسند.</div>'}
    ${A.duplicates.length?`<h2>مشتریِ تکراری در خودِ لیست</h2><div class="card">${A.duplicates.map(d=>'<div>'+d.customers.map(c=>esc(c.name)+' ('+esc(c.abbr)+')').join(' ↔ ')+'</div>').join('')}<div class="sub">برایِ ادغام: <code>python manage.py find_duplicate_customers</code> و <code>merge_duplicate_customers</code>.</div></div>`:''}`;
-  $('aud').querySelectorAll('[data-al]').forEach(b=>b.onclick=async()=>{
-    const o=A.orphans[+b.dataset.al], sel=$('aud').querySelector('select[data-i="'+b.dataset.al+'"]');
-    if(!sel.value){ toast('مشتریِ اصلی را انتخاب کنید',true); return; }
-    try{ await call('/api/customers/identity/alias/',{name:o.name,customer_id:+sel.value}); toast('وصل شد'); load(); }catch(e){ toast(e.message,true); }
+  // انتخابِ مشتری با جستجو (برایِ چندهزار مشتری): تایپ کنید، از فهرست بزنید، «وصل کن»
+  $('aud').querySelectorAll('.pk').forEach(box=>{
+    const i=+box.dataset.i, inp=box.querySelector('.ps'), pl=box.querySelector('.pl'), sel=box.querySelector('.sel'), btn=box.querySelector('[data-al]');
+    let chosen=null;
+    const choose=(id,nm)=>{ chosen=id; sel.textContent='✔ '+nm; btn.disabled=false; pl.hidden=true; inp.value=''; };
+    box.querySelectorAll('[data-pick]').forEach(ch=>ch.onclick=()=>choose(+ch.dataset.pick,ch.dataset.nm));
+    inp.oninput=()=>{
+      const toks=MadarCC.norm(inp.value).split(' ').filter(Boolean);
+      if(!toks.length){ pl.hidden=true; return; }
+      const hit=CUST.filter(c=>toks.every(t=>c.k.includes(t))).slice(0,10);
+      pl.innerHTML=hit.length?hit.map(c=>`<div data-id="${c.id}" data-nm="${esc(c.name)}">${esc(c.name)} <small>${esc(c.abbr)}</small></div>`).join(''):'<div style="cursor:default;color:var(--soft)">چیزی پیدا نشد</div>';
+      pl.hidden=false;
+      pl.querySelectorAll('[data-id]').forEach(d=>d.onmousedown=ev=>{ ev.preventDefault(); choose(+d.dataset.id,d.dataset.nm); });
+    };
+    inp.onblur=()=>setTimeout(()=>pl.hidden=true,150);
+    btn.onclick=async()=>{
+      const o=A.orphans[i]; if(!chosen) return;
+      try{ await call('/api/customers/identity/alias/',{name:o.name,customer_id:chosen}); toast('وصل شد'); load(); }catch(e){ toast(e.message,true); }
+    };
   });
 }
 async function profile(){
@@ -105,15 +126,7 @@ async function profile(){
   $('prof').innerHTML='<div class="empty">…</div>';
   try{
     const d=await call('/api/customers/identity/profile/?name='+encodeURIComponent(q));
-    const c=d.customer, L=d.leads, Ch=d.cheques, Db=d.debts, Lg=d.ledger;
-    $('prof').innerHTML=`<div class="row"><b style="font-size:16px">${esc(c.name)}</b><span class="tag">${esc(c.abbr)}</span>${c.priority?'<span class="tag">اولویت '+esc(c.priority)+'</span>':''}${c.vip&&c.vip!=='normal'?'<span class="tag ok">'+esc(c.vip)+'</span>':''}<span class="sub" style="margin:0">${esc([c.category,c.province,c.mobile].filter(Boolean).join(' · '))}${c.assigned_staff_name?' · کارشناس: '+esc(c.assigned_staff_name):''}</span></div>
-     <div class="kp" style="margin-top:10px">
-      ${L?`<div><b>${fa(L.open)}</b>لیدِ باز از ${fa(L.total)}</div>`:''}
-      ${Lg?`<div><b style="color:${Lg.yuan>0?'var(--warn)':'var(--ok)'}">${fa(Math.round(Lg.yuan).toLocaleString('en'))} ¥</b>مانده‌یِ یوانی</div><div><b>${fa(Lg.open_orders)}</b>فاکتورِ باز</div>`:''}
-      ${Ch?`<div><b class="${Ch.returned_open?'bad':'good'}">${fa(Ch.returned_open)}</b>چکِ برگشتیِ باز</div><div><b>${fa(Ch.received_unregistered)}</b>چکِ بدونِ صیادی</div>`:''}
-      ${Db?`<div><b class="${Db.open?'bad':'good'}">${fa(Db.open)}</b>پرونده‌یِ وصولِ باز</div>`:''}</div>
-     <div style="margin-top:10px">${(d.parts||[]).map(p=>'<span class="tag">'+esc(p.label)+': '+fa(p.records)+(p.variants.length?' <span style="color:var(--warn)">(املایِ دیگر: '+esc(p.variants.join('، '))+')</span>':'')+'</span>').join('')}</div>
-     ${(d.aliases||[]).length?'<div class="sub" style="margin-top:8px">نام‌هایِ دیگر: '+d.aliases.map(a=>esc(a.alias)).join('، ')+'</div>':''}`;
+    $('prof').innerHTML=MadarCC.html(d);
   }catch(e){
     const sg=(e.data&&e.data.suggestions)||[];
     $('prof').innerHTML='<div class="empty">⚠️ '+esc(e.message)+(sg.length?'<br>شاید منظورتان: '+sg.map(x=>'<a href="#" data-n="'+esc(x.name)+'">'+esc(x.name)+'</a>').join('، '):'')+'</div>';
