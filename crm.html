@@ -10342,7 +10342,7 @@ function renderGlobalSearchResults(q){
   if(chqRecResults.length){
     html+=`<div style="${groupStyle}">💳 چک دریافتی (${chqRecResults.length})</div>`;
     chqRecResults.forEach(c=>{
-      html+=`<div style="${rowStyle}" onclick="openCustomerTimeline('${(c.customer||'').replace(/'/g,"\\'")}');closeGlobalSearch();">${c.customer||'—'} <span style="color:var(--muted);font-size:10px">— ${fn(c.amount||0)} ریال</span></div>`;
+      html+=`<div style="${rowStyle}" onclick="openCustomerTimeline('${(c.transferor||c.customer||'').replace(/'/g,"\\'")}');closeGlobalSearch();">${c.transferor||c.customer||'—'} <span style="color:var(--muted);font-size:10px">— ${fn(c.amount||0)} ریال</span></div>`;
     });
   }
   if(chqPaidResults.length){
