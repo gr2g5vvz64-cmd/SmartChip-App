@@ -100,8 +100,8 @@ table.log th{color:var(--soft);font-weight:600}
 <div class="wrap">
   <a href="index.html" style="font-size:12.5px">← صفحه‌یِ اصلی</a>
   <h1>👥 مرکز افراد</h1>
-  <div class="sub">برایِ هر نفر یک جا: مشخصات و نقش، دسترسی‌ها، اتصالِ بله و پیام‌ها، تفویض‌ها. دیگر بینِ پنلِ دسترسی، مدیریتِ کارمندان و سازمان نمی‌روید.</div>
-  <div class="topbar" id="topbar"><span class="tab on" data-v="people">👤 افراد</span><span class="tab" data-v="roles">🧩 نقش‌ها (چه کسی چه ببیند)</span><span class="tab" data-v="log">🕘 تاریخچهٔ تغییرِ دسترسی</span></div>
+  <div class="sub">برایِ هر نفر یک جا: مشخصات و نقش، دسترسی‌ها، اتصالِ بله و پیام‌ها، تفویض‌ها. پنلِ دسترسی، مدیریتِ کارمندان و ورودِ امن همه همین‌جاست.</div>
+  <div class="topbar" id="topbar"><span class="tab on" data-v="people">👤 افراد</span><span class="tab" data-v="roles">🧩 نقش‌ها (چه کسی چه ببیند)</span><span class="tab" data-v="log">🕘 تاریخچهٔ تغییرِ دسترسی</span><span class="tab" data-v="auth">🔐 ورودهای امن</span></div>
   <div id="extra" style="display:none"></div>
   <div class="lay" id="layPeople">
     <aside class="card list"><button class="btn pri" id="newBtn" style="width:100%;margin-bottom:8px">＋ کارمندِ تازه</button><input type="search" id="q" placeholder="🔍 جستجوی نام…"><div id="plist"><div class="empty">در حالِ بارگذاری…</div></div></aside>
@@ -175,19 +175,25 @@ async function tProfile(p){
   const pos=[]; ((STRUCT&&STRUCT.units)||[]).forEach(u=>(u.positions||[]).forEach(po=>pos.push([po.id,(u.icon||'')+' '+u.name+' — '+po.title])));
   $('tabBody').innerHTML=`
    <div class="g">🪪 مشخصات</div>
+   <div class="row"><div class="l"><b>ایمیل (ورود)</b><small>با همین ایمیل وارد می‌شود</small></div><input id="fEmail" value="${esc(full.email||p.email)}" dir="ltr" style="background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:200px"></div>
    <div class="row"><div class="l"><b>نام</b></div><input id="fName" value="${esc(full.name||p.name)}" style="background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:200px"></div>
    <div class="row"><div class="l"><b>موبایل</b></div><input id="fMob" value="${esc(full.mobile||'')}" dir="ltr" style="background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:200px"></div>
    <div class="row"><div class="l"><b>نقشِ دسترسی</b><small>تعیین می‌کند چه صفحه‌هایی برایِ این نفر باز است</small></div>
      <select id="fRole">${ROLE_OPTS().map(r=>`<option value="${esc(r.key)}" ${r.key===(full.role||p.role)?'selected':''}>${esc(r.label)}</option>`).join('')}</select></div>
    <div class="row"><div class="l"><b>فعال</b><small>غیرفعال = دیگر نمی‌تواند وارد شود</small></div><label class="sw"><input type="checkbox" id="fAct" ${full.active===false?'':'checked'}><span></span></label></div>
-   <div class="row"><span class="sub" style="margin:0">ورودهای امن و تنظیم‌هایِ حسابِ کاربری هنوز در صفحه‌یِ قدیمیِ مدیریتِ کارمندان است.</span><a class="btn" href="staff-admin.html" target="_blank">حسابِ کاربری و ورودِ امن ›</a><button class="btn pri" id="fSave">ذخیره</button></div>
+   <div class="row"><span class="sub" style="margin:0">دستگاه‌هایِ واردشده و خروج: تبِ بالایِ صفحه «🔐 ورودهای امن».</span><button class="btn bad" id="fDel">حذفِ کامل</button><button class="btn pri" id="fSave">ذخیره</button></div>
    <div class="g">🏢 سِمَت‌ها در سازمان</div>
    ${as.length?as.map(a=>`<div class="row"><div class="l"><b>${esc(a.icon||'')} ${esc(a.unit)} — ${esc(a.title)}</b><small>${esc(a.kind||'')}${a.primary?' · اصلی':''}</small></div>${canEdit?`<button class="btn bad" data-un="${a.id}">برداشتن</button>`:''}</div>`).join(''):'<div class="empty" style="padding:8px">سِمَتی ندارد</div>'}
    ${canEdit&&pos.length?`<div class="row"><select id="posSel">${pos.map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select><button class="btn pri" id="posAdd">＋ افزودنِ سِمَت</button></div>`:''}`;
   $('fSave').onclick=async()=>{
     const role=$('fRole').value; if(role!==(full.role||p.role)&&!confirm('نقشِ دسترسیِ این نفر عوض می‌شود. ادامه؟')) return;
-    try{ await sapi('PATCH','/api/staff/staff/'+encodeURIComponent(p.email)+'/',{name:$('fName').value.trim(),mobile:$('fMob').value.trim(),role,active:$('fAct').checked});
-      D=await call('/api/access/admin/matrix/'); toast('ذخیره شد'); drawList(); render(); }catch(e){ toast(e.message,true); }
+    const ne=$('fEmail').value.trim().toLowerCase(); if(!ne||ne.indexOf('@')<1){ toast('ایمیلِ معتبر بنویسید',true); return; }
+    try{ await sapi('PATCH','/api/staff/staff/'+encodeURIComponent(p.email)+'/',{email:ne,name:$('fName').value.trim(),mobile:$('fMob').value.trim(),role,active:$('fAct').checked});
+      D=await call('/api/access/admin/matrix/'); toast('ذخیره شد'); SEL=ne; history.replaceState(null,'','#'+encodeURIComponent(ne)); drawList(); render(); }catch(e){ toast(/email|unique|exist/i.test(e.message)?'این ایمیل برایِ نفرِ دیگری ثبت شده':e.message,true); }
+  };
+  $('fDel').onclick=async()=>{
+    if(!confirm('دسترسیِ «'+p.name+'» کاملاً حذف شود؟\n(اگر فقط نمی‌خواهید وارد شود، «فعال» را خاموش کنید.)')) return;
+    try{ await sapi('DELETE','/api/staff/staff/'+encodeURIComponent(p.email)+'/'); D=await call('/api/access/admin/matrix/'); SEL=null; history.replaceState(null,'',location.pathname); $('pane').innerHTML='<div class="empty">حذف شد. یک نفر را از فهرست انتخاب کنید.</div>'; drawList(); toast('حذف شد'); }catch(e){ toast(e.message,true); }
   };
   $('tabBody').querySelectorAll('[data-un]').forEach(b=>b.onclick=async()=>{ if(!confirm('این سِمَت برداشته شود؟')) return;
     try{ await call('/api/org/unassign/',{assignment_id:+b.dataset.un}); STRUCT=await call('/api/org/structure/'); toast('برداشته شد'); tProfile(p);}catch(e){ toast(e.message,true);} });
@@ -223,16 +229,24 @@ async function tPerms(p){
 async function tBale(p){
   $('tabBody').innerHTML='<div class="empty">در حالِ بارگذاری…</div>';
   let d; try{ d=await call('/api/announce/prefs/?target='+encodeURIComponent(p.email)); }catch(e){ $('tabBody').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'</div>'; return; }
+  let bots=[]; try{ bots=await (await fetch(API+'/api/bot/staff-list/')).json(); }catch(e){}
+  let full={}; try{ full=await sapi('GET','/api/staff/staff/'+encodeURIComponent(p.email)+'/'); }catch(e){}
+  const bi=(Array.isArray(bots)?bots:[]).find(x=>String(x.id)===String(full.id)), invited=!!(bi&&bi.inviteSent);
   const sw=(k,t,s)=>`<div class="row"><div class="l"><b>${t}</b><small>${s}</small></div><label class="sw"><input type="checkbox" data-k="${k}" ${d[k]?'checked':''}><span></span></label></div>`;
   $('tabBody').innerHTML=`
    <div class="row"><div class="l"><b>اتصال</b><small>اگر وصل نیست، کارمند باید در بله به بات پیام بدهد (راهنما: «وصل کردنِ بله/تلگرام»).</small></div>
      <span class="tag ${d.bale?'ok':'no'}">بله: ${d.bale?'وصل':'وصل نیست'}</span><span class="tag ${d.telegram?'ok':'w'}">تلگرام: ${d.telegram?'وصل':'—'}</span>
+     ${(d.bale||d.telegram)?'':`<button class="btn" id="inv" ${full.id?'':'disabled'}>${invited?'⏳ دعوت رفته — دوباره بفرست':'📲 ارسالِ دعوت (واتس‌اپ)'}</button>`}
      <button class="btn" id="tst" ${(d.bale||d.telegram)?'':'disabled'}>✉️ پیامِ آزمایشی</button></div>
    <div class="g">🔔 کدام پیام‌ها برایش بیاید؟</div>
    ${sw('morning','🌅 خلاصه‌یِ صبحگاهی','یک پیام در صبح: کارهایِ امروز، تأخیرها، جلسه‌ها')}
    ${sw('urgent','🚨 فوری‌ها','دیرکرد و موردهایِ بسیار مهم، بلافاصله')}
    ${sw('meetings','🗓 یادآوریِ جلسه‌ها','۲۴ ساعت و ۱ ساعت پیش از جلسه')}`;
   $('tabBody').querySelectorAll('input[data-k]').forEach(c=>c.onchange=async()=>{ try{ await call('/api/announce/prefs/',{target:p.email,[c.dataset.k]:c.checked}); toast('ذخیره شد'); }catch(e){ toast(e.message,true); c.checked=!c.checked; } });
+  const iv=$('inv'); if(iv) iv.onclick=async()=>{ iv.disabled=true; try{
+      const r=await sapi('POST','/api/bot/send-staff-invite/',{staffId:full.id}); if(!r||!r.ok) throw new Error((r&&r.error)||'ساختِ دعوت ناموفق بود');
+      const msg=r.message||''; try{ await navigator.clipboard.writeText(msg); }catch(e){} window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank'); toast('دعوت ساخته شد — متن کپی شد و واتس‌اپ باز شد'); tBale(p);
+    }catch(e){ toast(e.message,true); iv.disabled=false; } };
   const t=$('tst'); if(t) t.onclick=async()=>{ t.disabled=true; try{ const r=await call('/api/announce/test/',{email:p.email}); toast(r.sent===false?'ارسال نشد':'ارسال شد'); }catch(e){ toast(e.message,true); } t.disabled=false; };
 }
 
@@ -257,7 +271,7 @@ function showTop(v){
   TOPV=v; history.replaceState(null,'',v==='people'?(SEL?'#'+encodeURIComponent(SEL):location.pathname):'#'+v);
   document.querySelectorAll('#topbar .tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
   $('layPeople').style.display=v==='people'?'':'none'; $('extra').style.display=v==='people'?'none':'';
-  if(v==='roles') viewRoles(); else if(v==='log') viewLog();
+  if(v==='roles') viewRoles(); else if(v==='log') viewLog(); else if(v==='auth') viewAuth();
 }
 document.querySelectorAll('#topbar .tab').forEach(t=>t.onclick=()=>{ if(D) showTop(t.dataset.v); });
 function modeBanner(){
@@ -320,7 +334,48 @@ function viewLog(){
   const rows=L.map(l=>`<tr><td>${esc(fmtDate(l.at))}</td><td>${esc(l.actor)}</td><td>${l.kind==='role'?'نقش: '+esc(roleLabel(l.target)):'فرد: '+esc((D.staff.find(s=>s.email.toLowerCase()===String(l.target).toLowerCase())||{name:l.target}).name)}</td><td>${esc(lab(l.perm))}</td><td>${esc(st[l.old]||l.old)} ← <b>${esc(st[l.new]||l.new)}</b></td></tr>`).join('');
   $('extra').innerHTML=L.length?`<div class="card" style="overflow:auto"><table class="log"><thead><tr><th>زمان</th><th>توسطِ</th><th>برایِ</th><th>مجوز</th><th>تغییر</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">هنوز تغییری ثبت نشده</div>';
 }
-MadarAccess.ready(async()=>{ await init(); const h=decodeURIComponent((location.hash||'').slice(1)); if(D&&(h==='roles'||h==='log')) showTop(h); });
+
+/* ───── ۵) ورودهای امن (از «مدیریتِ کارمندان» آمد) ───── */
+const AUTH_API=API+'/api/staff/auth/';
+function authAgo(iso){
+  if(!iso) return '—';
+  const m=Math.round((Date.now()-new Date(iso).getTime())/60000);
+  if(m<2) return 'همین الان'; if(m<60) return fa(m)+' دقیقه پیش';
+  const h=Math.round(m/60); if(h<48) return fa(h)+' ساعت پیش';
+  return fa(Math.round(h/24))+' روز پیش';
+}
+async function viewAuth(){
+  $('extra').innerHTML='<div class="empty">در حالِ بارگذاری…</div>';
+  let ss,ml,all=[];
+  try{
+    const [a,b,c]=await Promise.all([fetch(AUTH_API+'sessions/'),fetch(AUTH_API+'miss-log/'),fetch(API+'/api/staff/staff/')]);
+    if(a.status===403||a.status===401){ $('extra').innerHTML='<div class="empty">این بخش فقط برایِ مدیریت است.</div>'; return; }
+    ss=await a.json(); ml=b.ok?await b.json():{rows:[]}; all=c.ok?await c.json():[];
+  }catch(e){ $('extra').innerHTML='<div class="empty">بخشِ ورودهایِ امن هنوز روی سرور نصب نشده.</div>'; return; }
+  const mode=ss.mode||'log';
+  const modeTxt={off:'خاموش — بدونِ بررسی',log:'مرحله‌یِ اول — بررسی و ثبت، بدونِ رد کردن',on:'قفل روشن — فقط با ورودِ امن'}[mode];
+  const modeCol={off:'var(--soft)',log:'var(--acc)',on:'var(--ok)'}[mode];
+  const by={}; (ss.sessions||[]).forEach(x=>(by[x.email]=by[x.email]||{name:x.name,list:[]}).list.push(x));
+  const logged=new Set(Object.keys(by).map(e=>e.toLowerCase()));
+  const notYet=(all||[]).filter(s=>s.active!==false&&!logged.has(String(s.email).toLowerCase()));
+  let h=`<div class="sub">حالتِ فعلی: <b style="color:${modeCol}">${modeTxt}</b> · تغییر با متغیرِ <code>MADAR_AUTH_MODE</code> در Render (off / log / on)</div>`;
+  if(mode!=='on') h+=`<div class="banner">📌 <b>قدمِ بعدی:</b> وقتی همه حداقل یک بار وارد شدند: Render ← سرویسِ <b>smartchip-backend</b> ← Environment ← <code>MADAR_AUTH_MODE</code> را از <code>log</code> به <code>on</code> بدهید ← Save. اگر مشکلی شد، برگردانید روی <code>log</code>.</div>`;
+  h+=notYet.length?`<div class="banner">هنوز با ورودِ امن وارد نشده‌اند: <b>${notYet.map(s=>esc(s.name||s.email)).join('، ')}</b> — قبل از روشن کردنِ قفل، هر کدام یک بار وارد شوند.</div>`
+    :'<div class="banner good">✅ همه‌یِ کارمندانِ فعال حداقل یک بار با ورودِ امن وارد شده‌اند.</div>';
+  h+=`<div class="card" style="overflow:auto"><table class="log"><thead><tr><th>کارمند</th><th>دستگاه</th><th>آخرین استفاده</th><th>IP</th><th></th></tr></thead><tbody>`+
+    (Object.keys(by).length?Object.entries(by).map(([email,g])=>g.list.map((x,i)=>`<tr>${i===0?`<td rowspan="${g.list.length}"><b>${esc(g.name||email)}</b><div class="rd" dir="ltr">${esc(email)}</div><button class="btn" style="font-size:11px;padding:2px 8px;margin-top:4px" data-all="${esc(email)}">خروج از همه‌یِ دستگاه‌ها</button></td>`:''}
+      <td>${esc(x.device||'—')}</td><td>${authAgo(x.last_used_at)}</td><td dir="ltr">${esc(x.ip||'')}</td><td><button class="btn" style="font-size:11px;padding:2px 8px" data-rv="${x.id}">خروج</button></td></tr>`).join('')).join('')
+    :'<tr><td colspan="5" class="empty">هنوز کسی با ورودِ امن وارد نشده</td></tr>')+`</tbody></table></div>
+    <div class="g">درخواست‌هایِ بدونِ ورود <span style="font-weight:400">— اگر قفل روشن بود، این‌ها رد می‌شدند</span></div>`+
+    ((ml.rows||[]).length?`<div class="card" style="overflow:auto"><table class="log"><thead><tr><th>مسیر</th><th>نوع</th><th>دلیل</th><th>تعداد</th><th>آخرین بار</th></tr></thead><tbody>${ml.rows.map(r=>`<tr><td dir="ltr" style="text-align:left">${esc(r.path)}</td><td>${esc(r.method)}</td><td>${r.reason==='missing'?'بدونِ ورود':'ورودِ نامعتبر'}</td><td>${fa(r.count)}</td><td>${authAgo(r.last_seen)}</td></tr>`).join('')}</tbody></table></div><button class="btn" id="mclr" style="margin-top:8px">پاک کردنِ این فهرست</button>`
+    :'<div class="banner good">✅ درخواستِ بدونِ ورودی ثبت نشده.</div>');
+  $('extra').innerHTML=h;
+  const post=async(path,body)=>{ const r=await fetch(AUTH_API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined}); if(!r.ok) toast('انجام نشد',true); viewAuth(); };
+  $('extra').querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>{ if(confirm('این دستگاه از مدار خارج شود؟')) post('sessions/'+b.dataset.rv+'/revoke/'); });
+  $('extra').querySelectorAll('[data-all]').forEach(b=>b.onclick=()=>{ if(confirm('همه‌یِ دستگاه‌هایِ '+b.dataset.all+' خارج شوند؟ (مثلاً گوشیِ گم‌شده یا پایانِ همکاری)')) post('revoke-all/',{email:b.dataset.all}); });
+  const mc=$('mclr'); if(mc) mc.onclick=()=>{ if(confirm('فهرست پاک شود؟')) post('miss-log/clear/'); };
+}
+MadarAccess.ready(async()=>{ await init(); const h=decodeURIComponent((location.hash||'').slice(1)); if(D&&(h==='roles'||h==='log'||h==='auth')) showTop(h); });
 </script>
 <script src="./madar-help.js" defer></script>
 </body>
