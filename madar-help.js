@@ -11,8 +11,8 @@
   if (file === 'fx-ledger.html') return;                       // راهنمایِ مستقلِ خودش را دارد
   if (/[?&]m=/.test(location.search)) return;                  // حالتِ تمام‌صفحه‌یِ گوشی (crm.html?m=…)
 
-  var BUILD = '1405.07.19-25';
-  var GUIDES = [['📖 راهنمایِ کاملِ کارکنان', 'guide-staff.html'], ['🛠️ راهنمایِ مدیریتِ مدار', 'guide-admin.html']];
+  var BUILD = '1405.07.20-26';
+  var GUIDES = [['📖 راهنمایِ مدار', 'guide.html']];
 
   var PAGES = {
     'index.html': {
@@ -168,14 +168,19 @@
         ['🗓️ تقویم', 'نمایِ ماهانه و تعطیلات؛ «🔗 اتصال به تقویمِ گوشی و گوگل» پایینِ همین تب است.'], ['🗄️ سابقه', 'انجام‌شده‌ها، لغوشده‌ها و بایگانی.']]]],
       tips: ['هر صبح خلاصه‌یِ «چه چیزی دیرکرد/موعدش امروز است» به بله‌یِ شما می‌آید (با تنظیمِ کرون).', 'دایره‌یِ 📥 کارتابل و ❓ راهنما پایینِ صفحه هستند.']
     },
-    'guide-staff.html': { t: 'راهنمایِ کارکنان', i: '📖', what: 'راهنمایِ کاملِ استفاده از مدار برایِ کارکنان. از فهرستِ بالایِ صفحه به هر بخش بروید؛ برایِ جستجو Ctrl+F بزنید.', sec: [], tips: ['اگر چیزی در این راهنما نبود یا گنگ بود، به مدیر بگویید تا اضافه شود.'] },
-    'guide-admin.html': { t: 'راهنمایِ مدیریتِ مدار', i: '🛠️', what: 'راهنمایِ مدیران: تنظیماتِ سرور، ورودِ امن، بک‌آپ و تاریخچه‌یِ تغییراتِ مدار. برایِ جستجو Ctrl+F بزنید.', sec: [], tips: ['تاریخچه‌یِ نسخه‌ها (آخرینِ تغییرات) در بخشِ «🆕 تاریخچه‌ی نسخه‌ها» است.'] }
+    'guide.html': { t: 'راهنمایِ مدار', i: '📖', what: 'یک راهنما برایِ همه. بالایِ فهرست «نقش» را عوض کنید تا ببینید هر کس چه می‌بیند؛ مدیر همه‌چیز را می‌بیند و کارمند فقط بخشِ خودش را.', sec: [], tips: ['تاریخچه‌یِ تغییرات در بخشِ «🆕 تغییراتِ اخیر» (اولِ فهرست) است.', 'برایِ جستجو در بالایِ فهرست بنویسید.'] },
+    'guide-staff.html': { t: 'راهنمایِ مدار', i: '📖', what: 'این صفحه به راهنمایِ واحد منتقل شد.', sec: [], tips: [] },
+    'guide-admin.html': { t: 'راهنمایِ مدار', i: '📖', what: 'این صفحه به راهنمایِ واحد منتقل شد.', sec: [], tips: [] },
+    'people.html': { t: 'مرکز افراد', i: '👥', what: 'برایِ مدیریت: همه‌یِ تنظیماتِ یک نفر در یک صفحه.', sec: [['تب‌ها', [['🪪 مشخصات و نقش', 'نقشِ دسترسی و سِمَت‌هایِ او در سازمان؛ افزودن/برداشتنِ سِمَت.'], ['🔑 دسترسی‌ها', 'هر بخش را برایِ همین نفر مجاز یا ممنوع کنید.'], ['💬 اتصال بله و پیام‌ها', 'وصل بودنِ بله/تلگرام، پیامِ آزمایشی و روشن/خاموش کردنِ خلاصه‌یِ صبحگاهی، فوری‌ها و یادآوریِ جلسه.'], ['🤝 تفویض‌ها', 'آمارِ پیگیری و تحویلِ او.']]]], tips: ['تغییرِ نقش و ساختنِ کارمندِ تازه هنوز در «مدیریتِ کارمندان» است.'] },
+    'announce.html': { t: 'اعلان و جلسه', i: '📢', what: 'برایِ مدیریت: اعلانِ عمومی یا جلسه با مخاطبِ مشخص (همه، سرپرستان، یک واحد یا چند نفر). جلسه تاریخ، ساعت، مکان و دبیرِ جلسه دارد؛ صورتجلسه و مصوبه‌ها به «پیگیری» تبدیل می‌شوند.', sec: [['تب‌ها', [['📢 اعلان', 'پیامِ عمومی؛ «مهم» و «تأییدِ خواندن» دارد.'], ['🗓 جلسه‌یِ تازه', 'عنوان، تاریخ، ساعت، مکان، دستورِ جلسه، مخاطبان و دبیر. پیش از ارسال تداخل و افراد بدونِ بله نشان داده می‌شود.'], ['📚 جلسه‌ها', 'وضعیتِ پاسخِ حضور، ویرایش، لغو، یادآوری و ثبتِ صورتجلسه.'], ['🕘 اعلان‌هایِ قبلی', 'چه کسی تأیید کرد.']]]], tips: ['یادآوریِ خودکار: ۲۴ ساعت و ۱ ساعت پیش از جلسه؛ دبیر پس از جلسه یادآوریِ صورتجلسه می‌گیرد.'] },
   };
   PAGES['mobile.html'] = PAGES['m.html'];
   var P = PAGES[file] || { t: 'مدار', i: '❓', what: 'برایِ این صفحه راهنمایِ جداگانه‌ای نوشته نشده است. راهنمایِ کاملِ مدار را در لینک‌هایِ پایین ببینید.', sec: [], tips: [] };
 
   var css = '#madarHelpBtn{position:fixed;left:16px;bottom:16px;z-index:2147481900;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;border:1px solid #323952;background:#1a1e2a;color:#f4f5f8;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
     '#madarHelpBtn:hover{border-color:#f0a500}' +
+    /* 📱 موبایل: «کارتابل» و «راهنما» یک نوارِ پایینِ ثابت‌اند و رویِ محتوا نمی‌افتند */
+    '@media(max-width:700px){html::after{content:"";position:fixed;left:0;right:0;bottom:0;height:46px;background:#141821;border-top:1px solid #323952;z-index:2147481800;pointer-events:none}body{padding-bottom:58px!important}#madarHelpBtn{left:8px;bottom:6px}#madarInbox{left:auto!important;right:8px;bottom:5px!important}#madarInbox .mi-btn{height:36px}#madarInbox .mi-panel{left:auto;right:0;bottom:44px}}' +
     '@media (max-width:700px){#madarHelpBtn{width:42px;height:42px;padding:0;justify-content:center;border-radius:50%;font-size:17px}#madarHelpBtn .mh-lbl{display:none}}' +
     '#madarHelp{position:fixed;inset:0;z-index:2147483000;background:rgba(8,10,16,.62);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Vazirmatn,Tahoma,sans-serif;direction:rtl}' +
     '#madarHelp .mh-box{width:min(720px,100%);max-height:88vh;overflow:auto;background:#1a1e2a;border:1px solid #323952;border-radius:16px;color:#f4f5f8;box-shadow:0 20px 60px rgba(0,0,0,.55)}' +

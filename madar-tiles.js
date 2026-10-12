@@ -19,15 +19,14 @@ window.MADAR_TILES = [
   { key:'priceList',  icon:'💰', title:'Price List',           desc:'ماشین‌حساب قیمت‌دهی قطعات',                            href:'pricelist.html',   perm:'page.pricelist',   group:'sales' },
   { key:'fxLedger',   icon:'💱', title:'دفتر ارزی',            desc:'تسویه ریال⇄یوان با مشتریان و تأمین‌کننده',              href:'fx-ledger.html',   perm:'page.fxledger',    group:'fin' },
   { key:'erp',        icon:'🏭', title:'ERP',                  desc:'تدارکات، بازرگانی، مالی، ردیابی محموله',               href:'erp.html',         perm:'page.erp',         group:'fin' },
-  { key:'weekly',     icon:'📊', title:'گزارشِ هفتگیِ تیم',    desc:'یادآوری‌ها و پیگیری‌هایِ تیم برایِ جلسه‌یِ سرپرستان',    href:'weekly.html',      perm:'page.weekly',      group:'mgmt' },
   { key:'access',     icon:'🔑', title:'پنلِ دسترسی',          desc:'هر نقش و هر نفر چه بخش‌هایی را ببیند',                  href:'access.html',      perm:'access.manage',    group:'mgmt' },
+  { key:'people',     icon:'👥', title:'مرکز افراد',          desc:'نقش، دسترسی، اتصالِ بله و تفویضِ هر نفر در یک جا',     href:'people.html',      perm:'access.manage',   group:'mgmt' },
   { key:'announce',   icon:'📢', title:'اعلانِ عمومی',        desc:'یک پیام به بله/تلگرامِ همه‌یِ کارمندان',                href:'announce.html',    perm:'access.manage',   group:'mgmt' },
   { key:'staffAdmin', icon:'👥', title:'مدیریت کارمندان',      desc:'افزودن/حذف دسترسی نیروها',                              href:'staff-admin.html', perm:'page.staffadmin',  group:'mgmt' },
-  { key:'adminGuide', icon:'🛠️', title:'راهنمای مدیریتِ مدار', desc:'سایت‌ها، حساب‌ها، تنظیمات و روال‌ها',                   href:'guide-admin.html', perm:'page.adminguide',  group:'mgmt' },
   { key:'attendance', icon:'🕘', title:'حضور و غیاب',          desc:'ثبتِ ورود و خروج با کیوآرکد و گوشی',                    href:'attendance.html',  perm:'page.attendance',  group:'admin' },
   { key:'org',        icon:'🏢', title:'سازمان',               desc:'منابعِ انسانی · اداری · کارتابلِ من',                   href:'org.html',         perm:'page.org',         group:'admin' },
   { key:'reminders',  icon:'⏰', title:'یادآوری‌ها',           desc:'کارِ فردا، یادآوریِ آزاد و دوره‌ای، تقویم، پیگیری و تحویل', href:'reminders.html', perm:'page.reminders',   group:'admin' },
   { key:'weights',    icon:'⚖️', title:'وزن‌نامه‌ی قطعات',     desc:'وزنِ قطعات — جستجو، ویرایش، خروجیِ Excel',              href:'weights.html',     perm:'page.weights',     group:'more' },
-  { key:'guide',      icon:'📖', title:'راهنمای کارکنان',      desc:'مرحله‌به‌مرحله — از روزِ اول تا همه‌ی بخش‌ها',          href:'guide-staff.html', perm:'page.guide',       group:'more' },
+  { key:'guide',      icon:'📖', title:'راهنمای مدار',      desc:'یک راهنما برایِ همه — نقش را عوض کنید تا ببینید هر کس چه می‌بیند',          href:'guide.html', perm:'page.guide',       group:'more' },
   { key:'roadmap',    icon:'🗺️', title:'نقشه‌یِ راه',          desc:'باگ و ایده‌ای دیدید؟ ثبت کنید؛ کارهایِ در جریان و انجام‌شده', href:'roadmap.html', perm:'page.roadmap',     group:'more', tile:false }
 ];

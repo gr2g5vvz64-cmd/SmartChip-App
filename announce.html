@@ -19,37 +19,51 @@
 <script src="./madar-auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0f1218">
-<title>📢 اعلانِ عمومی — مدار</title>
-<!-- ⚠️ (۱۴۰۵/۰۷/۱۹) صفحه‌یِ تازه: مدیر یک پیام می‌نویسد، به بله/تلگرامِ همه (یا چند نفرِ انتخابی) می‌رود. فقط مدیریت (owner/admin). -->
+<title>📢 اعلان و جلسه — مدار</title>
+<!-- ⚠️ (۱۴۰۵/۰۷/۲۰) زیرِ نظرِ مدیریت: اعلان به همه / سرپرستان / یک واحد / چند نفر، و «جلسه» با تاریخ، ساعت، مکان، دبیرِ جلسه و صورتجلسه. فقط owner/admin. -->
 <style>
 :root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
-.wrap{max-width:760px;margin:0 auto;padding:18px 16px 110px}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 110px}
 a{color:inherit;text-decoration:none}
-.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 h1{font-size:22px;margin:4px 0 0}.sub{color:var(--soft);font-size:12.5px}.home{color:var(--acc);font-size:12.5px}
 button,input,select,textarea{font:inherit;color:var(--ink)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#1b1400}
+.tab .bd{background:var(--no);color:#fff;border-radius:9px;font-size:10.5px;padding:0 6px;margin-inline-start:5px}
+.pane{display:none}.pane.on{display:block}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
 .card h2{font-size:14.5px;margin:0 0 8px}
-textarea{width:100%;min-height:130px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:vertical;line-height:1.9}
+label.l{display:block;font-size:11.5px;color:var(--soft);margin:10px 0 3px}
+input[type=text],input[type=time],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13.5px}
+textarea{min-height:110px;resize:vertical;line-height:1.9}
+.grid3{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:640px){.grid3,.grid2{grid-template-columns:1fr 1fr}}
 .btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 14px;font-size:13px;cursor:pointer}
 .btn.pri{background:var(--acc);color:#1b1400;border-color:var(--acc);font-weight:700}
 .btn:disabled{opacity:.5;cursor:default}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.cnt{font-size:11.5px;color:var(--soft);text-align:left}
-.aud{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 8px}
-.aud label{cursor:pointer;font-size:13px}
-.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:6px}
-.person{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12.5px;cursor:pointer}
-.person.off{opacity:.55}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:3px 13px;font-size:12.5px;cursor:pointer;user-select:none}
+.chip.on{background:rgba(240,165,0,.18);border-color:var(--acc);color:var(--acc);font-weight:700}
+.chip small{color:var(--soft);margin-inline-start:4px}
+.hint{font-size:12px;color:var(--soft);margin-top:6px}.hint b{color:var(--ink)}
+.warn{color:var(--warn)}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;margin-top:8px;max-height:260px;overflow:auto}
+.person{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:12.5px;cursor:pointer}
+.person.off{opacity:.6}
 .tag{font-size:10.5px;border-radius:8px;padding:0 7px;border:1px solid var(--line);color:var(--soft);margin-inline-start:auto;white-space:nowrap}
 .tag.ok{color:var(--ok);border-color:rgba(52,211,153,.5)}.tag.no{color:var(--warn);border-color:rgba(251,146,60,.5)}
-.bubble{background:#1c2a3a;border:1px solid #2c4057;border-radius:14px 14px 4px 14px;padding:10px 14px;white-space:pre-wrap;font-size:13px;line-height:1.9;max-width:420px}
-.hint{font-size:12px;color:var(--soft);margin-top:6px}
+.bubble{background:#1c2a3a;border:1px solid #2c4057;border-radius:14px 14px 4px 14px;padding:10px 14px;white-space:pre-wrap;font-size:13px;line-height:1.9;max-width:460px}
 .msg{padding:10px 12px;border-radius:10px;font-size:13px;margin:8px 0}.msg.ok{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4)}.msg.bad{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4)}
+.chk{display:inline-flex;gap:6px;align-items:center;margin-inline-end:16px;font-size:13px;cursor:pointer}
 .h{border-top:1px solid var(--line);padding:10px 0}.h:first-child{border-top:0}.h .m{font-size:11.5px;color:var(--soft)}.h .t{white-space:pre-wrap;font-size:13px;margin-top:2px}
 .empty{color:var(--soft);text-align:center;padding:18px}
+.sec-t{font-size:12.5px;font-weight:800;margin:14px 2px 6px;color:var(--acc)}.sec-t.r{color:var(--no)}
+.wd{font-size:12px;color:var(--acc);margin-top:2px;min-height:18px}
 @media (max-width:700px){.wrap{padding:12px 12px 110px}}
 </style>
 <script src="./madar-theme.js"></script>
@@ -57,112 +71,246 @@ textarea{width:100%;min-height:130px;background:var(--bg);border:1px solid var(-
 <body>
 <div class="wrap">
   <div class="top">
-    <div><div class="sub" id="today"></div><h1>📢 اعلانِ عمومی</h1><div class="sub">یک پیام بنویس؛ به بله/تلگرامِ همه‌یِ کارمندان (یا چند نفرِ انتخابی) می‌رود</div></div>
+    <div><div class="sub" id="today"></div><h1>📢 اعلان و جلسه</h1><div class="sub">اعلان به همه، سرپرستان، یک واحد یا چند نفر · دعوتِ جلسه با تاریخ، ساعت، مکان و دبیرِ جلسه</div></div>
     <a class="home" href="index.html">← صفحه‌یِ اصلی</a>
   </div>
 
   <div id="denied" class="msg bad" style="display:none">این صفحه فقط برایِ مدیریت است.</div>
 
   <div id="app" style="display:none">
-    <div class="card">
-      <h2>✍️ متنِ اعلان</h2>
-      <div class="chips">
-        <button class="btn" data-tpl="new">🆕 تغییرِ تازه در مدار</button>
-        <button class="btn" data-tpl="fix">🔧 اصلاحِ مشکل</button>
-        <button class="btn" data-tpl="note">📌 یادآوریِ عمومی</button>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-t="ann">📢 اعلان</button>
+      <button class="tab" data-t="meet">🗓 جلسه‌یِ تازه</button>
+      <button class="tab" data-t="list">📚 جلسه‌ها<span class="bd" id="bdList" hidden>0</span></button>
+      <button class="tab" data-t="hist">🕘 اعلان‌هایِ قبلی</button>
+    </div>
+
+    <!-- ═════ اعلان ═════ -->
+    <div class="pane on" id="p-ann">
+      <div class="card">
+        <h2>✍️ متنِ اعلان</h2>
+        <div class="chips">
+          <button class="btn" data-tpl="new">🆕 تغییرِ تازه در مدار</button>
+          <button class="btn" data-tpl="fix">🔧 اصلاحِ مشکل</button>
+          <button class="btn" data-tpl="note">📌 یادآوریِ عمومی</button>
+          <button class="btn" data-tpl="off">🏖️ تعطیلی / ساعتِ کاری</button>
+          <button class="btn" data-tpl="rule">📋 قانون/روالِ تازه</button>
+        </div>
+        <label class="l">عنوان (اختیاری)</label>
+        <input type="text" id="aTitle" maxlength="200" placeholder="مثلاً: تغییرِ ساعتِ کاریِ پنجشنبه‌ها">
+        <label class="l">متن</label>
+        <textarea id="aTxt" maxlength="1500" placeholder="مثلاً: ✅ از امروز موعدِ پیگیری‌ها در گوگل کلندرتان هم می‌آید…"></textarea>
+        <div class="hint" style="text-align:left"><span id="aCnt">۰</span> / ۱۵۰۰</div>
+        <div style="margin-top:6px">
+          <label class="chk"><input type="checkbox" id="aImp"> ❗ مهم (در سرتیتر مشخص می‌شود)</label>
+          <label class="chk"><input type="checkbox" id="aAck"> 👁 «خواندم» بزنند (پیگیریِ اینکه چه کسانی دیده‌اند)</label>
+        </div>
       </div>
-      <textarea id="txt" maxlength="1500" placeholder="مثلاً: ✅ از امروز موعدِ پیگیری‌ها در گوگل کلندرتان هم می‌آید…"></textarea>
-      <div class="cnt"><span id="cnt">۰</span> / ۱۵۰۰</div>
-    </div>
-
-    <div class="card">
-      <h2>👥 به چه کسانی؟</h2>
-      <div class="aud">
-        <label><input type="radio" name="aud" value="all" checked> همه‌یِ کارمندانِ فعال</label>
-        <label><input type="radio" name="aud" value="pick"> انتخابِ چند نفر</label>
+      <div class="card"><h2>👥 به چه کسانی؟</h2><div id="audA"></div></div>
+      <div class="card"><h2>👁️ پیش‌نمایش (همان‌طور که در بله می‌رسد)</h2><div class="bubble" id="aPrev">—</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn pri" id="aSend" disabled>📤 ارسال</button>
+        <span class="hint">ارسال برگشت‌پذیر نیست؛ قبل از فرستادن پیش‌نمایش را بخوان.</span>
       </div>
-      <div id="people" class="people" style="display:none"></div>
-      <div class="hint" id="reach"></div>
+      <div id="aRes"></div>
     </div>
 
-    <div class="card">
-      <h2>👁️ پیش‌نمایش (همان‌طور که در بله می‌رسد)</h2>
-      <div class="bubble" id="prev">—</div>
+    <!-- ═════ جلسه ═════ -->
+    <div class="pane" id="p-meet">
+      <div class="card">
+        <h2>🗓 مشخصاتِ جلسه</h2>
+        <div class="chips">
+          <button class="btn" data-mt="sup">🧭 جلسه با سرپرستان</button>
+          <button class="btn" data-mt="all">👥 جلسه با همه‌یِ پرسنل</button>
+          <button class="btn" data-mt="few">🎯 جلسه با چند نفرِ مشخص</button>
+        </div>
+        <label class="l">عنوانِ جلسه *</label>
+        <input type="text" id="mTitle" maxlength="200" placeholder="مثلاً: جلسه‌یِ هفتگیِ سرپرستان">
+        <div class="grid3">
+          <div><label class="l">تاریخ (شمسی) *</label><input type="text" id="mDate" inputmode="numeric" placeholder="۱۴۰۵/۰۷/۲۲" dir="ltr" style="text-align:right"><div class="wd" id="mWd"></div></div>
+          <div><label class="l">ساعتِ شروع *</label><input type="time" id="mStart"></div>
+          <div><label class="l">ساعتِ پایان</label><input type="time" id="mEnd"></div>
+        </div>
+        <div class="chips" id="mQuick"></div>
+        <div class="grid2">
+          <div><label class="l">مکان *</label><input type="text" id="mPlace" maxlength="255" placeholder="مثلاً: اتاقِ جلسه، طبقه‌یِ دوم"></div>
+          <div><label class="l">یا لینکِ جلسه‌یِ آنلاین</label><input type="text" id="mLink" dir="ltr" maxlength="500" placeholder="https://…"></div>
+        </div>
+        <label class="l">دستورِ جلسه</label>
+        <textarea id="mAgenda" maxlength="1500" placeholder="۱. گزارشِ فروش&#10;۲. وضعیتِ محموله‌ها&#10;۳. …"></textarea>
+        <label class="l">توضیحِ اضافه (اختیاری)</label>
+        <input type="text" id="mText" maxlength="500" placeholder="مثلاً: لطفاً گزارشِ هفته را همراه بیاورید">
+        <label class="l">✍️ دبیرِ جلسه (مسئولِ جلسه و نویسنده‌یِ صورتجلسه)</label>
+        <select id="mSec"></select>
+        <div class="hint" id="mSecHint"></div>
+        <div style="margin-top:8px"><label class="chk"><input type="checkbox" id="mImp"> ❗ مهم</label></div>
+      </div>
+      <div class="card"><h2>👥 چه کسانی دعوت شوند؟</h2><div id="audM"></div></div>
+      <div class="card"><h2>👁️ پیش‌نمایشِ دعوت‌نامه</h2><div class="bubble" id="mPrev">—</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn pri" id="mSend">📤 بررسی و ارسالِ دعوت</button>
+        <span class="hint">پیش از ارسال، تعارضِ زمانی و افرادِ بدونِ بله بررسی می‌شود.</span>
+      </div>
+      <div id="mRes"></div>
     </div>
 
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button class="btn pri" id="send" disabled>📤 ارسال</button>
-      <span class="hint" id="sendHint">ارسال برگشت‌پذیر نیست؛ قبل از فرستادن یک بار پیش‌نمایش را بخوان.</span>
-    </div>
-    <div id="result"></div>
+    <!-- ═════ فهرستِ جلسه‌ها ═════ -->
+    <div class="pane" id="p-list"><div id="meetList"><div class="empty">در حالِ بارگذاری…</div></div></div>
 
-    <div class="card" style="margin-top:18px">
-      <h2>🕘 اعلان‌هایِ قبلی</h2>
-      <div id="hist"><div class="empty">در حالِ بارگذاری…</div></div>
-    </div>
+    <!-- ═════ تاریخچه ═════ -->
+    <div class="pane" id="p-hist"><div class="card"><div id="hist"><div class="empty">در حالِ بارگذاری…</div></div></div></div>
   </div>
 </div>
 
+<script src="./madar-meetings.js"></script>
 <script>
 const API='https://api.smartchipelec.com/api/announce/';
 const $=id=>document.getElementById(id);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fa=n=>String(n).replace(/\d/g,x=>'۰۱۲۳۴۵۶۷۸۹'[x]);
+const U=MadarMeet.util, esc=U.esc, fa=U.fa;
 const TPL={
   new:'🆕 تغییرِ تازه در مدار\n• \n• \n\nبرایِ دیدنِ تغییرها یک بار صفحه را تازه کنید (در گوشی: صفحه را ببندید و دوباره باز کنید).',
   fix:'🔧 مشکلِ «...» برطرف شد.\nاگر هنوز آن را دیدید، صفحه را تازه کنید و به ما بگویید.',
-  note:'📌 یادآوری: '
+  note:'📌 یادآوری: ',
+  off:'🏖️ اطلاعیه‌یِ ساعتِ کاری\nتاریخ: \nساعتِ کاری: \nتوضیح: ',
+  rule:'📋 روالِ تازه\nاز تاریخِ ... این روال اجرا می‌شود:\n1) \n2) \nسؤالی داشتید از ... بپرسید.'
 };
-let PEOPLE=[], sender='';
-function mode(){ return document.querySelector('input[name=aud]:checked').value; }
-function picked(){ return [...document.querySelectorAll('.person input:checked')].map(x=>x.value); }
-function bubble(){ const t=$('txt').value.trim(); $('prev').textContent = t ? ('📢 اعلانِ مدار\n\n'+t+'\n\n— '+(sender||'مدیریت')) : '—'; }
-function renderPeople(){
-  $('people').innerHTML = PEOPLE.map(p=>`<label class="person ${p.bale||p.telegram?'':'off'}"><input type="checkbox" value="${esc(p.name)}" ${p.bale||p.telegram?'checked':''}> ${esc(p.name)}<span class="tag ${p.bale||p.telegram?'ok':'no'}">${p.bale?'بله':p.telegram?'تلگرام':'وصل نیست'}</span></label>`).join('');
-  $('people').querySelectorAll('input').forEach(i=>i.addEventListener('change', recalc));
+let PEOPLE=[], GROUPS=[], MEETS=[], HIST=[], sender='';
+const call=(path,body)=>MadarMeet.api(path,body);
+
+/* ───────── انتخابِ مخاطب (مشترک بینِ اعلان و جلسه) ───────── */
+function makeAud(root, onChange){
+  const S={all:true, groups:new Set(), names:new Set(), few:false, q:''};
+  let timer=null, sum={will_send:0,cannot:[],label:''};
+  function payload(){ return S.all ? {audience:'all'} : {audience:'custom', groups:[...S.groups], names:[...S.names]}; }
+  function draw(){
+    root.innerHTML=`<div class="chips">
+      <span class="chip ${S.all?'on':''}" data-k="all">👥 همه‌یِ پرسنل<small>${fa((GROUPS.find(g=>g.key==='all')||{}).count||PEOPLE.length)}</small></span>
+      ${GROUPS.filter(g=>g.key!=='all').map(g=>`<span class="chip ${!S.all&&S.groups.has(g.key)?'on':''}" data-g="${esc(g.key)}">${esc(g.icon)} ${esc(g.label)}<small>${fa(g.count)}</small></span>`).join('')}
+      <span class="chip ${!S.all&&S.few?'on':''}" data-k="few">🎯 افرادِ مشخص${S.names.size&&!S.all?`<small>${fa(S.names.size)}</small>`:''}</span></div>
+      ${(!S.all&&S.few)?`<input type="text" data-q placeholder="جستجوی نام…" value="${esc(S.q)}" style="margin-top:6px"><div class="people">${PEOPLE.filter(p=>!S.q||p.name.includes(S.q)).map(p=>`<label class="person ${p.bale||p.telegram?'':'off'}"><input type="checkbox" value="${esc(p.name)}" ${S.names.has(p.name)?'checked':''}> ${esc(p.name)}<span class="tag ${p.bale||p.telegram?'ok':'no'}">${p.bale?'بله':p.telegram?'تلگرام':'وصل نیست'}</span></label>`).join('')}</div>`:''}
+      <div class="hint" data-sum></div>`;
+    root.querySelectorAll('[data-k]').forEach(c=>c.onclick=()=>{
+      if(c.dataset.k==='all'){ S.all=true; S.groups.clear(); S.names.clear(); S.few=false; }
+      else { S.all=false; S.few=!S.few; }
+      draw(); changed(); });
+    root.querySelectorAll('[data-g]').forEach(c=>c.onclick=()=>{ S.all=false; const k=c.dataset.g; S.groups.has(k)?S.groups.delete(k):S.groups.add(k); if(!S.groups.size&&!S.names.size&&!S.few) S.all=true; draw(); changed(); });
+    root.querySelectorAll('.person input').forEach(i=>i.onchange=()=>{ i.checked?S.names.add(i.value):S.names.delete(i.value); changed(); });
+    const q=root.querySelector('[data-q]'); if(q){ q.oninput=()=>{ S.q=q.value.trim(); const pos=q.selectionStart; draw(); const n=root.querySelector('[data-q]'); n.focus(); n.setSelectionRange(pos,pos); }; }
+    showSum();
+  }
+  function showSum(){
+    const el=root.querySelector('[data-sum]'); if(!el) return;
+    if(!S.all&&!S.groups.size&&!S.names.size){ el.innerHTML='<span class="warn">کسی انتخاب نشده</span>'; return; }
+    el.innerHTML=`مخاطب: <b>${esc(sum.label||'…')}</b> · به <b>${fa(sum.will_send)}</b> نفر می‌رسد`+(sum.cannot&&sum.cannot.length?` · <span class="warn">${fa(sum.cannot.length)} نفر بله/تلگرام ندارند: ${esc(sum.cannot.map(c=>c.name).join('، '))}</span>`:'');
+  }
+  function changed(){ clearTimeout(timer); timer=setTimeout(async()=>{
+    if(!S.all&&!S.groups.size&&!S.names.size){ sum={will_send:0,cannot:[],label:''}; showSum(); onChange&&onChange(); return; }
+    try{ sum=await call('/api/announce/',Object.assign({kind:'announce',dry:true},payload())); }catch(e){ sum={will_send:0,cannot:[],label:e.message}; }
+    showSum(); onChange&&onChange(); },250); onChange&&onChange(); }
+  return {draw, payload, changed, state:S, count:()=>sum.will_send, valid:()=>S.all||S.groups.size||S.names.size,
+          preset(kind){ S.all=false; S.groups.clear(); S.names.clear(); S.few=false;
+            if(kind==='all') S.all=true; else if(kind==='sup') S.groups.add('supervisors'); else if(kind==='few') S.few=true; draw(); changed(); }};
 }
-let dryTimer=null;
-function recalc(){
-  bubble();
-  const t=$('txt').value.trim(); $('cnt').textContent=fa(t.length);
-  const names = mode()==='pick' ? picked() : [];
-  const total = mode()==='pick' ? names.length : PEOPLE.length;
-  const reach = (mode()==='pick' ? PEOPLE.filter(p=>names.includes(p.name)) : PEOPLE).filter(p=>p.bale||p.telegram);
-  const miss = (mode()==='pick' ? PEOPLE.filter(p=>names.includes(p.name)) : PEOPLE).filter(p=>!(p.bale||p.telegram));
-  $('reach').innerHTML = `به <b>${fa(reach.length)}</b> نفر می‌رسد` + (miss.length ? ` · <span style="color:var(--warn)">${fa(miss.length)} نفر بله/تلگرام ندارند: ${esc(miss.map(m=>m.name).join('، '))}</span>` : '');
-  $('send').disabled = !(t && reach.length);
+
+/* ───────── اعلان ───────── */
+let audA, audM;
+function annBubble(){
+  const t=$('aTxt').value.trim(), ti=$('aTitle').value.trim();
+  $('aPrev').textContent = t ? ('📢 اعلانِ مدار'+($('aImp').checked?' — ❗ مهم':'')+'\n\n'+(ti?'«'+ti+'»\n\n':'')+t+'\n\n— '+(sender||'مدیریت')+($('aAck').checked?'\n\n👁 لطفاً «خواندم» را بزنید: داشبوردِ من ← کارهای من':'')) : '—';
+  $('aCnt').textContent=fa($('aTxt').value.length);
+  $('aSend').disabled=!(t && audA.valid() && audA.count()>0);
 }
-async function load(){
-  try{
-    const r=await fetch(API); const d=await r.json().catch(()=>({}));
-    if(r.status===403){ $('denied').style.display=''; return; }
-    if(!r.ok||!d.ok) throw new Error(d.error||'خطا');
-    PEOPLE=d.people||[]; $('app').style.display=''; renderPeople(); recalc(); renderHist(d.history||[]);
-  }catch(e){ $('denied').textContent='❌ '+(e.message||'ارتباط با سرور برقرار نشد')+' — اگر بک‌اندِ «اعلان» هنوز نصب نشده، اول نصب شود.'; $('denied').style.display=''; }
-}
-function renderHist(h){
-  $('hist').innerHTML = h.length ? h.map(a=>`<div class="h"><div class="m">${esc(a.at.replace('T',' '))} · ${esc(a.sender)} · رسید به ${fa(a.sent)} نفر${a.failed&&a.failed.length?` · نرسید به ${fa(a.failed.length)}: ${esc(a.failed.map(f=>f.name).join('، '))}`:''}</div><div class="t">${esc(a.text)}</div></div>`).join('') : '<div class="empty">هنوز اعلانی نفرستاده‌اید.</div>';
-}
-document.querySelectorAll('[data-tpl]').forEach(b=>b.addEventListener('click',()=>{ const t=$('txt'); if(t.value.trim() && !confirm('متنِ فعلی با قالب عوض شود؟')) return; t.value=TPL[b.dataset.tpl]; t.focus(); recalc(); }));
-$('txt').addEventListener('input', recalc);
-document.querySelectorAll('input[name=aud]').forEach(r=>r.addEventListener('change',()=>{ $('people').style.display = mode()==='pick' ? '' : 'none'; recalc(); }));
-$('send').addEventListener('click', async ()=>{
-  const t=$('txt').value.trim(); if(!t) return;
-  const names = mode()==='pick' ? picked() : [];
-  if(mode()==='pick' && !names.length){ alert('حداقل یک نفر را انتخاب کن'); return; }
+$('aTxt').oninput=$('aTitle').oninput=annBubble; $('aImp').onchange=$('aAck').onchange=annBubble;
+document.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{ const t=$('aTxt'); if(t.value.trim() && !confirm('متنِ فعلی با قالب عوض شود؟')) return; t.value=TPL[b.dataset.tpl]; t.focus(); annBubble(); });
+$('aSend').onclick=async()=>{
   if(!confirm('این اعلان همین حالا فرستاده شود؟')) return;
-  $('send').disabled=true; $('result').innerHTML='';
+  $('aSend').disabled=true; $('aRes').innerHTML='';
   try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t,names})});
-    const d=await r.json().catch(()=>({}));
-    if(!r.ok||!d.ok) throw new Error(d.error||'ارسال نشد');
-    $('result').innerHTML=`<div class="msg ok">✅ فرستاده شد: ${fa(d.sent)} نفر</div>` + ((d.failed||[]).length?`<div class="msg bad">نرسید به: ${esc(d.failed.map(f=>f.name+' ('+f.why+')').join('، '))}</div>`:'');
-    $('txt').value=''; recalc();
-    const h=await fetch(API).then(x=>x.json()).catch(()=>null); if(h&&h.ok) renderHist(h.history||[]);
-  }catch(e){ $('result').innerHTML=`<div class="msg bad">❌ ${esc(e.message)}</div>`; $('send').disabled=false; }
+    const d=await call('/api/announce/',Object.assign({kind:'announce',text:$('aTxt').value.trim(),title:$('aTitle').value.trim(),important:$('aImp').checked,needs_ack:$('aAck').checked},audA.payload()));
+    $('aRes').innerHTML=`<div class="msg ok">✅ فرستاده شد: ${fa(d.sent)} نفر</div>`+((d.failed||[]).length?`<div class="msg bad">نرسید به: ${esc(d.failed.map(f=>f.name+' ('+f.why+')').join('، '))}</div>`:'');
+    $('aTxt').value=''; $('aTitle').value=''; annBubble(); loadAll();
+  }catch(e){ $('aRes').innerHTML=`<div class="msg bad">❌ ${esc(e.message)}</div>`; annBubble(); }
+};
+
+/* ───────── جلسه ───────── */
+function meetBody(){
+  return Object.assign({kind:'meeting',title:$('mTitle').value.trim(),date:U.normDate($('mDate').value),time:$('mStart').value,end:$('mEnd').value,
+    place:$('mPlace').value.trim(),link:$('mLink').value.trim(),agenda:$('mAgenda').value.trim(),text:$('mText').value.trim(),secretary:$('mSec').value,important:$('mImp').checked},audM.payload());
+}
+function meetBubble(){
+  const b=meetBody(), wd=U.weekday(b.date);
+  $('mWd').textContent = $('mDate').value.trim() ? (wd?wd+' '+U.faDate(b.date):'تاریخ نامعتبر') : '';
+  const lines=['【🗓 جلسه】','🗓 دعوت به جلسه'+(b.important?' — ❗ مهم':''),'','📌 '+(b.title||'…'),'🕘 '+(b.date?wd+' '+U.faDate(b.date):'…')+' · ساعت '+fa((b.time||'…')+(b.end?' تا '+b.end:''))];
+  if(b.place) lines.push('📍 مکان: '+b.place); if(b.link) lines.push('🔗 لینک: '+b.link);
+  if(b.agenda) lines.push('','📋 دستورِ جلسه:',b.agenda); if(b.text) lines.push('',b.text);
+  if(b.secretary) lines.push('','✍️ دبیرِ جلسه (مسئولِ صورتجلسه): '+b.secretary);
+  lines.push('','— دعوت از طرفِ '+(sender||'مدیریت'),'','پاسخِ حضور (می‌آیم / نمی‌توانم) را در «داشبوردِ من ← کارهای من» بزنید.');
+  $('mPrev').textContent=lines.join('\n');
+  $('mSecHint').innerHTML = b.secretary ? '✍️ <b>'+esc(b.secretary)+'</b> بعد از جلسه صورتجلسه را می‌نویسد؛ مصوبه‌هایی که مسئول و موعد دارند خودکار به «پیگیری و تحویل» می‌روند.' : '<span class="warn">بدونِ دبیر، کسی مسئولِ صورتجلسه نیست (مدیریت خودش می‌تواند بنویسد).</span>';
+}
+document.querySelectorAll('#p-meet input,#p-meet textarea,#p-meet select').forEach(i=>{ i.oninput=meetBubble; i.onchange=meetBubble; });
+document.querySelectorAll('[data-mt]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.mt; audM.preset(k);
+  if(!$('mTitle').value.trim()) $('mTitle').value = k==='sup'?'جلسه‌یِ سرپرستان':k==='all'?'جلسه‌یِ عمومیِ پرسنل':'';
+  meetBubble();
 });
+function buildQuick(){
+  const t=U.todayJ(), opts=[['امروز',0],['فردا',1],['۲ روز دیگر',2],['۳ روز دیگر',3],['هفته‌یِ بعد',7]];
+  $('mQuick').innerHTML=opts.map(o=>`<span class="chip" data-d="${o[1]}">${o[0]}</span>`).join('');
+  $('mQuick').querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{ $('mDate').value=U.addDays(t,+c.dataset.d).replace(/-/g,'/'); meetBubble(); });
+}
+function fillSecretaries(){
+  const sorted=[...PEOPLE].sort((a,b)=>(b.office?1:0)-(a.office?1:0)||a.name.localeCompare(b.name,'fa'));
+  const cur=$('mSec').value;
+  $('mSec').innerHTML='<option value="">— بدونِ دبیر —</option>'+sorted.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}${p.office?' — مسئولِ دفتر':''}${p.units&&p.units.length?' · '+esc(p.units[0]):''}</option>`).join('');
+  $('mSec').value=cur;
+}
+$('mSend').onclick=async()=>{
+  const b=meetBody(), res=$('mRes'); res.innerHTML='';
+  const bad=!b.title?'عنوانِ جلسه را بنویس':!b.date?'تاریخ را درست بنویس (مثلاً ۱۴۰۵/۰۷/۲۲)':!b.time?'ساعتِ شروع را انتخاب کن':(!b.place&&!b.link)?'مکان (یا لینکِ آنلاین) را بنویس':!audM.valid()?'مخاطب را انتخاب کن':'';
+  if(bad){ res.innerHTML=`<div class="msg bad">${bad}</div>`; return; }
+  $('mSend').disabled=true;
+  try{
+    const d=await call('/api/announce/',Object.assign({},b,{dry:true}));
+    let q=`دعوت برایِ ${fa(d.total)} نفر فرستاده شود؟\n\n«${b.title}»\n${U.weekday(b.date)} ${U.faDate(b.date)} · ${fa(b.time)}`;
+    if(d.cannot&&d.cannot.length) q+=`\n\n⚠️ بله/تلگرام ندارند (نمی‌رسد): ${d.cannot.map(c=>c.name).join('، ')}`;
+    if(d.conflicts&&d.conflicts.length){ const m={}; d.conflicts.forEach(c=>{ (m[c.name]=m[c.name]||[]).push(c.meeting+' '+c.time); }); q+=`\n\n⏰ تعارضِ زمانی با جلسه‌یِ دیگر:\n`+Object.keys(m).map(n=>'• '+n+' ← '+m[n].join('، ')).join('\n'); }
+    if(!confirm(q)){ $('mSend').disabled=false; return; }
+    const r=await call('/api/announce/',b);
+    res.innerHTML=`<div class="msg ok">✅ دعوت فرستاده شد: ${fa(r.sent)} نفر</div>`+((r.failed||[]).length?`<div class="msg bad">نرسید به: ${esc(r.failed.map(f=>f.name+' ('+f.why+')').join('، '))}</div>`:'');
+    ['mTitle','mDate','mStart','mEnd','mPlace','mLink','mAgenda','mText'].forEach(i=>$(i).value=''); $('mSec').value=''; $('mImp').checked=false; meetBubble(); loadAll();
+  }catch(e){ res.innerHTML=`<div class="msg bad">❌ ${esc(e.message)}</div>`; }
+  $('mSend').disabled=false;
+};
+
+/* ───────── فهرستِ جلسه‌ها / تاریخچه ───────── */
+function renderMeets(){
+  const up=[], need=[], held=[], canc=[];
+  MEETS.forEach(m=>{ if(m.status==='canceled') canc.push(m); else if(m.status==='held') held.push(m); else if(m.needs_minutes) need.push(m); else up.push(m); });
+  up.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const sec=(t,l,cls)=>l.length?`<div class="sec-t ${cls||''}">${t} (${fa(l.length)})</div>`+l.map(m=>MadarMeet.card(m,{admin:true})).join(''):'';
+  $('meetList').innerHTML=(sec('📝 جلسه‌هایی که صورتجلسه‌شان ننوشته شده',need,'r')+sec('📅 پیشِ رو',up)+sec('✅ برگزارشده',held.slice(0,15))+sec('🚫 لغوشده',canc.slice(0,8)))||'<div class="card empty">هنوز جلسه‌ای نساخته‌اید. از «🗓 جلسه‌یِ تازه» شروع کنید.</div>';
+  $('bdList').hidden=!need.length; $('bdList').textContent=fa(need.length);
+}
+function renderHist(){
+  $('hist').innerHTML = HIST.length ? HIST.map(a=>`<div class="h"><div class="m">${esc(a.at.replace('T',' '))} · ${esc(a.sender)} · ${esc(a.audience_label||'')} · رسید به ${fa(a.sent)} نفر${a.important?' · ❗ مهم':''}${a.failed&&a.failed.length?` · نرسید به ${fa(a.failed.length)}: ${esc(a.failed.map(f=>f.name).join('، '))}`:''}${a.needs_ack?` · 👁 ${fa(a.acks)} از ${fa(a.total)} خوانده‌اند`:''}</div>${a.title?`<div style="font-weight:700">${esc(a.title)}</div>`:''}<div class="t">${esc(a.text)}</div>${a.needs_ack&&a.acks<a.total?`<button class="btn" style="margin-top:6px" data-rem="${a.id}">🔔 یادآوری به کسانی که نخوانده‌اند</button>`:''}</div>`).join('') : '<div class="empty">هنوز اعلانی نفرستاده‌اید.</div>';
+  $('hist').querySelectorAll('[data-rem]').forEach(b=>b.onclick=async()=>{ b.disabled=true; try{ const j=await call('/api/announce/'+b.dataset.rem+'/remind/',{}); alert('فرستاده شد: '+fa(j.sent)+' نفر'+((j.skipped||[]).length?'\nنرسید: '+j.skipped.join('، '):'')); }catch(e){ alert(e.message); } b.disabled=false; });
+}
+async function loadAll(){
+  try{
+    const r=await fetch(API+'?email='+encodeURIComponent(localStorage.getItem('smartchip_user_email')||'')); const d=await r.json().catch(()=>({}));
+    if(r.status===403){ $('denied').style.display=''; $('app').style.display='none'; return; }
+    if(!r.ok||!d.ok) throw new Error(d.error||'خطا');
+    PEOPLE=d.people||[]; GROUPS=d.groups||[]; MEETS=d.meetings||[]; HIST=d.history||[];
+    $('app').style.display=''; fillSecretaries(); renderMeets(); renderHist();
+    if(!audA){ audA=makeAud($('audA'),annBubble); audM=makeAud($('audM'),meetBubble); buildQuick(); audA.draw(); audM.draw(); audA.changed(); audM.changed(); }
+    annBubble(); meetBubble();
+  }catch(e){ $('denied').textContent='❌ '+(e.message||'ارتباط با سرور برقرار نشد')+' — اگر بک‌اندِ «اعلان» هنوز به‌روز نشده، اول نصب (migrate) شود.'; $('denied').style.display=''; }
+}
+document.querySelectorAll('#tabs .tab').forEach(t=>t.onclick=()=>{ document.querySelectorAll('#tabs .tab').forEach(x=>x.classList.toggle('on',x===t)); document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t.dataset.t)); history.replaceState(null,'','#'+t.dataset.t); });
+MadarMeet.bind($('meetList'),{items:()=>MEETS,onChange:loadAll});
 $('today').textContent=new Date().toLocaleDateString('fa-IR',{calendar:'persian',weekday:'long',day:'numeric',month:'long',year:'numeric'});
-MadarAccess.ready(()=>{ sender=(MadarAccess.name&&MadarAccess.name())||(window.MadarAuth&&MadarAuth.name&&MadarAuth.name())||''; load(); });
+MadarAccess.ready(()=>{ sender=(MadarAccess.name&&MadarAccess.name())||(window.MadarAuth&&MadarAuth.name&&MadarAuth.name())||''; loadAll().then(()=>{ const h=(location.hash||'').slice(1); const t=document.querySelector('#tabs .tab[data-t="'+h+'"]'); if(t) t.click(); }); });
 </script>
 <script src="./madar-help.js" defer></script>
 </body>

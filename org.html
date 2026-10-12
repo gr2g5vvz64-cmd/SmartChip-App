@@ -188,6 +188,7 @@ textarea.inp{min-height:92px;line-height:1.9;resize:vertical}
     <div class="grp">اتوماسیونِ اداری</div>
     <button class="nav" data-v="inbox"><span class="ic">📥</span>کارتابلِ من<span class="bd" id="inboxBd" hidden>0</span></button>
     <button class="nav" data-v="closure" id="navClosure" hidden><span class="ic">📢</span>تعطیلیِ اعلامی</button>
+    <button class="nav" data-v="weekly" id="navWeekly" hidden><span class="ic">📈</span>گزارشِ هفتگیِ تیم</button>
     <button class="nav" data-v="leave"><span class="ic">🏖️</span>مرخصی و مأموریت<span class="bd" id="leaveBd" hidden>0</span></button>
     <a class="nav" href="attendance.html" style="text-decoration:none"><span class="ic">🕘</span>حضور و غیاب</a>
     <button class="nav" data-v="requests"><span class="ic">🧾</span>درخواست‌هایِ اداری<span class="soon">به‌زودی</span></button>
@@ -218,11 +219,15 @@ function go(v){
   S.view = v; if((location.hash||'').slice(1).split(':')[0] !== v) history.replaceState(null, '', '#' + v);
   document.querySelectorAll('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   ({dash: viewDash, units: viewUnits, mine: viewMine, staff: viewStaff, inbox: () => viewInbox(false), closure: viewClosure,
-    leave: viewLeave,
+    leave: viewLeave, weekly: viewWeekly,
     requests: () => viewSoon('🧾 درخواست‌هایِ اداری', 'خریدِ اداری، تنخواه، تجهیزات، پیش‌پرداختِ حقوق — همه با یک مسیرِ تأییدِ یکسان و قابلِ پیگیری، در کارتابلِ مدیرِ مستقیم.'),
     letters: () => { D.sec='letters'; D.sub='in'; viewInbox(true); }, hrcom: () => { D.sec='hr'; D.sub='com'; viewInbox(true); }}[v] || viewDash)();
 }
 
+// ─────────── 📈 گزارشِ هفتگیِ تیم (همان weekly.html، داخلِ سازمان) ───────────
+function viewWeekly(){
+  $('main').innerHTML = '<iframe src="weekly.html?embed=1" title="گزارش هفتگی" style="width:100%;height:calc(100vh - 40px);min-height:600px;border:0;border-radius:14px;background:transparent"></iframe>';
+}
 // ─────────── 📊 نمایِ کلی ───────────
 async function viewDash(){
   const m = $('main'); m.innerHTML = '<div class="loading">در حالِ بارگذاری…</div>';
@@ -667,10 +672,11 @@ function viewSoon(title, text){
   if(!MadarAuth.token()){ MadarAuth.require(true); $('main').innerHTML = '<div class="loading">برایِ «سازمان» با ورودِ امن وارد شوید.</div>'; return; }
   try{ S.me = await api('/api/org/me/'); }catch(e){ $('main').innerHTML = `<div class="loading">⚠️ ${esc(e.message)}<br><br>اگه سرور تازه به‌روز شده، چند دقیقه‌ی دیگه دوباره امتحان کنید.</div>`; return; }
   if(S.me.is_mgmt) $('navClosure').hidden = false;
+  try{ MadarAccess.ready(function(){ if(MadarAccess.can('page.weekly')) $('navWeekly').hidden = false; }); }catch(e){ if(S.me.is_mgmt) $('navWeekly').hidden = false; }
   try{ const t = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); S.me.today = t; }catch(e){}
   await loadInbox();
   const v = (location.hash || '').slice(1).split(':')[0];
-  go(['dash','units','mine','staff','inbox','closure','leave','requests','letters','hrcom'].includes(v) ? v : 'dash');
+  go(['dash','units','mine','staff','inbox','closure','weekly','leave','requests','letters','hrcom'].includes(v) ? v : 'dash');
   setInterval(() => { if(document.visibilityState === 'visible') loadInbox(); }, 120000);
 })();
 </script>

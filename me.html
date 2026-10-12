@@ -16,11 +16,12 @@
   };
 })();
 </script>
-<script>window.MADAR_NO_INBOX_BUTTON = true;   /* کارتابل همین‌جا کارت دارد */</script>
+<script>window.MADAR_NO_INBOX_BUTTON = true;   /* کارتابل همین‌جا در «کارهای من» است */</script>
 <script src="./madar-auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0f1218">
 <title>🏠 داشبوردِ من — مدار</title>
+<!-- ⚠️ (۱۴۰۵/۰۷/۲۰) «کارهای من»: یک فهرست از چند منبع (پیگیری و تحویل، یادآوری‌ها، جلسه‌ها و اعلان‌ها، ارجاعِ واحد در ERP، کارتابل) به ترتیبِ سررسید -->
 <style>
 :root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
 *{box-sizing:border-box}
@@ -31,23 +32,36 @@ a{color:inherit;text-decoration:none}
 h1{font-size:22px;margin:4px 0 0}
 .sub{color:var(--soft);font-size:12.5px}
 .home{color:var(--acc);font-size:12.5px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 14px 10px}
 .card h2{font-size:15px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .card h2 a{font-size:11.5px;color:var(--acc);font-weight:600}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
 .kpi{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center}
 .kpi b{display:block;font-size:22px;line-height:1.2}
 .kpi span{font-size:11px;color:var(--soft)}
 .kpi.warn b{color:var(--warn)}.kpi.bad b{color:var(--no)}.kpi.good b{color:var(--ok)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.chip{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:11.5px}
-.chip b{color:#ff8080;margin-inline-start:4px}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:2px 11px;font-size:11.5px;cursor:pointer;user-select:none;color:var(--soft)}
+.chip.on{background:rgba(240,165,0,.18);border-color:var(--acc);color:var(--acc);font-weight:700}
+.chip b{margin-inline-start:4px}
+.gt{font-size:12px;font-weight:800;margin:14px 2px 6px}
+.gt.r{color:var(--no)}.gt.o{color:var(--warn)}.gt.g{color:var(--ok)}.gt.s{color:var(--soft)}
+.row{display:flex;gap:10px;align-items:center;background:var(--card2);border:1px solid var(--line);border-right:4px solid var(--c,#555);border-radius:12px;padding:8px 12px;margin-bottom:7px}
+.row.dim{opacity:.7}
+.row .b{flex:1;min-width:0}.row .b b{font-size:13.5px;font-weight:700}.row .b div{color:var(--soft);font-size:11.5px}
+.src{font-size:10.5px;border-radius:8px;padding:0 8px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+.due{font-size:11.5px;color:var(--soft);white-space:nowrap}.due.late{color:var(--no);font-weight:700}
+.ck{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:none;color:var(--ok);cursor:pointer;flex:none;font-size:14px}
+.ck:hover{border-color:var(--ok)}
+.ck.ph{visibility:hidden}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--soft);margin:0 0 10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:4px;background:var(--c)}
+.empty{color:var(--soft);text-align:center;padding:16px 4px;font-size:12.5px}
 .it{display:flex;gap:10px;padding:8px 2px;border-top:1px solid #262c3d;align-items:flex-start}
 .it .ic{font-size:16px}
 .it .t{font-size:13px;font-weight:700;line-height:1.6}
 .it .s{font-size:11.5px;color:var(--soft);line-height:1.6}
-.empty{color:var(--soft);text-align:center;padding:16px 4px;font-size:12.5px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 .tl{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;font-size:12.5px;font-weight:700}
 .tl:hover{border-color:var(--acc)}
@@ -55,7 +69,8 @@ h1{font-size:22px;margin:4px 0 0}
 .note{color:var(--soft);font-size:11.5px;margin-top:8px}
 .badge{display:inline-block;font-size:11px;border-radius:10px;padding:0 8px;border:1px solid var(--line);color:var(--soft);margin-inline-start:6px}
 .badge.red{color:var(--no);border-color:rgba(248,113,113,.5)}
-@media (max-width:700px){.wrap{padding:12px 12px 110px}.grid{grid-template-columns:1fr}}
+.kpis2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+@media (max-width:700px){.wrap{padding:12px 12px 110px}.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
 </style>
 <script src="./madar-theme.js"></script>
 </head>
@@ -63,64 +78,132 @@ h1{font-size:22px;margin:4px 0 0}
 <div class="wrap">
   <div class="top">
     <div><div class="sub" id="today"></div><h1 id="hello">🏠 داشبوردِ من</h1><div class="sub" id="roleLine"></div></div>
-    <a class="home" href="index.html">← صفحه‌یِ اصلی</a>
+    <span><a class="home" href="#" data-msearch>🔍 جستجو</a> &nbsp; <a class="home" href="index.html">← صفحه‌یِ اصلی</a></span>
   </div>
+
+  <section class="card" id="cWork">
+    <h2><span>✅ کارهای من</span><span class="sub" id="workNote"></span></h2>
+    <div class="empty">در حالِ بارگذاری…</div>
+  </section>
+
   <div class="grid">
-    <section class="card" id="cInbox"><h2><span>📥 کارتابلِ من</span><a href="org.html#inbox">صفحه‌یِ کامل ›</a></h2><div class="empty">در حالِ بارگذاری…</div></section>
-    <section class="card" id="cDeleg"><h2><span>🤝 پیگیری و تحویل</span><a href="reminders.html" data-perm="page.reminders">باز کردن ›</a></h2><div class="empty">در حالِ بارگذاری…</div></section>
     <section class="card" id="cLinks"><h2><span>🧭 میانبرها</span></h2><div class="tiles" id="tiles"></div></section>
     <section class="card" id="cTeam" data-perm="dash.team"><h2><span>👥 تیمِ من</span><a href="org.html">سازمان ›</a></h2><div class="empty">در حالِ بارگذاری…</div></section>
   </div>
-  <div class="note" style="margin-top:14px">این صفحه فقط چیزهایی را نشان می‌دهد که مربوط به خودِ شماست. بخش‌هایِ دیگر مدار بر اساسِ نقشِ شما (در «پنلِ دسترسی») باز یا بسته‌اند.</div>
+  <div class="note" style="margin-top:14px">این صفحه فقط چیزهایی را نشان می‌دهد که مربوط به خودِ شماست. بخش‌هایِ دیگرِ مدار بر اساسِ نقشِ شما (در «پنلِ دسترسی») باز یا بسته‌اند.</div>
 </div>
+<script src="./madar-tiles.js"></script>
+<script src="./madar-search.js" defer></script>
+<script src="./madar-meetings.js"></script>
 <script>
 const API='https://api.smartchipelec.com';
 const $=id=>document.getElementById(id);
-const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const U=MadarMeet.util, fa=U.fa, esc=U.esc;
 const ROLE_LABEL={owner:'مدیریت',admin:'مدیریت',sup_sales:'سرپرستِ فروش',sup_trade:'سرپرستِ بازرگانی',sup_procurement:'سرپرستِ تدارکات',sup_finance:'سرپرستِ مالی',sup_warehouse:'سرپرستِ انبار',office:'مسئولِ دفتر',sales_expert:'کارشناسِ فروش',accounting:'حسابداری',warehouse_keeper:'انباردار',trade_expert:'کارشناسِ بازرگانی',procurement_staff:'تدارکات',service:'خدمات',parts_mgmt:'مدیریتِ قطعات',pcb_mgmt:'مدیریتِ برد'};
 const TILES=[['attendance','🕘','حضور و غیاب','attendance.html','page.attendance'],['org','🏢','سازمان','org.html','page.org'],['erp','🏭','ERP','erp.html','page.erp'],['crm','📞','CRM فروش','crm.html','page.crm'],
  ['reminders','⏰','یادآوری‌ها','reminders.html','page.reminders'],['priceList','💰','Price List','pricelist.html','page.pricelist'],['fx','💱','دفترِ ارزی','fx-ledger.html','page.fxledger'],
- ['guide','📖','راهنمایِ کارکنان','guide-staff.html','page.guide']];
-function myEmail(){ try{ return localStorage.getItem('smartchip_user_email')||localStorage.getItem('smartchip_erp_email')||''; }catch(e){ return ''; } }
-function todayJ(){ const p=new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((o,x)=>(o[x.type]=x.value,o),{}); return p.year+'-'+p.month+'-'+p.day; }
-async function getJ(path){ const r=await fetch(API+path,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
-let ME={name:'',role:''};
+ ['guide','📖','راهنما','guide.html','page.guide']];
+const SRC={f:['پیگیری و تحویل','#ff8a3d'],r:['یادآوری','#c084fc'],m:['جلسه / اعلان','#29b6f6'],u:['ارجاعِ واحد (ERP)','#f2c94c'],i:['کارتابل','#2fd37a']};
+const DEPT={sales:'فروش',purchase:'تدارکات',trade:'بازرگانی',finance:'مالی',mgmt:'مدیریت',site:'IT'};
+let ME={name:'',role:''}, ITEMS=[], MEETS=[], FILTER='all', FAILED=[];
 
+function getJ(path){ return fetch(API+path,{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }); }
+const arr=d=>Array.isArray(d)?d:(d&&(d.results||d.items))||[];
+const sameName=(a,b)=>{ const n=s=>String(s||'').replace(/‌/g,' ').replace(/ي/g,'ی').replace(/ك/g,'ک').split(/\s+/).filter(Boolean).join(' '); a=n(a); b=n(b); if(!a||!b) return false; if(a===b) return true; const x=new Set(a.split(' ')),y=new Set(b.split(' ')); const [s,l]=x.size<=y.size?[x,y]:[y,x]; return s.size>=2&&[...s].every(w=>l.has(w)); };
+
+/* ───────── منبع‌ها ───────── */
+async function srcDeleg(){
+  const list=arr(await getJ('/api/delegations/?actor='+encodeURIComponent(ME.name||'')));
+  return list.filter(r=>r.status==='waiting'||r.status==='answered').map(r=>{
+    const mineDoer=sameName(r.delegate_name,ME.name), mineOwner=sameName(r.owner_name,ME.name);
+    let sub, dim=false, title=r.title;
+    if(r.status==='answered'&&mineOwner) sub='📦 نتیجه آماده است — تحویل بگیر · '+(r.delegate_name||'');
+    else if(mineDoer&&!(mineOwner&&sameName(r.delegate_name,r.owner_name))) sub='⏳ باید پیگیری کنم — از '+(r.owner_name||'');
+    else { sub='🕐 منتظرِ '+(r.delegate_name||''); dim=true; }
+    if(r.sub_total>1) title=(r.customer?r.customer+' — ':'')+fa(r.sub_open)+' موضوعِ باز';
+    return {src:'f',title,sub:sub+(r.customer&&r.sub_total<=1?' · '+r.customer:''),due:U.normDate(r.next_date||r.ask_due_date),time:r.ask_due_time||'',link:'reminders.html',dim,late:!!r.overdue};
+  });
+}
+async function srcRemind(){
+  const [fr,rc]=await Promise.all([getJ('/api/worklog/free-reminders/').then(arr).catch(()=>[]),getJ('/api/worklog/recurring-reminders/').then(arr).catch(()=>[])]);
+  const out=[];
+  fr.filter(r=>sameName(r.assignee_name,ME.name)&&!r.done&&!r.canceled&&!r.archived).forEach(r=>out.push({src:'r',id:r.id,kind:'free',title:r.desc||'یادآوری',sub:'⏰ یادآوریِ آزاد'+(r.customer?' · '+r.customer:''),due:U.normDate(r.date),time:r.time||'',link:'reminders.html',check:true}));
+  rc.filter(r=>sameName(r.assignee_name,ME.name)&&!r.canceled&&!r.archived).forEach(r=>out.push({src:'r',title:r.title||'یادآوریِ دوره‌ای',sub:'🔁 دوره‌ای'+(r.customer?' · '+r.customer:''),due:U.normDate(r.next_date),time:r.time||'',link:'reminders.html'}));
+  return out;
+}
+async function srcTasks(){
+  if(!MadarAccess.can('page.erp')) return [];
+  const list=arr(await getJ('/api/worklog/tasks/')).filter(t=>t.status!=='done').slice(0,40);
+  const isMgmt=['owner','admin'].includes(ME.role);
+  const out=list.map(t=>({src:'u',title:t.title||t.desc||'ارجاع',sub:'📌 ارجاع به واحدِ '+(DEPT[t.dept]||t.dept||'')+(t.customer?' · '+t.customer:'')+(t.force?' · 🔴 فوری':''),due:U.normDate(t.deadline||t.date),time:'',link:'erp.html',dim:isMgmt}));
+  return isMgmt?out.filter(x=>x.due).slice(0,6):out;
+}
+async function srcInbox(){
+  const d=await getJ('/api/org/inbox/'); if(!d.ok) throw new Error('x');
+  return (d.items||[]).slice(0,15).map(it=>({src:'i',title:it.title,sub:(it.icon||'•')+' '+(it.sub||''),due:'',time:'',link:it.link||'org.html#inbox'}));
+}
+async function srcMeet(){
+  const d=await getJ('/api/announce/meetings/?email='+encodeURIComponent(U.en(localStorage.getItem('smartchip_user_email')||'')));
+  MEETS=[...(d.meetings||[]),...(d.acks||[])];
+  return MEETS.filter(m=>m.status!=='canceled'&&(m.kind==='announce'||m.status==='scheduled')).map(m=>({src:'m',mid:m.id,title:m.title,due:m.kind==='announce'?'':m.date,time:m.time||'',card:m}));
+}
+
+/* ───────── ساخت و نمایش ───────── */
+async function loadAll(){
+  FAILED=[];
+  const jobs=[['پیگیری و تحویل',srcDeleg],['یادآوری‌ها',srcRemind],['جلسه‌ها',srcMeet],['ارجاعِ واحد',srcTasks],['کارتابل',srcInbox]];
+  const res=await Promise.all(jobs.map(j=>j[1]().catch(e=>{ FAILED.push(j[0]); return []; })));
+  ITEMS=res.flat();
+  render();
+}
+function bucket(it,T,T1,T7){
+  if(!it.due) return it.src==='m'?'today':'wait';        // اعلانِ منتظرِ «خواندم» = امروز
+  if(it.due<T) return 'late'; if(it.due===T) return 'today'; if(it.due===T1) return 'tom'; if(it.due<=T7) return 'week'; return 'later';
+}
+function render(){
+  const T=U.todayJ(), T1=U.addDays(T,1), T7=U.addDays(T,7), c=$('cWork');
+  ITEMS.forEach(it=>it._b=bucket(it,T,T1,T7));
+  const cnt=k=>ITEMS.filter(i=>i._b===k&&!i.dim).length;
+  const counts={}; Object.keys(SRC).forEach(k=>counts[k]=ITEMS.filter(i=>i.src===k).length);
+  const FL=[['all','همه'],['late','عقب‌افتاده'],['today','امروز'],['week','این هفته']].concat(Object.keys(SRC).filter(k=>counts[k]).map(k=>[k,SRC[k][0]]));
+  const ok=i=>FILTER==='all'||(FILTER==='late'&&i._b==='late')||(FILTER==='today'&&i._b==='today')||(FILTER==='week'&&['late','today','tom','week'].includes(i._b))||FILTER===i.src;
+  const G=[['late','🔴 عقب‌افتاده','r'],['today','📅 امروز','o'],['tom','🕘 فردا','g'],['week','🗓 تا یک هفته','s'],['later','بعداً','s'],['wait','📥 منتظرِ اقدامِ من (بدونِ موعد)','s']];
+  const key=i=>(i.due||'9999')+(i.time||'99:99');
+  let h=`<div class="kpis"><div class="kpi ${cnt('late')?'bad':'good'}"><b>${fa(cnt('late'))}</b><span>عقب‌افتاده</span></div><div class="kpi ${cnt('today')?'warn':'good'}"><b>${fa(cnt('today'))}</b><span>امروز</span></div><div class="kpi"><b>${fa(cnt('tom'))}</b><span>فردا</span></div><div class="kpi"><b>${fa(ITEMS.filter(i=>!i.dim).length)}</b><span>کل</span></div></div>`;
+  h+=`<div class="legend">${Object.keys(SRC).filter(k=>counts[k]).map(k=>`<span style="--c:${SRC[k][1]}"><i></i>${SRC[k][0]}</span>`).join('')}</div>`;
+  h+=`<div class="chips">${FL.map(f=>`<span class="chip ${FILTER===f[0]?'on':''}" data-f="${f[0]}">${f[1]}</span>`).join('')}</div>`;
+  let any=false;
+  G.forEach(g=>{
+    const l=ITEMS.filter(i=>i._b===g[0]&&ok(i)).sort((a,b)=>key(a).localeCompare(key(b)));
+    if(!l.length) return; any=true;
+    h+=`<div class="gt ${g[2]}">${g[1]} (${fa(l.length)})</div>`+l.map(i=>row(i,T)).join('');
+  });
+  if(!any) h+='<div class="empty">🎉 کاری باقی نمانده</div>';
+  c.innerHTML=`<h2><span>✅ کارهای من</span><span class="sub" id="workNote">${FAILED.length?'⚠️ در دسترس نبود: '+esc(FAILED.join('، ')):''}</span></h2>`+h;
+  c.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ FILTER=b.dataset.f; render(); });
+  c.querySelectorAll('.ck[data-i]').forEach(b=>b.onclick=async()=>{
+    const it=ITEMS[+b.dataset.i]; b.disabled=true;
+    try{ const r=await fetch(API+'/api/worklog/free-reminders/'+it.id+'/',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({done:true})}); if(!r.ok) throw 0; ITEMS.splice(+b.dataset.i,1); render(); }
+    catch(e){ alert('ثبت نشد؛ دوباره امتحان کنید'); b.disabled=false; }
+  });
+}
+function when(it,T){
+  if(!it.due) return '';
+  const d=U.faDate(it.due), tm=it.time?' · '+fa(it.time):'';
+  return (it.due===T?'امروز':d)+tm;
+}
+function row(it,T){
+  if(it.card) return MadarMeet.card(it.card,{admin:false});
+  const idx=ITEMS.indexOf(it), col=SRC[it.src][1];
+  return `<div class="row ${it.dim?'dim':''}" style="--c:${col}">${it.check?`<button class="ck" data-i="${idx}" title="انجام شد">✔</button>`:'<span class="ck ph"></span>'}<a class="b" href="${esc(it.link)}"><b>${esc(it.title)}</b><div>${esc(it.sub||'')}</div></a><span class="src" style="--c:${col}">${SRC[it.src][0]}</span><span class="due ${it._b==='late'?'late':''}">${when(it,T)}</span></div>`;
+}
+
+/* ───────── بقیه‌یِ صفحه ───────── */
 function head(){
   $('today').textContent=new Date().toLocaleDateString('fa-IR',{calendar:'persian',weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const n=(ME.name||'').split(' ')[0];
   $('hello').textContent='🏠 سلام'+(n?' '+n:'')+'، امروز چه خبر؟';
   $('roleLine').textContent=ME.role?('نقشِ شما: '+(ROLE_LABEL[ME.role]||ME.role)):'';
-}
-async function inbox(){
-  const c=$('cInbox');
-  try{
-    const d=await getJ('/api/org/inbox/'); if(!d.ok) throw new Error('x');
-    const cats=(d.categories||[]).filter(x=>x.count&&!x.soon), items=(d.items||[]).slice(0,7);
-    c.innerHTML=`<h2><span>📥 کارتابلِ من <span class="badge ${d.count?'red':''}">${fa(d.count||0)}</span></span><a href="org.html#inbox">صفحه‌یِ کامل ›</a></h2>`+
-      (cats.length?`<div class="chips">${cats.map(x=>`<a class="chip" href="org.html#inbox:${esc(x.key)}">${esc(x.icon)} ${esc(x.label)}<b>${fa(x.count)}</b></a>`).join('')}</div>`:'')+
-      (items.length?items.map(it=>`<a class="it" href="${esc(it.link||'#')}"><span class="ic">${esc(it.icon||'•')}</span><span><div class="t">${esc(it.title)}</div><div class="s">${esc(it.sub||'')}</div></span></a>`).join(''):'<div class="empty">✨ چیزی منتظرِ شما نیست</div>')+
-      ((d.items||[]).length>7?`<div class="note">و ${fa((d.items||[]).length-7)} موردِ دیگر — <a href="org.html#inbox" style="color:var(--acc)">همه را ببین</a></div>`:'');
-  }catch(e){ c.innerHTML='<h2><span>📥 کارتابلِ من</span></h2><div class="empty">کارتابل در دسترس نیست — وارد شوید یا کمی بعد دوباره امتحان کنید.</div>'; }
-}
-async function deleg(){
-  const c=$('cDeleg'), first=(ME.name||'').split(' ')[0];
-  const same=(a,b)=>a&&b&&String(a).split(' ')[0]===String(b).split(' ')[0];
-  try{
-    const arr=await getJ('/api/delegations/?actor='+encodeURIComponent(ME.name||''));
-    const list=Array.isArray(arr)?arr:(arr.results||arr.items||[]);
-    const t=todayJ();
-    const mineToDo=list.filter(r=>r.status==='waiting'&&same(r.delegate_name,first));
-    const toDeliver=list.filter(r=>r.status==='answered'&&same(r.owner_name,first));
-    const waitingOnOthers=list.filter(r=>r.status==='waiting'&&same(r.owner_name,first)&&!same(r.delegate_name,first));
-    const late=list.filter(r=>r.status==='waiting'&&r.ask_due_date&&r.ask_due_date<t&&(same(r.owner_name,first)||same(r.delegate_name,first)));
-    const row=(r,ic,txt)=>`<div class="it"><span class="ic">${ic}</span><span><div class="t">${esc(r.title)}</div><div class="s">${esc(txt)}${r.customer?' · '+esc(r.customer):''}${r.ask_due_date?' · موعد '+esc(r.ask_due_date):''}</div></span></div>`;
-    const rows=[...mineToDo.slice(0,3).map(r=>row(r,'⏳','باید پیگیری کنم — از '+(r.owner_name||''))),...toDeliver.slice(0,3).map(r=>row(r,'📦','نتیجه آماده است، تحویل بگیر — '+(r.delegate_name||''))),...waitingOnOthers.slice(0,2).map(r=>row(r,'🕐','منتظرِ '+(r.delegate_name||'')))];
-    c.innerHTML=`<h2><span>🤝 پیگیری و تحویل</span><a href="reminders.html" data-perm="page.reminders">باز کردن ›</a></h2>
-      <div class="kpis"><div class="kpi ${mineToDo.length?'warn':'good'}"><b>${fa(mineToDo.length)}</b><span>باید پیگیری کنم</span></div><div class="kpi ${toDeliver.length?'warn':'good'}"><b>${fa(toDeliver.length)}</b><span>منتظرِ تحویل به من</span></div><div class="kpi ${late.length?'bad':'good'}"><b>${fa(late.length)}</b><span>دیرکرد</span></div></div>`+(rows.join('')||'<div class="empty">✨ پیگیریِ بازی ندارید</div>');
-    if(window.MadarAccess) MadarAccess.apply(c);
-  }catch(e){ c.innerHTML='<h2><span>🤝 پیگیری و تحویل</span></h2><div class="empty">پیگیری‌ها در دسترس نیست.</div>'; }
 }
 function links(){
   const ok=TILES.filter(t=>MadarAccess.can(t[4]));
@@ -131,13 +214,15 @@ async function team(){
   try{
     const d=await getJ('/api/org/dashboard/');
     c.innerHTML=`<h2><span>👥 تیمِ من</span><a href="org.html">سازمان ›</a></h2>
-      <div class="kpis"><div class="kpi"><b>${fa(d.headcount||0)}</b><span>کارمندِ فعال</span></div><div class="kpi"><b>${fa((d.units||[]).length)}</b><span>واحد</span></div><div class="kpi ${(d.missing_heads||[]).length?'warn':'good'}"><b>${fa((d.missing_heads||[]).length)}</b><span>واحدِ بدونِ سرپرست</span></div></div>`+
+      <div class="kpis2"><div class="kpi"><b>${fa(d.headcount||0)}</b><span>کارمندِ فعال</span></div><div class="kpi"><b>${fa((d.units||[]).length)}</b><span>واحد</span></div><div class="kpi ${(d.missing_heads||[]).length?'warn':'good'}"><b>${fa((d.missing_heads||[]).length)}</b><span>واحدِ بدونِ سرپرست</span></div></div>`+
       (d.units||[]).slice(0,6).map(u=>`<div class="it"><span class="ic">${esc(u.icon||'▫️')}</span><span><div class="t">${esc(u.name)} <span class="badge">${fa(u.headcount)} نفر</span></div><div class="s">${(u.heads||[]).length?esc(((u.name==='مدیریت')?'مدیران: ':'سرپرست: ')+u.heads.join('، ')):'—'}</div></span></div>`).join('');
   }catch(e){ c.innerHTML='<h2><span>👥 تیمِ من</span></h2><div class="empty">اطلاعاتِ تیم در دسترس نیست.</div>'; }
 }
+MadarMeet.bind($('cWork'),{items:()=>MEETS,onChange:loadAll});
 MadarAccess.ready(async ()=>{
   ME.name=(MadarAccess.name&&MadarAccess.name())||(window.MadarAuth&&MadarAuth.name&&MadarAuth.name())||''; ME.role=MadarAccess.role?MadarAccess.role():'';
-  head(); links(); MadarAccess.apply(document); inbox(); deleg(); team();
+  head(); links(); MadarAccess.apply(document); loadAll(); team();
+  setInterval(()=>{ if(document.visibilityState==='visible') loadAll(); },180000);
 });
 </script>
 <script src="./madar-help.js" defer></script>

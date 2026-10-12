@@ -26,6 +26,7 @@
 <!-- ⚠️ (۱۴۰۵/۰۷/۰۸) ورودِ امن — فایلِ مشترکِ همه‌ی صفحه‌ها -->
 <script src="./madar-auth.js"></script>
 <script src="./madar-tiles.js"></script>
+<script src="./madar-search.js" defer></script>
 
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -275,6 +276,7 @@ body{min-height:100vh;min-height:100dvh}
     <input id="gSearch" type="search" placeholder="جستجوی بخش — مثلاً «چک» یا «حضور»" aria-label="جستجوی بخش‌ها" autocomplete="off">
   </div>
   <span style="flex:1"></span>
+  <button class="tbtn" data-msearch title="جستجو در بخش‌ها، مشتریان و همکاران (Ctrl+K)">🔍 جستجوی سراسری</button>
   <button id="themeToggleBtn" class="tbtn" onclick="toggleTheme()" title="تغییر حالت شب/روز">🌙 حالت روز</button>
 </div>
 
@@ -363,7 +365,7 @@ if(isMobileDevice()){
 
 // نقش هر کاربر تعیین می‌کند کدام کاشی‌ها را ببیند — این نگاشت اولیه را می‌توان بعداً دقیق‌تر کرد
 const ROLE_TILES = {
-  admin:   ['attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','weekly','guide','adminGuide'],
+  admin:   ['attendance','org','erp','crm','priceList','weights','staffAdmin','fxLedger','reminders','announce','people','guide'],
   sales:   ['attendance','org','crm','priceList','guide'],
   ops:     ['attendance','org','erp','guide'],
   finance: ['attendance','org','erp','guide'],

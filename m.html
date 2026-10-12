@@ -29,7 +29,15 @@ window.MADAR_NO_INBOX_BUTTON = true;   // کارتابل در خودِ مدار 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <meta name="theme-color" content="#0f1117">
-<style>html[data-theme="light"]{--hdr-bg:rgba(169,200,236,.94);--nav-bg:rgba(195,219,243,.97)}</style>
+<style>html[data-theme="light"]{--hdr-bg:rgba(169,200,236,.94);--nav-bg:rgba(195,219,243,.97)}
+/* ◼ مربع‌هایِ رنگیِ گروه‌ها (مثلِ صفحه‌یِ اصلی) */
+.sqg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 14px}
+.sq{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:84px;padding:8px 4px;border-radius:16px;text-align:center;text-decoration:none;color:var(--text,#f4f5f8);background:color-mix(in srgb,var(--g) 14%,var(--surface,#1a1e2a));border:1px solid color-mix(in srgb,var(--g) 55%,transparent)}
+.sq:active{transform:scale(.97)}
+.sqi{font-size:24px;line-height:1}
+.sqt{font-size:11.5px;font-weight:700;line-height:1.5}
+html::after{display:none!important}#madarHelpBtn{bottom:calc(84px + env(safe-area-inset-bottom))!important;left:10px!important;width:34px;padding:0!important;justify-content:center}#madarHelpBtn span:not(:first-child){display:none}
+</style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="مدار">
@@ -260,7 +268,7 @@ function vMore(){
   const mobileDesc = {crm:'نسخه‌ی کامل — با دو انگشت زوم کنید', erp:'نسخه‌ی کامل — با دو انگشت زوم کنید'};
   const groups = (window.MADAR_GROUPS || []).map(g => {
     const items = (window.MADAR_TILES || []).filter(t => t.group === g.id && !MOBILE_NATIVE[t.key] && ok(t));
-    return items.length ? `<div class="sec-h gh" style="--g:${g.color}"><span>${g.title}</span></div><div class="card list gl" style="--g:${g.color};padding:4px 12px">${items.map(t => L(t.icon, t.title, t.href, mobileDesc[t.key] || t.desc)).join('')}</div>` : '';
+    return items.length ? `<div class="sec-h gh" style="--g:${g.color}"><span>${g.title}</span></div><div class="sqg" style="--g:${g.color}">${items.map(t => `<a class="sq" href="${t.href}"><span class="sqi">${t.icon}</span><span class="sqt">${t.title}</span></a>`).join('')}</div>` : '';
   }).join('');
   const me = (window.MADAR_TILES || []).find(t => t.key === 'me');
   $('view').innerHTML = `

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-page-perm="access.manage">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>👥 مرکز افراد — مدار</title>
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 110px}
+a{color:var(--acc);text-decoration:none}
+h1{font-size:21px;margin:6px 0 2px}.sub{color:var(--soft);font-size:12.5px;margin-bottom:12px}
+.lay{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.list{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:10px}
+input,select,button,textarea{font:inherit;color:var(--ink)}
+input[type=search]{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-bottom:8px}
+.pp{display:flex;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.pp:hover{background:var(--card2)}.pp.on{background:rgba(240,165,0,.14);border-color:var(--acc)}
+.pp b{font-size:13px;display:block}.pp small{color:var(--soft);font-size:11px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--acc);flex:none}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px}
+.tab{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:5px 14px;cursor:pointer;font-size:13px;color:var(--soft)}
+.tab.on{background:rgba(240,165,0,.18);border-color:var(--acc);color:var(--acc);font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid #262c3d;flex-wrap:wrap}
+.row:first-child{border-top:0}
+.row .l{flex:1;min-width:180px}.row .l b{font-size:13px}.row .l small{display:block;color:var(--soft);font-size:11.5px}
+.btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:5px 12px;cursor:pointer;font-size:12.5px}
+.btn:hover{border-color:var(--acc)}.btn.pri{background:var(--acc);color:#141821;border-color:var(--acc);font-weight:800}
+.btn.bad{color:var(--no)}
+select{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:12.5px}
+.tag{font-size:11px;border-radius:8px;padding:0 8px;border:1px solid var(--line);color:var(--soft)}
+.tag.ok{color:var(--ok);border-color:rgba(52,211,153,.5)}.tag.no{color:var(--no);border-color:rgba(248,113,113,.5)}.tag.w{color:var(--warn);border-color:rgba(251,146,60,.5)}
+.sw{position:relative;width:42px;height:24px;flex:none}.sw input{display:none}
+.sw span{position:absolute;inset:0;background:#3a4156;border-radius:14px;cursor:pointer;transition:.15s}
+.sw span::after{content:'';position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+.sw input:checked+span{background:var(--ok)}.sw input:checked+span::after{right:21px}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:6px}
+.kp div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;font-size:11.5px;color:var(--soft)}
+.kp b{display:block;font-size:20px;color:var(--ink)}
+.g{font-size:12px;font-weight:800;color:var(--soft);margin:14px 0 2px}
+.empty{color:var(--soft);padding:20px;text-align:center}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#000c;border:1px solid var(--line);border-radius:12px;padding:8px 16px;display:none;z-index:50}
+@media (max-width:820px){.lay{grid-template-columns:1fr}.list{position:static;max-height:240px}}
+</style>
+<script src="./madar-theme.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" style="font-size:12.5px">← صفحه‌یِ اصلی</a>
+  <h1>👥 مرکز افراد</h1>
+  <div class="sub">برایِ هر نفر یک جا: مشخصات و نقش، دسترسی‌ها، اتصالِ بله و پیام‌ها، تفویض‌ها. دیگر بینِ پنلِ دسترسی، مدیریتِ کارمندان و سازمان نمی‌روید.</div>
+  <div class="lay">
+    <aside class="card list"><input type="search" id="q" placeholder="🔍 جستجوی نام…"><div id="plist"><div class="empty">در حالِ بارگذاری…</div></div></aside>
+    <main class="card" id="pane"><div class="empty">یک نفر را از فهرست انتخاب کنید.</div></main>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const API='https://api.smartchipelec.com';
+const $=id=>document.getElementById(id);
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function myEmail(){ try{ return localStorage.getItem('smartchip_user_email')||localStorage.getItem('smartchip_erp_email')||''; }catch(e){ return ''; } }
+function toast(t,err){ const e=$('toast'); e.textContent=(err?'⚠️ ':'')+t; e.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(()=>e.style.display='none',2600); }
+async function call(path,body){
+  const em=myEmail();
+  const opt=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({actor_email:em},body))}:{cache:'no-store'};
+  const url=API+path+(body?'':((path.includes('?')?'&':'?')+'email='+encodeURIComponent(em)));
+  const r=await fetch(url,opt); let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j||j.ok===false) throw new Error((j&&j.error)||('خطا '+r.status));
+  return j;
+}
+const nname=s=>String(s||'').replace(/‌/g,' ').replace(/ي/g,'ی').replace(/ك/g,'ک').split(/\s+/).filter(Boolean).join(' ');
+let D=null, STRUCT=null, DEL=null, SEL=null, TAB='profile', Q='';
+
+async function init(){
+  try{
+    D=await call('/api/access/admin/matrix/');
+  }catch(e){ $('plist').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'<br>این صفحه فقط برایِ مدیریت است.</div>'; return; }
+  STRUCT=await call('/api/org/structure/').catch(()=>null);
+  DEL=await call('/api/delegations/stats/?scope=all').catch(()=>null);
+  drawList();
+  const h=decodeURIComponent((location.hash||'').slice(1)); if(h){ const p=D.staff.find(s=>s.email.toLowerCase()===h.toLowerCase()); if(p) pick(p.email); }
+}
+const roleLabel=k=>((D.roles||[]).find(r=>r.key===k)||{label:k}).label;
+function drawList(){
+  const l=D.staff.filter(s=>!Q||nname(s.name+' '+s.email).includes(nname(Q)));
+  $('plist').innerHTML=l.map(s=>`<div class="pp ${SEL&&SEL.toLowerCase()===s.email.toLowerCase()?'on':''}" data-e="${esc(s.email)}"><span class="av">${esc((s.name||'?').trim()[0])}</span><span><b>${esc(s.name)}</b><small>${esc(roleLabel(s.role))}</small></span></div>`).join('')||'<div class="empty">پیدا نشد</div>';
+  $('plist').querySelectorAll('.pp').forEach(e=>e.onclick=()=>pick(e.dataset.e));
+}
+$('q').oninput=e=>{ Q=e.target.value; drawList(); };
+function me(){ return D.staff.find(s=>s.email.toLowerCase()===(SEL||'').toLowerCase()); }
+function pick(email){ SEL=email; history.replaceState(null,'','#'+encodeURIComponent(email)); drawList(); render(); }
+function render(){
+  const p=me(); if(!p) return;
+  const T=[['profile','🪪 مشخصات و نقش'],['perms','🔑 دسترسی‌ها'],['bale','💬 اتصال بله و پیام‌ها'],['deleg','🤝 تفویض‌ها']];
+  $('pane').innerHTML=`<div style="display:flex;gap:12px;align-items:center"><span class="av" style="width:46px;height:46px;font-size:20px">${esc((p.name||'?')[0])}</span><div><h1 style="margin:0">${esc(p.name)}</h1><div class="sub" style="margin:0" dir="ltr">${esc(p.email)}</div></div></div>
+    <div class="tabs">${T.map(t=>`<span class="tab ${TAB===t[0]?'on':''}" data-t="${t[0]}">${t[1]}</span>`).join('')}</div><div id="tabBody"><div class="empty">…</div></div>`;
+  $('pane').querySelectorAll('.tab').forEach(t=>t.onclick=()=>{ TAB=t.dataset.t; render(); });
+  ({profile:tProfile,perms:tPerms,bale:tBale,deleg:tDeleg}[TAB])(p);
+}
+
+/* ───── ۱) مشخصات و نقش ───── */
+function myAssign(p){
+  const out=[]; ((STRUCT&&STRUCT.units)||[]).forEach(u=>(u.positions||[]).forEach(po=>(po.people||[]).forEach(a=>{
+    if(a.staff&&String(a.staff.email||'').toLowerCase()===p.email.toLowerCase()) out.push({id:a.id,unit:u.name,icon:u.icon,title:po.title,kind:po.kind_label,primary:a.is_primary});
+  })));
+  return out;
+}
+function tProfile(p){
+  const as=myAssign(p), canEdit=STRUCT&&STRUCT.can_edit;
+  const pos=[]; ((STRUCT&&STRUCT.units)||[]).forEach(u=>(u.positions||[]).forEach(po=>pos.push([po.id,(u.icon||'')+' '+u.name+' — '+po.title])));
+  $('tabBody').innerHTML=`
+   <div class="row"><div class="l"><b>نقشِ دسترسی</b><small>تعیین می‌کند چه صفحه‌هایی برایِ این نفر باز است</small></div><span class="tag ok">${esc(roleLabel(p.role))}</span><a class="btn" href="staff-admin.html">تغییرِ نقش ›</a></div>
+   <div class="g">🏢 سِمَت‌ها در سازمان</div>
+   ${as.length?as.map(a=>`<div class="row"><div class="l"><b>${esc(a.icon||'')} ${esc(a.unit)} — ${esc(a.title)}</b><small>${esc(a.kind||'')}${a.primary?' · اصلی':''}</small></div>${canEdit?`<button class="btn bad" data-un="${a.id}">برداشتن</button>`:''}</div>`).join(''):'<div class="empty" style="padding:8px">سِمَتی ندارد</div>'}
+   ${canEdit&&pos.length?`<div class="row"><select id="posSel">${pos.map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select><button class="btn pri" id="posAdd">＋ افزودنِ سِمَت</button></div>`:''}
+   <div class="g">⚡ میانبرها</div>
+   <div class="row"><span class="sub" style="margin:0">برایِ ساختنِ کارمندِ تازه یا خروجِ کارمند از «مدیریتِ کارمندان» استفاده کنید.</span><a class="btn" href="staff-admin.html">مدیریتِ کارمندان ›</a></div>`;
+  $('tabBody').querySelectorAll('[data-un]').forEach(b=>b.onclick=async()=>{ if(!confirm('این سِمَت برداشته شود؟')) return;
+    try{ await call('/api/org/unassign/',{assignment_id:+b.dataset.un}); STRUCT=await call('/api/org/structure/'); toast('برداشته شد'); tProfile(p);}catch(e){ toast(e.message,true);} });
+  const add=$('posAdd'); if(add) add.onclick=async()=>{ try{ await call('/api/org/assign/',{staff_email:p.email,position_id:+$('posSel').value}); STRUCT=await call('/api/org/structure/'); toast('افزوده شد'); tProfile(p);}catch(e){ toast(e.message,true);} };
+}
+
+/* ───── ۲) دسترسی‌ها ───── */
+async function tPerms(p){
+  $('tabBody').innerHTML='<div class="empty">در حالِ بارگذاری…</div>';
+  let pv; try{ pv=await call('/api/access/admin/preview/?target='+encodeURIComponent(p.email)); }catch(e){ $('tabBody').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'</div>'; return; }
+  const ov=(D.overrides||{})[p.email.toLowerCase()]||{}, locked=['owner','admin'].includes(p.role);
+  const groups={}; (D.perms||[]).forEach(x=>(groups[x.group]=groups[x.group]||[]).push(x));
+  let h=locked?'<div class="sub">مدیریت همیشه همه‌چیز دارد و تغییر نمی‌کند.</div>':'<div class="sub">«پیش‌فرض» یعنی مطابقِ نقش. با «مجاز» یا «ممنوع» فقط برایِ همین نفر استثنا می‌گذارید.</div>';
+  Object.keys(groups).forEach(g=>{
+    h+=`<div class="g">${esc(g)}</div>`+groups[g].map(x=>{
+      const e=pv.perms[x.key]||{allowed:false,source:''}, st=ov[x.key]===undefined?'default':(ov[x.key]?'allow':'deny');
+      return `<div class="row"><div class="l"><b>${esc(x.label)}</b><small>${esc(x.desc||'')}</small></div><span class="tag ${e.allowed?'ok':'no'}">${e.allowed?'دارد':'ندارد'}</span>${locked?'':`<select data-p="${esc(x.key)}"><option value="default" ${st==='default'?'selected':''}>پیش‌فرضِ نقش</option><option value="allow" ${st==='allow'?'selected':''}>مجاز</option><option value="deny" ${st==='deny'?'selected':''}>ممنوع</option></select>`}</div>`;
+    }).join('');
+  });
+  $('tabBody').innerHTML=h;
+  $('tabBody').querySelectorAll('select[data-p]').forEach(s=>s.onchange=async()=>{
+    try{ await call('/api/access/admin/user/',{email:p.email,perm:s.dataset.p,state:s.value}); D=await call('/api/access/admin/matrix/'); toast('ذخیره شد'); tPerms(p);}catch(e){ toast(e.message,true); }
+  });
+}
+
+/* ───── ۳) اتصال بله و پیام‌ها ───── */
+async function tBale(p){
+  $('tabBody').innerHTML='<div class="empty">در حالِ بارگذاری…</div>';
+  let d; try{ d=await call('/api/announce/prefs/?target='+encodeURIComponent(p.email)); }catch(e){ $('tabBody').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'</div>'; return; }
+  const sw=(k,t,s)=>`<div class="row"><div class="l"><b>${t}</b><small>${s}</small></div><label class="sw"><input type="checkbox" data-k="${k}" ${d[k]?'checked':''}><span></span></label></div>`;
+  $('tabBody').innerHTML=`
+   <div class="row"><div class="l"><b>اتصال</b><small>اگر وصل نیست، کارمند باید در بله به بات پیام بدهد (راهنما: «وصل کردنِ بله/تلگرام»).</small></div>
+     <span class="tag ${d.bale?'ok':'no'}">بله: ${d.bale?'وصل':'وصل نیست'}</span><span class="tag ${d.telegram?'ok':'w'}">تلگرام: ${d.telegram?'وصل':'—'}</span>
+     <button class="btn" id="tst" ${(d.bale||d.telegram)?'':'disabled'}>✉️ پیامِ آزمایشی</button></div>
+   <div class="g">🔔 کدام پیام‌ها برایش بیاید؟</div>
+   ${sw('morning','🌅 خلاصه‌یِ صبحگاهی','یک پیام در صبح: کارهایِ امروز، تأخیرها، جلسه‌ها')}
+   ${sw('urgent','🚨 فوری‌ها','دیرکرد و موردهایِ بسیار مهم، بلافاصله')}
+   ${sw('meetings','🗓 یادآوریِ جلسه‌ها','۲۴ ساعت و ۱ ساعت پیش از جلسه')}`;
+  $('tabBody').querySelectorAll('input[data-k]').forEach(c=>c.onchange=async()=>{ try{ await call('/api/announce/prefs/',{target:p.email,[c.dataset.k]:c.checked}); toast('ذخیره شد'); }catch(e){ toast(e.message,true); c.checked=!c.checked; } });
+  const t=$('tst'); if(t) t.onclick=async()=>{ t.disabled=true; try{ const r=await call('/api/announce/test/',{email:p.email}); toast(r.sent===false?'ارسال نشد':'ارسال شد'); }catch(e){ toast(e.message,true); } t.disabled=false; };
+}
+
+/* ───── ۴) تفویض‌ها ───── */
+function tDeleg(p){
+  const row=DEL&&(DEL.people||[]).find(x=>nname(x.name)===nname(p.name));
+  if(!DEL){ $('tabBody').innerHTML='<div class="empty">آمارِ تفویض در دسترس نیست.</div>'; return; }
+  $('tabBody').innerHTML=row?`<div class="sub">۳۰ روزِ اخیر — «پیگیری و تحویل»</div>
+   <div class="kp"><div><b>${fa(row.open)}</b>باز</div><div><b style="color:${row.overdue?'var(--no)':'inherit'}">${fa(row.overdue)}</b>عقب‌افتاده</div><div><b>${fa(row.done30)}</b>انجام‌شده</div><div><b>${row.avg_hours==null?'—':fa(row.avg_hours)}</b>میانگینِ ساعت</div><div><b>${row.ontime_pct==null?'—':fa(row.ontime_pct)+'٪'}</b>به‌موقع</div></div>
+   <div class="row" style="margin-top:12px"><span class="sub" style="margin:0">جزئیات و ثبتِ پیگیریِ تازه در «یادآوری‌ها» است.</span><a class="btn" href="reminders.html">یادآوری‌ها ›</a></div>`
+   :'<div class="empty">این نفر در ۳۰ روزِ اخیر تفویضی نداشته.</div>';
+}
+MadarAccess.ready(()=>init());
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>
