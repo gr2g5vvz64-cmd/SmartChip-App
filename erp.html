@@ -2623,6 +2623,7 @@ async function submitEmailForm(){
 
 function grantAccess(userInfo){
   currentUser = userInfo; // از این به بعد، هرجا currentUser.name لازم بود، واقعاً پره
+  try{ if(window.__applyRoleNav) window.__applyRoleNav(); }catch(e){}
   // مخفی کردن gate
   const gate = document.getElementById('accessGateOverlay');
   if(gate) gate.style.display='none';
@@ -13230,6 +13231,15 @@ async function markFinanceTaskDone(id){
   window.setBadge=function(){ const r=_setBadge.apply(this,arguments); try{ syncMerged(); }catch(e){} return r; };
   document.addEventListener('DOMContentLoaded',syncMerged);
   window.__mergedNavSync=syncMerged;
+  /* 🔒 (۱۴۰۵/۰۷/۲۱) «چک‌ها» فقط برایِ مالی، حسابداری، سرپرستِ مالی و مدیریت.
+     ⚠️ فقط منو را می‌بندد؛ مسیرِ API هنوز با مجوزِ «finance.view» است که CRM هم از آن استفاده می‌کند. */
+  const CHEQUE_ROLES=['owner','admin','sup_finance','accounting'];
+  window.__applyRoleNav=function(){
+    const r=(window.currentUser&&currentUser.role)||(typeof currentUser!=='undefined'&&currentUser&&currentUser.role)||'';
+    const ok=!r||CHEQUE_ROLES.indexOf(r)>-1||r==='staff';
+    document.querySelectorAll('.nav-item[data-mgroup="cheques"]').forEach(b=>{ b.style.display=ok?'':'none'; });
+    document.body.classList.toggle('no-cheques',!ok);
+  };
 })();
 </script>
 </body>
