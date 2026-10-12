@@ -69,6 +69,9 @@
     --sidebar-w:236px;
     --sidebar-bg:#141821; --nav-active:rgba(240,165,0,.18); --field-bg:#232838; --pop-bg:#232838;
     color-scheme:dark;
+    --hov:rgba(255,255,255,.07); --rial-col:rgba(240,165,0,.08); --pend-bg:rgba(240,165,0,.13); --prov-bg:rgba(240,165,0,.18); --prov-chip:rgba(240,165,0,.30); --prov-ink:#ffd27a;
+    --info-bg:rgba(96,165,250,.10); --dim-bg:rgba(255,255,255,.05); --dim-ink:#8f98b3; --hl-row:rgba(248,113,113,.16); --btn-hov:rgba(255,255,255,.12); --guide-bg:rgba(255,255,255,.04);
+    --warn-bg:rgba(245,158,11,.12); --warn-ink:#fbbf24; --ok-ink:#34d399; --bad-ink:#f87171; --on-ink:#0f1218; --focus-ring:#4b5578; --purple-ink:#c4a5ff;
   }
   html[data-theme="light"]{
     /* ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ ناهماهنگیِ رنگی — طبقِ گزارشِ کاربر: این پالت
@@ -96,6 +99,9 @@
     --radius:12px;
     --sidebar-bg:var(--ink); --nav-active:#fff; --field-bg:#fff; --pop-bg:#fff; color-scheme:light;
     --sidebar-w:236px;
+    --hov:#FAFBFC; --rial-col:#FFF7E8; --pend-bg:#FFF9E8; --prov-bg:#FFF3C4; --prov-chip:#FFE08A; --prov-ink:#7a4f00;
+    --info-bg:#EEF4FB; --dim-bg:#E6EAF1; --dim-ink:#7b8799; --hl-row:#FDECEC; --btn-hov:#E4E8EE; --guide-bg:#F5F7FA;
+    --warn-bg:#FEF3C7; --warn-ink:#92400e; --ok-ink:#1e8449; --bad-ink:#c0392b; --on-ink:#fff; --focus-ring:#C7CCD6; --purple-ink:#7c3aed;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -154,7 +160,7 @@
   table td, table th{ text-align:center; }
   /* ⚠️ (۱۴۰۵/۰۶/۲۳) طبق درخواستِ صریحِ کاربر: جداسازیِ بصریِ گروهِ
      ستون‌های ریالی از گروهِ ستون‌های یوانی تو جدولِ «دفترِ کامل» */
-  .col-group-rial{ background:#FFF7E8 }
+  .col-group-rial{ background:var(--rial-col) }
   .col-group-end{ border-left:2.5px solid var(--border)!important }
   .date-cell{ font-feature-settings:"tnum" 1, "lnum" 1; direction:ltr; unicode-bidi:isolate; text-align:right; }
   th.col-right, td.col-right{ text-align:right !important; }
@@ -232,15 +238,15 @@
   thead th{ text-align:right; font-size:11.5px; color:var(--ink-soft); font-weight:600; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
   tbody td{ padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
   tbody tr:last-child td{ border-bottom:none; }
-  tbody tr:hover{ background:#FAFBFC; }
+  tbody tr:hover{ background:var(--hov); }
   .table-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow-x:auto; }
   .empty-row td{ text-align:center; color:var(--ink-faint); padding:26px; font-size:13px; }
 
   .btn{ font-family:inherit; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-  .btn-primary{ background:var(--ink); color:#fff; }
-  .btn-primary:hover{ background:#2A2F3A; }
+  .btn-primary{ background:var(--ink); color:var(--on-ink); }
+  .btn-primary:hover{ opacity:.88; }
   .btn-ghost{ background:var(--paper); color:var(--ink); }
-  .btn-ghost:hover{ background:#E4E8EE; }
+  .btn-ghost:hover{ background:var(--btn-hov); }
   .btn-danger-text{ background:none; color:var(--danger); padding:4px 8px; font-size:12px; }
   .btn-danger-text:hover{ text-decoration:underline; }
   .btn-sm{ padding:6px 10px; font-size:12px; }
@@ -259,7 +265,7 @@
   .field input, .field select, .field textarea{
     font-family:inherit; border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-size:13.5px; background:var(--field-bg); color:var(--ink); width:100%;
   }
-  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid #C7CCD6; outline-offset:0; border-color:#B7BEC9; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--focus-ring); outline-offset:0; border-color:var(--focus-ring); }
   .field input.num, .field textarea{ direction:rtl; }
   .field small.calc{ font-size:11.5px; color:var(--ink-faint); }
 
@@ -291,14 +297,14 @@
   .customer-balance-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .link-pill{ font-size:11px; padding:2px 8px; border-radius:99px; background:var(--paper); color:var(--ink-soft); }
   .warn-note{ font-size:12px; color:var(--ink-soft); background:var(--paper); border-radius:8px; padding:10px 12px; margin-top:10px; }
-  .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:9px; font-size:13px; z-index:100; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .toast{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--on-ink); padding:10px 18px; border-radius:9px; font-size:13px; z-index:100; opacity:0; transition:opacity .25s; pointer-events:none; }
   .toast.show{ opacity:1; }
   .load-screen{ display:flex; align-items:center; justify-content:center; height:100vh; color:var(--ink-soft); font-size:14px; }
   /* ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر: خطوط جدول همه‌جا واضح‌تر */
   table, th, td { border: 1px solid var(--border) !important; }
   table { border-collapse: collapse !important; }
   /* جدول راهنمای فیلدها — بالای هر فرم، توضیح می‌ده کجا چی بنویسیم */
-  .field-guide{ background:#F5F7FA; border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:11.5px; color:var(--ink-soft); }
+  .field-guide{ background:var(--guide-bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:11.5px; color:var(--ink-soft); }
   .field-guide table{ width:100%; font-size:11px; }
   .field-guide th{ text-align:right; padding:4px 6px; color:var(--ink); }
   .field-guide td{ padding:4px 6px; }
@@ -351,12 +357,12 @@
   /* ستون‌هایِ گرید اجازه‌ی کوچک‌شدن داشته باشن تا جدول‌ها داخلِ خودشون اسکرول بخورن، نه کلِ صفحه */
   .grid > *, .fxc-grid2 > *{ min-width:0 }
 /* ⚠️ (۱۴۰۵/۰۷/۰۶) قلم‌هایِ با قیمتِ موقتِ ۱ یوان — متمایز تا یادِ اصلاح بمونه */
-tr.fx-provisional td{background:#FFF3C4 !important;}
+tr.fx-provisional td{background:var(--prov-bg) !important;}
 tr.fx-provisional td:first-child{box-shadow:inset -4px 0 0 #E0A100;}
-.fx-prov-chip{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:700;color:#7a4f00;background:#FFE08A;border-radius:6px;padding:1px 7px;white-space:nowrap;}
-.fx-prov-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#FFF3C4;border:1px solid #E0A100;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:#5c3d00;}
-input.fx-prov-input, input[data-f="goods"][value="1"], input[data-f="goods"][value="1.0000"]{background:#FFF3C4 !important;border-color:#E0A100 !important;}
-.fx-doc-filter-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#EEF4FB;border:1px solid var(--accent, #3b6fb6);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;}
+.fx-prov-chip{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:700;color:var(--prov-ink);background:var(--prov-chip);border-radius:6px;padding:1px 7px;white-space:nowrap;}
+.fx-prov-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--prov-bg);border:1px solid #E0A100;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:var(--prov-ink);}
+input.fx-prov-input, input[data-f="goods"][value="1"], input[data-f="goods"][value="1.0000"]{background:var(--prov-bg) !important;border-color:#E0A100 !important;color:var(--ink) !important;}
+.fx-doc-filter-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--info-bg);border:1px solid var(--accent, #3b6fb6);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -1075,8 +1081,8 @@ async function renderDashboard(main, reuseG){
       <a href="${FX_API}backup/download/" download class="btn btn-ghost btn-sm" title="چون سرورِ رایگان بک‌آپِ خودکار نداره، هرچند وقت یک‌بار این دکمه رو بزنید و فایل رو یه‌جای امن نگه دارید">💾 دانلودِ بک‌آپِ کامل</a>
     </div>
     ${g.unlockedClosedOrders && g.unlockedClosedOrders.length ? `
-    <div style="background:#FEF3C7;border:2px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:18px">
-      <div style="font-weight:800;color:#92400e;margin-bottom:8px">🔔 ${fmt(g.unlockedClosedOrders.length,0)} فاکتور کامل تسویه شده ولی هنوز قفل نشده — یادتون نره!</div>
+    <div style="background:var(--warn-bg);border:2px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-weight:800;color:var(--warn-ink);margin-bottom:8px">🔔 ${fmt(g.unlockedClosedOrders.length,0)} فاکتور کامل تسویه شده ولی هنوز قفل نشده — یادتون نره!</div>
       ${g.unlockedClosedOrders.map(o=>`
         <div style="display:flex;justify-content:space-between;align-items:center;background:var(--pop-bg);color:var(--ink);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px">
           <div><strong>${o.customerName}</strong> — فاکتورِ ${o.date} — ${fmtYuan(o.yuanAmount)} — نرخِ میانگین: ${fmt(o.weightedAvgRate,0)}</div>
@@ -1311,7 +1317,7 @@ function mgmtRiskHtml(d){
 
   return `
     <div class="section-title">۳) ریسکِ ارزی</div>
-    <div style="background:#EEF4FB;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px">
+    <div style="background:var(--info-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px">
       💱 «اثرِ تفاوتِ نرخ» = یوانی که با حواله واقعاً خریده شد، منهایِ یوانی که به نرخِ روزِ واریز به حسابِ مشتری منظور شد. مثبت یعنی حواله ارزان‌تر از نرخِ روزِ واریز انجام شد.
       ${isPay ? '<b>مبنایِ فعلی «نرخِ روزِ واریز» است؛ پس این عدد سود یا زیانِ خودِ شرکت است.</b>'
               : '<b>مبنایِ فعلی «نرخِ روزِ حواله» است؛ مشتری به نرخِ حواله حساب می‌شود و این اثر به حسابِ او می‌رود، نه شرکت.</b> عدد فقط برایِ دیدنِ اندازه‌ی نوسان است.'}
@@ -1483,7 +1489,7 @@ function drawManagement(main, d, updating){
     </div>
 
     ${P.linkedOrders < P.totalOrders ? `
-    <div style="background:#EEF4FB;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12.5px">
+    <div style="background:var(--info-bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12.5px">
       🔗 فقط <b>${fmt(P.linkedOrders,0)} از ${fmt(P.totalOrders,0)}</b> سفارش (${fmt(linkedPct,0)}٪) خریدِ لینک‌شده دارن — سودِ سفارش/مشتری فقط برایِ همین‌ها دقیقه.
       خریدهایِ قبلی رو از جدولِ «لینکِ خرید به فاکتور» پایینِ همین صفحه وصل کنید؛ خریدِ انباری رو خالی بذارید.
     </div>` : ''}
@@ -1755,7 +1761,7 @@ async function renderCustomerLedger(main, cachedData){
               e.rate, e.runningYuan, e.runningRial, e.hawaleRate, e.depositRate, e.suggestedRate,
             ], customerEventsSearchQuery));
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
-            fxWithMemo(filteredEvents, data.companyMoney).map(e=>`<tr${e._dim?' data-mgmt-only':''} style="${e._dim?'color:#7b8799;font-style:italic;background:#E6EAF1;':''}${e.pending?'background:#FFF9E8':''}">
+            fxWithMemo(filteredEvents, data.companyMoney).map(e=>`<tr${e._dim?' data-mgmt-only':''} style="${e._dim?'color:var(--dim-ink);font-style:italic;background:var(--dim-bg);':''}${e.pending?'background:var(--pend-bg)':''}">
             <td class="date-cell" style="text-align:center">${e.date}</td>
             <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <span style="font-size:9.5px">(بدونِ اثر رویِ مانده)</span><button class="btn btn-primary btn-sm" type="button" data-settle-company style="display:block;width:auto;margin:5px auto 0;padding:4px 12px;font-size:11px;font-style:normal;white-space:nowrap" title="با واریزیِ این مشتری تسویه شود (واریزی‌ها را خودت انتخاب می‌کنی)">💰 تسویه</button>` : ''}</td>
             <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : (((e.type==='opening' || e.type==='advance') && e.rial_debit!=null) ? fmtRial(e.rial_debit) : '—')}</td>
@@ -1980,7 +1986,7 @@ async function fxDecorateLocked(main, side, name, basis){
     const kind = side === 'customer' ? 'order' : 'expense';
     Object.entries(d.rows||{}).forEach(([id, x]) => {
       const el = main.querySelector(`[data-lockinfo="${kind}-${id}"]`); if(!el) return;
-      let h = x.manual ? `<span style="color:#7c3aed;font-weight:800" title="${(x.reason||'').replace(/"/g,'&quot;')}">✋ نرخِ هلو</span>` : '';
+      let h = x.manual ? `<span style="color:var(--purple-ink);font-weight:800" title="${(x.reason||'').replace(/"/g,'&quot;')}">✋ نرخِ هلو</span>` : '';
       if(x.computed_now && x.locked && Math.abs(x.computed_now - x.locked) >= 1){
         h += `<div style="font-size:10.5px;color:var(--ink-soft);line-height:1.7">محاسبه‌ی امروز: ${fmt(x.computed_now,0)} · اختلاف: ${x.rial_diff_now>0?'+':''}${fmtRial(x.rial_diff_now)}</div>`;
       }
@@ -3343,7 +3349,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
             <td class="num">${o.rialEquivalentForAccounting ? fmtRial(o.rialEquivalentForAccounting) : '—'}</td>
             <td>${o.isLocked
               ? '<span class="status-chip closed">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-exp="'+o.id+'" style="font-size:10px">بازکردن</button><div class="fx-lockinfo" data-lockinfo="expense-'+o.id+'"></div>' + (prov ? '<div class="fx-prov-chip">⚠️ با قیمتِ موقت قفل شده — باز کنید و اصلاح کنید</div>' : '')
-              : (prov ? '<span style="color:#7a4f00;font-size:11px;font-weight:700">اول قیمتِ واقعی رو وارد کنید</span>'
+              : (prov ? '<span style="color:var(--prov-ink);font-size:11px;font-weight:700">اول قیمتِ واقعی رو وارد کنید</span>'
                 : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-exp="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>'))}</td>
           </tr>`; }).join('')}
         </tbody>
@@ -3958,7 +3964,7 @@ function confirmDeleteDocItem(e, siblings, data){
     const totalOf = x => Number(x.goods_yuan||0)+Number(x.shipping_yuan||0)+Number(x.transfer_fee_yuan||0);
     const docTotal = items.reduce((s,x)=>s+totalOf(x),0);
     const carriesFreight = Number(e.freight_rial||0) > 0;
-    const row = (x, me) => `<tr style="${me?'background:#FDECEC;font-weight:700':''}">
+    const row = (x, me) => `<tr style="${me?'background:var(--hl-row);font-weight:700':''}">
         <td>${me?'🗑 ':''}${x.part_number||'—'}</td><td class="num">${x.quantity!=null?fmt(x.quantity,2):'—'}</td>
         <td class="num">${fmtYuan(totalOf(x))}</td><td>${lockedIds.has(x.id)?'🔒':''}${Number(x.freight_rial||0)>0?' 🚚':''}${fxIsProvisional(x)?' ⚠️':''}</td></tr>`;
     const backdrop = document.createElement('div');
@@ -4735,7 +4741,7 @@ let capitalAdvancesSearchQuery = '';
 // (/api/ledger/accounts/reconcile/) و اینجا فقط نمایش داده می‌شه؛ هیچ داده‌ای تغییر نمی‌کنه.
 // ══════════════════════════════════════════════════════════════
 const RECON_LEVELS = {
-  error:{icon:'🔴', label:'ایراد',   color:'#c0392b', bg:'rgba(192,57,43,.10)'},
+  error:{icon:'🔴', label:'ایراد',   color:'var(--bad-ink)', bg:'rgba(192,57,43,.14)'},
   warn: {icon:'🟠', label:'هشدار',   color:'#b9770e', bg:'rgba(185,119,14,.10)'},
   info: {icon:'🔵', label:'اطلاعات', color:'#2e6da4', bg:'rgba(46,109,164,.10)'},
   ok:   {icon:'🟢', label:'سالم',    color:'#1e8449', bg:'rgba(30,132,73,.08)'},
@@ -4804,7 +4810,7 @@ async function renderYuanPosition(main){
   const T = d.totals || {};
   const gapOk = Math.abs(T.gap||0) < 1;
   const card = (label, val, hint) => `<div class="card" style="flex:1;min-width:190px"><div class="card-label">${label}</div><div class="card-value">${fmtYuan(val||0)}</div>${hint?`<div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">${hint}</div>`:''}</div>`;
-  const supRows = (d.suppliers||[]).map(s=>`<tr><td>${fxc_esc(s.name)}</td><td class="num">${s.deposit>0.005 ? '🔒 '+fmtYuan(s.deposit) : '—'}</td><td class="num" style="font-weight:700;color:${s.yuan>0?'#1e8449':'#c0392b'}">${Math.abs(s.yuan)>0.005 ? fmtYuan(Math.abs(s.yuan)) : '—'}</td><td>${Math.abs(s.yuan)<=0.005 ? '' : (s.yuan>0 ? '🟢 پیش‌پرداختِ بدونِ فاکتور' : '🟠 ما به او بابتِ فاکتورها بدهکاریم')}</td></tr>`).join('');
+  const supRows = (d.suppliers||[]).map(s=>`<tr><td>${fxc_esc(s.name)}</td><td class="num">${s.deposit>0.005 ? '🔒 '+fmtYuan(s.deposit) : '—'}</td><td class="num" style="font-weight:700;color:${s.yuan>0?'var(--ok-ink)':'var(--bad-ink)'}">${Math.abs(s.yuan)>0.005 ? fmtYuan(Math.abs(s.yuan)) : '—'}</td><td>${Math.abs(s.yuan)<=0.005 ? '' : (s.yuan>0 ? '🟢 پیش‌پرداختِ بدونِ فاکتور' : '🟠 ما به او بابتِ فاکتورها بدهکاریم')}</td></tr>`).join('');
   const custHtml = (d.customers||[]).map(c=>{
     const opts = (oid)=> `<option value="">— بدونِ رزرو (FIFO) —</option>` + c.orders.map(o=>`<option value="${o.id}" ${oid===o.id?'selected':''}>${fxc_esc(o.date)} — ${o.type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoiceNo?(' '+fxc_esc(o.invoiceNo)):''} — ${fmtYuan(o.yuan)}</option>`).join('');
     const linkRows = c.links.map(l=>`<tr>
@@ -4813,7 +4819,7 @@ async function renderYuanPosition(main){
         <td><select data-yp-reserve data-pay="${l.paymentId}" data-hw="${l.hawaleId}" style="max-width:240px">${opts(l.orderId)}</select></td></tr>`).join('');
     const orderRows = c.orders.map(o=>`<tr><td class="date-cell">${fxc_esc(o.date)}</td><td>${o.type==='invoice'?'فاکتور':'پیش‌فاکتور'}${o.invoiceNo?(' '+fxc_esc(o.invoiceNo)):''}</td>
         <td class="num">${fmtYuan(o.yuan)}</td><td class="num">${o.reserved>0?('📌 '+fmtYuan(o.reserved)):'—'}</td><td class="num">${fmtYuan(o.covered)}</td>
-        <td class="num" style="font-weight:700;color:${o.remaining>0.01?'#c0392b':'#1e8449'}">${o.remaining>0.01?fmtYuan(o.remaining):'✅ پرداخت‌شده'}</td></tr>`).join('');
+        <td class="num" style="font-weight:700;color:${o.remaining>0.01?'var(--bad-ink)':'var(--ok-ink)'}">${o.remaining>0.01?fmtYuan(o.remaining):'✅ پرداخت‌شده'}</td></tr>`).join('');
     const headTxt = c.creditYuan>0.005 ? `🟢 ما به او ${fmtYuan(c.creditYuan)} بدهکاریم` : (c.debtYuan>0.005 ? `🟠 او به ما ${fmtYuan(c.debtYuan)} بدهکار است` : '⚪ تسویه');
     return `<details data-yp-cust="${fxc_esc(c.name)}" ${yuanPosOpen.has(c.name)?'open':''} style="margin-bottom:8px">
       <summary style="cursor:pointer;padding:9px 12px;background:var(--surface);border-radius:8px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
