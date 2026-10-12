@@ -892,10 +892,13 @@ async function loadAll(){
   const jobs = [...parts.map(([ep])=>fetchWithRetry(FX_API+ep+'/', undefined, 2, 2000, 20000).then(r=>{
       if(!r.ok) throw new Error('HTTP '+r.status); return r.json();
     })),
-    fetchWithRetry(FX_API+'settings/', undefined, 2, 2000, 20000).then(r=> r.ok ? r.json() : {}).catch(()=>({}))];
+    fetchWithRetry(FX_API+'settings/', undefined, 2, 2000, 20000).then(r=> r.ok ? r.json() : {}).catch(()=>({})),
+    // ⚠️ (۱۴۰۵/۰۷/۲۱) واریزهایِ مستقیم به صراف — اگر سرور هنوز به‌روز نشده باشد خالی می‌ماند (خطا نمی‌دهد)
+    fetchWithRetry(FX_API+'accounts/direct-deposits/', undefined, 2, 2000, 20000).then(r=> r.ok ? r.json() : []).catch(()=>[])];
   const allResults = await Promise.allSettled(jobs);
   const results = allResults.slice(0, parts.length);
   const settingsRes = allResults[parts.length].status==='fulfilled' ? allResults[parts.length].value : {};
+  const directRes = allResults[parts.length+1] && allResults[parts.length+1].status==='fulfilled' && Array.isArray(allResults[parts.length+1].value) ? allResults[parts.length+1].value : ((state && state.direct) || []);
   const data = {}, failed = [];
   const keep = {accounts:'accounts', orders:'orders', hawales:'hawales', payments:'payments', expenses:'expenses', 'customer-incomes':'incomes',
     'account-transfers':'transfers', 'capital-advances':'capitalAdvances', 'account-adjustments':'adjustments'};
@@ -911,7 +914,8 @@ async function loadAll(){
   }
   const prevSettings = (state && state.settings) || null;
   state = {
-    accounts: data['accounts'], orders: data['orders'], hawales: data['hawales'], payments: data['payments'], expenses: data['expenses'],
+    accounts: (data['accounts']||[]).filter(a=>a.bank_name!==FX_DIRECT_BANK), directAccountId: ((data['accounts']||[]).find(a=>a.bank_name===FX_DIRECT_BANK)||{}).id || null, direct: directRes,
+    orders: data['orders'], hawales: data['hawales'], payments: data['payments'], expenses: data['expenses'],
     incomes: data['customer-incomes'], transfers: data['account-transfers'], capitalAdvances: data['capital-advances'], adjustments: data['account-adjustments'],
     settings: (settingsRes && settingsRes.rate_basis) ? { rateBasis: 'hawale', currentRate: settingsRes.current_rate ? Number(settingsRes.current_rate) : null }
       : (prevSettings || { rateBasis: 'hawale', currentRate: null }),
@@ -938,9 +942,12 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.19-03';
+const FX_BUILD = '1405.07.21-04';
+// ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
+const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
   {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
+  {action:'add-direct',       icon:'🏧', label:'به صراف', tip:'مشتری ریال را مستقیم به حسابِ صراف زده — پول به حسابِ ما نیامده'},
   {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
   {action:'add-order',        icon:'📄', label:'ثبت فاکتور',   tip:'فاکتور یا پیش‌فاکتورِ فروش به مشتری — نوع را داخلِ فرم انتخاب می‌کنید'},
   {action:'add-expense',      icon:'🧾', label:'ثبت خرید',     tip:'فاکتورِ خریدِ تأمین‌کننده (کالا + جابجایی + کارمزد)'},
@@ -958,6 +965,7 @@ const NAV_STRUCTURE = [
   {type:'section', id:'sec-customer', label:'مشتری', color:'#3FB68B', children:[
     {id:'customers', icon:'👥', label:'مشتریان (دفتر)'},
     {id:'payments', icon:'💰', label:'پرداخت‌هایِ مشتریان'},
+    {id:'direct', icon:'🏧', label:'واریز مستقیم به صراف'},
     {id:'incomes', icon:'💵', label:'درآمدهایِ مشتریان'},
     {id:'capital-advances', icon:'🧾', label:'پیش‌پرداخت‌هایِ سرمایه‌ای'},
   ]},
@@ -1017,6 +1025,7 @@ function render(){
       if(btn.dataset.action==='add-hawale') openHawaleModal();
       if(btn.dataset.action==='add-order') openOrderModal();
       if(btn.dataset.action==='add-payment') openPaymentModal();
+      if(btn.dataset.action==='add-direct') openDirectModal();
       if(btn.dataset.action==='add-income') openIncomeModal();
       if(btn.dataset.action==='add-yuan-adjust') openPartyPicker({title:'⚙️ تعدیلِ مستقیمِ یوانی', desc:'مانده‌یِ یوانیِ کدام تأمین‌کننده را مستقیم تغییر می‌دهید؟ (بدونِ ریال، نرخ و بانک — برایِ مبلغی که دستی داده/گرفته‌اید)', types:[{key:'supplier', label:'تأمین‌کننده'}], onPick:(type,name)=>openYuanAdjustmentModal(name)});
       if(btn.dataset.action==='add-opening') openPartyPicker({title:'🏁 مانده‌یِ اولیه', desc:'حسابِ قبل از شروعِ مدارِ کدام مشتری یا تأمین‌کننده را وارد می‌کنید؟', types:[{key:'customer', label:'مشتری'},{key:'supplier', label:'تأمین‌کننده'}], onPick:(type,name)=>openOpeningBalanceModal(type, name)});
@@ -1040,6 +1049,7 @@ async function renderMain(){
   if(currentTab === 'reconcile') return renderReconcile(main);
   if(currentTab === 'customers') return currentCustomer ? renderCustomerLedger(main) : renderCustomersList(main);
   if(currentTab === 'payments') return renderPayments(main);
+  if(currentTab === 'direct') return renderDirect(main);
   if(currentTab === 'incomes') return renderIncomes(main);
   if(currentTab === 'capital-advances') return renderCapitalAdvances(main);
   if(currentTab === 'stock') return renderStock(main);
@@ -2264,7 +2274,7 @@ async function renderPayments(main, skipLoad){
             return `<tr>
               <td class="date-cell">${p.date}</td>
               <td>${p.customer_name}${p.affectsLockedOrder?' <span class="tag danger" title="این مشتری فاکتورِ قفل‌شده دارد — با احتیاط ویرایش کنید">🔒</span>':''}</td>
-              <td>${acc ? acc.displayName : '—'}</td>
+              <td>${acc ? acc.displayName : (state.directAccountId && p.account===state.directAccountId ? '<span class="tag danger" title="مشتری مستقیم به صراف زده؛ به حسابِ ما نیامده">🏧 مستقیم به صراف</span>' : '—')}</td>
               <td class="num">${fmtRial(p.rial_amount)}</td>
               <td class="num" style="font-weight:700">${p.runningRialBalance!=null ? fmtRial(p.runningRialBalance) : '—'}</td>
               <td class="num">${fmt(p.rate_at_payment,0)}</td>
@@ -2297,11 +2307,13 @@ async function renderPayments(main, skipLoad){
   main.querySelector('#addPaymentBtn').addEventListener('click', ()=>openPaymentModal());
   main.querySelectorAll('[data-edit-payment]').forEach(b=>b.addEventListener('click',()=>{
     const p = state.payments.find(x=>x.id==b.dataset.editPayment);
+    if(isDirectPayment(p)){ const dd=(state.direct||[]).find(x=>x.paymentId==p.id); if(dd) return openDirectModal(dd); }
     if(p.affectsLockedOrder && !confirm('⚠️ این مشتری فاکتورِ قفل‌شده (ثبت‌شده در هلو) دارد. ویرایشِ این پرداخت ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید؟')) return;
     openPaymentModal(p);
   }));
   main.querySelectorAll('[data-del-payment]').forEach(b=>b.addEventListener('click', async ()=>{
     const p = state.payments.find(x=>x.id==b.dataset.delPayment);
+    if(isDirectPayment(p)){ if(!confirm('این واریزِ مستقیم به صراف حذف شود؟ ردیفِ دفترِ مشتری و دفترِ تأمین‌کننده هر دو پاک می‌شوند.')) return; if(await apiDirectDelete(p.id)) renderPayments(main); return; }
     const warnMsg = p.affectsLockedOrder
       ? '⚠️ این مشتری فاکتورِ قفل‌شده (ثبت‌شده در هلو) دارد. حذفِ این پرداخت ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید حذف شود؟'
       : 'این پرداخت حذف شود؟';
@@ -2422,6 +2434,158 @@ function openPaymentModal(existing){
     const d = isEdit ? await apiUpdate('payments', existing.id, body) : await apiCreate('payments', body);
     if(!d) return;
     backdrop.remove();
+    renderMain();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 🏧 واریز مستقیم مشتری به صراف (۱۴۰۵/۰۷/۲۱)
+// مشتری ریال را مستقیم به حسابِ صراف زده؛ پول به حسابِ ما نیامده و ما حواله نمی‌زنیم. ردیف هم در دفترِ مشتری و هم در
+// دفترِ تأمین‌کننده با همان روالِ معمول (ریال و یوان) می‌نشیند، ولی رویِ مانده‌یِ هیچ حسابِ بانکی اثر ندارد.
+// دو نرخ: «نرخِ مشتری» (یوانِ مشتری) و «نرخِ صراف/تأمین‌کننده» (یوانِ تأمین‌کننده) — خالی = همان نرخِ مشتری.
+// ═══════════════════════════════════════════════════════════════════
+function isDirectPayment(p){ return !!(p && state.directAccountId && p.account===state.directAccountId); }
+async function apiDirectDelete(paymentId){
+  try{
+    const res = await fetchWithRetry(FX_API+'accounts/direct-deposits/'+paymentId+'/', {method:'DELETE'});
+    if(!res.ok) showToast('❌ حذف ناموفق بود');
+    return res.ok;
+  }catch(err){ showToast('❌ اتصال به سرور برقرار نشد — دوباره امتحان کنید'); return false; }
+}
+async function apiDirectSave(body, id){
+  try{
+    const res = await fetchWithRetry(FX_API+'accounts/direct-deposits/'+(id?id+'/':''), {method:id?'PATCH':'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    let d = null; try{ d = await res.json(); }catch(e){}
+    if(!res.ok){ showToast('❌ '+((d&&d.error)||'ثبت ناموفق بود — اگر سرور تازه به‌روز نشده، اول بک‌اند را نصب کنید')); return null; }
+    return d;
+  }catch(err){ showToast('❌ اتصال به سرور برقرار نشد — دوباره امتحان کنید'); return null; }
+}
+let directSearchQuery = '';
+async function renderDirect(main, skipLoad){
+  if(!skipLoad) await loadAll();
+  const all = state.direct || [];
+  const q = directSearchQuery.trim();
+  const rows = !q ? all : all.filter(r=>matchesSearch([r.date, r.customer, r.supplier, r.rialAmount, r.note], q));
+  const sum = (k)=>rows.reduce((t,r)=>t+Number(r[k]||0),0);
+  main.innerHTML = `
+    <div class="page-head">
+      <h1 class="page-title">🏧 واریز مستقیم مشتری به صراف</h1>
+      <p class="page-desc">مشتری ریال را مستقیم به حسابِ صراف زده؛ پول به حسابِ ما نیامده. ردیف در دفترِ مشتری (ریالی و یوانی) و دفترِ تأمین‌کننده می‌نشیند، ولی رویِ مانده‌یِ حساب‌هایِ بانکیِ ما اثری ندارد.</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addDirectBtn" data-perm="fx.edit">+ ثبت واریز به صراف</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="directSearchInput" type="text" placeholder="🔍 جستجو با مشتری، تأمین‌کننده یا تاریخ..." value="${fxc_esc(directSearchQuery)}" style="min-width:240px">
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="col-right">تاریخ</th><th>مشتری</th><th>تأمین‌کننده</th><th>ریال</th><th>نرخِ مشتری</th><th>یوانِ مشتری</th><th>نرخِ صراف</th><th>یوانِ تأمین‌کننده</th><th>اختلافِ یوان</th><th>توضیح</th><th></th></tr></thead>
+      <tbody>${rows.length===0 ? `<tr class="empty-row"><td colspan="11">${q?'چیزی پیدا نشد':'هنوز واریزِ مستقیمی ثبت نشده است'}</td></tr>` : rows.map(r=>`<tr>
+        <td class="date-cell">${fxc_esc(r.date)}</td>
+        <td>${fxc_esc(r.customer)}</td>
+        <td><strong>${fxc_esc(r.supplier)}</strong></td>
+        <td class="num">${fmtRial(r.rialAmount)}</td>
+        <td class="num">${fmt(r.customerRate,0)}</td>
+        <td class="num">${fmtYuan(r.customerYuan)}</td>
+        <td class="num">${fmt(r.supplierRate,0)}</td>
+        <td class="num">${fmtYuan(r.supplierYuan)}</td>
+        <td class="num" ${Math.abs(r.diffYuan)>0.00005?'style="font-weight:700"':''}>${Math.abs(r.diffYuan)>0.00005 ? fmtYuan(r.diffYuan) : '—'}</td>
+        <td>${fxc_esc(r.note||'')}</td>
+        <td><button class="icon-btn" data-edit-direct="${r.id}" data-perm="fx.edit">ویرایش</button> <button class="icon-btn" data-del-direct="${r.id}" data-perm="fx.edit">حذف</button></td>
+      </tr>`).join('')}</tbody>
+      ${rows.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)"><td colspan="3" style="text-align:left">جمعِ کل</td><td class="num">${fmtRial(sum('rialAmount'))}</td><td></td><td class="num">${fmtYuan(sum('customerYuan'))}</td><td></td><td class="num">${fmtYuan(sum('supplierYuan'))}</td><td class="num">${fmtYuan(sum('diffYuan'))}</td><td colspan="2"></td></tr></tfoot>` : ''}
+    </table></div>
+    <div class="warn-note">«نرخِ مشتری» = نرخی که به مشتری گفته‌ایم؛ «نرخِ صراف» = نرخی که صراف برایِ یوانِ تأمین‌کننده حساب کرده. اگر هر دو یکی باشد «اختلافِ یوان» خالی است.</div>`;
+  main.querySelector('#directSearchInput').addEventListener('input', (e)=>{ directSearchQuery = e.target.value; renderDirect(main, true); });
+  main.querySelector('#addDirectBtn').addEventListener('click', ()=>openDirectModal());
+  main.querySelectorAll('[data-edit-direct]').forEach(b=>b.addEventListener('click', ()=>openDirectModal(all.find(x=>x.id==b.dataset.editDirect))));
+  main.querySelectorAll('[data-del-direct]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('این واریزِ مستقیم حذف شود؟ ردیفِ دفترِ مشتری و دفترِ تأمین‌کننده هر دو پاک می‌شوند.')) return;
+    if(await apiDirectDelete(b.dataset.delDirect)) renderDirect(main);
+  }));
+}
+function openDirectModal(existing){
+  const today = todayShamsi();
+  const isEdit = !!existing;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'ویرایشِ واریزِ مستقیم به صراف' : '🏧 ثبتِ واریزِ مستقیمِ مشتری به صراف'}</h3>
+      <div class="field-guide"><table>
+        <tr><th>فیلد</th><th>توضیح</th></tr>
+        <tr><td>نرخِ مشتری</td><td>نرخی که به مشتری گفته‌ایم؛ یوانِ مشتری = ریال ÷ همین نرخ</td></tr>
+        <tr><td>نرخِ صراف</td><td>فقط اگر نرخِ صراف/تأمین‌کننده فرق دارد؛ یوانِ تأمین‌کننده = ریال ÷ همین نرخ. خالی = همان نرخِ مشتری</td></tr>
+      </table></div>
+      <div class="field" style="margin-bottom:10px"><label>مشتری</label>
+        <input id="dCustomer" type="text" value="${existing ? fxc_esc(existing.customer) : ''}" placeholder="حداقل ۲ حرف تایپ کنید...">
+        <div id="dCustomerResults" style="position:relative"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>تأمین‌کننده</label>
+        <input id="dSupplier" type="text" list="knownSuppliersListD" value="${existing ? fxc_esc(existing.supplier) : ''}" placeholder="مثلاً: کلافی">
+        <datalist id="knownSuppliersListD">${getKnownSupplierNames().map(n=>`<option value="${fxc_esc(n)}">`).join('')}</datalist>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاریخ واریز (شمسی)</label><input id="dDate" type="text" value="${existing ? existing.date : today}" placeholder="1405-07-21"></div>
+        <div class="field"><label>مبلغ واریزی (ریال)</label><input id="dAmount" type="text" class="num" value="${existing ? fmt(existing.rialAmount,0) : ''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>نرخِ مشتری (ریال به ازایِ هر یوان)</label><input id="dRateC" type="text" class="num" value="${existing ? fmt(existing.customerRate,0) : ''}"></div>
+        <div class="field"><label>نرخِ صراف (اختیاری — اگر فرق دارد)</label><input id="dRateS" type="text" class="num" value="${existing && Math.abs(existing.customerRate-existing.supplierRate)>0.001 ? fmt(existing.supplierRate,0) : ''}" placeholder="خالی = همان نرخِ مشتری"></div>
+      </div>
+      <div id="dPreview" class="warn-note" style="margin:6px 0 10px"></div>
+      <div class="field"><label>توضیح (اختیاری — مثلاً نامِ صراف)</label><input id="dNote" type="text" value="${existing ? fxc_esc(existing.note||'') : ''}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="saveDirectBtn">${isEdit?'ذخیره تغییرات':'ثبت'}</button>
+        <button class="btn btn-ghost" id="cancelDirectBtn">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const $ = (id)=>backdrop.querySelector(id);
+  $('#cancelDirectBtn').addEventListener('click', ()=>backdrop.remove());
+  wireShamsiDatePicker($('#dDate'));
+  ['#dAmount','#dRateC','#dRateS'].forEach(i=>wireLiveNumberFormat($(i)));
+  const num = (el)=>parseFloat(String(el.value).replace(/,/g,'')) || 0;
+  const paint = ()=>{
+    const R = num($('#dAmount')), rc = num($('#dRateC')), rs = num($('#dRateS')) || rc;
+    $('#dPreview').innerHTML = (R && rc) ? `یوانِ مشتری: <b>${fmtYuan(R/rc)}</b> · یوانِ تأمین‌کننده: <b>${fmtYuan(R/rs)}</b>${Math.abs(R/rs-R/rc)>0.00005 ? ` · اختلاف: <b>${fmtYuan(R/rs-R/rc)}</b>` : ''}` : 'مبلغ و نرخ را وارد کنید تا یوانِ هر طرف نشان داده شود.';
+  };
+  ['#dAmount','#dRateC','#dRateS'].forEach(i=>$(i).addEventListener('input', paint)); paint();
+
+  let selectedCustomerName = existing ? existing.customer : '';
+  const custInput = $('#dCustomer'), custResults = $('#dCustomerResults');
+  custInput.addEventListener('input', async ()=>{
+    selectedCustomerName = '';
+    const q = custInput.value.trim();
+    if(q.length < 2){ custResults.innerHTML=''; return; }
+    const matches = await searchCrmPriorityCustomers(q);
+    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+      ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${fxc_esc(m.name)}">${fxc_esc(m.name)}</div>`).join('')}</div>` : '';
+    custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
+      selectedCustomerName = el.dataset.pickCust; custInput.value = selectedCustomerName; custResults.innerHTML = '';
+    }));
+  });
+  $('#saveDirectBtn').addEventListener('click', async ()=>{
+    let customer = selectedCustomerName || custInput.value.trim();
+    const supplier = $('#dSupplier').value.trim();
+    const date = $('#dDate').value.trim();
+    const rial = num($('#dAmount')), rc = num($('#dRateC')), rs = num($('#dRateS'));
+    const note = $('#dNote').value.trim();
+    if(!customer || !supplier || !date || rial<=0 || rc<=0){ showToast('مشتری، تأمین‌کننده، تاریخ، مبلغ و نرخِ مشتری را پر کنید'); return; }
+    if(rc < 1000 || (rs && rs < 1000)){ showToast('❌ نرخِ واردشده نامعقول است — نرخِ واقعیِ یوان را وارد کنید'); return; }
+    const similar = findSimilarExistingName(customer, getKnownCustomerNames());
+    if(similar && similar!==customer){
+      if(confirm(`⚠️ یه مشتری با نامِ خیلی مشابه («${similar}») از قبل تو دفتر هست. منظورتون همون مشتریه؟\n\n«تأیید» = بله، همون «${similar}».\n«انصراف» = نه، مشتریِ جدیدیه («${customer}»).`)) customer = similar;
+    }
+    if(!isEdit){
+      const dup = (state.direct||[]).find(r=>normalizeFa(r.customer)===normalizeFa(customer) && r.date===date && Number(r.rialAmount)===rial);
+      if(dup && !confirm('⚠️ یک واریزِ کاملاً مشابه (همان مشتری، تاریخ و مبلغ) قبلاً ثبت شده. دوباره ثبت شود؟')) return;
+    }
+    const body = {customer, supplier, date, rial_amount:rial, customer_rate:rc, supplier_rate: rs || '', note};
+    const d = await apiDirectSave(body, isEdit ? existing.id : null);
+    if(!d) return;
+    backdrop.remove();
+    await loadAll();
     renderMain();
   });
 }
@@ -2608,7 +2772,7 @@ async function renderHawales(main, skipLoad){
             <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
               const acc = state.accounts.find(a=>a.id===c.account);
-              return `<div style="font-size:11px">${acc?acc.displayName:'⚠️ منبعِ نامعلوم'}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
+              return `<div style="font-size:11px">${acc?acc.displayName:(state.directAccountId && c.account===state.directAccountId ? '🏧 مستقیم از مشتری به صراف' : '⚠️ منبعِ نامعلوم')}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
             }).join('')}</td>
             <td class="num">${fmtRial(h.totalRial)}</td>
             <td class="num">${fmt(h.rate_at_hawale,0)}</td>
@@ -2643,11 +2807,13 @@ async function renderHawales(main, skipLoad){
   main.querySelector('#addHawaleBtn').addEventListener('click', ()=>openHawaleModal());
   main.querySelectorAll('[data-edit-hawale]').forEach(b=>b.addEventListener('click',()=>{
     const h = state.hawales.find(x=>x.id==b.dataset.editHawale);
+    { const dd=(state.direct||[]).find(x=>x.hawaleId==h.id); if(dd) return openDirectModal(dd); }
     if(h.affectsLockedOrder && !confirm('⚠️ این حواله به مشتری‌ای با فاکتورِ قفل‌شده (ثبت‌شده در هلو) مرتبط است. ویرایش ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید؟')) return;
     openHawaleModal(h);
   }));
   main.querySelectorAll('[data-del-hawale]').forEach(b=>b.addEventListener('click', async ()=>{
     const h = state.hawales.find(x=>x.id==b.dataset.delHawale);
+    { const dd=(state.direct||[]).find(x=>x.hawaleId==h.id); if(dd){ if(!confirm('این حواله مالِ یک «واریزِ مستقیم به صراف» است؛ حذفش ردیفِ مشتری را هم پاک می‌کند. ادامه؟')) return; if(await apiDirectDelete(dd.paymentId)) renderHawales(main); return; } }
     const warnMsg = h.affectsLockedOrder
       ? '⚠️ این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است. حذف ممکن است با نرخِ حسابداریِ قبلاً ثبت‌شده ناهماهنگ شود. مطمئنید حذف شود؟'
       : 'این حواله حذف شود؟ پرداخت‌های مرتبط به حالت «معلق» برمی‌گردند.';
@@ -4949,6 +5115,10 @@ const FX_HELP = {
       ['➕ ثبت پرداخت (ثبتِ سریع)', 'مشتری، حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز. مانده‌یِ آن حساب بالا می‌رود.'],
       ['تخصیصِ دستی به فاکتور', 'اختیاری؛ کلِ آن واریزی را به یک فاکتورِ مشخص می‌چسباند (به‌جایِ FIFO).'],
       ['ستون‌هایِ مانده', 'مانده‌یِ مشتری بعد از همان ردیف.']]],
+    'direct': ['واریز مستقیم به صراف', 'وقتی مشتری ریال را مستقیم به حسابِ صراف زده و پول هیچ‌وقت به حسابِ ما نیامده.', [
+      ['➕ ثبت واریز به صراف (ثبتِ سریع)', 'مشتری، تأمین‌کننده، تاریخ، مبلغِ ریال و «نرخِ مشتری». یوانِ مشتری = ریال ÷ نرخِ مشتری.'],
+      ['نرخِ صراف (اختیاری)', 'اگر نرخِ صراف با نرخی که به مشتری گفتید فرق دارد اینجا بنویسید؛ یوانِ تأمین‌کننده با همین نرخ حساب می‌شود و «اختلافِ یوان» نشان داده می‌شود.'],
+      ['اثر در دفتر', 'هم در دفترِ مشتری (واریزی) و هم در دفترِ تأمین‌کننده (حواله) می‌نشیند؛ رویِ مانده‌یِ هیچ حسابِ بانکیِ ما اثری ندارد.']]],
     'incomes': ['درآمدهایِ مشتریان', 'کمیسیون یا سندی که پولِ واقعی به یک حسابِ بانکی می‌آورد ولی ربطی به خریدِ یوان ندارد.', [
       ['➕ ثبت درآمد (ثبتِ سریع)', 'مشتری، حساب، مبلغ، توضیح. در مانده‌یِ حسابِ بانکی می‌آید؛ در دفترِ یوانیِ مشتری نمی‌آید.']]],
     'capital-advances': ['پیش‌پرداخت‌هایِ سرمایه‌ای', 'وقتی برایِ مشتری از سرمایه/حسابِ خودتان (نه واریزیِ خودِ او) حواله زده‌اید.', [
@@ -5068,6 +5238,11 @@ const FX_HELP_PLAIN = {
   'payments': {
     what: 'هر بار مشتری پولی به یکی از حساب‌هایتان واریز کرد، اینجا ثبت کنید. این ثبت، مانده‌یِ آن حساب را بالا می‌برد و پولِ مشتری را «پیشِ شما» نگه می‌دارد.',
     steps: ['«+ ثبت پرداخت»: مشتری، حساب، مبلغ (ریال) و نرخِ روزِ واریز (فقط برایِ اطلاع).', 'تا حواله نزنید، آن مبلغ «⏳ هنوز حواله نشده» می‌ماند و یوانی به مشتری نمی‌دهد.'],
+    example: '', tips: [],
+  },
+  'direct': {
+    what: 'مشتری به‌جایِ حسابِ ما، ریال را مستقیم به حسابِ صراف زده. ما نقشی در جابه‌جاییِ پول نداریم؛ فقط نرخ را گفته‌ایم و یوان معلوم می‌شود.',
+    steps: ['«+ ثبت واریز به صراف»: مشتری، تأمین‌کننده، تاریخ، مبلغِ ریال و نرخِ مشتری.', 'اگر نرخِ صراف فرق دارد، «نرخِ صراف» را هم بنویسید؛ پیش‌نمایشِ یوانِ هر دو طرف همان‌جا دیده می‌شود.', 'ردیف خودکار هم در دفترِ مشتری و هم در دفترِ تأمین‌کننده (ریالی و یوانی) می‌نشیند؛ مانده‌یِ حساب‌هایِ بانکیِ ما تغییر نمی‌کند.', 'ویرایش و حذف فقط از همین صفحه (یا دکمه‌هایِ همان ردیف در «پرداخت‌ها»/«حواله‌ها») انجام می‌شود.'],
     example: '', tips: [],
   },
   'incomes': {
