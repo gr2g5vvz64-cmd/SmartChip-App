@@ -46,8 +46,31 @@
      preload+onload، فونت در پس‌زمینه لود می‌شه بدونِ معطل‌کردنِ رندرِ
      اولیه‌ی صفحه. -->
 <link rel="stylesheet" href="./vendor-fonts.css">
+<script src="./madar-theme.js"></script>
 <style>
+  /* 🌙 تمِ تاریکِ مدار (پیش‌فرض) — ۱۴۰۵/۰۷/۲۰؛ تمِ روشن با دکمه‌یِ ☀️ بالا-چپ */
   :root{
+    --ink:#f4f5f8;
+    --ink-soft:#9aa2bd;
+    --ink-faint:#6b7390;
+    --paper:#0f1218;
+    --surface:#1a1e2a;
+    --border:#323952;
+    --rial:#34d399;
+    --rial-soft:rgba(52,211,153,.14);
+    --yuan:#fb923c;
+    --yuan-soft:rgba(251,146,60,.14);
+    --danger:#f87171;
+    --danger-soft:rgba(248,113,113,.14);
+    --ok:#34d399;
+    --accent:#f0a500;
+    --card:#232838;
+    --radius:12px;
+    --sidebar-w:236px;
+    --sidebar-bg:#141821; --nav-active:rgba(240,165,0,.18); --field-bg:#232838; --pop-bg:#232838;
+    color-scheme:dark;
+  }
+  html[data-theme="light"]{
     /* ⚠️ (۱۴۰۵/۰۶/۱۸) فیکسِ ناهماهنگیِ رنگی — طبقِ گزارشِ کاربر: این پالت
        عیناً از فایلِ اولیه‌ی کاربر به ارث رسیده بود و هیچ‌وقت با پالتِ
        یکپارچه‌ی آبیِ CRM/ERP هماهنگ نشده بود (همون الگوی مشکلی که قبلاً
@@ -71,6 +94,7 @@
     --accent:#0e7d6b;
     --card:#c3dbf3;
     --radius:12px;
+    --sidebar-bg:var(--ink); --nav-active:#fff; --field-bg:#fff; --pop-bg:#fff; color-scheme:light;
     --sidebar-w:236px;
   }
   *{box-sizing:border-box;}
@@ -105,7 +129,7 @@
   #fxOwFab{ position:fixed; left:14px; bottom:116px; z-index:41; display:none; align-items:center; gap:8px; padding:9px 14px; border-radius:22px; border:none; background:#b45309; color:#fff; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 2px 12px rgba(0,0,0,.35); font-family:inherit; }
   #fxOwFab.on{ display:inline-flex; }
   #fxOwFab b{ background:#fff; color:#b45309; border-radius:99px; min-width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11.5px; padding:0 5px; }
-  @media (max-width:700px){ #fxOwFab{ left:14px; bottom:16px; width:44px; height:44px; padding:0; justify-content:center; border-radius:50%; } #fxOwFab .lbl{ display:none; } #fxOwFab b{ position:absolute; top:-5px; right:-5px; } }
+  @media (max-width:700px){ #fxOwFab{ left:118px; bottom:16px; width:44px; height:44px; padding:0; justify-content:center; border-radius:50%; } #fxOwFab .lbl{ display:none; } #fxOwFab b{ position:absolute; top:-5px; right:-5px; } }
   .nav-badge{ margin-right:auto; background:#b45309; color:#fff; border-radius:99px; min-width:18px; height:18px; padding:0 5px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
   .ow-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr)); gap:14px; align-items:start; }
   .ow-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
@@ -137,7 +161,7 @@
   .app{ display:flex; min-height:100vh; }
   /* Sidebar */
   .sidebar{
-    width:var(--sidebar-w); flex-shrink:0; background:var(--ink); color:#fff;
+    width:var(--sidebar-w); flex-shrink:0; background:var(--sidebar-bg); color:#fff;
     display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
   }
   .brand{ padding:24px 20px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
@@ -150,7 +174,7 @@
     transition:background .12s ease, color .12s ease;
   }
   .nav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
-  .nav-item.active{ background:#fff; color:var(--ink); font-weight:600; }
+  .nav-item.active{ background:var(--nav-active); color:var(--ink); font-weight:600; }
   .nav-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.55; flex-shrink:0; }
   /* ⚠️ (۱۴۰۵/۰۷/۱۴) نوارِ کناریِ شفاف‌تر */
   .nav-item{ padding:9px 12px; font-size:13.5px; }
@@ -233,14 +257,14 @@
   .field{ display:flex; flex-direction:column; gap:5px; }
   .field label{ font-size:12px; color:var(--ink-soft); font-weight:600; }
   .field input, .field select, .field textarea{
-    font-family:inherit; border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-size:13.5px; background:#fff; color:var(--ink); width:100%;
+    font-family:inherit; border:1px solid var(--border); border-radius:8px; padding:9px 10px; font-size:13.5px; background:var(--field-bg); color:var(--ink); width:100%;
   }
   .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid #C7CCD6; outline-offset:0; border-color:#B7BEC9; }
   .field input.num, .field textarea{ direction:rtl; }
   .field small.calc{ font-size:11.5px; color:var(--ink-faint); }
 
   .modal-backdrop{ position:fixed; inset:0; background:rgba(20,22,28,.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
-  .modal{ background:#fff; border-radius:14px; padding:22px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
+  .modal{ background:var(--pop-bg); color:var(--ink); border-radius:14px; padding:22px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
   .modal h3{ margin:0 0 14px; font-size:15.5px; }
   .modal-actions{ display:flex; gap:8px; justify-content:flex-start; margin-top:16px; }
 
@@ -472,7 +496,7 @@ function openShamsiCalendarPicker(inputEl){
 
   const popup = document.createElement('div');
   popup.className = 'shamsi-cal-popup';
-  popup.style.cssText = 'position:absolute;z-index:100;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:10px;width:260px;';
+  popup.style.cssText = 'position:absolute;z-index:100;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:10px;width:260px;';
   const rect = inputEl.getBoundingClientRect();
   popup.style.top = (window.scrollY + rect.bottom + 4) + 'px';
   popup.style.left = (window.scrollX + rect.left) + 'px';
@@ -838,7 +862,7 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
     const mySeq = ++seq;
     const items = await fxSearchItems(q);
     if(mySeq !== seq) return; // یه سرچِ جدیدتر تو راهه
-    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:100;max-height:160px;overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.18)">
+    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:160px;overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.18)">
       ${items.map(name=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-part="${name}">${name}</div>`).join('')}
     </div>` : '';
     resultsBoxEl.querySelectorAll('[data-pick-part]').forEach(el=>el.addEventListener('click', ()=>{
@@ -883,7 +907,7 @@ async function loadAll(){
   state = {
     accounts: data['accounts'], orders: data['orders'], hawales: data['hawales'], payments: data['payments'], expenses: data['expenses'],
     incomes: data['customer-incomes'], transfers: data['account-transfers'], capitalAdvances: data['capital-advances'], adjustments: data['account-adjustments'],
-    settings: (settingsRes && settingsRes.rate_basis) ? { rateBasis: settingsRes.rate_basis, currentRate: settingsRes.current_rate ? Number(settingsRes.current_rate) : null }
+    settings: (settingsRes && settingsRes.rate_basis) ? { rateBasis: 'hawale', currentRate: settingsRes.current_rate ? Number(settingsRes.current_rate) : null }
       : (prevSettings || { rateBasis: 'hawale', currentRate: null }),
   };
   dataReady = true;
@@ -908,7 +932,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.19-02';
+const FX_BUILD = '1405.07.19-03';
 const NAV_QUICK = [
   {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
   {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
@@ -1020,11 +1044,8 @@ async function renderMain(){
 }
 
 function rateBasisToggle(){
-  const basis = state.settings.rateBasis;
-  return `<div class="seg" id="rateBasisSeg">
-    <button data-basis="hawale" class="${basis==='hawale'?'active':''}">مبنا: نرخ حواله (اصلی)</button>
-    <button data-basis="payment" class="${basis==='payment'?'active':''}">مبنا: نرخ واریز مشتری</button>
-  </div>`;
+  // ⚠️ (۱۴۰۵/۰۷/۲۱) مبنای محاسبه همیشه «نرخ حواله» است (طبقِ تصمیمِ مدیر). نرخ روز واریز فقط برایِ اطلاعِ مدیریت نمایش داده می‌شود و در هیچ محاسبه‌ای (FIFO، نرخ میانگینِ وزنی، قفل) نقش ندارد.
+  return `<div class="seg" id="rateBasisSeg" title="نرخ روزِ واریز فقط نمایشی است و در محاسبه نقشی ندارد"><button class="active" disabled style="cursor:default">محاسبه: نرخ حواله</button></div>`;
 }
 function wireRateBasisToggle(container, cb){
   container.querySelectorAll('#rateBasisSeg button').forEach(b=>{
@@ -1057,7 +1078,7 @@ async function renderDashboard(main, reuseG){
     <div style="background:#FEF3C7;border:2px solid #f59e0b;border-radius:10px;padding:14px 16px;margin-bottom:18px">
       <div style="font-weight:800;color:#92400e;margin-bottom:8px">🔔 ${fmt(g.unlockedClosedOrders.length,0)} فاکتور کامل تسویه شده ولی هنوز قفل نشده — یادتون نره!</div>
       ${g.unlockedClosedOrders.map(o=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--pop-bg);color:var(--ink);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px">
           <div><strong>${o.customerName}</strong> — فاکتورِ ${o.date} — ${fmtYuan(o.yuanAmount)} — نرخِ میانگین: ${fmt(o.weightedAvgRate,0)}</div>
           <button class="btn btn-primary btn-sm" data-goto-lock="${o.customerName}">برو قفل کن ›</button>
         </div>`).join('')}
@@ -2021,7 +2042,7 @@ function openOrderModal(existing, presetCustomer){
       const q = custInput.value.trim();
       if(q.length < 2){ custResults.innerHTML=''; return; }
       const matches = await searchCrmPriorityCustomers(q);
-      custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+      custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
         ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${m.name}">${m.name}</div>`).join('')}
       </div>` : '';
       custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
@@ -2351,7 +2372,7 @@ function openPaymentModal(existing){
     const q = custInput.value.trim();
     if(q.length < 2){ custResults.innerHTML=''; return; }
     const matches = await searchCrmPriorityCustomers(q);
-    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
       ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${m.name}">${m.name}</div>`).join('')}
     </div>` : '';
     custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
@@ -2439,7 +2460,7 @@ function openIncomeModal(existing){
     const q = custInput.value.trim();
     if(q.length < 2){ custResults.innerHTML=''; return; }
     const matches = await searchCrmPriorityCustomers(q);
-    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
+    custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
       ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${m.name}">${m.name}</div>`).join('')}
     </div>` : '';
     custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
@@ -4856,7 +4877,7 @@ const FX_HELP = {
     ['فاکتورِ باز و بسته', 'فاکتور وقتی «بسته» است که باقی‌مانده‌اش ≤ ۱۰ یوان شود. فقط فاکتورِ بسته «نرخِ میانگینِ وزنی» دارد (همان نرخی که در هلو ثبت می‌کنید) و فقط آن را می‌شود قفل کرد.'],
     ['نرخِ میانگینِ وزنی و قفل', 'مجموعِ ریال ÷ مجموعِ یوانِ پرداخت‌هایی که آن فاکتور را پوشش داده‌اند. بعد از ثبت در هلو «🔒 قفل کن» را بزنید تا با ویرایش/حذفِ یک واریزیِ قدیمی خاموش عوض نشود.'],
     ['⏳ هنوز حواله نشده', 'واریزیِ مشتری که به هیچ حواله‌ای وصل نشده: ریالش پیشِ ماست، ولی <b>یوانی اعتبار نمی‌گیرد</b>. نرخِ روزِ واریز فقط برایِ اطلاع نمایش داده می‌شود و ملاکِ محاسبه نیست؛ یوانِ مشتری با نرخِ همان حواله‌ای حساب می‌شود که واقعاً زده شود.'],
-    ['مبنایِ نرخ (بالایِ صفحه)', '«نرخِ حواله» (پیش‌فرض): فاکتورها با نرخِ حواله‌یِ واقعی بسته می‌شوند. «نرخِ واریز»: با نرخِ روزِ واریزِ مشتری. فقط روی باز/بسته‌شدنِ فاکتورها و نرخِ میانگین اثر دارد.'],
+    ['مبنایِ محاسبه', 'همیشه «نرخِ حواله»ی واقعی است (FIFO، باز/بسته‌شدنِ فاکتور، نرخِ میانگینِ وزنی و قفل). نرخِ روزِ واریز فقط برایِ اطلاعِ مدیریت نمایش داده می‌شود و در هیچ محاسبه‌ای نقش ندارد.'],
     ['پیش‌فاکتور', 'همان لحظه که ثبت شود از اعتبارِ یوانیِ مشتری کم می‌کند (مثلِ فاکتور). اگر حذف شود اعتبار برمی‌گردد.'],
     ['ریال یا تومان؟', 'همه‌یِ مبلغ‌هایِ ریالی در دفتر «ریال» هستند. تومان × ۱۰ = ریال (۷۹۰ میلیون تومان = ۷٬۹۰۰٬۰۰۰٬۰۰۰ ریال).'],
   ],
