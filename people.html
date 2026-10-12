@@ -68,7 +68,7 @@ select{background:var(--card2);border:1px solid var(--line);border-radius:8px;pa
   <h1>👥 مرکز افراد</h1>
   <div class="sub">برایِ هر نفر یک جا: مشخصات و نقش، دسترسی‌ها، اتصالِ بله و پیام‌ها، تفویض‌ها. دیگر بینِ پنلِ دسترسی، مدیریتِ کارمندان و سازمان نمی‌روید.</div>
   <div class="lay">
-    <aside class="card list"><input type="search" id="q" placeholder="🔍 جستجوی نام…"><div id="plist"><div class="empty">در حالِ بارگذاری…</div></div></aside>
+    <aside class="card list"><button class="btn pri" id="newBtn" style="width:100%;margin-bottom:8px">＋ کارمندِ تازه</button><input type="search" id="q" placeholder="🔍 جستجوی نام…"><div id="plist"><div class="empty">در حالِ بارگذاری…</div></div></aside>
     <main class="card" id="pane"><div class="empty">یک نفر را از فهرست انتخاب کنید.</div></main>
   </div>
 </div>
@@ -106,6 +106,7 @@ function drawList(){
   $('plist').innerHTML=l.map(s=>`<div class="pp ${SEL&&SEL.toLowerCase()===s.email.toLowerCase()?'on':''}" data-e="${esc(s.email)}"><span class="av">${esc((s.name||'?').trim()[0])}</span><span><b>${esc(s.name)}</b><small>${esc(roleLabel(s.role))}</small></span></div>`).join('')||'<div class="empty">پیدا نشد</div>';
   $('plist').querySelectorAll('.pp').forEach(e=>e.onclick=()=>pick(e.dataset.e));
 }
+$('newBtn').onclick=newStaff;
 $('q').oninput=e=>{ Q=e.target.value; drawList(); };
 function me(){ return D.staff.find(s=>s.email.toLowerCase()===(SEL||'').toLowerCase()); }
 function pick(email){ SEL=email; history.replaceState(null,'','#'+encodeURIComponent(email)); drawList(); render(); }
@@ -125,19 +126,42 @@ function myAssign(p){
   })));
   return out;
 }
-function tProfile(p){
+async function sapi(method,path,body){
+  const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok){ const m=j&&(j.detail||j.error||Object.values(j).flat().join(' ')); throw new Error(m||('خطا '+r.status)); }
+  return j;
+}
+const ROLE_OPTS=()=>(D.roles||[]).filter(r=>r.key!=='admin');
+async function tProfile(p){
+  let full={}; try{ full=await sapi('GET','/api/staff/staff/'+encodeURIComponent(p.email)+'/'); }catch(e){}
   const as=myAssign(p), canEdit=STRUCT&&STRUCT.can_edit;
   const pos=[]; ((STRUCT&&STRUCT.units)||[]).forEach(u=>(u.positions||[]).forEach(po=>pos.push([po.id,(u.icon||'')+' '+u.name+' — '+po.title])));
   $('tabBody').innerHTML=`
-   <div class="row"><div class="l"><b>نقشِ دسترسی</b><small>تعیین می‌کند چه صفحه‌هایی برایِ این نفر باز است</small></div><span class="tag ok">${esc(roleLabel(p.role))}</span><a class="btn" href="staff-admin.html">تغییرِ نقش ›</a></div>
+   <div class="g">🪪 مشخصات</div>
+   <div class="row"><div class="l"><b>نام</b></div><input id="fName" value="${esc(full.name||p.name)}" style="background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:200px"></div>
+   <div class="row"><div class="l"><b>موبایل</b></div><input id="fMob" value="${esc(full.mobile||'')}" dir="ltr" style="background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:200px"></div>
+   <div class="row"><div class="l"><b>نقشِ دسترسی</b><small>تعیین می‌کند چه صفحه‌هایی برایِ این نفر باز است</small></div>
+     <select id="fRole">${ROLE_OPTS().map(r=>`<option value="${esc(r.key)}" ${r.key===(full.role||p.role)?'selected':''}>${esc(r.label)}</option>`).join('')}</select></div>
+   <div class="row"><div class="l"><b>فعال</b><small>غیرفعال = دیگر نمی‌تواند وارد شود</small></div><label class="sw"><input type="checkbox" id="fAct" ${full.active===false?'':'checked'}><span></span></label></div>
+   <div class="row"><span></span><button class="btn pri" id="fSave">ذخیره</button></div>
    <div class="g">🏢 سِمَت‌ها در سازمان</div>
    ${as.length?as.map(a=>`<div class="row"><div class="l"><b>${esc(a.icon||'')} ${esc(a.unit)} — ${esc(a.title)}</b><small>${esc(a.kind||'')}${a.primary?' · اصلی':''}</small></div>${canEdit?`<button class="btn bad" data-un="${a.id}">برداشتن</button>`:''}</div>`).join(''):'<div class="empty" style="padding:8px">سِمَتی ندارد</div>'}
-   ${canEdit&&pos.length?`<div class="row"><select id="posSel">${pos.map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select><button class="btn pri" id="posAdd">＋ افزودنِ سِمَت</button></div>`:''}
-   <div class="g">⚡ میانبرها</div>
-   <div class="row"><span class="sub" style="margin:0">برایِ ساختنِ کارمندِ تازه یا خروجِ کارمند از «مدیریتِ کارمندان» استفاده کنید.</span><a class="btn" href="staff-admin.html">مدیریتِ کارمندان ›</a></div>`;
+   ${canEdit&&pos.length?`<div class="row"><select id="posSel">${pos.map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select><button class="btn pri" id="posAdd">＋ افزودنِ سِمَت</button></div>`:''}`;
+  $('fSave').onclick=async()=>{
+    const role=$('fRole').value; if(role!==(full.role||p.role)&&!confirm('نقشِ دسترسیِ این نفر عوض می‌شود. ادامه؟')) return;
+    try{ await sapi('PATCH','/api/staff/staff/'+encodeURIComponent(p.email)+'/',{name:$('fName').value.trim(),mobile:$('fMob').value.trim(),role,active:$('fAct').checked});
+      D=await call('/api/access/admin/matrix/'); toast('ذخیره شد'); drawList(); render(); }catch(e){ toast(e.message,true); }
+  };
   $('tabBody').querySelectorAll('[data-un]').forEach(b=>b.onclick=async()=>{ if(!confirm('این سِمَت برداشته شود؟')) return;
     try{ await call('/api/org/unassign/',{assignment_id:+b.dataset.un}); STRUCT=await call('/api/org/structure/'); toast('برداشته شد'); tProfile(p);}catch(e){ toast(e.message,true);} });
   const add=$('posAdd'); if(add) add.onclick=async()=>{ try{ await call('/api/org/assign/',{staff_email:p.email,position_id:+$('posSel').value}); STRUCT=await call('/api/org/structure/'); toast('افزوده شد'); tProfile(p);}catch(e){ toast(e.message,true);} };
+}
+async function newStaff(){
+  const email=prompt('ایمیلِ کارمندِ تازه:'); if(!email) return;
+  const name=prompt('نام و نام خانوادگی:'); if(!name) return;
+  try{ await sapi('POST','/api/staff/staff/',{email:email.trim().toLowerCase(),name:name.trim(),role:'sales_expert',active:true});
+    D=await call('/api/access/admin/matrix/'); drawList(); pick(email.trim().toLowerCase()); toast('ساخته شد — نقش و سِمَت را تنظیم کنید'); }catch(e){ toast(e.message,true); }
 }
 
 /* ───── ۲) دسترسی‌ها ───── */
