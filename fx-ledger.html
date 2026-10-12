@@ -725,17 +725,32 @@ async function apiGetCustomerLedger(customer, basis){
 // این دفتر.
 let _crmCustomersCache = null;
 async function searchCrmPriorityCustomers(q){
-  if(!_crmCustomersCache){
+  // ⚠️ (۱۴۰۵/۰۷/۲۱) فیکس: اگر بارگذاریِ لیست شکست خورد یا خالی بود، دیگر برای همیشه کش نمی‌شود (قبلاً تا رفرش هیچ پیشنهادی نمی‌آمد)؛
+  // و تطبیقِ نام نرمال‌شده است (ی/ي، ک/ك، فاصله) تا «لو» همه‌یِ نام‌هایِ حاوی آن را بیاورد.
+  if(!_crmCustomersCache || !_crmCustomersCache.length){
     try{
       const r = await fetch(CRM_CUSTOMERS_API);
-      _crmCustomersCache = r.ok ? await r.json() : [];
+      const j = r.ok ? await r.json() : [];
+      _crmCustomersCache = Array.isArray(j) ? j : (j && Array.isArray(j.results) ? j.results : []);
     }catch(e){ _crmCustomersCache = []; }
   }
-  const nq = (q||'').trim();
+  const nq = normalizeFa(q||'');
   return _crmCustomersCache
     .filter(c => ['1','5','9'].includes(String(c.priority||'').trim()))
-    .filter(c => !nq || (c.name||'').includes(nq))
+    .filter(c => !nq || normalizeFa(c.name||'').includes(nq))
     .slice(0, 10);
+}
+// ⚠️ (۱۴۰۵/۰۷/۲۱) جستجویِ مشتری برایِ «واریز مستقیم به صراف»: مشتریِ تثبیت‌شده (۱/۵/۹) اول، بعد هر مشتریِ دیگرِ CRM
+// و بعد هر نامی که قبلاً در خودِ دفترِ ارزی (فاکتور/واریزی) آمده — چون کسی که مستقیم به صراف پول می‌زند لزوماً اولویتِ ۱/۵/۹ ندارد.
+async function searchCustomersForDirect(q){
+  const nq = normalizeFa(q||'');
+  const pri = await searchCrmPriorityCustomers(q);
+  const seen = new Set(pri.map(c=>normalizeFa(c.name)));
+  const out = pri.map(c=>({name:c.name, other:false}));
+  const add = (name, other)=>{ const k = normalizeFa(name); if(!k || seen.has(k) || !k.includes(nq)) return; seen.add(k); out.push({name, other}); };
+  (_crmCustomersCache||[]).forEach(c=>add(c.name||'', true));
+  getKnownCustomerNames().forEach(n=>add(n, false));
+  return out.slice(0, 15);
 }
 
 // ⚠️ (۱۴۰۵/۰۶/۱۸) طبق درخواست کاربر — بازاستفاده‌ی عیناً از دو endpoint
@@ -2558,9 +2573,9 @@ function openDirectModal(existing){
     selectedCustomerName = '';
     const q = custInput.value.trim();
     if(q.length < 2){ custResults.innerHTML=''; return; }
-    const matches = await searchCrmPriorityCustomers(q);
+    const matches = await searchCustomersForDirect(q);
     custResults.innerHTML = matches.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:10;max-height:160px;overflow-y:auto">
-      ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${fxc_esc(m.name)}">${fxc_esc(m.name)}</div>`).join('')}</div>` : '';
+      ${matches.map(m=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-cust="${fxc_esc(m.name)}">${fxc_esc(m.name)}${m.other?' <span style="color:var(--ink-faint,#888);font-size:10.5px">(غیرتثبیت‌شده)</span>':''}</div>`).join('')}</div>` : '';
     custResults.querySelectorAll('[data-pick-cust]').forEach(el=>el.addEventListener('click', ()=>{
       selectedCustomerName = el.dataset.pickCust; custInput.value = selectedCustomerName; custResults.innerHTML = '';
     }));
