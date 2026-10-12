@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-page-perm="access.manage">
+<head>
+<meta charset="UTF-8">
+<script>
+(function(){
+  var NEW='https://api.smartchipelec.com', OLD='https://smartchip-backend.onrender.com';
+  if(!window.fetch || window.__madarFetch) return; window.__madarFetch = true;
+  var orig = window.fetch.bind(window), downUntil = 0;
+  window.fetch = function(input, init){
+    var url = (typeof input === 'string') ? input : (input instanceof URL ? input.href : null);
+    if(!url || url.indexOf(NEW) !== 0) return orig(input, init);
+    var alt = OLD + url.slice(NEW.length);
+    if(Date.now() < downUntil) return orig(alt, init);
+    return orig(url, init).catch(function(err){ downUntil = Date.now() + 5*60*1000; return orig(alt, init); });
+  };
+})();
+</script>
+<script src="./madar-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1218">
+<title>🪪 یکپارچگی مشتریان — مدار</title>
+<style>
+:root{--bg:#0f1218;--card:#1a1e2a;--card2:#232838;--line:#323952;--ink:#f4f5f8;--soft:#9aa2bd;--acc:#f0a500;--ok:#34d399;--no:#f87171;--warn:#fb923c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;font-size:14px;line-height:1.7}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 110px}
+a{color:var(--acc);text-decoration:none}
+h1{font-size:21px;margin:6px 0 2px}h2{font-size:15px;margin:22px 0 8px}.sub{color:var(--soft);font-size:12.5px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+input,select,button{font:inherit;color:var(--ink)}
+input,select{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+.btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:6px 14px;cursor:pointer;font-size:12.5px}
+.btn:hover{border-color:var(--acc)}.btn.pri{background:var(--acc);color:#141821;border-color:var(--acc);font-weight:800}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.kp div{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;font-size:11.5px;color:var(--soft)}
+.kp b{display:block;font-size:22px;color:var(--ink)}.kp b.bad{color:var(--no)}.kp b.good{color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:7px 9px;border-bottom:1px solid #262c3d;text-align:right}th{color:var(--soft);font-weight:600}
+.tag{font-size:11px;border-radius:8px;padding:0 8px;border:1px solid var(--line);color:var(--soft);display:inline-block;margin:1px}
+.tag.ok{color:var(--ok);border-color:rgba(52,211,153,.5)}.tag.no{color:var(--no);border-color:rgba(248,113,113,.5)}.tag.w{color:var(--warn);border-color:rgba(251,146,60,.5)}
+.empty{color:var(--soft);text-align:center;padding:24px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#000c;border:1px solid var(--line);border-radius:12px;padding:8px 16px;display:none;z-index:50}
+.box{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.35);border-radius:12px;padding:10px 14px;font-size:12.5px;margin-bottom:12px}
+</style>
+<script src="./madar-theme.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" style="font-size:12.5px">← صفحه‌یِ اصلی</a>
+  <h1>🪪 یکپارچگیِ مشتریان</h1>
+  <div class="sub">مشتریِ واقعی فقط یکی است: رکوردِ «مشتریان» در CRM. لید، دفترِ ارزی، چک، وصول، نمونه و … فقط نامِ او را نگه می‌دارند. این صفحه نشان می‌دهد کجا نامی با مشتریِ اصلی نمی‌خواند.</div>
+  <div class="box"><b>تعریف:</b> «مشتری» = یک رکورد در لیستِ مشتریانِ CRM · «لید» = یک فرصتِ فروش برایِ همان مشتری (خودش مشتری نیست) · «حسابِ ارزی» = دفترِ ریال⇄یوانِ همان مشتری. املایِ دیگر (ي/ی، نیم‌فاصله، فاصله‌یِ اضافه) خودکار یکی می‌شود؛ نامِ کاملاً متفاوت را اینجا به مشتریِ اصلی وصل می‌کنید.</div>
+
+  <h2>🔎 کارتِ یکپارچه‌یِ یک مشتری</h2>
+  <div class="card"><div class="row"><input id="q" placeholder="نام یا کدِ مخففِ مشتری…" style="min-width:260px"><button class="btn pri" id="go">نمایش</button></div><div id="prof" style="margin-top:10px"></div></div>
+
+  <h2>🩺 سلامتِ نام‌ها</h2>
+  <div id="aud"><div class="empty">در حالِ بارگذاری…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const API='https://api.smartchipelec.com';
+const $=id=>document.getElementById(id);
+const fa=n=>String(n==null?'':n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const fmt=n=>fa(Math.round(Number(n||0)).toLocaleString('en'));
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function myEmail(){ try{ return localStorage.getItem('smartchip_user_email')||localStorage.getItem('smartchip_erp_email')||''; }catch(e){ return ''; } }
+function toast(t,err){ const e=$('toast'); e.textContent=(err?'⚠️ ':'')+t; e.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(()=>e.style.display='none',2600); }
+async function call(path,body){
+  const em=myEmail();
+  const opt=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({actor_email:em},body))}:{cache:'no-store'};
+  const url=API+path+(body?'':((path.includes('?')?'&':'?')+'email='+encodeURIComponent(em)));
+  const r=await fetch(url,opt); let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j||j.ok===false){ const er=new Error((j&&j.error)||('خطا '+r.status)); er.data=j; throw er; }
+  return j;
+}
+let A=null;
+async function load(){
+  try{ A=await call('/api/customers/identity/audit/'); }catch(e){ $('aud').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'<br>این صفحه فقط برایِ مدیریت است. اگر تازه نصب شده، <code>python manage.py migrate</code> لازم است.</div>'; return; }
+  const s=A.summary;
+  const opts=A.customers.map(c=>`<option value="${c.id}">${esc(c.name)} (${esc(c.abbr)})</option>`).join('');
+  $('aud').innerHTML=`
+   <div class="kp"><div><b>${fa(s.customers)}</b>مشتریِ اصلی</div><div><b>${fa(s.aliases)}</b>نامِ دیگرِ ثبت‌شده</div>
+     <div><b class="${s.orphan_names?'bad':'good'}">${fa(s.orphan_names)}</b>نامِ بی‌تطبیق</div>
+     <div><b class="${s.variant_names?'bad':'good'}">${fa(s.variant_names)}</b>نامِ هم‌املا/ناهماهنگ</div>
+     <div><b class="${s.duplicate_masters?'bad':'good'}">${fa(s.duplicate_masters)}</b>مشتریِ تکراری در لیست</div></div>
+   <h2>بخش به بخش</h2>
+   <div class="card" style="overflow:auto"><table><thead><tr><th>بخش</th><th>رکورد</th><th>مطابق</th><th>املایِ دیگر</th><th>نامِ دیگر</th><th>بی‌تطبیق</th></tr></thead><tbody>
+   ${A.sources.map(r=>`<tr><td>${esc(r.label)}</td><td>${fa(r.records)}</td><td>${fa(r.exact)}</td><td>${r.variant?'<span class="tag w">'+fa(r.variant)+'</span>':'—'}</td><td>${r.alias?fa(r.alias):'—'}</td><td>${r.orphan?'<span class="tag no">'+fa(r.orphan)+'</span>':'—'}</td></tr>`).join('')}</tbody></table></div>
+   ${s.variant_names?`<div class="box" style="background:rgba(251,146,60,.08);border-color:rgba(251,146,60,.4)">${fa(s.variant_names)} نام فقط در املا با مشتریِ اصلی فرق دارد. برایِ یکسان‌کردنِ امنِ آن‌ها (بعد از بکاپ) در ترمینالِ سرور: <code>python manage.py unify_customer_names</code> (گزارش) و بعد <code>--apply</code>.</div>`:''}
+   <h2>نام‌هایِ بی‌تطبیق (${fa(s.orphan_names)})</h2>
+   ${A.orphans.length?`<div class="card" style="overflow:auto"><table><thead><tr><th>نام در سیستم</th><th>رکورد</th><th>کجا</th><th>پیشنهاد / وصل‌کردن</th></tr></thead><tbody>
+   ${A.orphans.map((o,i)=>`<tr><td><b>${esc(o.name)}</b></td><td>${fa(o.count)}</td><td>${[...new Set(o.sources)].map(x=>'<span class="tag">'+esc(x)+'</span>').join('')}</td>
+     <td><div class="row"><select data-i="${i}">${(o.suggestions||[]).map(x=>`<option value="${x.id}">★ ${esc(x.name)}</option>`).join('')}<option value="">— انتخابِ مشتری —</option>${opts}</select><button class="btn pri" data-al="${i}">وصل کن</button></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">✅ همه‌یِ نام‌ها به یک مشتریِ اصلی می‌رسند.</div>'}
+   ${A.duplicates.length?`<h2>مشتریِ تکراری در خودِ لیست</h2><div class="card">${A.duplicates.map(d=>'<div>'+d.customers.map(c=>esc(c.name)+' ('+esc(c.abbr)+')').join(' ↔ ')+'</div>').join('')}<div class="sub">برایِ ادغام: <code>python manage.py find_duplicate_customers</code> و <code>merge_duplicate_customers</code>.</div></div>`:''}`;
+  $('aud').querySelectorAll('[data-al]').forEach(b=>b.onclick=async()=>{
+    const o=A.orphans[+b.dataset.al], sel=$('aud').querySelector('select[data-i="'+b.dataset.al+'"]');
+    if(!sel.value){ toast('مشتریِ اصلی را انتخاب کنید',true); return; }
+    try{ await call('/api/customers/identity/alias/',{name:o.name,customer_id:+sel.value}); toast('وصل شد'); load(); }catch(e){ toast(e.message,true); }
+  });
+}
+async function profile(){
+  const q=$('q').value.trim(); if(!q) return;
+  $('prof').innerHTML='<div class="empty">…</div>';
+  try{
+    const d=await call('/api/customers/identity/profile/?name='+encodeURIComponent(q));
+    const c=d.customer, L=d.leads, Ch=d.cheques, Db=d.debts, Lg=d.ledger;
+    $('prof').innerHTML=`<div class="row"><b style="font-size:16px">${esc(c.name)}</b><span class="tag">${esc(c.abbr)}</span>${c.priority?'<span class="tag">اولویت '+esc(c.priority)+'</span>':''}${c.vip&&c.vip!=='normal'?'<span class="tag ok">'+esc(c.vip)+'</span>':''}<span class="sub" style="margin:0">${esc([c.category,c.province,c.mobile].filter(Boolean).join(' · '))}${c.assigned_staff_name?' · کارشناس: '+esc(c.assigned_staff_name):''}</span></div>
+     <div class="kp" style="margin-top:10px">
+      ${L?`<div><b>${fa(L.open)}</b>لیدِ باز از ${fa(L.total)}</div>`:''}
+      ${Lg?`<div><b style="color:${Lg.yuan>0?'var(--warn)':'var(--ok)'}">${fa(Math.round(Lg.yuan).toLocaleString('en'))} ¥</b>مانده‌یِ یوانی</div><div><b>${fa(Lg.open_orders)}</b>فاکتورِ باز</div>`:''}
+      ${Ch?`<div><b class="${Ch.returned_open?'bad':'good'}">${fa(Ch.returned_open)}</b>چکِ برگشتیِ باز</div><div><b>${fa(Ch.received_unregistered)}</b>چکِ بدونِ صیادی</div>`:''}
+      ${Db?`<div><b class="${Db.open?'bad':'good'}">${fa(Db.open)}</b>پرونده‌یِ وصولِ باز</div>`:''}</div>
+     <div style="margin-top:10px">${(d.parts||[]).map(p=>'<span class="tag">'+esc(p.label)+': '+fa(p.records)+(p.variants.length?' <span style="color:var(--warn)">(املایِ دیگر: '+esc(p.variants.join('، '))+')</span>':'')+'</span>').join('')}</div>
+     ${(d.aliases||[]).length?'<div class="sub" style="margin-top:8px">نام‌هایِ دیگر: '+d.aliases.map(a=>esc(a.alias)).join('، ')+'</div>':''}`;
+  }catch(e){
+    const sg=(e.data&&e.data.suggestions)||[];
+    $('prof').innerHTML='<div class="empty">⚠️ '+esc(e.message)+(sg.length?'<br>شاید منظورتان: '+sg.map(x=>'<a href="#" data-n="'+esc(x.name)+'">'+esc(x.name)+'</a>').join('، '):'')+'</div>';
+    $('prof').querySelectorAll('[data-n]').forEach(a=>a.onclick=ev=>{ ev.preventDefault(); $('q').value=a.dataset.n; profile(); });
+  }
+}
+$('go').onclick=profile; $('q').onkeydown=e=>{ if(e.key==='Enter') profile(); };
+MadarAccess.ready(()=>{ load(); const h=decodeURIComponent((location.hash||'').slice(1)); if(h){ $('q').value=h; profile(); } });
+</script>
+<script src="./madar-help.js" defer></script>
+</body>
+</html>

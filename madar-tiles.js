@@ -20,6 +20,7 @@ window.MADAR_TILES = [
   { key:'fxLedger',   icon:'💱', title:'دفتر ارزی',            desc:'تسویه ریال⇄یوان با مشتریان و تأمین‌کننده',              href:'fx-ledger.html',   perm:'page.fxledger',    group:'fin' },
   { key:'erp',        icon:'🏭', title:'ERP',                  desc:'تدارکات، بازرگانی، مالی، ردیابی محموله',               href:'erp.html',         perm:'page.erp',         group:'fin' },
   { key:'people',     icon:'👥', title:'مرکز افراد',          desc:'نقش، دسترسی، اتصالِ بله و تفویضِ هر نفر در یک جا',     href:'people.html',      perm:'access.manage',   group:'mgmt' },
+  { key:'custAudit',  icon:'🪪', title:'یکپارچگیِ مشتریان', desc:'کارتِ یکپارچه‌یِ مشتری و نام‌هایِ ناهماهنگ در بخش‌ها', href:'customer-audit.html', perm:'access.manage', group:'mgmt' },
   { key:'announce',   icon:'📢', title:'اعلان و جلسه',        desc:'اعلانِ عمومی و جلسه با مخاطب، ساعت، مکان و صورتجلسه',                href:'announce.html',    perm:'access.manage',   group:'mgmt' },
   { key:'attendance', icon:'🕘', title:'حضور و غیاب',          desc:'ثبتِ ورود و خروج با کیوآرکد و گوشی',                    href:'attendance.html',  perm:'page.attendance',  group:'admin' },
   { key:'org',        icon:'🏢', title:'سازمان',               desc:'منابعِ انسانی · اداری · کارتابلِ من',                   href:'org.html',         perm:'page.org',         group:'admin' },
