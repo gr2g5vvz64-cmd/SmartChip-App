@@ -134,6 +134,20 @@
   /* 📌 کارهایِ باز (۱۴۰۵/۰۷/۱۹) */
   #fxOwFab{ position:fixed; left:14px; bottom:116px; z-index:41; display:none; align-items:center; gap:8px; padding:9px 14px; border-radius:22px; border:none; background:#b45309; color:#fff; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 2px 12px rgba(0,0,0,.35); font-family:inherit; }
   #fxOwFab.on{ display:inline-flex; }
+  /* ⚠️ (۱۴۰۵/۰۷/۲۱) دسکتاپ: «کارتابل»، «راهنما» و «کارهایِ باز» سه دایره‌یِ کوچک در یک ستونِ باریکِ کناریِ چپ‌اند (به‌جایِ سه قرصِ بزرگ روی جدول)؛
+     محتوا هم یک شیارِ خالی در چپ دارد تا هیچ‌چیز زیرِ آن‌ها نرود. نام و تعداد در tooltip/نشان دیده می‌شود. */
+  @media (min-width:701px){
+    .main{ padding-left:64px; }
+    #fxHelpFab, #fxOwFab, #madarInbox .mi-btn{ width:38px; height:38px; padding:0; border-radius:50%; justify-content:center; align-items:center; gap:0; font-size:17px; box-shadow:0 2px 8px rgba(0,0,0,.35); }
+    #madarInbox .mi-btn{ position:relative; }
+    #fxHelpFab{ left:13px; bottom:62px; font-size:0; display:flex; } #fxHelpFab::before{ content:'❓'; font-size:17px; }
+    #fxOwFab{ left:13px; bottom:108px; font-size:0; } #fxOwFab .lbl{ display:none; } #fxOwFab > span:first-child{ font-size:17px; }
+    #fxOwFab b{ position:absolute; top:-6px; right:-6px; }
+    #madarInbox{ left:13px !important; bottom:16px !important; }
+    #madarInbox .mi-lbl{ display:none; }
+    #madarInbox .mi-n{ position:absolute; top:-6px; right:-6px; }
+  }
+
   #fxOwFab b{ background:#fff; color:#b45309; border-radius:99px; min-width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11.5px; padding:0 5px; }
   @media (max-width:700px){ #fxOwFab{ left:118px; bottom:16px; width:44px; height:44px; padding:0; justify-content:center; border-radius:50%; } #fxOwFab .lbl{ display:none; } #fxOwFab b{ position:absolute; top:-5px; right:-5px; } }
   .nav-badge{ margin-right:auto; background:#b45309; color:#fff; border-radius:99px; min-width:18px; height:18px; padding:0 5px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
@@ -957,7 +971,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-04';
+const FX_BUILD = '1405.07.21-05';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
