@@ -482,7 +482,8 @@ const DJANGO_ITEMS_API = "https://api.smartchipelec.com/api/items/weights/";
 // ⚠️ (۱۴۰۵/۰۷/۰۶) منبعِ وزن‌ها: «⚖️ وزن‌نامه‌ی قطعات» در سرور — نه گوگل‌شیت.
 // هر تغییری که در وزن‌نامه ذخیره بشه، با بارگذاریِ بعدی همین‌جا دیده می‌شه (دیگه sync لازم نیست).
 const DJANGO_ITEMS_ROWS_API = "https://api.smartchipelec.com/api/items/rows/";
-async function syncFromSheet(){
+async function syncFromSheet(opts){
+  opts=opts||{};
   const btn=document.getElementById('syncBtn');
   const status=document.getElementById('syncStatus');
   btn.classList.add('syncing');
@@ -497,8 +498,10 @@ async function syncFromSheet(){
     if(!data || !Array.isArray(data.rows) || !data.rows.length) throw new Error('چیزی از سرور خونده نشد');
     rows = data.rows;
     window._priceSyncDone=true;
+    window._wVersion=data.version||'';
+    if(sel&&sel.part){ const keep=rows.find(r=>r.part===sel.part); if(keep){ sel=keep; try{ renderWeight((sel.status||'').includes('OK')); calc(); }catch(e){} } }
     btn.classList.remove('syncing'); btn.classList.add('ok'); btn.textContent='✅';
-    status.textContent=`✅ ${fmt(data.rows.length)} ردیف بارگذاری شد`;
+    status.textContent=opts.auto?'🔄 وزن‌نامه تغییر کرده بود — وزن‌ها به‌روز شد':`✅ ${fmt(data.rows.length)} ردیف بارگذاری شد`;
     status.style.color='var(--green)';
     setTimeout(()=>{btn.classList.remove('ok');btn.textContent='🔄';status.style.display='none';},4000);
   }catch(e){
@@ -509,6 +512,20 @@ async function syncFromSheet(){
     setTimeout(()=>{btn.classList.remove('err');btn.textContent='🔄';},5000);
   }
 }
+
+
+// 🔄 (۱۴۰۵/۰۷/۲۰) به‌روزرسانیِ خودکار: اگر در «وزن‌نامه» چیزی عوض شود، Price List بدونِ رفرش وزن‌ها را تازه می‌کند.
+let _wvBusy=false;
+async function checkWeightsVersion(){
+  if(_wvBusy||!window._priceSyncDone||document.visibilityState!=='visible') return;
+  _wvBusy=true;
+  try{
+    const r=await fetch('https://api.smartchipelec.com/api/items/version/',{cache:'no-store'});
+    if(r.ok){ const d=await r.json(); if(d&&d.version&&window._wVersion&&d.version!==window._wVersion) await syncFromSheet({auto:true}); }
+  }catch(e){} finally{ _wvBusy=false; }
+}
+setInterval(checkWeightsVersion,90000);
+document.addEventListener('visibilitychange',checkWeightsVersion);
 
 async function takeScreenshot(){
   if(typeof html2canvas!=='undefined'){
@@ -583,7 +600,7 @@ function pick(i){
   document.getElementById('dropdown').classList.remove('show');
   const ok=(sel.status||'').includes('OK');
   document.getElementById('statusRow').style.display='flex';
-  document.getElementById('statusText').innerHTML=ok?'<span class="s-ok">✓ تأیید شده</span>':'<span class="s-no">✗ تأیید نشده</span>';
+  document.getElementById('statusText').innerHTML=(ok?'<span class="s-ok">✓ تأیید شده</span>':'<span class="s-no">✗ تأیید نشده</span>')+' <a href="weights.html?q='+encodeURIComponent(sel.part||'')+'" target="_blank" rel="noopener" style="font-size:10.5px;color:var(--gold,#f0a500);margin-right:8px;text-decoration:none" title="این پارت را در وزن‌نامه باز کن (ویرایش فقط برایِ مدیر)">✏️ وزن‌نامه</a>';
   document.getElementById('cartonBox').style.display='block';
   document.getElementById('addBtn').textContent='🛒';
   document.getElementById('addBtn').className='add-btn';
