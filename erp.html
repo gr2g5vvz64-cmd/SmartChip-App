@@ -936,6 +936,14 @@ textarea.form-control{resize:vertical;min-height:70px;}
 .notify-btn-wa{background:#25d366;}
 .notify-btn-sms{background:#5856d6;}
 .notify-pair{display:inline-flex;gap:4px;align-items:center;}
+
+/* 🧭 (۱۴۰۵/۰۷/۲۰) ادغامِ صفحه‌هایِ تکراری: یک ورودی در منو + تب‌ها بالایِ صفحه */
+.nav-item[data-merged]{display:none!important}
+.mtabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;padding:8px 10px;background:var(--surface,#1a1e2a);border:1px solid var(--border,#323952);border-radius:12px;position:sticky;top:0;z-index:5}
+.mtab{background:transparent;border:1px solid var(--border,#323952);color:var(--muted,#9aa2bd);border-radius:12px;padding:3px 12px;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.mtab:hover{border-color:var(--accent,#f0a500)}
+.mtab.on{background:rgba(240,165,0,.16);border-color:var(--accent,#f0a500);color:var(--accent,#f0a500);font-weight:700}
+.mtab .mb{background:#ef4444;color:#fff;border-radius:9px;min-width:18px;height:18px;font-size:10.5px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
 </style>
 <script>
   // قبل از رنگ‌آمیزی اولیه‌ی صفحه، تم ذخیره‌شده را اعمال می‌کنیم — تا چشمک نزند
@@ -1030,7 +1038,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
       </div>
       <div class="nav-group-items" id="ngi-mgmt" style="max-height:none">
         <button class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span><span>داشبورد</span></button>
-        <button class="nav-item" onclick="showPage('feedbackdash')"><span class="nav-icon">💬</span><span>عملکرد واحدها (بازخورد)</span></button>
+        <button class="nav-item" data-mgroup="feedback" onclick="showPage('feedbackdash')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="mbadge-feedback" style="display:none" data-mbadge="1">0</span></button>
+        <button class="nav-item" hidden data-merged="feedback" onclick="showPage('feedbackdash')"><span class="nav-icon">💬</span><span>عملکرد واحدها (بازخورد)</span></button>
         <button class="nav-item" onclick="showPage('tasks')"><span class="nav-icon">📌</span><span>ارجاع کار</span><span class="nbadge red" id="taskBadge" style="display:none">0</span></button>
       </div>
     </div>
@@ -1042,8 +1051,9 @@ textarea.form-control{resize:vertical;min-height:70px;}
       </div>
       <div class="nav-group-items" id="ngi-sales" style="max-height:none">
         <button class="nav-item" onclick="showPage('requests')"><span class="nav-icon">📋</span><span>درخواست‌ها</span><span class="nbadge red" id="urgentBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('samples')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('feedback-sales')"><span class="nav-icon">💬</span><span>بازخوردهای مشتریان</span><span class="nbadge orange" id="feedbackSalesBadge" style="display:none">0</span></button>
+        <button class="nav-item" data-mgroup="samples" onclick="showPage('samples')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge red" id="mbadge-samples" style="display:none" data-mbadge="1">0</span></button>
+        <button class="nav-item" hidden data-merged="samples" onclick="showPage('samples')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadge" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="feedback" onclick="showPage('feedback-sales')"><span class="nav-icon">💬</span><span>بازخوردهای مشتریان</span><span class="nbadge orange" id="feedbackSalesBadge" style="display:none">0</span></button>
       </div>
     </div>
     <div class="nav-group" id="ng-proc">
@@ -1056,7 +1066,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <button class="nav-item" onclick="showPage('procurement')"><span class="nav-icon">📋</span><span>نیاز مشتری</span><span class="nbadge orange" id="procBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="curEstelamatCustomer=null;curEstelamatRequestId=null;estelamatFilterRequestId=null;showPage('estelamat')"><span class="nav-icon">📑</span><span>استعلامات (همه)</span></button>
         <button class="nav-item" onclick="showPage('domesticdeliv')"><span class="nav-icon">🏬</span><span>جمع‌آوری کالا</span><span class="nbadge orange" id="domesticDelivBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('deptfeedback-tadarokat')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeTadarokat" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="feedback" onclick="showPage('deptfeedback-tadarokat')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeTadarokat" style="display:none">0</span></button>
       </div>
     </div>
     <div class="nav-group" id="ng-finance">
@@ -1067,14 +1077,16 @@ textarea.form-control{resize:vertical;min-height:70px;}
       </div>
       <div class="nav-group-items" id="ngi-finance" style="max-height:none">
         <button class="nav-item" onclick="showPage('financedash')"><span class="nav-icon">📊</span><span>داشبورد مالی</span></button>
-        <button class="nav-item" onclick="showPage('financetasks')"><span class="nav-icon">✅</span><span>تسک‌های مالی (از CRM)</span><span class="nbadge orange" id="financeTaskBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('promises')"><span class="nav-icon">💵</span><span>وعده‌های پرداخت</span><span class="nbadge orange" id="promiseBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('debtcases')"><span class="nav-icon">💳</span><span>وصول مطالبات</span><span class="nbadge red" id="debtCaseBadgeERP" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="collect" onclick="showPage('financetasks')"><span class="nav-icon">✅</span><span>تسک‌های مالی (از CRM)</span><span class="nbadge orange" id="financeTaskBadge" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="collect" onclick="showPage('promises')"><span class="nav-icon">💵</span><span>وعده‌های پرداخت</span><span class="nbadge orange" id="promiseBadge" style="display:none">0</span></button>
+        <button class="nav-item" data-mgroup="collect" onclick="showPage('debtcases')"><span class="nav-icon">💳</span><span>وصول مطالبات</span><span class="nbadge red" id="mbadge-collect" style="display:none" data-mbadge="1">0</span></button>
+        <button class="nav-item" hidden data-merged="collect" onclick="showPage('debtcases')"><span class="nav-icon">💳</span><span>وصول مطالبات</span><span class="nbadge red" id="debtCaseBadgeERP" style="display:none">0</span></button>
         <!-- صفحه‌ی «صورتحساب‌ها» حذف شد — نیاز مالی الان فقط از تیک مالی در تماس CRM ثبت می‌شود -->
-        <button class="nav-item" onclick="showPage('chequesreceived')"><span class="nav-icon">💳</span><span>چک‌های دریافتی</span></button>
-        <button class="nav-item" onclick="showPage('chequesreturned')"><span class="nav-icon">↩️</span><span>چک‌های برگشتی</span><span class="nbadge red" id="chequesReturnedBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('chequespaid')"><span class="nav-icon">💸</span><span>چک‌های پرداختی</span></button>
-        <button class="nav-item" onclick="showPage('deptfeedback-mali')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeMali" style="display:none">0</span></button>
+        <button class="nav-item" data-mgroup="cheques" onclick="showPage('chequesreceived')"><span class="nav-icon">🧾</span><span>چک‌ها</span><span class="nbadge red" id="mbadge-cheques" style="display:none" data-mbadge="1">0</span></button>
+        <button class="nav-item" hidden data-merged="cheques" onclick="showPage('chequesreceived')"><span class="nav-icon">💳</span><span>چک‌های دریافتی</span></button>
+        <button class="nav-item" hidden data-merged="cheques" onclick="showPage('chequesreturned')"><span class="nav-icon">↩️</span><span>چک‌های برگشتی</span><span class="nbadge red" id="chequesReturnedBadge" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="cheques" onclick="showPage('chequespaid')"><span class="nav-icon">💸</span><span>چک‌های پرداختی</span></button>
+        <button class="nav-item" hidden data-merged="feedback" onclick="showPage('deptfeedback-mali')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeMali" style="display:none">0</span></button>
       </div>
     </div>
     <div class="nav-group" id="ng-foreign">
@@ -1089,8 +1101,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
         <button class="nav-item" onclick="curEstelamatForeignCustomer=null;estelamatForeignFilterRequestId=null;showPage('estelamatforeign')"><span class="nav-icon">🌍</span><span>استعلامات خارج</span></button>
         <button class="nav-item" onclick="showPage('shipments')"><span class="nav-icon">🚢</span><span>ردیابی محموله‌ها</span><span class="nbadge orange" id="shipBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('clearance')"><span class="nav-icon">🛃</span><span>ترخیص</span><span class="nbadge red" id="clearanceBadge" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('samples-bazargani')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadgeBazargani" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('deptfeedback-bazargani')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeBazargani" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="samples" onclick="showPage('samples-bazargani')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadgeBazargani" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="feedback" onclick="showPage('deptfeedback-bazargani')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeBazargani" style="display:none">0</span></button>
       </div>
     </div>
     <div class="nav-group" id="ng-warehouse">
@@ -1102,8 +1114,8 @@ textarea.form-control{resize:vertical;min-height:70px;}
       <div class="nav-group-items" id="ngi-warehouse" style="max-height:none">
         <button class="nav-item" onclick="showPage('warehouse')"><span class="nav-icon">🏭</span><span>ورودی انبار</span><span class="nbadge green" id="warehouseBadge" style="display:none">0</span></button>
         <button class="nav-item" onclick="showPage('addresses');loadAddressesIfNeeded()"><span class="nav-icon">📍</span><span>آدرس مشتریان</span></button>
-        <button class="nav-item" onclick="showPage('samples-anbar')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadgeAnbar" style="display:none">0</span></button>
-        <button class="nav-item" onclick="showPage('deptfeedback-anbar')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeAnbar" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="samples" onclick="showPage('samples-anbar')"><span class="nav-icon">🧪</span><span>نمونه‌ها</span><span class="nbadge orange" id="samplesBadgeAnbar" style="display:none">0</span></button>
+        <button class="nav-item" hidden data-merged="feedback" onclick="showPage('deptfeedback-anbar')"><span class="nav-icon">💬</span><span>بازخورد</span><span class="nbadge red" id="fbBadgeAnbar" style="display:none">0</span></button>
       </div>
     </div>
     <div class="nav-group" id="ng-tools">
@@ -9199,7 +9211,7 @@ function updateNavGroupSummaries(){
     if(!grp.classList.contains('collapsed')){ badgeEl.style.display='none'; return; }
     let sum = 0;
     itemsContainer.querySelectorAll('.nbadge').forEach(b=>{
-      if(b.style.display === 'none') return;
+      if(b.style.display === 'none' || b.closest('[data-merged]')) return;
       const n = parseInt(String(b.textContent).replace(/[^\d]/g,''))||0;
       sum += n;
     });
@@ -13176,5 +13188,49 @@ async function markFinanceTaskDone(id){
 })();
 </script>
 <script src="./madar-help.js" defer></script>
+
+<script>
+/* 🧭 (۱۴۰۵/۰۷/۲۰) ادغامِ ورودی‌هایِ تکراریِ ERP (چک‌ها، وصول، نمونه‌ها، بازخورد).
+   صفحه‌ها و توابعِ رندرِ قبلی دست‌نخورده‌اند؛ فقط منو یکی شده و بالایِ هر صفحه نوارِ تب می‌آید.
+   لینک‌هایِ قدیمی (showPage('chequesreturned') و …) همچنان کار می‌کنند. */
+(function(){
+  const MG={
+    cheques:{title:'🧾 چک‌ها',tabs:[['chequesreceived','💳 دریافتی'],['chequesreturned','↩️ برگشتی'],['chequespaid','💸 پرداختی']]},
+    collect:{title:'💳 وصول مطالبات',tabs:[['debtcases','پرونده‌هایِ وصول'],['promises','وعده‌هایِ پرداخت'],['financetasks','تسک‌هایِ مالی']]},
+    samples:{title:'🧪 نمونه‌ها',tabs:[['samples','فروش'],['samples-bazargani','بازرگانی'],['samples-anbar','انبار']]},
+    feedback:{title:'💬 بازخورد',tabs:[['feedbackdash','عملکردِ واحدها'],['feedback-sales','مشتریان (فروش)'],['deptfeedback-tadarokat','تدارکات'],['deptfeedback-mali','مالی'],['deptfeedback-bazargani','بازرگانی'],['deptfeedback-anbar','انبار']]}
+  };
+  const groupOf=p=>Object.keys(MG).find(g=>MG[g].tabs.some(t=>t[0]===p));
+  const origBtn=p=>document.querySelector('[data-merged] .nbadge') && Array.from(document.querySelectorAll('button[data-merged]')).find(b=>(b.getAttribute('onclick')||'').indexOf("'"+p+"'")>-1);
+  const badgeN=p=>{ const b=origBtn(p), e=b&&b.querySelector('.nbadge'); if(!e||e.style.display==='none') return 0; return parseInt(String(e.textContent).replace(/[^\d۰-۹]/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))||0; };
+  const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+  let _sT=null; function syncMerged(){ clearTimeout(_sT); _sT=setTimeout(syncNow,60); }
+  function syncNow(){
+    Object.keys(MG).forEach(g=>{
+      const el=document.getElementById('mbadge-'+g); if(!el) return;
+      const sum=MG[g].tabs.reduce((a,t)=>a+badgeN(t[0]),0);
+      if(sum>0){ el.style.display=''; el.textContent=fa(sum); } else el.style.display='none';
+    });
+    try{ updateNavGroupSummaries(); }catch(e){}
+  }
+  function drawTabs(p){
+    document.querySelectorAll('.mtabs').forEach(x=>x.remove());
+    const g=groupOf(p); document.querySelectorAll('.nav-item[data-mgroup]').forEach(b=>b.classList.toggle('active',b.dataset.mgroup===g));
+    if(!g) return;
+    const pg=document.getElementById('page-'+p); if(!pg) return;
+    const bar=document.createElement('div'); bar.className='mtabs';
+    bar.innerHTML=MG[g].tabs.map(t=>{ const n=badgeN(t[0]); return `<button class="mtab ${t[0]===p?'on':''}" data-p="${t[0]}">${t[1]}${n?`<span class="mb">${fa(n)}</span>`:''}</button>`; }).join('');
+    bar.querySelectorAll('.mtab').forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+    pg.insertBefore(bar,pg.firstChild);
+    const t=document.getElementById('pageTitle'); if(t){ const tab=MG[g].tabs.find(x=>x[0]===p); const clean=x=>x.replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u,''); t.textContent=clean(MG[g].title)+' — '+(tab?clean(tab[1]):''); }
+  }
+  const _show=window.showPage;
+  window.showPage=function(p){ const r=_show.apply(this,arguments); try{ drawTabs(p); syncMerged(); }catch(e){ console.error(e); } return r; };
+  const _setBadge=window.setBadge;
+  window.setBadge=function(){ const r=_setBadge.apply(this,arguments); try{ syncMerged(); }catch(e){} return r; };
+  document.addEventListener('DOMContentLoaded',syncMerged);
+  window.__mergedNavSync=syncMerged;
+})();
+</script>
 </body>
 </html>
