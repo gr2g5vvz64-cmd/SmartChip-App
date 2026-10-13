@@ -296,6 +296,112 @@ html[data-theme="light"] .gt-ic{background:rgba(255,255,255,.7)}
   .grp .tg small{display:none}
   .grp .tape{padding-top:34px}
 }
+
+/* ═══ ⚠️ (۱۴۰۵/۰۷/۲۱) ظاهرِ تازه‌یِ صفحه‌یِ اصلی — «رنگ‌هایِ برندِ اسمارت‌چیپ» (طرحِ ۵، طبقِ انتخابِ مدیر) ═══
+   رنگ‌ها از پالتِ برند: مشکی · سبزآبیِ تیره #30474f · خاکستری #88898d · سفیدِ لاوندری #f4f2fd · زرد #efe14a
+   فقط ظاهر عوض شده؛ ساختارِ HTML، جستجو، مجوزها و حالتِ روز همان قبلی است. */
+:root{--bg:#050809;--surface:#0d171b;--card:#30474f;--border:#2c4048;--accent:#efe14a;--accent2:#d6c82c;--accent-hi:#f6ec7a;
+  --text:#f4f2fd;--muted:#a4aeb2;--faint:#88898d;--trace:rgba(111,149,160,.55);--glow:rgba(48,71,79,.55)}
+html[data-theme="light"]{--bg:#f4f2fd;--surface:#ffffff;--card:#30474f;--border:#c9ced6;--accent:#30474f;--accent2:#223439;--accent-hi:#30474f;
+  --text:#0d1a1f;--muted:#4a5c63;--faint:#6b7b82;--trace:rgba(48,71,79,.5);--glow:rgba(48,71,79,.18)}
+body::after{display:none}
+.bgfx{position:absolute!important;z-index:0!important;top:0;right:0;left:0;height:560px;overflow:hidden;pointer-events:none}
+.bgfx .wafer{position:absolute;left:-300px;top:-210px;width:700px;height:700px;opacity:.6}
+.bgfx .traces{position:absolute;top:0;right:0;left:0;width:100%;height:520px;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.bgfx .traces path{fill:none;stroke:#6f95a0;stroke-opacity:.5;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.bgfx .traces .dot{fill:#efe14a;fill-opacity:.95}.bgfx .traces .pad{fill:#050809;stroke:#6f95a0;stroke-opacity:.9;stroke-width:1.4}
+html[data-theme="light"] .bgfx .wafer{opacity:.28}
+html[data-theme="light"] .bgfx .traces path{stroke:#30474f;stroke-opacity:.4}
+html[data-theme="light"] .bgfx .traces .dot{fill:#30474f}
+html[data-theme="light"] .bgfx .traces .pad{fill:#f4f2fd;stroke:#30474f}
+/* نوارِ بالا */
+.topbar{background:rgba(5,8,9,.72);background:color-mix(in srgb,var(--bg) 72%,transparent);border-bottom:1px solid rgba(136,137,141,.18)}
+.tbtn,.topbar .user-info{background:rgba(48,71,79,.35);border:1px solid rgba(136,137,141,.4);color:var(--text)}
+html[data-theme="light"] .tbtn,html[data-theme="light"] .topbar .user-info{background:#fff;border-color:#c9ced6}
+.topbar .g-search{background:rgba(48,71,79,.35);border-color:rgba(136,137,141,.45)}
+.g-search:focus-within{border-color:#efe14a}
+html[data-theme="light"] .topbar .g-search{background:#fff;border-color:#c9ced6}
+.topbar .user-info a{color:#efe14a!important}html[data-theme="light"] .topbar .user-info a{color:#30474f!important}
+/* سرِ صفحه: راست‌چین، «مدار» درشت، شعار زیرش */
+.brand,.motto,.hol-strip{width:min(1760px,100%);margin-inline:auto}
+.brand{align-items:flex-start;text-align:right;margin-top:clamp(18px,4vh,46px);margin-bottom:6px}
+.eyebrow{color:#efe14a;font-weight:600;direction:ltr}
+.eyebrow b{color:#efe14a}.eyebrow i{background:#efe14a}.eyebrow .os{color:var(--faint)}
+html[data-theme="light"] .eyebrow,html[data-theme="light"] .eyebrow b{color:#30474f}html[data-theme="light"] .eyebrow i{background:#30474f}
+.logo{background:linear-gradient(180deg,#ffffff 12%,#f4f2fd 45%,#88898d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.05}
+html[data-theme="light"] .logo{background:linear-gradient(180deg,#30474f 20%,#0d1a1f);-webkit-background-clip:text;background-clip:text}
+.trace{align-self:flex-start;margin-top:2px}.trace path{stroke:#6f95a0}.trace circle{fill:#efe14a}
+html[data-theme="light"] .trace path{stroke:#30474f}html[data-theme="light"] .trace circle{fill:#30474f}
+.sub{color:var(--muted)}
+.motto{margin-top:clamp(8px,1.8vh,22px);margin-bottom:clamp(14px,2.4vh,28px);text-align:right;max-width:min(1760px,100%)}
+.motto-label{display:none}
+.motto blockquote{max-width:640px}
+.motto-fa{color:var(--text);font-weight:300;text-wrap:balance}
+.motto-fa .strong{background:none;-webkit-text-fill-color:#efe14a;color:#efe14a;font-weight:700}
+html[data-theme="light"] .motto-fa .strong{-webkit-text-fill-color:#30474f;color:#30474f}
+.motto-en{color:var(--faint)}
+/* «داشبوردِ من» = دکمه‌یِ زردِ گرد، با جرقه */
+.groups{align-items:stretch}
+body #tilesContainer.groups{background:none;padding:0;border-radius:0;overflow:visible;gap:22px}
+body #tilesContainer .me-hero{position:relative;align-self:flex-start;width:auto;gap:10px;flex-wrap:nowrap;padding:11px 24px;border-radius:99px;background:#efe14a;color:#050809;box-shadow:0 12px 30px -10px rgba(239,225,74,.5);margin-bottom:6px}
+body #tilesContainer .me-hero:hover{transform:translateY(-2px);box-shadow:0 16px 36px -10px rgba(239,225,74,.65)}
+body #tilesContainer .me-hero .gt-ic{width:24px;height:24px;background:none;border:0;box-shadow:none;color:#050809;margin:0}
+body #tilesContainer .me-hero .gt-ic svg{width:22px;height:22px}
+body #tilesContainer .me-hero>span:last-child{min-width:0!important;flex:none!important}
+html[data-theme="light"] body #tilesContainer.groups{background:none}
+body #tilesContainer .me-hero-t{font-size:15px;font-weight:700}
+body #tilesContainer .me-hero-d{display:none}
+body #tilesContainer .me-hero::after{content:"";position:absolute;top:-30px;left:-34px;width:66px;height:66px;transform:rotate(-25deg);pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg stroke='%23f4f2fd' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M60 6v12'/%3E%3Cpath d='M96 18l-7 10'/%3E%3Cpath d='M114 56h-12'/%3E%3Cpath d='M24 18l7 10'/%3E%3Cpath d='M6 56h12'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+html[data-theme="light"] body #tilesContainer .me-hero{background:#30474f;color:#f4f2fd;box-shadow:0 12px 30px -10px rgba(48,71,79,.55)}
+html[data-theme="light"] body #tilesContainer .me-hero .gt-ic{color:#f4f2fd}
+html[data-theme="light"] body #tilesContainer .me-hero::after{filter:invert(.85) sepia(1) hue-rotate(150deg)}
+/* پرکاربردها */
+.rec h4{color:var(--faint)}
+body #tilesContainer .rc{background:rgba(48,71,79,.45);border:1px solid rgba(136,137,141,.4);color:var(--text)}
+body #tilesContainer .rc:hover,body #tilesContainer .rc:focus-visible{border-color:#efe14a}
+body #tilesContainer .rc-ic{color:#efe14a}
+html[data-theme="light"] body #tilesContainer .rc{background:#fff;border-color:#c9ced6;color:#0d1a1f}
+html[data-theme="light"] body #tilesContainer .rc-ic{color:#30474f}
+/* پنل‌ها: یک گوشه‌یِ خیلی گرد، مثلِ کارت‌هایِ پالتِ برند */
+body #tilesContainer .stack{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:18px;align-items:start}
+body #tilesContainer .grp,body #tilesContainer .grp.in{margin:0;padding:30px 26px 14px;overflow:hidden;border:0;border-radius:34px;
+  background:#30474f linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,0) 55%);box-shadow:0 22px 50px -26px rgba(0,0,0,.7);--g:#efe14a!important;color:#f4f2fd}
+body #tilesContainer .grp:nth-child(5n+1) .tg,body #tilesContainer .grp:nth-child(5n+5) .tg{padding-top:10px;padding-right:14px}
+body #tilesContainer .grp:nth-child(5n+2) .tg{padding-top:10px;padding-left:14px}
+body #tilesContainer .grp:nth-child(5n+1){border-radius:34px 92px 34px 34px}
+body #tilesContainer .grp:nth-child(5n+2){border-radius:92px 34px 34px 34px}
+body #tilesContainer .grp:nth-child(5n+3){border-radius:34px 34px 92px 34px}
+body #tilesContainer .grp:nth-child(5n+4){border-radius:34px 34px 34px 92px}
+body #tilesContainer .grp:nth-child(5n+5){border-radius:34px 92px 34px 34px}
+body #tilesContainer .grp .tg{position:static;display:block;padding:0 0 14px;margin:0 0 8px;border-radius:0;background:none;color:#f4f2fd;box-shadow:none;font-size:23px;font-weight:900;line-height:1.35;
+  border-bottom:1px solid transparent;border-image:linear-gradient(to left,#efe14a,rgba(239,225,74,0)) 1}
+body #tilesContainer .grp .tg svg{display:none}
+body #tilesContainer .grp .tg small{display:block;margin-top:2px;font-size:11.5px;font-weight:400;opacity:1;color:#b9c4c8}
+body #tilesContainer .grp .tape{display:block;padding:0;background:none;border:0;border-radius:0;box-shadow:none}
+body #tilesContainer .grp .tape::before{display:none}
+body #tilesContainer .gt-cell{min-width:0}
+body #tilesContainer .gt{display:grid;grid-template-columns:auto 1fr;column-gap:14px;align-items:center;text-align:right;height:auto;padding:11px 8px;border:0;border-radius:12px;background:none;box-shadow:none;color:#f4f2fd;overflow:visible}
+body #tilesContainer .gt:hover,body #tilesContainer .gt:focus-visible{background:rgba(255,255,255,.09);transform:none;box-shadow:none;outline:none}
+body #tilesContainer .gt:focus-visible{outline:2px solid #efe14a}
+body #tilesContainer .gt .wm,body #tilesContainer .gt .led{display:none}
+body #tilesContainer .gt-ic{grid-row:1/3;width:26px;height:26px;margin:0;border:0;border-radius:0;background:none;box-shadow:none;filter:none;color:#efe14a}
+body #tilesContainer .gt-ic svg{width:22px;height:22px}
+body #tilesContainer .gt-t{font-size:14.5px;font-weight:500;line-height:1.4;color:#f4f2fd}
+body #tilesContainer .gt-d{font-size:11px;line-height:1.55;color:#b9c4c8;margin:0}
+html[data-theme="light"] body #tilesContainer .gt:hover{background:rgba(255,255,255,.12)}
+/* موبایل */
+@media(max-width:700px){
+  .bgfx{height:420px}.bgfx .wafer{opacity:.3;left:-420px;top:-300px}.bgfx .traces{height:400px}.bgfx .traces path:nth-of-type(n+6),.bgfx .traces .dot:nth-of-type(n+6),.bgfx .traces .pad:nth-of-type(n+8){display:none}
+  .brand{margin-top:34px}
+  body #tilesContainer .stack{grid-template-columns:1fr;gap:14px}
+  body #tilesContainer .grp,body #tilesContainer .grp.in{padding:24px 18px 10px}
+  body #tilesContainer .grp:nth-child(n){border-radius:28px 80px 28px 28px}
+  body #tilesContainer .grp:nth-child(2n){border-radius:80px 28px 28px 28px}
+  body #tilesContainer .gt{padding:12px 6px}
+  body #tilesContainer .gt{flex-direction:initial}
+}
+@media(prefers-reduced-motion:reduce){body #tilesContainer .me-hero{transition:none}}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -363,7 +469,7 @@ html[data-theme="light"] .gt-ic{background:rgba(255,255,255,.7)}
   <div style="font-size:12px;color:var(--muted)" id="deniedMsg"></div>
 </div>
 
-<div class="foot">MADAR · v3.2</div>
+<div class="foot">MADAR · v3.3</div>
 
 <script>
 // ── حالت شب/روز ──
@@ -653,6 +759,32 @@ async function init(){
 // ══════════════════════════════════════════════════════════════
 function openRoadmapModal(){ location.href = 'roadmap.html'; }
 function fnRm(n){ return String(n).replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]); }
+
+// ⚠️ (۱۴۰۵/۰۷/۲۱) پس‌زمینه‌یِ تزئینی: ویفرِ سیلیکونی + مسیرهایِ مدار (خط با نقطه در انتها) — فقط بالایِ صفحه، زیرِ محتوا
+(function buildBgfx(){
+  try{
+    let r=7; const rnd=()=>(r=(r*9301+49297)%233280)/233280;
+    let tr='';
+    [60,120,185,250,315,380,445].forEach(y0=>{
+      let x=1500,y=y0,d='M'+x+' '+y; const pads=[]; const n=3+Math.floor(rnd()*3);
+      for(let k=0;k<n;k++){
+        x-=120+rnd()*260; d+=' H'+x.toFixed(1);
+        if(k<n-1){ const dy=(rnd()<.5?-1:1)*(30+rnd()*50); x-=Math.abs(dy); y+=dy; d+=' L'+x.toFixed(1)+' '+y.toFixed(1); if(rnd()<.5) pads.push([x,y]); }
+      }
+      tr+='<path d="'+d+'"/><circle class="dot" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5"/>'+pads.map(q=>'<circle class="pad" cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="3.5"/>').join('');
+    });
+    let d='',R=300,w=34,h=26;
+    for(let y=-R;y<R;y+=h)for(let x=-R;x<R;x+=w){
+      const cx=x+w/2,cy=y+h/2;
+      if(Math.hypot(cx,cy)<R-14){ const k=(Math.sin(x*.03)+Math.cos(y*.04))*.5;
+        d+='<rect x="'+(300+x+2)+'" y="'+(300+y+2)+'" width="'+(w-4)+'" height="'+(h-4)+'" rx="2" fill="hsl('+(197+k*18).toFixed(0)+' 24% '+(22+k*10+4).toFixed(0)+'%)" opacity="'+(.55+.4*Math.abs(Math.sin(x*.07+y*.05))).toFixed(2)+'"/>'; }
+    }
+    const wafer='<svg class="wafer" viewBox="0 0 600 600" aria-hidden="true"><defs><radialGradient id="bgW" cx="35%" cy="30%"><stop offset="0" stop-color="#8fb3bd" stop-opacity=".5"/><stop offset=".6" stop-color="#30474f" stop-opacity=".35"/><stop offset="1" stop-color="#050809" stop-opacity=".2"/></radialGradient><linearGradient id="bgR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#88898d"/><stop offset="1" stop-color="#30474f"/></linearGradient></defs><circle cx="300" cy="300" r="296" fill="url(#bgW)" stroke="url(#bgR)" stroke-width="2"/>'+d+'</svg>';
+    const div=document.createElement('div'); div.className='bgfx'; div.setAttribute('aria-hidden','true');
+    div.innerHTML=wafer+'<svg class="traces" viewBox="0 0 1440 520" preserveAspectRatio="xMaxYMin slice">'+tr+'</svg>';
+    document.body.insertBefore(div,document.body.firstChild);
+  }catch(e){}
+})();
 
 init();
 </script>
