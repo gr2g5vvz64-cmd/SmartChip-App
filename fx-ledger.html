@@ -3475,17 +3475,19 @@ function fxHeldCardsHtml(rows, opts){
     const rem = Number(r.remainingYuan||0);
     return `<div class="card" style="border-right:4px solid #E0A030;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <div style="font-size:15px;font-weight:800">🔒 ${fxc_esc(r.customer)}</div>
+        <div style="font-size:15px;font-weight:800">🔒 ${r.customer ? fxc_esc(r.customer) : '⚠️ بدونِ مشتری (مشخص نشده)'}</div>
         <div style="font-size:11.5px;color:var(--ink-soft)">نزدِ تأمین‌کننده: <b style="color:var(--ink)">${fxc_esc(r.supplier)}</b></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13px"><span>کلِ مبلغِ ذخیره‌شده برایِ او</span><b class="num">${fmtYuan(r.totalSavedYuan)}</b></div>
+      ${(r.holds||[]).length ? `<div style="font-size:11px;color:var(--ink-soft);line-height:1.8">از حواله‌هایِ: ${(r.holds||[]).map(h=>`${fxc_esc(h.date)} (#${h.hawaleId}) → ${fmtYuan(h.heldYuan)}`).join(' ، ')}</div>` : ''}
+      ${!r.customer ? '<div style="font-size:11.5px;color:#E0A030">این مبلغ به هیچ مشتری‌ای نسبت داده نشده؛ با دکمه‌یِ ویرایش، برایِ مشتریِ درست ثبتش کنید.</div>' : ''}
       <div>
         <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:2px">${(r.orders||[]).length ? 'پیش‌فاکتورهایِ فروشِ او که از این پول خرج می‌شوند:' : 'هنوز پیش‌فاکتور/فاکتورِ فروشی به این مشتری و تأمین‌کننده وصل نشده.'}</div>${ords}
       </div>
       ${r.usedYuan>0.005 ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span>صرف‌شده برایِ فاکتورهایش (خودکار)</span><b class="num">− ${fmtYuan(r.usedYuan)}</b></div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;padding-top:6px;border-top:2px solid var(--border)"><span><b>مانده‌یِ نگه‌داری‌شده</b></span><b class="num" style="color:${rem>0.005?'#E0A030':'var(--ink)'}">${fmtYuan(rem)}</b></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${opts.noCustomerBtn ? '' : `<button class="btn btn-ghost btn-sm" data-held-cust="${fxc_esc(r.customer)}">دفترِ مشتری ›</button>`}
+        ${(opts.noCustomerBtn || !r.customer) ? '' : `<button class="btn btn-ghost btn-sm" data-held-cust="${fxc_esc(r.customer)}">دفترِ مشتری ›</button>`}
         ${(r.holds||[]).map(h=>`<button class="btn btn-ghost btn-sm" data-held-edit="${i}:${h.hawaleId}" title="حواله‌یِ ${fxc_esc(h.date)}">✏️ ویرایش / برداشتن / انتقال (حواله ${fxc_esc(h.date)})</button>`).join('')}
       </div></div>`;
   }).join('') + `</div>`;
