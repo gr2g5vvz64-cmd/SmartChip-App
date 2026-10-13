@@ -442,6 +442,16 @@ html[data-theme="light"] body #tilesContainer .gt:hover{background:rgba(255,255,
   .me-hero{transform:scale(.92);transform-origin:right center}
 }
 @media(min-width:701px){body #tilesContainer.groups{flex:0 0 auto!important;align-content:flex-start!important}}
+
+/* ═══ سرگروه به‌صورتِ نوارِ زردِ کامل (طرح C) ═══ */
+body #tilesContainer .grp,body #tilesContainer .grp.in,
+body #tilesContainer .grp:nth-child(n){padding:0 0 8px!important;border-radius:26px!important}
+body #tilesContainer .grp .tg,body #tilesContainer .grp:nth-child(n) .tg{display:flex!important;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 6px!important;padding:13px 22px!important;
+  background:linear-gradient(270deg,#efe14a,#c9c13c)!important;color:#050809!important;font-size:19px;font-weight:900;border:0!important;border-image:none!important}
+body #tilesContainer .grp .tg small{display:inline!important;margin:0!important;font-size:11px;font-weight:500;color:#050809!important;opacity:.7}
+body #tilesContainer .grp .tape{padding:2px 22px 4px!important}
+body #tilesContainer .grp .tg{font-size:18px!important;white-space:nowrap;flex-wrap:nowrap}
+body #tilesContainer .grp .tg small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
