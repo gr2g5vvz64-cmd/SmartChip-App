@@ -577,26 +577,30 @@ function submitEmailForm(){
 }
 
 async function getCurrentUserInfoFromDjangoOrSheet(email){
-  try{
-    // ⚠️ (۱۴۰۵/۰۶/۲۷) فیکسِ باگِ واقعی: این fetch قبلاً هیچ مهلتِ زمانی
-    // نداشت — اگه سرورِ رندر (خصوصاً موقعِ کندی/بیدارشدن، یا رویِ
-    // شبکه‌ی موبایلِ ناپایدار مثلِ LTE) درخواست رو معلق نگه می‌داشت،
-    // این تابع تا ابد pending می‌موند و هیچ‌وقت به fallbackِ گوگل‌شیتِ
-    // زیرش نمی‌رسید — باعثِ گیرکردنِ کاملِ صفحه رویِ «در حالِ بررسیِ
-    // دسترسی...» می‌شد. الان بعدِ ۱۰ ثانیه خودکار قطع و به fallback می‌ره.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(()=>controller.abort(), 10000);
-    const res = await fetch('https://api.smartchipelec.com/api/staff/staff/'+encodeURIComponent(email)+'/', {signal: controller.signal});
-    clearTimeout(timeoutId);
-    if(res.status===404){
-      return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+  // ⚠️ (۱۴۰۵/۰۷/۲۱) سرورِ رندر بعد از Deploy یا بیکاری ۳۰–۶۰ ثانیه دیر بیدار می‌شود؛ قبلاً بعد از ۱۰ ثانیه یک‌باره
+  //   «دسترسی نداری» نشان می‌داد. حالا تا ۳ بار (هر بار تا ۲۰ ثانیه) تلاش می‌کند و پیامِ «سرور در حالِ بیدار شدن» می‌دهد.
+  //   خطایِ ۴۰۴ (ایمیلِ ثبت‌نشده) و پاسخِ غیرفعال فوراً نمایش داده می‌شود؛ فقط خطایِ شبکه/زمان/۵xx تکرار می‌شود.
+  const note = document.querySelector('#loadingState div');
+  for(let attempt=1; attempt<=3; attempt++){
+    try{
+      const controller = new AbortController();
+      const timeoutId = setTimeout(()=>controller.abort(), 20000);
+      const res = await fetch('https://api.smartchipelec.com/api/staff/staff/'+encodeURIComponent(email)+'/', {signal: controller.signal});
+      clearTimeout(timeoutId);
+      if(res.status===404){
+        return { email, name:'', role:'', isStaff:false, error:'این ایمیل در لیست کارمندان ثبت نشده — با مدیر تماس بگیر' };
+      }
+      if(res.ok){
+        const d = await res.json();
+        if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
+        return { email, name:d.name||'', role:d.role||'', isStaff:true };
+      }
+    }catch(e){ /* شبکه یا زمان — دوباره تلاش می‌کنیم */ }
+    if(attempt<3){
+      if(note) note.textContent = 'سرور در حالِ بیدار شدن است — صبر کنید (تلاشِ '+(attempt+1)+' از ۳)...';
+      await new Promise(r=>setTimeout(r,1500));
     }
-    if(res.ok){
-      const d = await res.json();
-      if(!d.active) return { email, name:d.name||'', role:'', isStaff:false, error:'دسترسی این کاربر غیرفعال شده' };
-      return { email, name:d.name||'', role:d.role||'', isStaff:true };
-    }
-  }catch(e){ /* مشکل شبکه یا timeout — به fallback گوگل‌شیت برمی‌گردیم */ }
+  }
   return await sheetCall('getCurrentUserInfo', { email });
 }
 
