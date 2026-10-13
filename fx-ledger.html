@@ -971,7 +971,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-11';
+const FX_BUILD = '1405.07.21-12';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -1729,6 +1729,7 @@ async function renderCustomerLedger(main, cachedData){
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">پرداخت‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
       ${(data._staleServer && !fxCustomerView) ? '<div class="card" data-mgmt-only style="grid-column:1/-1;font-size:12px;line-height:1.9;border-color:var(--danger)">⚠️ <b>سرور هنوز نسخه‌یِ قدیمیِ <code>views.py</code> را دارد.</b> این صفحه اثرِ «پولِ شرکت» را از مانده‌ها کنار گذاشت، ولی داشبورد و لیستِ مشتریان هنوز با آن حساب می‌شوند — <code>views.py</code> جدید را روی سرور بگذارید.</div>' : ''}
       ${fxCustomerView ? '' : fxCompanyMoneyCardHtml(data.companyMoney)}
+      ${fxCustomerView ? '' : '<div id="custHeldBox" data-mgmt-only style="grid-column:1/-1"></div>'}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button>${fxCustomerView ? '' : '<button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور (فقط مدیریت)">💱 یوان و رزرو برایِ پیش‌فاکتور</button>'}<button class="btn btn-ghost" id="custViewToggle" title="اگر صفحه را به مشتری نشان می‌دهی یا اسکرین‌شات می‌گیری، روشن کن تا هرچه مخصوصِ مدیریت است پنهان شود">${fxCustomerView ? '👁️ برگشت به نمایِ مدیریت' : '🙈 نمایشِ به مشتری'}</button></div>
@@ -1835,6 +1836,14 @@ async function renderCustomerLedger(main, cachedData){
       </table>
     </div>
   `;
+  (async()=>{
+    const hb = main.querySelector('#custHeldBox'); if(!hb) return;
+    const ho = await apiGetHeldOverview(); if(!ho || !document.body.contains(hb)) return;
+    const mine = (ho.rows||[]).filter(r=>normalizeFa(r.customer)===normalizeFa(data.customer));
+    if(!mine.length) return;
+    hb.innerHTML = '<div style="font-weight:800;margin:0 0 6px">🔒 پولِ این مشتری که نزدِ تأمین‌کننده نگه‌داری شده</div>' + fxHeldCardsHtml(mine, {noCustomerBtn:true});
+    fxBindHeldCards(hb, mine, ()=>renderCustomerLedger(main));
+  })();
   main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
   main.querySelectorAll('[data-suggested-toggle]').forEach(cb=>cb.addEventListener('change', async ()=>{
     const paymentId = cb.dataset.suggestedToggle;
@@ -3356,7 +3365,17 @@ async function renderSuppliersList(main, cachedSummary){
         </tbody>
       </table>
     </div>
+    <div class="section-title" style="margin-top:26px">🔒 پولِ مشتری‌ها نزدِ تأمین‌کننده (نگه‌داریِ امانی)</div>
+    <p class="page-desc" style="margin-bottom:10px">یوانی که برایِ مشتری نزدِ تأمین‌کننده نگه داشته‌ایم تا از روی پولِ خودش خرید کند. این پول <b>مالِ مشتری است</b>، نه بدهی/طلبِ تأمین‌کننده، و در دفترِ تأمین‌کننده نمی‌آید.</p>
+    <div id="heldOverviewBox"><div class="page-desc">در حالِ بارگذاری…</div></div>
   `;
+  (async()=>{
+    const box = main.querySelector('#heldOverviewBox'); const ho = await apiGetHeldOverview();
+    if(!box || !document.body.contains(box)) return;
+    if(!ho){ box.innerHTML = '<div class="page-desc">❌ اطلاعاتِ نگه‌داری از سرور نیامد (views.py جدید روی سرور نیست؟)</div>'; return; }
+    box.innerHTML = fxHeldCardsHtml(ho.rows);
+    fxBindHeldCards(box, ho.rows, ()=>renderSuppliersList(main, g));
+  })();
   main.querySelector('#addOpeningGlobalBtn').addEventListener('click', ()=>fxPickPartyThenOpening('supplier', g.suppliers.map(s=>s.name)));
   main.querySelector('#suppliersListSearchInput').addEventListener('input', (e)=>{
     suppliersListSearchQuery = e.target.value;
@@ -3410,28 +3429,67 @@ function fxSupplierCustomerBreakdownHtml(data){
   const b = data.customerBreakdown;
   if(!b) return '';
   const fy = (v)=> (v>0.0001?'+':(v<-0.0001?'−':'')) + fmtYuan(Math.abs(v));
-  const custRows = (b.customers||[]).map(r=>`<tr>
+  // ⚠️ (۱۴۰۵/۰۷/۲۱) یوانِ «نگه‌داری‌شده» برایِ مشتری مالِ مشتری است و در حسابِ تأمین‌کننده نیست ← از این صفحه برداشته شد؛
+  // در «تأمین‌کنندگان ← پولِ مشتری‌ها نزدِ تأمین‌کننده» دیده می‌شود. مشتری‌ایی که فقط نگه‌داری دارند (نه فاکتورِ خرید، نه یوانِ پرداخت‌شده) اینجا نمی‌آیند.
+  const custRows = (b.customers||[]).filter(r=>r.invoiceYuan>0.0001 || r.paidYuan>0.0001).map(r=>`<tr>
     <td><strong>${fxc_esc(r.customer)}</strong></td>
     <td class="num">${fmtYuan(r.invoiceYuan)}</td>
     <td class="num">${fmtYuan(r.paidYuan)}</td>
-    <td class="num">${r.heldYuan>0.0001 ? fmtYuan(r.heldYuan) : '—'}</td>
     <td class="num" style="font-weight:800">${fy(r.balanceYuan)}</td>
-    <td class="num" style="font-weight:800">${fy(r.balanceYuan - (r.heldYuan||0))}</td>
-    <td style="font-size:11px;color:var(--ink-soft)">${(r.invoiceYuan<0.0001 && (r.paidYuan>0.0001||r.heldYuan>0.0001)) ? '🔗 یوان دارد ولی فاکتورِ خریدش وصل نیست' : ((r.balanceYuan-(r.heldYuan||0))>10 ? '⏳ منتظرِ پول/حواله‌یِ این مشتری' : ((r.balanceYuan-(r.heldYuan||0))<-10 ? '💰 پیش‌پرداختِ این مشتری (یوانِ بیشتر از فاکتور)' : '✅ تسویه'))}</td></tr>`).join('');
-  const extra = (label, v, hint)=> Math.abs(v)>0.0001 ? `<tr style="background:var(--surface)"><td>${label}</td><td colspan="3" style="font-size:11px;color:var(--ink-soft)">${hint}</td><td class="num" style="font-weight:800">${fy(v)}</td><td></td><td></td></tr>` : '';
+    <td style="font-size:11px;color:var(--ink-soft)">${r.invoiceYuan<0.0001 ? '🔗 یوان دارد ولی فاکتورِ خریدش وصل نیست' : (r.balanceYuan>10 ? '⏳ منتظرِ پول/حواله‌یِ این مشتری' : (r.balanceYuan<-10 ? '💰 پیش‌پرداختِ این مشتری (یوانِ بیشتر از فاکتورهایش)' : '✅ تسویه'))}</td></tr>`).join('');
+  const extra = (label, v, hint)=> Math.abs(v)>0.0001 ? `<tr style="background:var(--surface)"><td>${label}</td><td colspan="2" style="font-size:11px;color:var(--ink-soft)">${hint}</td><td class="num" style="font-weight:800">${fy(v)}</td><td></td></tr>` : '';
   const ok = Math.abs(b.diffYuan) < 0.01;
   return `<div class="section-title">👥 مانده‌یِ یوانی به تفکیکِ مشتری</div>
     <div class="table-wrap" style="margin-bottom:20px"><table>
-      <thead><tr><th>مشتری</th><th>فاکتورهایِ خریدِ او (یوان)</th><th>یوانِ پرداخت‌شده با پولِ او</th><th>نگه‌داری‌شده برایِ او</th><th>مانده (یوان)</th><th>مانده با احتسابِ نگه‌داری</th><th>وضعیت</th></tr></thead>
-      <tbody>${custRows || '<tr class="empty-row"><td colspan="7">فاکتورِ خریدِ وصل‌به‌مشتری یا حواله‌یِ مشتری‌داری ثبت نشده</td></tr>'}
+      <thead><tr><th>مشتری</th><th>فاکتورهایِ خریدِ او (یوان)</th><th>یوانِ پرداخت‌شده با پولِ او</th><th>مانده (یوان)</th><th>وضعیت</th></tr></thead>
+      <tbody>${custRows || '<tr class="empty-row"><td colspan="5">فاکتورِ خریدِ وصل‌به‌مشتری یا حواله‌یِ مشتری‌داری ثبت نشده</td></tr>'}
         ${extra('فاکتورهایِ خریدِ بدونِ مشتری', b.unlinkedInvoiceYuan, 'به هیچ فاکتورِ فروشی وصل نیستند')}
         ${extra('حواله‌هایِ بدونِ مشتری (پولِ مازادِ شرکت)', -b.companyHawaleYuan, 'یوانی که ما زده‌ایم و هنوز به واریزِ هیچ مشتری وصل/فروخته نشده؛ تأمین‌کننده را تسویه می‌کند ولی مشتری را نمی‌بندد')}
         ${extra('تعدیل‌هایِ یوانی و مانده‌یِ اولیه', b.adjustmentOpeningYuan, '')}
       </tbody>
-      <tfoot><tr style="font-weight:800;background:var(--surface)"><td colspan="4" style="text-align:left">جمعِ کل = مانده‌یِ یوانیِ دفترِ این تأمین‌کننده</td><td class="num">${fy(b.calcYuan)}</td><td></td>
+      <tfoot><tr style="font-weight:800;background:var(--surface)"><td colspan="3" style="text-align:left">جمعِ کل = مانده‌یِ یوانیِ دفترِ این تأمین‌کننده</td><td class="num">${fy(b.calcYuan)}</td>
         <td>${ok ? '<span class="status-chip closed">✅ با دفترِ کامل برابر است</span>' : '<span class="status-chip open">⚠️ اختلاف '+fmtYuan(Math.abs(b.diffYuan))+' با دفترِ کامل</span>'}</td></tr></tfoot>
-    </table></div>
-    <div class="warn-note" style="margin:-10px 0 18px">«نگه‌داری‌شده» یوانِ مشتری است که نزدِ تأمین‌کننده نگه داشته‌ایم؛ تا سقفِ فاکتورهایِ خریدِ خودِ همان مشتری خودکار صرفِ آن‌ها می‌شود (و تأمین‌کننده را هم تسویه می‌کند)، باقی‌مانده همین‌جا می‌ماند. مثبت = ما هنوز به تأمین‌کننده یوانِ این مشتری را بدهکاریم (منتظرِ پولِ او). منفی = یوانِ بیشتری از فاکتور برایِ او/شرکت رفته است.</div>`;
+    </table></div>`;
+}
+
+// ⚠️ (۱۴۰۵/۰۷/۲۱) «پولِ مشتری‌ها نزدِ تأمین‌کننده» — یوانی که برایِ مشتری نگه داشته‌ایم؛ مالِ مشتری است نه حسابِ تأمین‌کننده.
+// برایِ هر (مشتری، تأمین‌کننده) یک کادر: کلِ نگه‌داری‌شده، پیش‌فاکتورهایِ فروش، مصرف‌شده، مانده. سرور: GET /api/ledger/accounts/held-overview/
+async function apiGetHeldOverview(){
+  try{ const r = await fetchWithRetry(FX_API+'accounts/held-overview/'); return r.ok ? r.json() : null; }
+  catch(err){ return null; }
+}
+function fxHeldCardsHtml(rows, opts){
+  opts = opts || {};
+  if(!rows || !rows.length) return `<div class="page-desc" style="margin:6px 0 18px">${opts.emptyText || 'در حالِ حاضر یوانی برایِ هیچ مشتری‌ای نزدِ تأمین‌کننده نگه‌داری نشده.'}</div>`;
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:20px">` + rows.map((r,i)=>{
+    const ords = (r.orders||[]).map(o=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--border)">
+        <span>${o.type==='invoice'?'فاکتورِ فروش':'پیش‌فاکتورِ فروش'}${o.invoiceNo?(' '+fxc_esc(o.invoiceNo)):''} <span style="color:var(--ink-soft);font-size:11px">${fxc_esc(o.date)}</span></span>
+        <span class="num"><b>${fmtYuan(o.saleYuan)}</b>${Math.abs(o.purchaseYuan-o.saleYuan)>0.005 ? `<span style="color:var(--ink-soft);font-size:11px"> · خریدِ وصل‌شده ${fmtYuan(o.purchaseYuan)}</span>` : ''}</span></div>`).join('');
+    const rem = Number(r.remainingYuan||0);
+    return `<div class="card" style="border-right:4px solid #E0A030;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="font-size:15px;font-weight:800">🔒 ${fxc_esc(r.customer)}</div>
+        <div style="font-size:11.5px;color:var(--ink-soft)">نزدِ تأمین‌کننده: <b style="color:var(--ink)">${fxc_esc(r.supplier)}</b></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span>کلِ مبلغِ ذخیره‌شده برایِ او</span><b class="num">${fmtYuan(r.totalSavedYuan)}</b></div>
+      <div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:2px">${(r.orders||[]).length ? 'پیش‌فاکتورهایِ فروشِ او که از این پول خرج می‌شوند:' : 'هنوز پیش‌فاکتور/فاکتورِ فروشی به این مشتری و تأمین‌کننده وصل نشده.'}</div>${ords}
+      </div>
+      ${r.usedYuan>0.005 ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span>صرف‌شده برایِ فاکتورهایش (خودکار)</span><b class="num">− ${fmtYuan(r.usedYuan)}</b></div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;padding-top:6px;border-top:2px solid var(--border)"><span><b>مانده‌یِ نگه‌داری‌شده</b></span><b class="num" style="color:${rem>0.005?'#E0A030':'var(--ink)'}">${fmtYuan(rem)}</b></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${opts.noCustomerBtn ? '' : `<button class="btn btn-ghost btn-sm" data-held-cust="${fxc_esc(r.customer)}">دفترِ مشتری ›</button>`}
+        ${(r.holds||[]).map(h=>`<button class="btn btn-ghost btn-sm" data-held-edit="${i}:${h.hawaleId}" title="حواله‌یِ ${fxc_esc(h.date)}">✏️ ویرایش / برداشتن / انتقال (حواله ${fxc_esc(h.date)})</button>`).join('')}
+      </div></div>`;
+  }).join('') + `</div>`;
+}
+function fxBindHeldCards(root, rows, after){
+  root.querySelectorAll('[data-held-cust]').forEach(b=>b.addEventListener('click', ()=>{ currentTab='customers'; currentCustomer=b.dataset.heldCust; currentSupplier=null; render(); }));
+  root.querySelectorAll('[data-held-edit]').forEach(b=>b.addEventListener('click', async ()=>{
+    const [i, hid] = b.dataset.heldEdit.split(':'); const r = rows[+i]; const h = (r.holds||[]).find(x=>String(x.hawaleId)===hid);
+    await openHawaleHoldModal(+hid, {rate: h ? h.rate : 0}, r.supplier);
+    if(after) after();
+  }));
 }
 
 async function apiGetSupplierLedger(supplier){
@@ -3555,7 +3613,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount};
     return matchesSearch([h.date, bd.totalYuan, bd.spentYuan, bd.remainingYuan], supplierHawaleStatusSearchQuery);
   });
-  const ledgerEvents = fxCollapseSupplierEvents(data.events);
+  const ledgerEvents = fxCollapseSupplierEvents(data.events).filter(e=>e.type!=='hold');   // ⚠️ (۱۴۰۵/۰۷/۲۱) «نگه‌داری» پولِ مشتری است نه حسابِ تأمین‌کننده ← در بخشِ جدایِ «پولِ مشتری‌ها نزدِ تأمین‌کننده» (صفحه‌یِ لیستِ تأمین‌کنندگان) نمایش داده می‌شود
   const filteredSupplierEvents = ledgerEvents.filter(e=>matchesSearch([
     e.date, e.docNumber, e.desc, e.type==='hawale'?e.rial_credit:null, e.yuan_debit, e.yuan_credit, e.rate,
     e.runningYuan, e.runningRial, e.diagnosis, e.docGroup, e.partsText,
@@ -3583,7 +3641,6 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     <div class="toolbar" style="margin-bottom:10px"><div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div></div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
-      ${(()=>{ const hv = data.events.filter(x=>x.type==='hold').reduce((s,x)=>s+Number(x.heldYuan||0),0); return hv>0.005 ? `<div class="card stat-card"><div class="stat-label">🔒 نگه‌داری‌شده برایِ مشتری‌ها</div><div class="stat-value yuan num">${fmtYuan(hv)}</div><div class="stat-hint">پولِ ما نزدِ این تأمین‌کننده، مالِ مشتری — در مانده‌یِ بدهیِ فاکتورها نمی‌آید</div></div>` : ''; })()}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — ما به تأمین‌کننده یوان بدهکاریم (باید حواله بزنیم)' : (realYuanBalance < -0.01 ? '🟢 منفی — تأمین‌کننده به ما بدهکار است (بیش از فاکتورهایش حواله زده‌ایم)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
     <div class="grid grid-2" style="margin-bottom:16px">
