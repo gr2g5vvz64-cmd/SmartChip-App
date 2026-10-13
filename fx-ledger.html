@@ -825,8 +825,10 @@ function fxSyncPartsFromSheet(btn, onlyNew){
 async function fxSearchItems(q){
   if(!q || q.trim().length<1) return [];
   try{
-    const data = await fetch('https://api.smartchipelec.com/api/items/search/?q='+encodeURIComponent(q.trim()));
+    // ⚠️ (۱۴۰۵/۰۷/۲۱) تا ۳۰۰ نتیجه (قبلاً فقط ۲۵ تا) + جستجویِ چندکلمه‌ای؛ هرچه بیشتر بنویسید فهرست دقیق‌تر می‌شود
+    const data = await fetch('https://api.smartchipelec.com/api/items/search/?limit=300&q='+encodeURIComponent(q.trim()));
     const j = await data.json();
+    window.fxItemsTotal = (j && j.total != null) ? j.total : ((j && j.items) ? j.items.length : 0);
     return (j && j.items) || [];
   }catch(e){ return []; }
 }
@@ -895,10 +897,15 @@ function wirePartNumberAutocomplete(inputEl, resultsBoxEl){
     const q = inputEl.value;
     if(q.trim().length<1){ resultsBoxEl.innerHTML=''; return; }
     const mySeq = ++seq;
+    await new Promise(r=>setTimeout(r,140));   // کمی صبر تا تایپِ سریع درخواستِ اضافه نسازد
+    if(mySeq !== seq) return;
     const items = await fxSearchItems(q);
     if(mySeq !== seq) return; // یه سرچِ جدیدتر تو راهه
-    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:160px;overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.18)">
-      ${items.map(name=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-part="${name}">${name}</div>`).join('')}
+    const _tot = window.fxItemsTotal || items.length;
+    const _esc = (t)=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    resultsBoxEl.innerHTML = items.length ? `<div style="position:absolute;top:2px;right:0;left:0;background:var(--pop-bg);color:var(--ink);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:min(55vh,420px);overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.18)">
+      <div style="position:sticky;top:0;background:var(--pop-bg);padding:5px 10px;font-size:11px;color:var(--ink-soft);border-bottom:1px solid var(--border)">${_tot} مورد پیدا شد${_tot>items.length?` — ${items.length} تای اول نمایش داده می‌شود؛ بیشتر بنویسید تا دقیق‌تر شود`:''}</div>
+      ${items.map(name=>`<div style="padding:8px 10px;cursor:pointer;font-size:12px" data-pick-part="${_esc(name)}">${_esc(name)}</div>`).join('')}
     </div>` : '';
     resultsBoxEl.querySelectorAll('[data-pick-part]').forEach(el=>el.addEventListener('click', ()=>{
       inputEl.value = el.dataset.pickPart;
