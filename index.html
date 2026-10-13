@@ -452,6 +452,29 @@ body #tilesContainer .grp .tg small{display:inline!important;margin:0!important;
 body #tilesContainer .grp .tape{padding:2px 22px 4px!important}
 body #tilesContainer .grp .tg{font-size:18px!important;white-space:nowrap;flex-wrap:nowrap}
 body #tilesContainer .grp .tg small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+
+/* ═══ پُرکردنِ ارتفاعِ صفحه (طرحِ تمام‌صفحه، بدونِ اسکرول و بدونِ فشردگی) ═══ */
+@media(min-width:701px){
+  body{min-height:100dvh}
+  .logo{font-size:clamp(60px,min(12vh,11vw),132px)!important}
+  .sub{font-size:clamp(13px,1.7vh,16px)}
+  .motto{margin:clamp(6px,1.4vh,16px) 0 clamp(10px,2vh,24px)}
+  .motto-fa{font-size:clamp(16px,2.6vh,24px)!important}
+  .motto-fa .strong{font-size:clamp(17px,2.8vh,26px)!important}
+  .motto-en{display:block!important;font-size:clamp(11px,1.4vh,13px)!important}
+  body #tilesContainer.groups{display:grid!important;flex:1 1 auto!important;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;align-items:center;gap:clamp(10px,2vh,22px) 20px}
+  body #tilesContainer .me-hero{grid-column:1;grid-row:1;transform:none}
+  body #tilesContainer .rec{grid-column:2;grid-row:1}
+  body #tilesContainer .stack{grid-column:1/-1;grid-row:2;width:100%;align-self:stretch;grid-template-rows:1fr;align-items:stretch;margin-bottom:clamp(54px,7vh,76px);min-height:0}
+  body #tilesContainer .grp,body #tilesContainer .grp.in{display:flex;flex-direction:column;padding:0 0 clamp(6px,1.2vh,14px)!important}
+  body #tilesContainer .grp .tg{padding:clamp(14px,2.2vh,22px) 22px!important;font-size:clamp(18px,2.4vh,23px)!important}
+  body #tilesContainer .grp .tape{flex:1;display:flex!important;flex-direction:column;justify-content:space-evenly;padding:4px 22px!important}
+  body #tilesContainer .gt{padding:clamp(8px,1.6vh,18px) 6px}
+  body #tilesContainer .gt-t{font-size:clamp(14px,1.9vh,17px)}
+  body #tilesContainer .gt-d{font-size:clamp(10.5px,1.4vh,12.5px)}
+  body #tilesContainer .gt-ic{width:clamp(26px,3.4vh,34px);height:clamp(26px,3.4vh,34px)}
+}
+@media(min-width:1100px){body #tilesContainer .stack{grid-template-columns:repeat(5,1fr)!important;gap:14px!important}}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
