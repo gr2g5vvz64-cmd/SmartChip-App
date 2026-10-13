@@ -710,8 +710,10 @@ function _lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){
 // ⚠️ (۱۴۰۵/۰۷/۲۰) صفحه‌یِ مربعی: مربعِ هر گروه ← با کلیک، ابزارهایش پایین باز می‌شود. «پرکاربردهایِ من» از روی استفاده‌یِ خودِ هر نفر (در همین مرورگر).
 function renderGroupedTiles(allowedTiles, isMob, newTab){
   const box = document.getElementById('tilesContainer');
+  const HIDE_ON_HOME = new Set(['customers']);   // کارتِ «مشتریان» در صفحه‌یِ اصلی نمایش داده نمی‌شود (۱۴۰۵/۰۷/۲۱)
+  allowedTiles = allowedTiles.filter(k=>!HIDE_ON_HOME.has(k));
   const allowed = new Set(allowedTiles);
-  const placed = new Set(['me']);
+  const placed = new Set(['me','customers']);
   TILE_GROUPS.forEach(g=>g.keys.forEach(k=>placed.add(k)));
   const extra = allowedTiles.filter(k=>!placed.has(k) && TILE_META[k]);     // کاشیِ تازه‌ای که هنوز در گروهی نیست ← «ابزارها»
   const G = [];
