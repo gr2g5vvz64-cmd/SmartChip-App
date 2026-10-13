@@ -971,7 +971,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-10';
+const FX_BUILD = '1405.07.21-11';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -2010,7 +2010,7 @@ function fxLockDialog(o){
     try{
       let {res, d} = await send(r, reason);
       if((!res.ok || !d.ok) && sameInUi && !reason && /فرق|دلیل/.test(d.error||'')){ ({res, d} = await send(r, AUTO_REASON)); }
-      if(!res.ok || !d.ok){ showToast('❌ '+(d.error||'قفل‌کردن ناموفق بود')); return; }
+      if(!res.ok || !d.ok){ showToast('❌ '+(d.error||d.detail||d.message||('قفل‌کردن ناموفق بود (HTTP '+res.status+')'))); return; }
       backdrop.remove(); showToast(d.manual ? '✅ با نرخِ هلو قفل شد' : '✅ فاکتور قفل شد'); o.done && o.done();
     }catch(e){ showToast('❌ سرور جواب نداد'); }
   };
