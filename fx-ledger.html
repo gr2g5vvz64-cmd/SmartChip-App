@@ -6427,10 +6427,23 @@ async function fxAuditOpen(kind, name){
   body.innerHTML = `<div class="card" style="padding:10px 12px;margin-bottom:8px">${fxAuditSummaryHtml(a)}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${['error','warn','info','ok'].map(k=>`<span class="au-chip">${lvl[k]}: ${c[k]||0}</span>`).join('')}</div>
     ${(a.findings||[]).map((f,i)=>`<div class="au-card ${f.level}"><h4>${fxc_esc(f.title)}</h4><p>${fxc_esc(f.detail)}</p>
-      ${(f.refs||[]).length?`<div class="au-refs">${f.refs.map((r,j)=>`<button class="btn btn-ghost btn-sm" type="button" data-au-ref="${i}:${j}">${fxc_esc(r.label)} ›</button>`).join('')}</div>`:''}</div>`).join('')}
+      ${(f.refs||[]).length?`<div class="au-refs">${f.refs.map((r,j)=>`<button class="btn btn-ghost btn-sm" type="button" data-au-ref="${i}:${j}">${fxc_esc(r.label)} ›</button>`).join('')}</div>`:''}
+      ${(f.actions||[]).length?`<div class="au-refs">${f.actions.map((x,j)=>`<button class="btn btn-primary btn-sm" type="button" data-au-act="${i}:${j}">${fxc_esc(x.label)}</button>`).join('')}</div>`:''}</div>`).join('')}
     <div style="font-size:10.5px;color:var(--ink-soft);margin-top:6px">تحلیل فقط می‌خواند و چیزی را تغییر نمی‌دهد · ${fxc_esc(String(a.generatedAt||'').slice(0,16).replace('T',' '))}</div>`;
   body.querySelectorAll('[data-au-ref]').forEach(b=>b.addEventListener('click', ()=>{
     const [i,j]=b.dataset.auRef.split(':'); fxAuditGoRef(a.findings[+i].refs[+j], {kind, name});
+  }));
+  body.querySelectorAll('[data-au-act]').forEach(b=>b.addEventListener('click', async ()=>{
+    const [i,j]=b.dataset.auAct.split(':'); const x = a.findings[+i].actions[+j];
+    if(x.type!=='assign_hold') return;
+    if(!confirm('«نگه‌داریِ بدونِ نام» به نامِ «'+x.customer+'» ثبت شود؟\nاین فقط نامِ مشتری را روی رکوردِ نگه‌داری می‌گذارد (مبلغ و حواله عوض نمی‌شود) و در تاریخچهٔ حواله ثبت می‌شود.')) return;
+    b.disabled = true;
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/hold-assign/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({hold_ids:x.holdIds, customer:x.customer})});
+      let jj=null; try{ jj=await r.json(); }catch(e){}
+      if(r.ok && jj && jj.ok){ showToast('✅ ثبت شد'); bd.remove(); fxAuditOpen(kind, name); }
+      else { b.disabled=false; showToast('❌ '+((jj&&jj.error)||('خطایِ سرور (کد '+r.status+')'+(r.status===404?' — views.py جدید deploy نشده':'')))); }
+    }catch(e){ b.disabled=false; showToast('❌ اتصال برقرار نشد'); }
   }));
   bd.querySelector('#auFoot').style.display='';
   bd.querySelector('#auReport').addEventListener('click', async ()=>{
