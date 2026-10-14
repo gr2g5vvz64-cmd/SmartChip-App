@@ -2796,7 +2796,7 @@ async function renderHawales(main, skipLoad){
       const linkedInfo = h.linkedPaymentsInfo || [];
       const linkedNames = [...new Set(linkedInfo.map(x=>x.customerName))];
       return matchesSearch([
-        h.date, h.supplier_name, h.totalRial, h.rate_at_hawale, h.rate_at_customer_deposit,
+        '#'+h.id, String(h.id), h.date, h.supplier_name, h.totalRial, h.rate_at_hawale, h.rate_at_customer_deposit,
         h.yuanAmount, ...accNames, ...linkedNames,
       ], q);
     });
@@ -2809,19 +2809,20 @@ async function renderHawales(main, skipLoad){
     <div class="toolbar">
       <button class="btn btn-primary" id="addHawaleBtn">+ ثبت حواله</button>
       <div style="display:flex;gap:8px;align-items:center">
-        <input id="hawalesSearchInput" type="text" placeholder="🔍 جستجو با تأمین‌کننده یا تاریخ..." value="${hawalesSearchQuery}" style="min-width:220px">
+        <input id="hawalesSearchInput" type="text" placeholder="🔍 جستجو با شماره، تأمین‌کننده یا تاریخ..." value="${hawalesSearchQuery}" style="min-width:220px">
         <button class="btn btn-ghost btn-sm" id="exportHawalesBtn">📥 خروجی اکسل</button>
       </div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخِ حواله</th><th>نرخِ روزِ واریزِ مشتری</th><th>یوان خریداری‌شده</th><th>مانده‌ی تأمین‌کننده بعد از این (یوان)</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
+        <thead><tr><th>شماره</th><th class="col-right">تاریخ</th><th>تأمین‌کننده</th><th>حساب‌های مشارکت‌کننده</th><th>مبلغ کل ریالی</th><th>نرخِ حواله</th><th>نرخِ روزِ واریزِ مشتری</th><th>یوان خریداری‌شده</th><th>مانده‌ی تأمین‌کننده بعد از این (یوان)</th><th>واریزی‌های لینک‌شده</th><th></th></tr></thead>
         <tbody>
-          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="10">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
+          ${filtered.length===0 ? `<tr class="empty-row"><td colspan="11">${hawalesSearchQuery?'چیزی پیدا نشد':'حواله‌ای ثبت نشده است'}</td></tr>` :
           filtered.map(h=>{
             const linkedInfo = h.linkedPaymentsInfo || [];
             const linkedNames = [...new Set(linkedInfo.map(x=>x.customerName))];
-            return `<tr>
+            return `<tr data-hawale-row="${h.id}">
+            <td class="num"><span class="status-chip closed" style="font-weight:800">#${h.id}</span></td>
             <td class="date-cell">${h.date}</td>
             <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
@@ -2839,7 +2840,7 @@ async function renderHawales(main, skipLoad){
           }).join('')}
         </tbody>
         ${filtered.length>0 ? `<tfoot><tr style="font-weight:800;background:var(--surface)">
-          <td colspan="3" style="text-align:left">جمعِ کل</td>
+          <td colspan="4" style="text-align:left">جمعِ کل</td>
           <td class="num">${fmtRial(filtered.reduce((s,h)=>s+Number(h.totalRial||0),0))}</td>
           <td colspan="2"></td>
           <td class="num">${fmtYuan(filtered.reduce((s,h)=>s+Number(h.yuanAmount||0),0))}</td>
@@ -2849,13 +2850,19 @@ async function renderHawales(main, skipLoad){
     </div>
     <div class="warn-note">برای تخصیصِ دستیِ یک پرداخت به این حواله (یا فاکتور خاص)، به تب «پرداخت‌های مشتریان» بروید.</div>
   `;
+  if(window.fxFocusHawale){   // از «🔍 تحلیل» آمده‌ایم: ردیفِ همان حواله را پیدا و چشمک بزن
+    const _id = window.fxFocusHawale; window.fxFocusHawale = null;
+    const _tr = main.querySelector('[data-hawale-row="'+_id+'"]');
+    if(_tr){ _tr.scrollIntoView({block:'center'}); _tr.style.transition='background .4s'; _tr.style.background='rgba(239,225,74,.35)'; setTimeout(()=>{ _tr.style.background=''; }, 4000); }
+    else showToast('حواله #'+_id+' در فهرست نیست (شاید فیلتر/جستجو فعال است)');
+  }
   main.querySelector('#hawalesSearchInput').addEventListener('input', (e)=>{
     hawalesSearchQuery = e.target.value;
     renderHawales(main, true);
   });
   main.querySelector('#exportHawalesBtn').addEventListener('click', ()=>{
-    const rows = [['تاریخ','تأمین‌کننده','مبلغ کل ریالی','نرخ حواله','یوان خریداری‌شده','توضیح']];
-    filtered.forEach(h=>rows.push([h.date, h.supplier_name, h.totalRial, h.rate_at_hawale, h.yuanAmount, h.note||'']));
+    const rows = [['شماره','تاریخ','تأمین‌کننده','مبلغ کل ریالی','نرخ حواله','یوان خریداری‌شده','توضیح']];
+    filtered.forEach(h=>rows.push([h.id, h.date, h.supplier_name, h.totalRial, h.rate_at_hawale, h.yuanAmount, h.note||'']));
     xlsxDownload('حواله‌ها.xlsx', 'حواله‌ها', rows);
   });
   main.querySelector('#addHawaleBtn').addEventListener('click', ()=>openHawaleModal());
@@ -3637,7 +3644,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
   const hawalesForSupplier = sortByDateAsc(state.hawales.filter(h=>h.supplier_name===sName));
   const filteredHawaleStatus = hawalesForSupplier.filter(h=>{
     const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount};
-    return matchesSearch([h.date, bd.totalYuan, bd.spentYuan, bd.remainingYuan], supplierHawaleStatusSearchQuery);
+    return matchesSearch(['#'+h.id, String(h.id), h.date, bd.totalYuan, bd.spentYuan, bd.remainingYuan], supplierHawaleStatusSearchQuery);
   });
   const ledgerEvents = fxCollapseSupplierEvents(data.events).filter(e=>e.type!=='hold');   // ⚠️ (۱۴۰۵/۰۷/۲۱) «نگه‌داری» پولِ مشتری است نه حسابِ تأمین‌کننده ← در بخشِ جدایِ «پولِ مشتری‌ها نزدِ تأمین‌کننده» (صفحه‌یِ لیستِ تأمین‌کنندگان) نمایش داده می‌شود
   const filteredSupplierEvents = ledgerEvents.filter(e=>matchesSearch([
@@ -3741,13 +3748,14 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierHawaleStatusSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierHawaleStatusSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th class="col-right">تاریخ</th><th>کلِ حواله (یوان)</th><th>خرج‌شده (یوان)</th><th>مانده‌ی تخصیص‌نیافته (یوان)</th><th>وضعیت</th><th></th></tr></thead>
+        <thead><tr><th>شماره</th><th class="col-right">تاریخ</th><th>کلِ حواله (یوان)</th><th>خرج‌شده (یوان)</th><th>مانده‌ی تخصیص‌نیافته (یوان)</th><th>وضعیت</th><th></th></tr></thead>
         <tbody>
-          ${filteredHawaleStatus.length===0 ? `<tr class="empty-row"><td colspan="6">${supplierHawaleStatusSearchQuery?'چیزی پیدا نشد':'هنوز حواله‌ای ثبت نشده'}</td></tr>` :
+          ${filteredHawaleStatus.length===0 ? `<tr class="empty-row"><td colspan="7">${supplierHawaleStatusSearchQuery?'چیزی پیدا نشد':'هنوز حواله‌ای ثبت نشده'}</td></tr>` :
           filteredHawaleStatus.map(h=>{
             const bd = data.hawaleBreakdown[h.id] || {totalYuan:h.yuanAmount, spentYuan:0, remainingYuan:h.yuanAmount, spentItems:[]};
             const fullySpent = bd.remainingYuan <= 0.01;
             return `<tr>
+              <td class="num"><span class="status-chip closed" style="font-weight:800">#${h.id}</span></td>
               <td class="date-cell">${h.date}</td>
               <td class="num">${fmtYuan(bd.totalYuan)}</td>
               <td class="num">${fmtYuan(bd.spentYuan)}</td>
@@ -6386,7 +6394,7 @@ function fxAuditGoRef(ref, ctx){
   else if(ref.kind==='order'){ currentTab='customers'; currentSupplier=null; currentCustomer=ctx.kind==='customer'?ctx.name:currentCustomer; }
   else if(ref.kind==='expense'){ currentTab='supplier'; currentCustomer=null; currentSupplier=ref.supplier||ctx.name; }
   else if(ref.kind==='payment'){ currentTab='customers'; currentSupplier=null; currentCustomer=ctx.kind==='customer'?ctx.name:currentCustomer; }
-  else if(ref.kind==='hawale'){ currentTab='hawales'; currentCustomer=null; currentSupplier=null; }
+  else if(ref.kind==='hawale'){ currentTab='hawales'; currentCustomer=null; currentSupplier=null; hawalesSearchQuery=''; window.fxFocusHawale = ref.id; }
   render();
   showToast(ref.label || ('#'+ref.id));
 }
