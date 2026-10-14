@@ -994,7 +994,7 @@ const NAV_QUICK = [
   {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
   {action:'add-direct',       icon:'🏧', label:'به صراف', tip:'مشتری ریال را مستقیم به حسابِ صراف زده — پول به حسابِ ما نیامده'},
   {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
-  {action:'add-reserve',      icon:'🔖', label:'رزروِ یوان',   tip:'رزروِ یوانِ یک حواله (از پولِ شرکت) برایِ یک مشتری و — اگر خواستید — نگه‌داری‌اش نزدِ تأمین‌کننده'},
+  {action:'add-reserve',      icon:'🏦', label:'نگه‌داریِ پولِ مشتری', tip:'مشتری پول داده تا نزدِ یکی از تأمین‌کننده‌هایِ چین برایش نگه‌داری شود (حواله‌یِ تازه + نگه‌داری، در یک فرم)'},
   {action:'add-order',        icon:'📄', label:'ثبت فاکتور',   tip:'فاکتور یا پیش‌فاکتورِ فروش به مشتری — نوع را داخلِ فرم انتخاب می‌کنید'},
   {action:'add-expense',      icon:'🧾', label:'ثبت خرید',     tip:'فاکتورِ خریدِ تأمین‌کننده (کالا + جابجایی + کارمزد)'},
   {action:'add-income',       icon:'💵', label:'ثبت درآمد',    tip:'درآمدِ مشتری (کمیسیون و …) به یک حساب'},
@@ -1069,7 +1069,7 @@ function render(){
     btn.addEventListener('click', ()=>{
       if(btn.dataset.action==='add-expense') openExpenseModal();
       if(btn.dataset.action==='add-hawale') openHawaleModal();
-      if(btn.dataset.action==='add-reserve') openReserveModal();
+      if(btn.dataset.action==='add-reserve') openCustomerHoldModal();
       if(btn.dataset.action==='add-order') openOrderModal();
       if(btn.dataset.action==='add-payment') openPaymentModal();
       if(btn.dataset.action==='add-direct') openDirectModal();
@@ -2983,7 +2983,7 @@ function openHawaleModal(existing){
         <!-- 🔖 (۱۴۰۵/۰۷/۲۳) رزروِ پولِ شرکت برایِ مشتری به دکمه‌یِ مستقلِ «🔖 رزروِ یوان» در ثبتِ سریع منتقل شد -->
         <div id="hOwnTagBox" style="margin-top:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:8px">
           <div style="font-size:11.5px;font-weight:700">🔖 رزرو برایِ مشتری</div>
-          <div style="font-size:10.5px;color:var(--ink-soft);margin:2px 0 4px">این پولِ مازاد را برایِ یک مشتری رزرو می‌کنید؟ بعد از ثبتِ حواله، از «➕ ثبتِ سریع ← 🔖 رزروِ یوان» استفاده کنید (آنجا نگه‌داری نزدِ تأمین‌کننده هم هست).</div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin:2px 0 4px">این پولِ مازاد را برایِ یک مشتری رزرو می‌کنید؟ برایِ رزروِ پولِ شرکت برایِ مشتری، بعد از ثبتِ حواله دکمه‌یِ «🔖 مدیریتِ رزروها» (در ویرایشِ همین حواله) را بزنید. برایِ نگه‌داریِ پولِ خودِ مشتری نزدِ تأمین‌کننده: «➕ ثبتِ سریع ← 🏦 نگه‌داریِ پولِ مشتری».</div>
           <div id="hOwnTagSum" style="font-size:11.5px;line-height:1.8"></div>
           ${isEdit ? '<button class="btn btn-ghost btn-sm" id="hOpenReserve" type="button">🔖 مدیریتِ رزروهایِ این حواله</button>' : ''}
         </div>
@@ -3311,12 +3311,6 @@ function openHawaleModal(existing){
 
     backdrop.remove();
     renderHawales(document.getElementById('main'));
-    // 🔖 (۱۴۰۵/۰۷/۲۳) حواله‌یِ تازه با «پولِ مازادِ خودمون» → فرمِ «رزروِ یوان» همان‌جا برایِ همین حواله باز می‌شود (می‌شود انصراف داد)
-    if(!isEdit && ownRial > 0){
-      showToast('🔖 این حواله پولِ مازاد دارد — برایِ رزروِ آن به مشتری، فرمِ رزرو باز شد (انصراف = رزروِ بعداً از «ثبتِ سریع»)');
-      try{ fxLastSummary = null; await loadAll(); renderHawales(document.getElementById('main')); }catch(e){}
-      openReserveModal(newHawaleId);
-    }
   });
 }
 
@@ -5225,7 +5219,7 @@ const FX_HELP = {
   scenarios: [
     ['💰 مشتری پول واریز کرد', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «ثبت پرداخت». حسابِ دریافت‌کننده، مبلغ (ریال) و نرخِ روزِ واریز را بزنید. تا حواله نزنید، آن مبلغ در دفترِ مشتری «⏳ هنوز حواله نشده» می‌ماند و در «ریالِ واریزی‌شده — هنوز حواله نشده» دیده می‌شود.'],
     ['🔄 حواله زدم (با پولِ مشتری)', '«+ ثبت حواله»: تأمین‌کننده، تاریخ، نرخِ واقعی، حساب(هایِ) بانکیِ پرداخت‌کننده با مبلغ. در «👥 منبعِ ریالِ این حواله» نامِ مشتری را بزنید (کنارش «مانده‌یِ ریاليِ دستِ ما» دیده می‌شود)، مبلغ را بنویسید و «🔄 محاسبه‌یِ خودکار (FIFO)» را بزنید. نتیجه: بانک کم می‌شود، مشتری یوان بستانکار می‌شود، تأمین‌کننده «پیش‌پرداخت» می‌گیرد.'],
-    ['🔖 می‌خواهم یوانِ پولِ شرکت را برایِ یک مشتری رزرو کنم', 'نوارِ کناری ← «➕ ثبتِ سریع» ← «🔖 رزروِ یوان». حواله را انتخاب کنید (بالایِ فرم می‌بینید نزدِ کدام تأمین‌کننده است)، مشتری و مبلغ را بنویسید و اگر خواستید همان‌جا «🔒 نگه‌داری نزدِ تأمین‌کننده» را هم پر کنید. پیش‌نمایش را بخوانید و «ذخیره».'],
+    ['🏦 مشتری پول داد تا نزدِ تأمین‌کننده‌یِ چین برایش نگه‌داری شود', 'اول واریزیِ او را در «ثبت پرداخت» ثبت کنید. بعد نوارِ کناری ← «➕ ثبتِ سریع» ← «🏦 نگه‌داریِ پولِ مشتری»: مشتری، تأمین‌کننده، مبلغ، نرخ و حسابِ بانکی را بنویسید ← پیش‌نمایش ← «ثبتِ حواله و نگه‌داری». یک حواله‌یِ تازه ثبت می‌شود و یوانش نزدِ تأمین‌کننده به نامِ او می‌ماند؛ هر وقت پیش‌فاکتور/فاکتور داد از همان مصرف می‌شود.'],
     ['🔒 این حواله برایِ خریدِ آینده‌یِ مشتری است (پولِ تأمین‌کننده نیست)', 'در دفترِ تأمین‌کننده روی ردیفِ حواله «🔒 نگه‌داری برایِ مشتری» را بزنید و برایِ هر مشتری مبلغ بدهید. آن بخش فاکتورهایِ تأمین‌کننده را تسویه نمی‌کند و از بدهیِ او کم نمی‌شود. اعتبارِ مشتری و بانک تغییر نمی‌کند.'],
     ['💼 مشتری کم داد و بقیه را از پولِ شرکت/شخصیِ خودم گذاشتم', 'در فرمِ حواله، کلِ حواله را ثبت کنید؛ پولِ مشتری را در «منبعِ ریال»، و بقیه را در «از پولِ مازادِ خودمون». بعد از ثبتِ حواله: «➕ ثبتِ سریع ← 🔖 رزروِ یوان» ← حواله را انتخاب کنید ← نامِ مشتری و مبلغ (و اگر خواستید «🔒 نگه‌داری نزدِ تأمین‌کننده»). نتیجه: <b>مشتری چیزی نمی‌بیند</b> — در صورت‌حساب و مانده‌هایش نیست؛ فقط شما در «موجودیِ یوانِ شرکت»، «حسابِ یوانیِ ما» و یک کارتِ مخصوصِ مدیریت (بالایِ دفترِ او) می‌بینید. وقتی خواستید تسویه کنید: در دفترِ او «💰 تسویه با واریزیِ او» ← <b>خودتان</b> واریزی‌هایی را که می‌خواهید استفاده شود تیک بزنید ← پیش‌نمایش ← فروش؛ همان واریزی‌ها نرخ می‌گیرند و یوانشان رویِ ردیفِ خودشان می‌نشیند. اگر صفحه را به مشتری نشان می‌دهید «🙈 نمایشِ به مشتری» را روشن کنید.'],
     ['🔁 مشتری می‌خواهد یوانِ نگه‌داری‌شده را به تأمین‌کننده بدهد', 'اول فاکتورِ فروشِ مشتری و فاکتورِ خریدِ تأمین‌کننده را ثبت کنید. بعد در دفترِ تأمین‌کننده «ویرایش/برداشتن» ← بخشِ «🔁 انتقال»: مبلغ و تأمین‌کننده‌یِ مقصد. همان تأمین‌کننده = نگه‌داری برداشته می‌شود و فاکتورهایش تسویه می‌شود؛ تأمین‌کننده‌یِ دیگر = همان یوان با همان نرخ به او منتقل می‌شود.'],
@@ -5329,10 +5323,17 @@ const FX_HELP = {
       ['👥 منبعِ ریالِ این حواله', 'این حواله با پولِ کدام مشتری‌هاست. ستونِ «مانده‌یِ ریاليِ دستِ ما» واریزیِ حواله‌نشده‌یِ او را نشان می‌دهد؛ «همه» مبلغ را با کلِ آن پر می‌کند. بیشتر از مانده = مابه‌التفاوت «پیش‌پرداختِ سرمایه‌ای».'],
       ['🔄 محاسبه‌یِ خودکار (FIFO)', 'از قدیمی‌ترین واریزیِ آزادِ هر مشتری برمی‌دارد و آخری را در صورتِ لزوم نصف می‌کند؛ جدولِ نتیجه را ببینید.'],
       ['از پولِ مازادِ خودمون', 'بخشی از حواله که پولِ هیچ مشتری‌ای نیست (سرمایه‌یِ شرکت) = «موجودیِ یوانِ شرکت». خالی بگذارید اگر همه‌چیز از پولِ مشتری است.'],
-      ['🔖 رزرو برایِ مشتری', 'از ۱۴۰۵/۰۷/۲۳ این کار در این فرم نیست؛ بعد از ثبتِ حواله از «➕ ثبتِ سریع ← 🔖 رزروِ یوان» انجام می‌شود. اینجا فقط رزروهایِ فعلیِ حواله دیده می‌شود.'],
+      ['🔖 رزرو برایِ مشتری', 'از ۱۴۰۵/۰۷/۲۳ این کار در این فرم نیست؛ در ویرایشِ حواله دکمه‌یِ «🔖 مدیریتِ رزروها» را بزنید. برایِ «نگه‌داریِ پولِ مشتری نزدِ تأمین‌کننده» فرمِ جدیدِ «➕ ثبتِ سریع ← 🏦 نگه‌داریِ پولِ مشتری» را بزنید.'],
       ['تقسیم بین چند تأمین‌کننده / تخصیصِ دستی', 'اگر یوانِ حواله بینِ چند تأمین‌کننده است، یا باید به فاکتورِ خریدِ مشخصی چسبد.'],
       ['لینک‌کردنِ گروهیِ واریزی‌ها', 'تیک‌زدنِ واریزی‌هایِ مشخصِ یک مشتری برایِ همین حواله.']]],
-    'reserve': ['رزروِ یوان برایِ مشتری', 'دکمه‌یِ «🔖 رزروِ یوان» در ثبتِ سریع — بخشی از یوانِ یک حواله (از پولِ شرکت) را به نامِ یک مشتری می‌گذارد.', [
+    'cust-hold': ['نگه‌داریِ پولِ مشتری نزدِ تأمین‌کننده', 'دکمه‌یِ «🏦 نگه‌داریِ پولِ مشتری» در ثبتِ سریع — مخصوصِ حواله‌یِ تازه.', [
+      ['چه موقع؟', 'مشتری پول داده و می‌گوید در حسابِ من نزدِ یکی از تأمین‌کننده‌هایت (در چین) نگه دار تا برایِ پیش‌فاکتور/فاکتورِ بعدی از آن برداشت شود. اول واریزیِ او را در «ثبت پرداخت» (یا «به صراف») ثبت کنید.'],
+      ['۱) مشتری', 'نام را بنویسید؛ ریالِ واریزیِ حواله‌نشده‌یِ او و فهرستِ واریزی‌هایش نشان داده می‌شود.'],
+      ['۲) تأمین‌کننده', 'یوان نزدِ همین تأمین‌کننده به نامِ مشتری می‌ماند.'],
+      ['۳) مبلغ، نرخ، تاریخ، حساب', 'مبلغ از ریالِ آزادِ مشتری بیشتر نمی‌شود («همه‌یِ واریزیِ آزاد» کلِ آن را می‌گذارد). حسابِ بانکی را بگذارید تا مانده‌یِ بانک درست کم شود؛ خالی = منبعِ نامعلوم.'],
+      ['نتیجه', 'یک حواله‌یِ تازه ثبت می‌شود (با واریزی‌هایِ خودِ مشتری، قدیمی‌ترین اول) و کلِ یوانش نزدِ تأمین‌کننده برایِ او نگه‌داری می‌شود. حواله‌هایِ قبلی دست‌نخورده‌اند.'],
+      ['مصرف', 'وقتی برایِ او پیش‌فاکتور/فاکتور و خریدِ مربوط ثبت شد، از همین یوان مصرف می‌شود. برداشتن یا انتقال: دفترِ تأمین‌کننده ← ردیفِ حواله ← «✏️ ← 🔁 انتقال».']]],
+    'reserve': ['رزروِ پولِ شرکت برایِ مشتری (مدیریتِ رزروها)', 'دکمه‌یِ «🔖 رزروِ یوان» در ثبتِ سریع — بخشی از یوانِ یک حواله (از پولِ شرکت) را به نامِ یک مشتری می‌گذارد.', [
       ['۱) حواله', 'حواله‌ای را انتخاب کنید که «💼 پولِ مازادِ شرکت» دارد. بالایِ فرم نوشته می‌شود این حواله نزدِ کدام تأمین‌کننده است. اگر مازاد ثبت نشده، «نمایشِ همه‌یِ حواله‌ها» را بزنید؛ ریالِ وصل‌نشده به مشتری با رزرو جزوِ مازاد می‌شود.'],
       ['۲) مشتری و مبلغ', 'هر ردیف یک مشتری. «باقی‌مانده» همه‌یِ قابلِ رزروِ حواله را می‌گذارد. جمعِ رزروها از سقفِ حواله بیشتر نمی‌شود.'],
       ['🔒 نگه‌داری نزدِ تأمین‌کننده', 'اختیاری: همان‌جا بنویسید چقدر از سهمِ او نزدِ همان تأمین‌کننده نگه‌داری شود (فاکتورهایِ او را تسویه نمی‌کند). سقف = پولِ خودِ مشتری در حواله + رزروِ شرکت. «۰» = نگه‌داری نیست.'],
@@ -5972,6 +5973,129 @@ function fxSettleCompanyMoney(customer, cm){
 // حسابداری عوض نشده: همان سرورِ قبلی — POST accounts/own-tags/ (رزروِ پولِ شرکت) و POST accounts/hawale-holds/ (نگه‌داری نزدِ تأمین‌کننده).
 // ترتیبِ ذخیره: اول کم‌کردنِ نگه‌داری‌ها (اگه لازم بود)، بعد رزرو، بعد نگه‌داریِ نهایی — تا هیچ‌وقت نگه‌داری از سقفِ سهمِ مشتری بالاتر نرود.
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// 🏦 نگه‌داریِ پولِ مشتری نزدِ تأمین‌کننده (۱۴۰۵/۰۷/۲۳) — فرمِ مستقل و مخصوصِ «حواله‌یِ تازه».
+// سناریو: مشتری الان پول داده و می‌گوید «در حسابم نزدِ یکی از تأمین‌کننده‌هایت در چین نگه‌دار تا برایِ پیش‌فاکتور/فاکتورِ بعدی
+// از همان برداشت شود». این فرم یک حواله‌یِ تازه (ریال←یوان، با واریزی‌هایِ آزادِ خودِ مشتری، قدیمی‌ترین اول) می‌زند و همان‌جا
+// تمامِ یوانش را به نامِ مشتری نزدِ تأمین‌کننده «نگه‌داری» ثبت می‌کند. ربطی به حواله‌هایِ گذشته ندارد.
+// فقط از سرورِ موجود استفاده می‌کند: GET accounts/customer-free-payments/، GET hawales/auto_split_preview/، POST hawales/، POST accounts/hawale-holds/.
+// ══════════════════════════════════════════════════════════════
+async function openCustomerHoldModal(){
+  const num = (v)=>{ const s = String(v==null?'':v).replace(/[,،\s]/g,''); const x = s ? parseFloat(s) : 0; return isNaN(x) ? 0 : x; };
+  const custNames = [...new Set([...state.payments.map(p=>p.customer_name), ...state.orders.map(o=>o.customer_name),
+    ...((typeof fxLastSummary !== 'undefined' && fxLastSummary && fxLastSummary.customers) ? fxLastSummary.customers.map(c=>c.name) : [])])].filter(Boolean);
+  const supNames = (typeof getKnownSupplierNames === 'function') ? getKnownSupplierNames() : [];
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" style="max-width:820px">
+      <h3>🏦 نگه‌داریِ پولِ مشتری نزدِ تأمین‌کننده <button class="icon-btn" type="button" data-help="cust-hold" title="راهنمایِ این پنجره" style="font-size:11px">❓ راهنما</button></h3>
+      <p class="page-desc">مشتری پول داده و می‌گوید: «در حسابم نزدِ یکی از تأمین‌کننده‌هایت در چین نگه‌دار تا برایِ پیش‌فاکتور یا فاکتورِ بعدی از آن برداشت شود». این فرم یک <b>حواله‌یِ تازه</b> می‌زند (ریالِ واریزی‌هایِ خودِ او ← یوان) و تمامِ یوانش را <b>به نامِ او نزدِ تأمین‌کننده نگه‌داری</b> می‌کند. ربطی به حواله‌هایِ قبلی ندارد.</p>
+      <datalist id="chCust">${custNames.map(n=>`<option value="${fxc_esc(n)}"></option>`).join('')}</datalist>
+      <datalist id="chSup">${supNames.map(n=>`<option value="${fxc_esc(n)}"></option>`).join('')}</datalist>
+      <div class="field"><label>۱) مشتری</label><input id="chCustIn" type="text" list="chCust" placeholder="نامِ مشتری"></div>
+      <div id="chFree" style="font-size:12px;line-height:1.9;margin:-2px 0 8px"></div>
+      <div class="field"><label>۲) نگه‌داری نزدِ کدام تأمین‌کننده (در چین)؟</label><input id="chSupIn" type="text" list="chSup" placeholder="مثلاً: کلافی"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="field"><label>۳) مبلغ (ریال) <button class="icon-btn" type="button" id="chAll" style="font-size:10px">همه‌یِ واریزیِ آزاد</button></label><input id="chRial" type="text" class="num" placeholder="مثلاً 4,000,000,000"></div>
+        <div class="field"><label>نرخِ حواله (ریال به ازایِ هر یوان)</label><input id="chRate" type="text" class="num"></div>
+        <div class="field"><label>تاریخِ حواله</label><input id="chDate" type="text" value="${todayShamsi()}" placeholder="1405-07-23"></div>
+      </div>
+      <div class="field"><label>پرداخت از کدام حسابِ بانکیِ ما؟ <span id="chBal" style="font-weight:400;font-size:11px;color:var(--ink-soft)"></span></label>
+        <select id="chAcc"><option value="">— منبعِ نامعلوم (از هیچ بانکی کم نمی‌شود) —</option>${state.accounts.map(a=>`<option value="${a.id}">${fxc_esc(a.display_name||a.name||('حساب '+a.id))}</option>`).join('')}</select></div>
+      <div class="field"><label>توضیح (اختیاری)</label><input id="chNote" type="text" placeholder="مثلاً: نگه‌داری برایِ پیش‌فاکتورِ بعدی"></div>
+      <div id="chSum" style="font-size:12px;line-height:1.9;margin:10px 0"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="chSave" disabled>ثبتِ حواله و نگه‌داری</button>
+        <button class="btn btn-ghost" id="chCancel">انصراف</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const $ = (s)=>backdrop.querySelector(s);
+  $('#chCancel').addEventListener('click', ()=>backdrop.remove());
+  wireShamsiDatePicker($('#chDate'));
+  ['#chRial','#chRate'].forEach(i=>wireLiveNumberFormat($(i)));
+  let pays = [], totalFree = 0, bankBal = {}, freeFor = '';
+  (async()=>{ try{ const r = await fetchWithRetry(FX_API+'accounts/account-balances/'); if(r.ok){ const d = await r.json(); (d.accounts||[]).forEach(a=>{ bankBal[String(a.id)] = Number(a.balance); }); refresh(); } }catch(e){} })();
+  async function loadFree(){
+    const c = $('#chCustIn').value.trim(); freeFor = c; pays = []; totalFree = 0;
+    if(!c){ $('#chFree').innerHTML = ''; refresh(); return; }
+    $('#chFree').innerHTML = '<span style="color:var(--ink-soft)">در حالِ گرفتنِ واریزی‌هایِ آزادِ او…</span>';
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/customer-free-payments/?customer='+encodeURIComponent(c));
+      if(c !== $('#chCustIn').value.trim()) return;
+      if(!r.ok){ $('#chFree').innerHTML = '<span style="color:var(--danger)">❌ از سرور نیامد (نامِ مشتری را دقیق بنویسید، یا views.py جدید روی سرور نیست)</span>'; refresh(); return; }
+      const d = await r.json(); pays = d.payments||[]; totalFree = Number(d.totalFreeRial||0);
+    }catch(e){ $('#chFree').innerHTML = '<span style="color:var(--danger)">❌ اتصال به سرور برقرار نشد</span>'; refresh(); return; }
+    $('#chFree').innerHTML = totalFree > 0.5
+      ? `💰 ریالِ واریزیِ <b>هنوز حواله‌نشده</b>ِ «${fxc_esc(c)}»: <b>${fmtRial(totalFree)}</b> (${pays.length} واریزی: ${pays.map(p=>fxc_esc(p.date)+' — '+fmt(p.freeRial,0)).join('، ')})`
+      : `<span style="color:var(--danger)">⚠️ «${fxc_esc(c)}» واریزیِ آزاد (حواله‌نشده) ندارد. اول واریزیِ او را در «ثبت پرداخت» (یا «به صراف») ثبت کنید.</span>`;
+    if(!num($('#chRial').value) && totalFree > 0.5) $('#chRial').value = fmt(totalFree,0);
+    refresh();
+  }
+  let t = null;
+  $('#chCustIn').addEventListener('input', ()=>{ clearTimeout(t); t = setTimeout(loadFree, 400); });
+  $('#chCustIn').addEventListener('change', loadFree);
+  $('#chAll').addEventListener('click', ()=>{ $('#chRial').value = totalFree>0 ? fmt(totalFree,0) : ''; refresh(); });
+  function problems(){
+    const e = [], c = $('#chCustIn').value.trim(), s = $('#chSupIn').value.trim(), rial = num($('#chRial').value), rate = num($('#chRate').value);
+    if(!c) e.push('مشتری را بنویسید'); else if(freeFor===c && totalFree<0.5) e.push('این مشتری واریزیِ آزاد ندارد');
+    if(!s) e.push('تأمین‌کننده را بنویسید');
+    if(!(rial>0)) e.push('مبلغِ ریال را بنویسید'); else if(rial > totalFree + 0.5) e.push('مبلغ از ریالِ آزادِ مشتری ('+fmt(totalFree,0)+') بیشتر است');
+    if(!(rate>0)) e.push('نرخِ حواله را بنویسید');
+    if(!$('#chDate').value.trim()) e.push('تاریخ را بنویسید');
+    return e;
+  }
+  function refresh(){
+    const c = $('#chCustIn').value.trim(), s = $('#chSupIn').value.trim(), rial = num($('#chRial').value), rate = num($('#chRate').value), errs = problems();
+    const acc = $('#chAcc').value, bal = acc ? bankBal[acc] : undefined;
+    $('#chBal').textContent = acc && bal!==undefined ? ('— مانده‌یِ بانک: '+fmt(bal,0)+' ← پس از حواله: '+fmt(bal-rial,0)) : '';
+    $('#chSum').innerHTML = (rial>0 && rate>0 && c && s ? `<div style="padding:8px 10px;border:1px dashed var(--border);border-radius:8px;line-height:1.9"><div style="font-weight:700">با «ثبت» این اتفاق می‌افتد:</div>
+        ۱) یک حواله‌یِ تازه به «${fxc_esc(s)}»: ${fmtRial(rial)} ÷ ${fmt(rate,0)} = <b>${fmtYuan(rial/rate)}</b> (از واریزی‌هایِ آزادِ «${fxc_esc(c)}»، قدیمی‌ترین اول).<br>
+        ۲) کلِ این یوان به نامِ «${fxc_esc(c)}» <b>نزدِ «${fxc_esc(s)}» نگه‌داری</b> می‌شود؛ فاکتورهایِ خریدِ ${fxc_esc(s)} را تسویه نمی‌کند.<br>
+        ۳) هر وقت برایِ او پیش‌فاکتور/فاکتور و خریدِ مربوط ثبت شد، از همین یوانِ نگه‌داری‌شده مصرف می‌شود.<div style="color:var(--ink-soft)">به حواله‌هایِ قبلی دست نمی‌زند.</div></div>` : '') +
+      (errs.length ? `<div style="color:var(--danger);margin-top:6px">⚠️ ${errs.join('<br>⚠️ ')}</div>` : '');
+    $('#chSave').disabled = !!errs.length;
+  }
+  ['#chSupIn','#chRial','#chRate','#chDate','#chAcc'].forEach(i=>{ $(i).addEventListener('input', refresh); $(i).addEventListener('change', refresh); });
+  refresh();
+  const postJson = async (path, body)=>{
+    try{
+      const r = await fetchWithRetry(FX_API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      if(r.ok) return {ok:true, data: await r.json().catch(()=>null)};
+      let m=''; try{ m = (await r.json()).error || ''; }catch(e){}
+      return {ok:false, msg: m || ('خطایِ سرور (کد '+r.status+')')};
+    }catch(e){ return {ok:false, msg:'اتصال به سرور برقرار نشد'}; }
+  };
+  $('#chSave').addEventListener('click', async ()=>{
+    if(problems().length) return;
+    let cust = $('#chCustIn').value.trim(), sup = $('#chSupIn').value.trim();
+    const rial = Math.round(num($('#chRial').value)), rate = num($('#chRate').value), date = $('#chDate').value.trim(), acc = $('#chAcc').value || null, note = $('#chNote').value.trim();
+    const similar = (typeof findSimilarExistingName === 'function') ? findSimilarExistingName(sup, supNames) : null;
+    if(similar && similar !== sup && confirm(`⚠️ تأمین‌کننده‌ای با نامِ خیلی مشابه («${similar}») از قبل هست. منظورتان همان است؟\n«تأیید» = بله، «${similar}».\n«انصراف» = نه، «${sup}» نامِ تازه است.`)) sup = similar;
+    if(!confirm(`حواله‌یِ تازه به «${sup}»: ${fmt(rial,0)} ریال ÷ ${fmt(rate,0)} = ${fmt(rial/rate,4)} یوان، با واریزی‌هایِ آزادِ «${cust}»، و کلِ آن نزدِ «${sup}» برایِ او نگه‌داری شود؟`)) return;
+    $('#chSave').disabled = true;
+    // FIFO: کدام واریزی‌هایِ او خرج شود
+    let prev = null;
+    try{ const r = await fetch(FX_API+`hawales/auto_split_preview/?customer=${encodeURIComponent(cust)}&amount=${rial}`); if(r.ok) prev = await r.json(); }catch(e){}
+    if(!prev || !Array.isArray(prev.allocations)){ showToast('❌ محاسبه‌یِ واریزی‌ها (FIFO) از سرور نیامد — ثبت نشد'); $('#chSave').disabled = false; return; }
+    if(Number(prev.uncovered||0) > 0.5){ showToast('❌ ریالِ آزادِ مشتری کافی نیست (کمبود '+fmt(prev.uncovered,0)+') — ثبت نشد'); $('#chSave').disabled = false; return; }
+    const body = {supplier_name:sup, date, rate_at_hawale:rate, rate_at_customer_deposit:null, manual_expense:null, note: note || ('نگه‌داری برایِ '+cust),
+      contributions:[{account:acc, rial_amount:rial}], paymentAllocations: prev.allocations.map(a=>({payment:a.payment_id, rial_amount:Math.round(a.amount)})), own_rial:0};
+    const d = await apiCreate('hawales', body);
+    if(!d){ $('#chSave').disabled = false; return; }
+    const h = await postJson('accounts/hawale-holds/', {hawale:d.id, holds:[{customer:cust, held_rial:String(rial)}], note: note || ''});
+    fxLastSummary = null; await loadAll();
+    if(!h.ok){
+      backdrop.remove(); renderMain();
+      showToast('⚠️ حواله #'+d.id+' ثبت شد ولی نگه‌داری ثبت نشد — '+(h.msg||'')+' (از «حواله‌ها» ← ✏️ ← نگه‌داری، دستی بزنید)');
+      return;
+    }
+    backdrop.remove(); renderMain();
+    showToast('✅ حواله #'+d.id+' ثبت شد و '+fmt(rial/rate,2)+' یوان نزدِ «'+sup+'» برایِ «'+cust+'» نگه‌داری شد');
+  });
+}
+
 async function openReserveModal(prefHawaleId){
   const num = (v)=>{ const s = String(v==null?'':v).replace(/[,،\s]/g,''); const x = s ? parseFloat(s) : 0; return isNaN(x) ? 0 : x; };
   const norm = (s)=>String(s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[‌‏‎]/g,' ').split(/\s+/).filter(Boolean).join(' ').toLowerCase();
