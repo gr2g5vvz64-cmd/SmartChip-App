@@ -6032,7 +6032,7 @@ async function openCustomerHoldModal(){
   wireShamsiDatePicker($('#chDate'));
   ['#chRate','#chRateC','#chC'].forEach(i=>wireLiveNumberFormat($(i)));
   let pays = [], picked = new Set(), freeFor = '', bankBal = null, rows = [{account:'', amount:''}], cEdited = false, rowsAuto = true, loading = false;
-  const accName = (a)=>fxc_esc(a.display_name||a.name||('حساب '+a.id));
+  const accName = (a)=>fxc_esc(a.displayName||a.display_name||a.name||('حساب '+a.id));
   const pickedTotal = ()=>pays.filter(p=>picked.has(p.id)).reduce((s,p)=>s+Number(p.freeRial||0),0);
   const totalT = ()=>rows.reduce((s,r)=>s+num(r.amount),0);
   const rates = ()=>{ const H = num($('#chRate').value), Ac = num($('#chRateC').value); return {H, A: Ac>0 ? Ac : H}; };
