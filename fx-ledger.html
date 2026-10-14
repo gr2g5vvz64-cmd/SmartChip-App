@@ -3311,6 +3311,12 @@ function openHawaleModal(existing){
 
     backdrop.remove();
     renderHawales(document.getElementById('main'));
+    // 🔖 (۱۴۰۵/۰۷/۲۳) حواله‌یِ تازه با «پولِ مازادِ خودمون» → فرمِ «رزروِ یوان» همان‌جا برایِ همین حواله باز می‌شود (می‌شود انصراف داد)
+    if(!isEdit && ownRial > 0){
+      showToast('🔖 این حواله پولِ مازاد دارد — برایِ رزروِ آن به مشتری، فرمِ رزرو باز شد (انصراف = رزروِ بعداً از «ثبتِ سریع»)');
+      try{ fxLastSummary = null; await loadAll(); renderHawales(document.getElementById('main')); }catch(e){}
+      openReserveModal(newHawaleId);
+    }
   });
 }
 
