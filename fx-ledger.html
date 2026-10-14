@@ -377,6 +377,14 @@ tr.fx-provisional td:first-child{box-shadow:inset -4px 0 0 #E0A100;}
 .fx-prov-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--prov-bg);border:1px solid #E0A100;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:var(--prov-ink);}
 input.fx-prov-input, input[data-f="goods"][value="1"], input[data-f="goods"][value="1.0000"]{background:var(--prov-bg) !important;border-color:#E0A100 !important;color:var(--ink) !important;}
 .fx-doc-filter-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--info-bg);border:1px solid var(--accent, #3b6fb6);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;}
+
+  /* 🔍 پنلِ تحلیل (۱۴۰۵/۰۷/۲۳) */
+  .au-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--surface)}
+  .au-card{border:1px solid var(--border);border-inline-start-width:5px;border-radius:10px;padding:10px 12px;margin:8px 0;background:var(--surface)}
+  .au-card.error{border-inline-start-color:#d9534f}.au-card.warn{border-inline-start-color:#E0A030}.au-card.info{border-inline-start-color:#4a8ac4}.au-card.ok{border-inline-start-color:#3fa66b}
+  .au-card h4{margin:0 0 4px;font-size:13.5px}.au-card p{margin:0;font-size:12.5px;line-height:2;color:var(--ink-soft)}
+  .au-refs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .au-ans{white-space:pre-wrap;line-height:2;font-size:13px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--surface)}
 </style>
 </head>
 <body>
@@ -978,7 +986,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.21-12';
+const FX_BUILD = '1405.07.23-1';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -1739,7 +1747,7 @@ async function renderCustomerLedger(main, cachedData){
       ${fxCustomerView ? '' : '<div id="custHeldBox" data-mgmt-only style="grid-column:1/-1"></div>'}
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — مشتری به ما یوان بدهکار است (فاکتورِ پرداخت‌نشده دارد)' : (realYuanBalance < -0.01 ? '🟢 منفی — ما به مشتری بدهکاریم (بیش از فاکتورهایش پرداخت کرده)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
     </div>
-    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button>${fxCustomerView ? '' : '<button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور (فقط مدیریت)">💱 یوان و رزرو برایِ پیش‌فاکتور</button>'}<button class="btn btn-ghost" id="custViewToggle" title="اگر صفحه را به مشتری نشان می‌دهی یا اسکرین‌شات می‌گیری، روشن کن تا هرچه مخصوصِ مدیریت است پنهان شود">${fxCustomerView ? '👁️ برگشت به نمایِ مدیریت' : '🙈 نمایشِ به مشتری'}</button></div>
+    <div class="toolbar"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderBtn">+ ثبت فاکتور/پیش‌فاکتور برای این مشتری</button><button class="btn btn-ghost" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button>${fxCustomerView ? '' : '<button class="btn btn-ghost" id="auditBtn" data-mgmt-only title="بررسیِ خودکارِ این دفتر: مغایرت‌ها و علتشان">🔍 تحلیل</button>'}${fxCustomerView ? '' : '<button class="btn btn-ghost" id="yuanPosBtn" title="حواله‌هایِ این مشتری و رزرو برایِ پیش‌فاکتور (فقط مدیریت)">💱 یوان و رزرو برایِ پیش‌فاکتور</button>'}<button class="btn btn-ghost" id="custViewToggle" title="اگر صفحه را به مشتری نشان می‌دهی یا اسکرین‌شات می‌گیری، روشن کن تا هرچه مخصوصِ مدیریت است پنهان شود">${fxCustomerView ? '👁️ برگشت به نمایِ مدیریت' : '🙈 نمایشِ به مشتری'}</button></div>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<button class="btn btn-ghost btn-sm" id="exportOrdersBtn">📥 خروجی اکسل فاکتورها</button></div>
     </div>
 
@@ -1852,6 +1860,7 @@ async function renderCustomerLedger(main, cachedData){
     fxBindHeldCards(hb, mine, ()=>renderCustomerLedger(main));
   })();
   main.querySelector('#backBtn').addEventListener('click', ()=>{ currentCustomer=null; renderMain(); });
+  { const _ab = main.querySelector('#auditBtn'); if(_ab) _ab.addEventListener('click', ()=>fxAuditOpen('customer', data.customer)); }
   main.querySelectorAll('[data-suggested-toggle]').forEach(cb=>cb.addEventListener('change', async ()=>{
     const paymentId = cb.dataset.suggestedToggle;
     const input = main.querySelector(`[data-suggested-input="${paymentId}"]`);
@@ -3655,7 +3664,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       <h1 class="page-title">${sName}</h1>
       <p class="page-desc">فاکتورِ خرید (یوانی) = بدهیِ ما به این تأمین‌کننده؛ حواله (ریالی) تسویه‌اش می‌کنه — با همون منطقِ FIFO و نرخِ میانگینِ وزنیِ مشتریان</p>
     </div>
-    <div class="toolbar" style="margin-bottom:10px"><div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div></div>
+    <div class="toolbar" style="margin-bottom:10px"><div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" id="auditBtn" data-mgmt-only title="بررسیِ خودکارِ این دفتر: مغایرت‌ها و علتشان">🔍 تحلیل</button><button class="btn btn-ghost btn-sm" id="addOpeningBtn">🏁 مانده‌ی اولیه (ریال و یوان)</button><button class="btn btn-ghost btn-sm" id="addYuanAdjBtn">⚙️ تعدیلِ مستقیمِ یوانی (بدونِ ریال/نرخ/حساب)</button></div></div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card stat-card"><div class="stat-label">مانده‌ی ریالیِ واقعی (فقط اعدادِ مطمئن)</div><div class="stat-value rial num">${fmtRial(realRialBalance)}</div><div class="stat-hint">حواله‌های واقعی + فاکتورهایی که نرخِ میانگین‌شون مشخص شده</div></div>
       <div class="card stat-card"><div class="stat-label">مانده‌ی یوانی</div><div class="stat-value yuan num">${fmtYuan(realYuanBalance)}</div><div class="stat-hint">${realYuanBalance > 0.01 ? '🟠 مثبت — ما به تأمین‌کننده یوان بدهکاریم (باید حواله بزنیم)' : (realYuanBalance < -0.01 ? '🟢 منفی — تأمین‌کننده به ما بدهکار است (بیش از فاکتورهایش حواله زده‌ایم)' : '✅ تسویه — بدهی/طلبی نیست')}</div></div>
@@ -3859,6 +3868,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
     </div>
   `;
   main.querySelector('#backSupplierBtn').addEventListener('click', ()=>{ currentSupplier=null; supplierDocFilter=''; renderMain(); });
+  { const _ab = main.querySelector('#auditBtn'); if(_ab) _ab.addEventListener('click', ()=>fxAuditOpen('supplier', sName)); }
   main.querySelector('#addExpenseBtn').addEventListener('click', ()=>openExpenseModal(null, sName));
   main.querySelector('#addYuanAdjBtn').addEventListener('click', ()=>openYuanAdjustmentModal(sName));
   main.querySelector('#addOpeningBtn').addEventListener('click', ()=>openOpeningBalanceModal('supplier', sName));
@@ -6348,4 +6358,97 @@ async function renderOpenWork(main, quiet){
 // ⚠️ (۱۴۰۵/۰۷/۰۹) طبقِ تصمیمِ کاربر: PWA کاملاً برداشته شد — منشأِ چند خرابیِ واقعیِ اخیر بود.
 // اگه قبلاً رویِ این مرورگر نصب شده باشه، فایلِ sw.js (که رویِ سرور با یک نسخه‌ی خودکارحذف‌کننده
 // جایگزین شده) دفعه‌یِ بعد که این صفحه باز بشه، خودش رو کاملاً از مرورگر پاک می‌کنه.
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🔍 تحلیل / 📤 گزارش برایِ Claude / 🤖 از Claude بپرس (۱۴۰۵/۰۷/۲۳)
+// سرور: GET /api/ledger/accounts/audit/?customer=|supplier=[&trace=1]   POST /api/ledger/accounts/ask-claude/
+// ⚠️ تمامِ عددها را کدِ برنامه حساب می‌کند؛ هوش مصنوعی فقط همان نتیجه را توضیح می‌دهد.
+// ═══════════════════════════════════════════════════════════════════════════════════
+async function fxAuditFetch(kind, name, trace){
+  try{
+    const r = await fetchWithRetry(FX_API+'accounts/audit/?'+(kind==='customer'?'customer=':'supplier=')+encodeURIComponent(name)+(trace?'&trace=1':''), undefined, 2, 2000, 60000);
+    let j=null; try{ j = await r.json(); }catch(e){}
+    if(!r.ok) return {error: (j && j.error) || ('خطایِ سرور (کد '+r.status+')'+(r.status===404?' — views.py جدید deploy نشده':''))};
+    return j;
+  }catch(e){ return {error:'اتصال به سرور برقرار نشد'}; }
+}
+function fxAuditSummaryHtml(a){
+  const s = a.summary||{};
+  const row=(l,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;font-size:12.5px"><span style="color:var(--ink-soft)">${l}</span><b class="num">${v}</b></div>`;
+  if(a.kind==='customer') return row('فروش (پیش‌فاکتور/فاکتور)',fmtYuan(s.saleYuan))+row('یوانِ دریافتیِ مشتری',fmtYuan(s.givenYuan))+(Math.abs(s.openingYuan)>0.005?row('مانده‌یِ اولیه',fmtYuan(s.openingYuan)):'')
+    +row('مانده‌یِ دفتر',fmtYuan(s.ledgerBalanceYuan))+(s.pendingRial>0.5?row('واریزیِ حواله‌نشده',fmtRial(s.pendingRial)):'');
+  return row('حواله‌ها',fmtYuan(s.hawaleYuan))+row('خریدها',fmtYuan(s.purchaseYuan))+row('تعدیل/اولیه',fmtYuan(s.adjustmentYuan))+row('مانده‌یِ دفتر',fmtYuan(s.ledgerBalanceYuan));
+}
+function fxAuditGoRef(ref, ctx){
+  document.querySelectorAll('.modal-backdrop').forEach(x=>x.remove());
+  if(ref.kind==='supplier'){ currentTab='supplier'; currentCustomer=null; currentSupplier=ref.id; }
+  else if(ref.kind==='customer'){ currentTab='customers'; currentSupplier=null; currentCustomer=ref.id; }
+  else if(ref.kind==='order'){ currentTab='customers'; currentSupplier=null; currentCustomer=ctx.kind==='customer'?ctx.name:currentCustomer; }
+  else if(ref.kind==='expense'){ currentTab='supplier'; currentCustomer=null; currentSupplier=ref.supplier||ctx.name; }
+  else if(ref.kind==='payment'){ currentTab='customers'; currentSupplier=null; currentCustomer=ctx.kind==='customer'?ctx.name:currentCustomer; }
+  else if(ref.kind==='hawale'){ currentTab='hawales'; currentCustomer=null; currentSupplier=null; }
+  render();
+  showToast(ref.label || ('#'+ref.id));
+}
+async function fxAuditOpen(kind, name){
+  const bd = document.createElement('div'); bd.className='modal-backdrop';
+  bd.innerHTML = `<div class="modal" style="max-width:780px;width:100%;max-height:90vh;overflow:auto">
+    <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>🔍 تحلیلِ ${kind==='customer'?'مشتری':'تأمین‌کننده'}: ${fxc_esc(name)}</span><button class="icon-btn" id="auClose" type="button">✕</button></h3>
+    <div id="auBody" class="page-desc">⏳ در حالِ بررسیِ دفتر…</div>
+    <div id="auFoot" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="auReport" type="button" title="یک فایلِ JSON کامل از وضعیتِ همین صفحه می‌سازد؛ در چتِ Claude بگذار تا دقیق ببیند">📤 گزارش برایِ Claude</button>
+        <button class="btn btn-primary btn-sm" id="auAskToggle" type="button">🤖 از Claude بپرس</button>
+      </div>
+      <div id="auAsk" style="display:none;margin-top:10px">
+        <textarea id="auQ" rows="3" style="width:100%" placeholder="مثلاً: چرا ۱۰٬۰۰۰ یوان هنوز نگه‌داری مانده؟"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button class="btn btn-primary btn-sm" id="auSend" type="button">ارسال</button><span id="auAskMsg" style="font-size:11.5px;color:var(--ink-soft)">Claude فقط همین نتیجه‌یِ تحلیل را می‌خواند و عدد جدید حساب نمی‌کند.</span></div>
+        <div id="auAns"></div>
+      </div>
+    </div></div>`;
+  document.body.appendChild(bd);
+  const close=()=>bd.remove();
+  bd.querySelector('#auClose').addEventListener('click', close);
+  bd.addEventListener('mousedown', e=>{ if(e.target===bd) close(); });
+  const a = await fxAuditFetch(kind, name, false);
+  const body = bd.querySelector('#auBody');
+  if(!a || a.error){ body.innerHTML = '❌ '+fxc_esc((a&&a.error)||'خطا'); return; }
+  const lvl = {error:'🔴 خطا',warn:'🟠 هشدار',info:'🔵 توضیح',ok:'🟢 درست'};
+  const c = a.counts||{};
+  body.className='';
+  body.innerHTML = `<div class="card" style="padding:10px 12px;margin-bottom:8px">${fxAuditSummaryHtml(a)}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${['error','warn','info','ok'].map(k=>`<span class="au-chip">${lvl[k]}: ${c[k]||0}</span>`).join('')}</div>
+    ${(a.findings||[]).map((f,i)=>`<div class="au-card ${f.level}"><h4>${fxc_esc(f.title)}</h4><p>${fxc_esc(f.detail)}</p>
+      ${(f.refs||[]).length?`<div class="au-refs">${f.refs.map((r,j)=>`<button class="btn btn-ghost btn-sm" type="button" data-au-ref="${i}:${j}">${fxc_esc(r.label)} ›</button>`).join('')}</div>`:''}</div>`).join('')}
+    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:6px">تحلیل فقط می‌خواند و چیزی را تغییر نمی‌دهد · ${fxc_esc(String(a.generatedAt||'').slice(0,16).replace('T',' '))}</div>`;
+  body.querySelectorAll('[data-au-ref]').forEach(b=>b.addEventListener('click', ()=>{
+    const [i,j]=b.dataset.auRef.split(':'); fxAuditGoRef(a.findings[+i].refs[+j], {kind, name});
+  }));
+  bd.querySelector('#auFoot').style.display='';
+  bd.querySelector('#auReport').addEventListener('click', async ()=>{
+    const btn = bd.querySelector('#auReport'); btn.disabled=true; btn.textContent='⏳ در حالِ ساختِ گزارش…';
+    const full = await fxAuditFetch(kind, name, true);
+    btn.disabled=false; btn.textContent='📤 گزارش برایِ Claude';
+    if(!full || full.error){ showToast('❌ '+((full&&full.error)||'گزارش ساخته نشد')); return; }
+    full.fxBuild = FX_BUILD;
+    const blob = new Blob([JSON.stringify(full,null,1)], {type:'application/json'});
+    const u = URL.createObjectURL(blob); const el = document.createElement('a');
+    el.href=u; el.download = 'madar-audit-'+kind+'-'+String(name).replace(/[^\w؀-ۿ-]+/g,'_')+'-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(el); el.click(); el.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+    showToast('✅ فایل دانلود شد — آن را در چتِ Claude بگذارید');
+  });
+  bd.querySelector('#auAskToggle').addEventListener('click', ()=>{ const x=bd.querySelector('#auAsk'); x.style.display = x.style.display==='none'?'':'none'; if(x.style.display==='') bd.querySelector('#auQ').focus(); });
+  bd.querySelector('#auSend').addEventListener('click', async ()=>{
+    const q = bd.querySelector('#auQ').value.trim(); if(!q){ showToast('سؤال را بنویسید'); return; }
+    const btn = bd.querySelector('#auSend'), ans = bd.querySelector('#auAns'), msg = bd.querySelector('#auAskMsg');
+    btn.disabled=true; ans.innerHTML='<div class="au-ans">⏳ Claude در حالِ بررسی…</div>';
+    try{
+      const r = await fetchWithRetry(FX_API+'accounts/ask-claude/', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({[kind]:name, question:q})}, 1, 0, 90000);
+      let j=null; try{ j=await r.json(); }catch(e){}
+      if(r.ok && j && j.answer){ ans.innerHTML = '<div class="au-ans">'+fxc_esc(j.answer)+'</div>'; msg.textContent = `سؤالِ امروز: ${j.used} از ${j.cap}`; }
+      else ans.innerHTML = '<div class="au-ans">❌ '+fxc_esc((j&&j.error)||('خطایِ سرور (کد '+r.status+')'+(r.status===404?' — views.py جدید deploy نشده':'')))+'</div>';
+    }catch(e){ ans.innerHTML='<div class="au-ans">❌ اتصال برقرار نشد</div>'; }
+    btn.disabled=false;
+  });
+}
 </script>
