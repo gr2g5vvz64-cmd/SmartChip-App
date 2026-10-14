@@ -3484,6 +3484,14 @@ function fxHeldCardsHtml(rows, opts){
       <div>
         <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:2px">${(r.orders||[]).length ? 'پیش‌فاکتورهایِ فروشِ او که از این پول خرج می‌شوند:' : 'هنوز پیش‌فاکتور/فاکتورِ فروشی به این مشتری و تأمین‌کننده وصل نشده.'}</div>${ords}
       </div>
+      ${r.diag && r.diag.heldRawYuan!=null ? `<details style="font-size:11.5px;color:var(--ink-soft)"><summary style="cursor:pointer">🔎 این عدد چطور حساب شده؟</summary>
+        <div style="line-height:1.9;padding:4px 2px">
+          یوانِ حواله‌شده‌یِ این مشتری نزدِ این تأمین‌کننده (کل): <b class="num">${fmtYuan(r.diag.customerYuanAtSupplier)}</b><br>
+          — از آن، «نگه‌داری‌شده»: <b class="num">${fmtYuan(r.diag.heldRawYuan)}</b><br>
+          — یوانِ غیرِنگه‌داریِ خودِ مشتری (مستقیم صرفِ فاکتورها): <b class="num">${fmtYuan(r.diag.ownNonHeldYuan)}</b><br>
+          فاکتورهایِ خریدِ وصل‌شده به این مشتری (از این تأمین‌کننده): <b class="num">${fmtYuan(r.diag.allLinkedPurchaseYuan)}</b><br>
+          سهمی که باید از نگه‌داری برداشته شود = فاکتورها − یوانِ غیرِنگه‌داری = <b class="num">${fmtYuan(r.diag.needFromHeldYuan)}</b>
+        </div></details>` : ''}
       ${r.usedYuan>0.005 ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span>صرف‌شده برایِ فاکتورهایش (خودکار)</span><b class="num">− ${fmtYuan(r.usedYuan)}</b></div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;padding-top:6px;border-top:2px solid var(--border)"><span><b>مانده‌یِ نگه‌داری‌شده</b></span><b class="num" style="color:${rem>0.005?'#E0A030':'var(--ink)'}">${fmtYuan(rem)}</b></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
