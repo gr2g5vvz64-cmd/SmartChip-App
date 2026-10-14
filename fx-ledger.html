@@ -986,7 +986,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.23-1';
+const FX_BUILD = '1405.07.23-2';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -1689,7 +1689,7 @@ async function renderCustomersList(main, cachedSummary){
       <p class="page-desc">هر مشتری را باز کنید تا دفتر کامل تسویه (به‌سبک صورت‌حساب) را ببینید</p>
     </div>
     <div class="toolbar">
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button><button class="btn btn-ghost" id="addOpeningGlobalBtn" title="برایِ مشتریِ جدید که فقط حسابِ قبلی دارد">🏁 مانده‌ی اولیه</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="addOrderGlobalBtn">+ ثبت فاکتور/پیش‌فاکتور</button><button class="btn btn-ghost" id="auditAllBtn" data-mgmt-only title="بررسیِ همه‌یِ مشتری‌ها و تأمین‌کننده‌ها و پیدا کردنِ هر مغایرت">🔍 تحلیلِ کلِ دفتر</button><button class="btn btn-ghost" id="addOpeningGlobalBtn" title="برایِ مشتریِ جدید که فقط حسابِ قبلی دارد">🏁 مانده‌ی اولیه</button></div>
       <div style="display:flex;gap:8px;align-items:center">${rateBasisToggle()}<input id="customersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${customersListSearchQuery}" style="min-width:200px"></div>
     </div>
     <div class="table-wrap">
@@ -1711,6 +1711,7 @@ async function renderCustomersList(main, cachedSummary){
   `;
   main.querySelector('#addOrderGlobalBtn').addEventListener('click', ()=>openOrderModal());
   main.querySelector('#addOpeningGlobalBtn').addEventListener('click', ()=>fxPickPartyThenOpening('customer', g.customers.map(c=>c.name)));
+  { const _a = main.querySelector('#auditAllBtn'); if(_a) _a.addEventListener('click', fxAuditAllOpen); }
   wireRateBasisToggle(main, ()=>renderCustomersList(main));
   main.querySelector('#customersListSearchInput').addEventListener('input', (e)=>{
     customersListSearchQuery = e.target.value;
@@ -3371,7 +3372,7 @@ async function renderSuppliersList(main, cachedSummary){
       <h1 class="page-title">تأمین‌کنندگان</h1>
       <p class="page-desc">هر تأمین‌کننده مانده‌ی یوانیِ کاملاً جدای خودش را دارد — روی هرکدام بزنید تا دفترش را ببینید</p>
     </div>
-    <div class="toolbar"><button class="btn btn-ghost" id="addOpeningGlobalBtn" title="برایِ تأمین‌کننده‌یِ جدید که فقط حسابِ قبلی دارد">🏁 مانده‌ی اولیه</button><input id="suppliersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${suppliersListSearchQuery}" style="min-width:200px"></div>
+    <div class="toolbar"><button class="btn btn-ghost" id="auditAllBtn" data-mgmt-only title="بررسیِ همه‌یِ مشتری‌ها و تأمین‌کننده‌ها و پیدا کردنِ هر مغایرت">🔍 تحلیلِ کلِ دفتر</button><button class="btn btn-ghost" id="addOpeningGlobalBtn" title="برایِ تأمین‌کننده‌یِ جدید که فقط حسابِ قبلی دارد">🏁 مانده‌ی اولیه</button><input id="suppliersListSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${suppliersListSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>تأمین‌کننده</th><th>یوان خریداری‌شده</th><th>یوان خرج‌شده</th><th>مانده (یوان)</th><th>مانده‌ی حمل پرداخت‌نشده</th><th></th></tr></thead>
@@ -3400,6 +3401,7 @@ async function renderSuppliersList(main, cachedSummary){
     fxBindHeldCards(box, ho.rows, ()=>renderSuppliersList(main, g));
   })();
   main.querySelector('#addOpeningGlobalBtn').addEventListener('click', ()=>fxPickPartyThenOpening('supplier', g.suppliers.map(s=>s.name)));
+  { const _a = main.querySelector('#auditAllBtn'); if(_a) _a.addEventListener('click', fxAuditAllOpen); }
   main.querySelector('#suppliersListSearchInput').addEventListener('input', (e)=>{
     suppliersListSearchQuery = e.target.value;
     renderSuppliersList(main, g);
@@ -5135,7 +5137,7 @@ async function renderReconcile(main){
     <div class="card" style="margin-bottom:12px;border-right:4px solid ${V.color};background:${V.bg}">
       <div style="font-weight:800;font-size:15px">${verdict.t}</div>
       <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">🔴 ${c.error||0} ایراد · 🟠 ${c.warn||0} هشدار · 🔵 ${c.info||0} اطلاعات · 🟢 ${c.ok||0} سالم${when ? ' — ' + when : ''}</div>
-      <button class="btn btn-ghost btn-sm" id="reconRerun" style="margin-top:8px">🔄 دوباره بررسی کن</button>
+      <button class="btn btn-ghost btn-sm" id="reconRerun" style="margin-top:8px">🔄 دوباره بررسی کن</button> <button class="btn btn-primary btn-sm" id="auditAllBtn" style="margin-top:8px">🔍 تحلیلِ کلِ دفتر (مغایرتِ بینِ جدول‌ها)</button>
     </div>
     ${d.checks.map(k=>{ const L = RECON_LEVELS[k.level] || RECON_LEVELS.info; return `
       <div class="card" style="margin-bottom:10px;border-right:4px solid ${L.color}">
@@ -5144,6 +5146,7 @@ async function renderReconcile(main){
         ${rowsHtml(k.rows)}
       </div>`; }).join('')}`;
   main.querySelector('#reconRerun').addEventListener('click', async ()=>{ await loadAll(); renderReconcile(main); });
+  { const _a = main.querySelector('#auditAllBtn'); if(_a) _a.addEventListener('click', fxAuditAllOpen); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -6371,9 +6374,9 @@ async function renderOpenWork(main, quiet){
 // سرور: GET /api/ledger/accounts/audit/?customer=|supplier=[&trace=1]   POST /api/ledger/accounts/ask-claude/
 // ⚠️ تمامِ عددها را کدِ برنامه حساب می‌کند؛ هوش مصنوعی فقط همان نتیجه را توضیح می‌دهد.
 // ═══════════════════════════════════════════════════════════════════════════════════
-async function fxAuditFetch(kind, name, trace){
+async function fxAuditFetch(kind, name, trace, batch){
   try{
-    const r = await fetchWithRetry(FX_API+'accounts/audit/?'+(kind==='customer'?'customer=':'supplier=')+encodeURIComponent(name)+(trace?'&trace=1':''), undefined, 2, 2000, 60000);
+    const r = await fetchWithRetry(FX_API+'accounts/audit/?'+(kind==='customer'?'customer=':'supplier=')+encodeURIComponent(name)+(trace?'&trace=1':'')+(batch?'&batch=1':''), undefined, 2, 2000, 60000);
     let j=null; try{ j = await r.json(); }catch(e){}
     if(!r.ok) return {error: (j && j.error) || ('خطایِ سرور (کد '+r.status+')'+(r.status===404?' — views.py جدید deploy نشده':''))};
     return j;
@@ -6469,6 +6472,70 @@ async function fxAuditOpen(kind, name){
       else ans.innerHTML = '<div class="au-ans">❌ '+fxc_esc((j&&j.error)||('خطایِ سرور (کد '+r.status+')'+(r.status===404?' — views.py جدید deploy نشده':'')))+'</div>';
     }catch(e){ ans.innerHTML='<div class="au-ans">❌ اتصال برقرار نشد</div>'; }
     btn.disabled=false;
+  });
+}
+
+// ═══ 🔍 تحلیلِ کلِ دفتر (۱۴۰۵/۰۷/۲۳): همه‌یِ مشتری‌ها و تأمین‌کننده‌ها را یکی‌یکی بررسی می‌کند و فقط مغایرت‌ها (خطا/هشدار) را فهرست می‌کند.
+// حدِ تحمل صفر است (فقط نویزِ اعشاریِ ۰٫۰۰۰۰۰۱ یوان). فقط می‌خواند؛ چیزی را تغییر نمی‌دهد.
+async function fxAuditAllOpen(){
+  const fa = n=>String(n).replace(/\d/g, d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+  const bd = document.createElement('div'); bd.className='modal-backdrop';
+  bd.innerHTML = `<div class="modal" style="max-width:860px;width:100%;max-height:90vh;overflow:auto">
+    <h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>🔍 تحلیلِ کلِ دفتر</span><button class="icon-btn" id="aaClose" type="button">✕</button></h3>
+    <div id="aaProg" class="page-desc">⏳ در حالِ گرفتنِ فهرست…</div>
+    <div id="aaBar" style="height:6px;background:var(--surface);border-radius:3px;overflow:hidden;margin:6px 0 10px"><div id="aaFill" style="height:100%;width:0;background:var(--accent,#efe14a);transition:width .2s"></div></div>
+    <div id="aaBody"></div>
+    <div id="aaFoot" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px"><button class="btn btn-ghost btn-sm" id="aaReport" type="button">📤 دانلودِ گزارشِ کلِ دفتر (JSON)</button> <button class="btn btn-ghost btn-sm" id="aaAgain" type="button">🔄 دوباره</button></div>
+  </div>`;
+  document.body.appendChild(bd);
+  let cancelled = false;
+  const close = ()=>{ cancelled = true; bd.remove(); };
+  bd.querySelector('#aaClose').addEventListener('click', close);
+  const prog = bd.querySelector('#aaProg'), fill = bd.querySelector('#aaFill'), body = bd.querySelector('#aaBody');
+  const all = [];   // نتیجه‌یِ هر موجودیت
+  let names;
+  try{
+    const r = await fetchWithRetry(FX_API+'accounts/audit-list/', undefined, 2, 2000, 60000);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    names = await r.json();
+  }catch(e){ prog.textContent = '❌ فهرست گرفته نشد: '+e.message+' (آیا views.py جدید deploy شده؟)'; return; }
+  const jobs = [].concat((names.customers||[]).map(n=>['customer',n]), (names.suppliers||[]).map(n=>['supplier',n]));
+  let done = 0, failed = 0;
+  const lvl = {error:'🔴',warn:'🟠'};
+  const addCard = (kind, name, a)=>{
+    const fs = (a.findings||[]).filter(f=>f.level==='error' || f.level==='warn');
+    if(!fs.length) return;
+    const el = document.createElement('div'); el.className='card'; el.style.cssText='padding:10px 12px;margin:8px 0';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><b>${kind==='customer'?'👤 مشتری':'🏭 تأمین‌کننده'}: ${fxc_esc(name)}</b><button class="btn btn-ghost btn-sm" type="button">باز کردنِ تحلیلِ کامل ›</button></div>`
+      + fs.map(f=>`<div class="au-card ${f.level}"><h4>${lvl[f.level]||''} ${fxc_esc(f.title)}</h4><p>${fxc_esc(f.detail)}</p></div>`).join('');
+    el.querySelector('button').addEventListener('click', ()=>{ close(); fxAuditOpen(kind, name); });
+    body.appendChild(el);
+  };
+  const worker = async ()=>{
+    while(!cancelled && jobs.length){
+      const [kind, name] = jobs.shift();
+      const a = await fxAuditFetch(kind, name, false, true);
+      done++;
+      if(!a || a.error){ failed++; all.push({kind, name, error:(a&&a.error)||'خطا'}); }
+      else { all.push({kind, name, counts:a.counts, findings:(a.findings||[]).filter(f=>f.level==='error'||f.level==='warn')}); addCard(kind, name, a); }
+      const total = done + jobs.length;
+      prog.textContent = `⏳ ${fa(done)} از ${fa(total)} بررسی شد…`; fill.style.width = Math.round(done/total*100)+'%';
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  if(cancelled) return;
+  const bad = all.filter(x=>x.findings && x.findings.length);
+  const nErr = all.reduce((s,x)=>s+((x.findings||[]).filter(f=>f.level==='error').length),0), nWarn = all.reduce((s,x)=>s+((x.findings||[]).filter(f=>f.level==='warn').length),0);
+  fill.style.width='100%';
+  prog.innerHTML = (bad.length||failed) ? `${fa(all.length)} مورد بررسی شد — 🔴 ${fa(nErr)} خطا · 🟠 ${fa(nWarn)} هشدار در ${fa(bad.length)} مورد${failed?` · ❌ ${fa(failed)} مورد بررسی نشد`:''}`
+    : `✅ ${fa(all.length)} مورد بررسی شد و هیچ مغایرتی پیدا نشد.`;
+  if(failed) body.insertAdjacentHTML('afterbegin', `<div class="au-card error"><h4>❌ ${fa(failed)} مورد بررسی نشد</h4><p>${all.filter(x=>x.error).map(x=>fxc_esc(x.name)+': '+fxc_esc(x.error)).join(' ؛ ')}</p></div>`);
+  const foot = bd.querySelector('#aaFoot'); foot.style.display='';
+  bd.querySelector('#aaAgain').addEventListener('click', ()=>{ close(); fxAuditAllOpen(); });
+  bd.querySelector('#aaReport').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify({generatedAt:new Date().toISOString(), fxBuild:FX_BUILD, checked:all.length, results:all}, null, 1)], {type:'application/json'});
+    const u = URL.createObjectURL(blob); const el = document.createElement('a'); el.href=u; el.download='madar-audit-all-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(el); el.click(); el.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
   });
 }
 </script>
