@@ -5987,7 +5987,7 @@ async function openReserveModal(prefHawaleId){
       <datalist id="rsvCustList">${custNames.map(n=>`<option value="${fxc_esc(n)}"></option>`).join('')}</datalist>
       <div class="field"><label>۱) کدام حواله؟</label>
         <select id="rsvHawale"></select>
-        <div style="margin-top:4px;font-size:11px;color:var(--ink-soft)"><input type="checkbox" id="rsvAll" style="width:auto;display:inline-block;vertical-align:middle"> <label for="rsvAll" style="display:inline;font-weight:400">نمایشِ همه‌یِ حواله‌ها (برایِ حواله‌هایی که «پولِ مازاد» ثبت نشده)</label></div></div>
+        <div style="margin-top:4px;font-size:11px;color:var(--ink-soft)"><input type="checkbox" id="rsvOnlyOwn" style="width:auto;display:inline-block;vertical-align:middle"> <label for="rsvOnlyOwn" style="display:inline;font-weight:400">فقط حواله‌هایی که «پولِ مازادِ شرکت» دارند</label></div></div>
       <div id="rsvBody"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="rsvSave" disabled>ذخیره</button>
@@ -6001,13 +6001,13 @@ async function openReserveModal(prefHawaleId){
 
   const hLabel = (h)=>`#${h.id} — ${h.supplier_name} — ${h.date} — ${fmt(h.totalRial,0)} ریال${Number(h.own_rial)>0 ? ' — 💼 مازاد: '+fmt(h.own_rial,0) : ''}`;
   function fillHawales(){
-    const all = $('#rsvAll').checked;
+    const onlyOwn = $('#rsvOnlyOwn').checked;
     const cur = $('#rsvHawale').value || (prefHawaleId ? String(prefHawaleId) : '');
-    const list = hawalesAll.filter(h=> all || Number(h.own_rial)>0 || String(h.id)===cur);
+    const list = hawalesAll.filter(h=> !onlyOwn || Number(h.own_rial)>0 || String(h.id)===cur);
     $('#rsvHawale').innerHTML = '<option value="">— حواله را انتخاب کنید —</option>' + list.map(h=>`<option value="${h.id}" ${String(h.id)===cur?'selected':''}>${fxc_esc(hLabel(h))}</option>`).join('');
-    if(!list.length) $('#rsvBody').innerHTML = '<div style="font-size:12px;color:var(--ink-soft);margin:8px 0">حواله‌ای با «پولِ مازادِ شرکت» نیست. اگر حواله‌ای را می‌خواهید رزرو کنید که مازادش ثبت نشده، «نمایشِ همه‌یِ حواله‌ها» را بزنید.</div>';
+    if(!list.length) $('#rsvBody').innerHTML = '<div style="font-size:12px;color:var(--ink-soft);margin:8px 0">حواله‌ای پیدا نشد.</div>';
   }
-  $('#rsvAll').addEventListener('change', fillHawales);
+  $('#rsvOnlyOwn').addEventListener('change', fillHawales);
   fillHawales();
 
   const sumTags = ()=>rows.reduce((s,r)=>s+num(r.tag),0);
@@ -6085,6 +6085,9 @@ async function openReserveModal(prefHawaleId){
       <div id="rsvRows"></div>
       <button class="btn btn-ghost btn-sm" type="button" id="rsvAdd">+ مشتریِ دیگر</button>
       <div id="rsvSum" style="font-size:12px;line-height:1.9;margin:10px 0"></div>`;
+    if(cap < 0.5 && !(g.ownTags||[]).length){
+      $('#rsvBody').insertAdjacentHTML('beforeend', '<div style="margin:8px 0;padding:8px 10px;border:1px solid var(--danger);border-radius:8px;font-size:12px;line-height:1.9">⚠️ همه‌یِ ریالِ این حواله به پولِ مشتری‌ها وصل است و «پولِ مازادِ شرکت» ندارد، پس چیزی برایِ رزرو نیست. اگر بخشی از آن پولِ شرکت بوده، حواله را ویرایش کنید: سهمِ مشتری را در «👥 منبعِ ریال» کم کنید و مبلغِ باقی را در «💼 از پولِ مازادِ خودمون» بنویسید.</div>');
+    }
     $('#rsvAdd').addEventListener('click', ()=>{ rows.push({name:'', orig:'', tag:'', held:'', link:0}); paint(); });
     if(!rows.length) rows.push({name:'', orig:'', tag:'', held:'', link:0});
     paint();
