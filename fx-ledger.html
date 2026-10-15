@@ -206,6 +206,9 @@
   .nav-sec-bar{ width:4px; height:13px; border-radius:2px; background:var(--sec); flex-shrink:0; }
   .qa-box{ margin:0 2px 6px; padding:8px; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); }
   .qa-title{ font-size:10.5px; font-weight:800; color:#9AA3B2; margin-bottom:6px; }
+  .qa-grp{ font-size:10.5px; font-weight:800; margin:8px 2px 4px; padding-right:6px; border-right:3px solid var(--g,#888); color:rgba(255,255,255,.82); }
+  .qa-grp-c{ --g:#1e8449; } .qa-grp-s{ --g:#2e6da4; } .qa-grp-b{ --g:#e0a030; }
+  .qa-grp:first-of-type{ margin-top:4px; }
   .qa-grid{ display:grid; grid-template-columns:1fr 1fr; gap:5px; }
   .qa-btn{ display:flex; align-items:center; gap:5px; height:30px; padding:0 7px; border-radius:7px; border:1px solid transparent; font-size:11.5px; font-weight:700; cursor:pointer; color:#fff; font-family:inherit; text-align:right; white-space:nowrap; overflow:hidden; }
   .qa-ico{ width:16px; text-align:center; font-size:13px; flex-shrink:0; }
@@ -991,15 +994,15 @@ const FX_BUILD = '1405.07.23-3';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
-  {action:'add-payment',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
-  {action:'add-direct',       icon:'🏧', label:'به صراف', tip:'مشتری ریال را مستقیم به حسابِ صراف زده — پول به حسابِ ما نیامده'},
-  {action:'add-hawale',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
-  {action:'add-reserve',      icon:'🏦', label:'نگه‌داریِ پولِ مشتری', tip:'مشتری پول داده تا نزدِ یکی از تأمین‌کننده‌هایِ چین برایش نگه‌داری شود (حواله‌یِ تازه + نگه‌داری، در یک فرم)'},
-  {action:'add-order',        icon:'📄', label:'ثبت فاکتور',   tip:'فاکتور یا پیش‌فاکتورِ فروش به مشتری — نوع را داخلِ فرم انتخاب می‌کنید'},
-  {action:'add-expense',      icon:'🧾', label:'ثبت خرید',     tip:'فاکتورِ خریدِ تأمین‌کننده (کالا + جابجایی + کارمزد)'},
-  {action:'add-income',       icon:'💵', label:'ثبت درآمد',    tip:'درآمدِ مشتری (کمیسیون و …) به یک حساب'},
-  {action:'add-yuan-adjust',  icon:'⚙️', label:'تعدیل یوانی',  tip:'تغییرِ مستقیمِ مانده‌یِ یوانیِ یک تأمین‌کننده'},
-  {action:'add-opening',      icon:'🏁', label:'مانده اولیه',  tip:'حسابِ قبل از مدار برایِ مشتری یا تأمین‌کننده'},
+  {action:'add-payment', grp:'c',      icon:'💰', label:'ثبت پرداخت',  tip:'واریزِ مشتری به یکی از حساب‌ها'},
+  {action:'add-direct', grp:'b',       icon:'🏧', label:'به صراف', tip:'مشتری ریال را مستقیم به حسابِ صراف زده — پول به حسابِ ما نیامده'},
+  {action:'add-hawale', grp:'s',       icon:'🔄', label:'ثبت حواله',    tip:'تبدیلِ ریال به یوان و حواله به تأمین‌کننده'},
+  {action:'add-reserve', grp:'b',      icon:'🏦', label:'نگه‌داریِ یوان', tip:'مشتری پول داده تا نزدِ یکی از تأمین‌کننده‌هایِ چین برایش نگه‌داری شود (حواله‌یِ تازه + نگه‌داری، در یک فرم)'},
+  {action:'add-order', grp:'c',        icon:'📄', label:'ثبت فاکتور',   tip:'فاکتور یا پیش‌فاکتورِ فروش به مشتری — نوع را داخلِ فرم انتخاب می‌کنید'},
+  {action:'add-expense', grp:'s',      icon:'🧾', label:'ثبت خرید',     tip:'فاکتورِ خریدِ تأمین‌کننده (کالا + جابجایی + کارمزد)'},
+  {action:'add-income', grp:'c',       icon:'💵', label:'ثبت درآمد',    tip:'درآمدِ مشتری (کمیسیون و …) به یک حساب'},
+  {action:'add-yuan-adjust', grp:'s',  icon:'⚙️', label:'تعدیل یوانی',  tip:'تغییرِ مستقیمِ مانده‌یِ یوانیِ یک تأمین‌کننده'},
+  {action:'add-opening', grp:'b',      icon:'🏁', label:'مانده اولیه',  tip:'حسابِ قبل از مدار برایِ مشتری یا تأمین‌کننده'},
 ];
 const NAV_STRUCTURE = [
   {type:'section', id:'sec-overview', label:'نمای کلی', color:'#5B8DEF', children:[
@@ -1030,8 +1033,11 @@ const NAV_STRUCTURE = [
   ]},
 ];
 function renderNavHtml(){
-  const quick = `<div class="qa-box" data-perm="fx.edit"><div class="qa-title">➕ ثبتِ سریع</div><div class="qa-grid">${
-    NAV_QUICK.map(q=>`<button type="button" class="qa-btn" data-action="${q.action}" title="${q.tip}"><span class="qa-ico">${q.icon}</span><span class="qa-lbl">${q.label}</span></button>`).join('')}</div></div>`;
+  // ⚠️ (۱۴۰۵/۰۷/۲۳) ثبتِ سریع: سه گروهِ جدا — مشتری / تأمین‌کننده / هر دو
+  const QA_GROUPS = [['c','👤 مشتری','دفترِ مشتری: واریزی، فاکتورِ فروش، درآمد'], ['s','🏭 تأمین‌کننده','دفترِ تأمین‌کننده: حواله، خریدِ کالا، تعدیلِ یوان'], ['b','🔗 هر دو (مشتری ⇄ تأمین‌کننده)','هم مشتری و هم تأمین‌کننده را درگیر می‌کند']];
+  const quick = `<div class="qa-box" data-perm="fx.edit"><div class="qa-title">➕ ثبتِ سریع</div>${
+    QA_GROUPS.map(([g,t,tip])=>`<div class="qa-grp qa-grp-${g}" title="${tip}">${t}</div><div class="qa-grid">${
+      NAV_QUICK.filter(q=>q.grp===g).map(q=>`<button type="button" class="qa-btn" data-action="${q.action}" title="${q.tip}"><span class="qa-ico">${q.icon}</span><span class="qa-lbl">${q.label}</span></button>`).join('')}</div>`).join('')}</div>`;
   const secs = NAV_STRUCTURE.map(s=>`<div class="nav-sec" style="--sec:${s.color}"><div class="nav-sec-label"><span class="nav-sec-bar"></span>${s.label}</div>${
     s.children.map(c=>`<button class="nav-item ${currentTab===c.id?'active':''}" data-tab="${c.id}"${c.perm?` data-perm="${c.perm}"`:''}><span class="nav-ico">${c.icon}</span><span class="nav-lbl">${c.label}</span>${c.id==='open-work' ? `<span class="nav-badge" style="${(fxOW && fxOW.total) ? '' : 'display:none'}">${(fxOW && fxOW.total) || ''}</span>` : ''}</button>`).join('')}</div>`).join('');
   return quick + secs;
