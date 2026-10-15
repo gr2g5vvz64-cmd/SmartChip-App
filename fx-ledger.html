@@ -2414,23 +2414,22 @@ function openPaymentModal(existing){
         <div class="field"><label>مبلغ واریزی (ریال)</label><input id="pAmount" type="text" class="num" value="${existing ? fmt(existing.rial_amount,0) : ''}"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>نرخ یوان در روز واریز (ریال)</label><input id="pRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_payment,0) : ''}"></div>
+        <div class="field"><label>نرخ یوان در روز واریز (ریال)</label><input id="pRate" type="text" class="num" value="${existing ? fmt(existing.rate_at_payment,0) : ''}"><div style="font-size:10.5px;color:var(--ink-soft);margin-top:2px">فقط برایِ سابقه ثبت می‌شود؛ یوانِ مشتری با نرخِ حواله (یا نرخِ اعلامی) حساب می‌شود.</div></div>
         <div class="field"><label>تخصیصِ دستی به فاکتور (اختیاری)</label>
-          <select id="pManualOrder">
-            <option value="">— خودکار (FIFO) —</option>
-            ${state.orders.filter(o=>o.customer_name===(existing?existing.customer_name:'')).map(o=>`<option value="${o.id}" ${existing&&existing.manual_order===o.id?'selected':''}>${o.date} — ${fmtYuan(o.yuan_amount)}</option>`).join('')}
-          </select>
+          <select id="pManualOrder"></select>
         </div>
       </div>
-      <div class="field" style="margin-bottom:10px"><label>حواله‌ای که این پرداخت باهاش تسویه شده (اختیاری)</label>
+      <div class="field" style="margin-bottom:10px"><label>حواله‌ای که <b>کلِ</b> این پرداخت باهاش تسویه شده (اختیاری — معمولاً خالی)</label>
+        <div style="font-size:10.5px;color:var(--ink-soft);margin-bottom:3px">برایِ نگه‌داریِ یوان نزدِ تأمین‌کننده اینجا حواله انتخاب نکنید؛ از دکمه‌یِ «ثبت و نگه‌داریِ یوان» پایینِ فرم استفاده کنید (حواله و لینک خودکار ساخته می‌شود).</div>
         <select id="pHawale">
           <option value="">— هنوز حواله‌ای برای این نزده‌ام —</option>
-          ${state.hawales.map(h=>`<option value="${h.id}" ${existing&&existing.hawale===h.id?'selected':''}>${h.date} — ${h.supplier_name} — ${fmtRial(h.totalRial)} (نرخ ${fmt(h.rate_at_hawale,0)})</option>`).join('')}
+          ${state.hawales.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.id-a.id).map(h=>`<option value="${h.id}" ${existing&&existing.hawale===h.id?'selected':''}>#${h.id} — ${h.date} — ${h.supplier_name} — ${fmtRial(h.totalRial)} (نرخ ${fmt(h.rate_at_hawale,0)})</option>`).join('')}
         </select>
       </div>
       <div class="field"><label>توضیح (اختیاری)</label><input id="pNote" type="text" value="${existing ? existing.note||'' : ''}"></div>
       <div class="modal-actions">
         <button class="btn btn-primary" id="savePaymentBtn">${isEdit?'ذخیره تغییرات':'ثبت پرداخت'}</button>
+        ${isEdit ? '' : '<button class="btn btn-ghost" id="savePayHoldBtn" title="پرداخت را ثبت می‌کند و فرمِ «نگه‌داریِ پولِ مشتری» را با همین مشتری باز می‌کند">🏦 ثبت و نگه‌داریِ یوان ←</button>'}
         <button class="btn btn-ghost" id="cancelPaymentBtn">انصراف</button>
       </div>
     </div>`;
@@ -2443,6 +2442,14 @@ function openPaymentModal(existing){
   // سرچ زنده‌ی مشتری از CRM
   let selectedCustomerName = existing ? existing.customer_name : '';
   const custInput = backdrop.querySelector('#pCustomer');
+  // ⚠️ (۱۴۰۵/۰۷/۲۳) فهرستِ فاکتورهایِ «تخصیصِ دستی» قبلاً فقط برایِ ویرایش پر می‌شد؛ حالا با هر بار عوض‌شدنِ مشتری تازه می‌شود
+  const refreshManualOrders = ()=>{
+    const nm = (custInput.value.trim() || selectedCustomerName || '');
+    const sel = backdrop.querySelector('#pManualOrder'), keep = sel.value || (existing && existing.manual_order ? String(existing.manual_order) : '');
+    sel.innerHTML = '<option value="">— خودکار (FIFO) —</option>' + state.orders.filter(o=>nm && normalizeFa(o.customer_name)===normalizeFa(nm)).map(o=>`<option value="${o.id}" ${String(o.id)===keep?'selected':''}>${o.date} — ${fmtYuan(o.yuan_amount)}</option>`).join('');
+  };
+  refreshManualOrders();
+  custInput.addEventListener('change', refreshManualOrders);
   const custResults = backdrop.querySelector('#pCustomerResults');
   custInput.addEventListener('input', async ()=>{
     const q = custInput.value.trim();
@@ -2455,11 +2462,12 @@ function openPaymentModal(existing){
       selectedCustomerName = el.dataset.pickCust;
       custInput.value = selectedCustomerName;
       custResults.innerHTML = '';
+      refreshManualOrders();
     }));
   });
 
-  backdrop.querySelector('#savePaymentBtn').addEventListener('click', async ()=>{
-    selectedCustomerName = selectedCustomerName || custInput.value.trim();
+  const doSavePayment = async (thenHold)=>{
+    selectedCustomerName = custInput.value.trim() || selectedCustomerName;
     const accountId = backdrop.querySelector('#pAccount').value;
     const date = backdrop.querySelector('#pDate').value.trim();
     const rialAmount = parseFloat(backdrop.querySelector('#pAmount').value.replace(/,/g,''));
@@ -2493,7 +2501,10 @@ function openPaymentModal(existing){
     if(!d) return;
     backdrop.remove();
     renderMain();
-  });
+    if(thenHold) openCustomerHoldModal(selectedCustomerName);
+  };
+  backdrop.querySelector('#savePaymentBtn').addEventListener('click', ()=>doSavePayment(false));
+  const _sph = backdrop.querySelector('#savePayHoldBtn'); if(_sph) _sph.addEventListener('click', ()=>doSavePayment(true));
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -5985,14 +5996,11 @@ function fxSettleCompanyMoney(customer, cm){
 //  • بانک: مثلِ فرمِ حواله، از چند حساب (با مانده‌یِ بانک و مانده پس از حواله).
 //  • لینک: به واریزی‌هایِ راکدِ (حواله‌نشده‌یِ) خودِ مشتری، قدیمی‌ترین اول یا دستی با تیک. بستانکاریِ مشتری = جمعِ همین واریزی‌ها.
 //  • کمبود: اگر کلِ حواله از پولِ مشتری بیشتر باشد، مابقی «پولِ شرکت برایِ این مشتری» (own_rial + رزرو) می‌شود و آن هم نگه‌داری می‌شود.
-//  • دو نرخ (یوان مبناست): یوانِ حواله Y = کلِ ریالِ بانک ÷ «نرخِ حواله‌یِ زده‌شده» H. مشتری باید Y × «نرخِ اعلامی» A بدهد (N).
-//    مثال: ۱۰٬۰۰۰ یوان با ۳۹۲٬۰۰۰ ⇒ ما ۳٫۹۲ میلیارد می‌دهیم؛ مشتری ۳٫۹۳ میلیارد؛ سودِ ما ۱۰ میلیون ریال (در بانک می‌ماند).
-//    واریزی‌هایِ مشتری (L ریال) به حواله لینک می‌شوند و نرخِ اعلامی روی آن‌ها به‌عنوانِ suggested_rate ذخیره می‌شود ⇒ یوانِ مشتری = L ÷ A.
-//    اگر واریزیِ راکدِ مشتری کافی نبود، کمبود (N − L) از سرمایه‌یِ شرکت: own_rial = (N − L) × H ÷ A و رزرو برایِ همان مشتری.
-//    نگه‌داری: کلِ سهمِ مشتری = L × H ÷ A + own_rial (= کلِ حواله وقتی همه‌چیز برایِ این مشتری است).
-// فقط از سرورِ موجود: customer-free-payments، account-balances، POST hawales/، PATCH payments/<id>/، POST accounts/own-tags/، POST accounts/hawale-holds/.
-// ══════════════════════════════════════════════════════════════
-async function openCustomerHoldModal(){
+//  • دو نرخ (⚠️ ۱۴۰۵/۰۷/۲۳): کلِ ریالِ بانک T = ریالی که مشتری باید بدهد = ریالی که حواله می‌شود. یوانِ تأمین‌کننده T ÷ H، یوانِ مشتری T ÷ A.
+//    مثال: ۱۰٬۰۰۰ یوان، H=۳۹۲٬۰۰۰، A=۳۹۳٬۰۰۰ ⇒ T=۳٫۹۳ میلیارد ⇒ ۱۰٬۰۲۵٫۵۱ یوان نزدِ تأمین‌کننده؛ ۱۰٬۰۰۰ برایِ مشتری؛ ۲۵٫۵۱ سودِ شرکت.
+//    واریزی‌هایِ مشتری (L) به حواله لینک و نرخِ اعلامی رویِ آن‌ها suggested_rate می‌شود؛ کمبودِ T−L از سرمایه‌یِ شرکت: own_rial = (T−L)×H÷A؛
+//    نگه‌داری = L×H÷A + own_rial.
+async function openCustomerHoldModal(prefCustomer){
   const num = (v)=>{ const s = String(v==null?'':v).replace(/[,،\s]/g,''); const x = s ? parseFloat(s) : 0; return isNaN(x) ? 0 : x; };
   const custNames = [...new Set([...state.payments.map(p=>p.customer_name), ...state.orders.map(o=>o.customer_name),
     ...((typeof fxLastSummary !== 'undefined' && fxLastSummary && fxLastSummary.customers) ? fxLastSummary.customers.map(c=>c.name) : [])])].filter(Boolean);
@@ -6152,6 +6160,7 @@ async function openCustomerHoldModal(){
   }
   ['#chSupIn','#chRate','#chRateC','#chDate'].forEach(i=>{ $(i).addEventListener('input', refresh); $(i).addEventListener('change', refresh); });
   drawRows();
+  if(prefCustomer){ $('#chCustIn').value = prefCustomer; loadFree(); }   // ⚠️ از فرمِ «ثبت پرداخت» با دکمه‌یِ «ثبت و نگه‌داریِ یوان»
   const postJson = async (path, body)=>{
     try{
       const r = await fetchWithRetry(FX_API+path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
