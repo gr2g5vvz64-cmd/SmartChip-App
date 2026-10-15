@@ -3709,6 +3709,16 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
       </table>
     </div>` : ''}
 
+    ${(()=>{
+      const rp = hawalesForSupplier.map(h=>({h, bd:data.hawaleBreakdown[h.id]})).filter(x=>x.bd && x.bd.rateProfitYuan>0.001);
+      if(!rp.length) return '';
+      const ty = rp.reduce((t,x)=>t+x.bd.rateProfitYuan,0), tr = rp.reduce((t,x)=>t+x.bd.rateProfitRial,0);
+      return `<div style="margin:0 0 14px;padding:10px 14px;border:1px solid var(--border);border-right:4px solid var(--ok);border-radius:10px;background:rgba(30,132,73,.07)">
+        <div style="font-weight:800;font-size:13px">💰 سودِ اختلافِ نرخ — یوانِ مازادِ شرکت نزدِ «${fxc_esc(sName)}»: <span class="num">${fmtYuan(ty)}</span> <span style="font-weight:400;font-size:11.5px;color:var(--ink-soft)">(≈ ${fmtRial(tr)})</span></div>
+        <div style="font-size:11px;color:var(--ink-soft);margin:2px 0 6px">وقتی با تأمین‌کننده با نرخِ کمتر بسته‌ایم و به مشتری نرخِ بالاتر گفته‌ایم، ریالِ مشتری یوانِ بیشتری از یوانِ او می‌خرد. یوانِ مشتری جدا نگه‌داری می‌شود و این مازاد مالِ خودِ شرکت است.</div>
+        ${rp.map(x=>`<div style="font-size:12px">حواله #${x.h.id} — ${fxc_esc(x.h.date)}: <b class="num">${fmtYuan(x.bd.rateProfitYuan)}</b> (≈ ${fmtRial(x.bd.rateProfitRial)})</div>`).join('')}
+      </div>`;
+    })()}
     <div class="section-title">وضعیتِ حواله‌ها — چقدر رفته، چقدر مونده</div>
     <div class="toolbar" style="margin-bottom:10px"><div></div><input id="supplierHawaleStatusSearchInput" type="text" placeholder="🔍 جستجو در همه‌ی ستون‌ها..." value="${supplierHawaleStatusSearchQuery}" style="min-width:200px"></div>
     <div class="table-wrap" style="margin-bottom:20px">
@@ -3725,7 +3735,7 @@ async function renderSupplierLedger(main, skipLoad, cachedData){
               <td class="num">${fmtYuan(bd.totalYuan)}</td>
               <td class="num">${fmtYuan(bd.spentYuan)}</td>
               <td class="num" style="font-weight:700">${fmtYuan(bd.remainingYuan)}</td>
-              <td>${(bd.heldYuan>0.01) ? '<span class="status-chip closed">🔒 '+fmtYuan(bd.heldYuan)+' نگه‌داری برایِ مشتری</span> ' : ''}${(bd.heldYuan>0.01 && bd.totalYuan<=0.01) ? '' : (fullySpent ? '<span class="status-chip closed">✅ کامل خرج شده</span>' : (bd.spentYuan>0.01 ? '<span class="status-chip open">⏳ بخشی خرج شده</span>' : '<span class="status-chip open">⏳ هنوز خرج نشده</span>'))}</td>
+              <td>${(bd.rateProfitYuan>0.001) ? '<span class="status-chip closed" title="نرخِ حواله با نرخِ اعلامی به مشتری فرق دارد؛ این یوان سودِ شرکت است">💰 '+fmtYuan(bd.rateProfitYuan)+' سودِ اختلافِ نرخ</span> ' : ''}${(bd.heldYuan>0.01) ? '<span class="status-chip closed">🔒 '+fmtYuan(bd.heldYuan)+' نگه‌داری برایِ مشتری</span> ' : ''}${(bd.heldYuan>0.01 && bd.totalYuan<=0.01) ? '' : (fullySpent ? '<span class="status-chip closed">✅ کامل خرج شده</span>' : (bd.spentYuan>0.01 ? '<span class="status-chip open">⏳ بخشی خرج شده</span>' : '<span class="status-chip open">⏳ هنوز خرج نشده</span>'))}</td>
               <td>${bd.spentItems.length ? `<button class="icon-btn" data-show-breakdown="${h.id}">📋 جزئیات</button>` : '—'}</td>
             </tr>`;
           }).join('')}
@@ -5329,10 +5339,10 @@ const FX_HELP = {
     'cust-hold': ['نگه‌داریِ پولِ مشتری نزدِ تأمین‌کننده', 'دکمه‌یِ «🏦 نگه‌داریِ پولِ مشتری» در ثبتِ سریع — مخصوصِ حواله‌یِ تازه؛ ربطی به حواله‌هایِ قبلی ندارد.', [
       ['چه موقع؟', 'مشتری پول داده و می‌گوید در حسابِ من نزدِ یکی از تأمین‌کننده‌هایت (در چین) نگه دار تا برایِ پیش‌فاکتور/فاکتورِ بعدی از آن برداشت شود. اول واریزیِ او را در «ثبت پرداخت» (یا «به صراف») ثبت کنید.'],
       ['۱ و ۲) مشتری و تأمین‌کننده', 'با نوشتنِ نامِ مشتری، «بستانکاریِ او نزدِ ما» (جمعِ واریزی‌هایِ راکد/حواله‌نشده‌اش) و جدولِ همان واریزی‌ها نشان داده می‌شود. یوان نزدِ تأمین‌کننده به نامِ او می‌ماند.'],
-      ['۳) دو نرخ', '«نرخِ حواله‌یِ زده‌شده» = خریدِ واقعی با تأمین‌کننده. «نرخِ اعلامی به مشتری» = چیزی که به مشتری گفتید. مثال: ۱۰٬۰۰۰ یوان؛ ۳۹۲٬۰۰۰ ← به تأمین‌کننده ۳٫۹۲ میلیارد ریال؛ ۳۹۳٬۰۰۰ ← مشتری باید ۳٫۹۳ میلیارد بدهد. یوانِ مشتری = ۱۰٬۰۰۰ (کاملِ یوانِ حواله) و اختلافِ ۱۰ میلیون ریال سودِ شما است که در بانک می‌ماند. نرخِ اعلامی روی واریزی‌هایِ مشتری ذخیره می‌شود (همان «نرخِ سوم»). خالی = هر دو یکی.'],
-      ['۴) حساب‌هایِ بانکی', 'مثلِ فرمِ حواله: چند ردیفِ «حساب + مبلغ». کنارِ هر حساب «مانده‌یِ بانک» و «پس از این حواله» دیده می‌شود. کلِ حواله = جمعِ ردیف‌ها.'],
+      ['۳) دو نرخ', '«نرخِ حواله‌یِ زده‌شده» = خریدِ واقعی با تأمین‌کننده. «نرخِ اعلامی به مشتری» = آنچه به مشتری گفتید. مثال: ۱۰٬۰۰۰ یوان برایِ مشتری با ۳۹۳٬۰۰۰ ← مشتری ۳٫۹۳ میلیارد می‌دهد؛ ما همان ۳٫۹۳ میلیارد را با ۳۹۲٬۰۰۰ حواله می‌کنیم ← ۱۰٬۰۲۵٫۵۱ یوان نزدِ تأمین‌کننده. یوانِ مشتری ۱۰٬۰۰۰ است و به نامِ او نگه‌داری می‌شود؛ ۲۵٫۵۱ یوانِ مازاد سودِ شرکت است و در دفترِ تأمین‌کننده با نامِ «💰 سودِ اختلافِ نرخ» دیده می‌شود. خالی = هر دو یکی (سودی نیست).'],
+      ['۴) حساب‌هایِ بانکی', 'مثلِ فرمِ حواله: چند ردیفِ «حساب + مبلغ». کنارِ هر حساب «مانده‌یِ بانک» و «پس از این حواله» دیده می‌شود. کلِ حواله = جمعِ ردیف‌ها = ریالی که مشتری باید بدهد (پیش‌فرض: کلِ واریزی‌هایِ راکدِ تیک‌خورده).'],
       ['لینک به واریزی‌هایِ راکد', 'واریزی‌هایِ راکدِ مشتری تیک‌خورده‌اند و قدیمی‌ترین اول مصرف می‌شوند؛ تیکِ هر کدام را که نمی‌خواهید بردارید. برداشت‌هایِ بانکی به همین واریزی‌ها لینک می‌شود.'],
-      ['۵) پولِ مشتری و برداشت از سرمایه', 'کادرِ «مشتری باید بدهد» مبلغِ لازم را نشان می‌دهد. «ریالِ مشتری» پیش‌فرض = کمینه‌یِ این مبلغ و جمعِ واریزی‌هایِ راکدِ تیک‌خورده. اگر کمتر بود، کمبود در «💼 برداشت از سرمایه‌یِ شرکت» نوشته می‌شود (به یوان، با نرخِ حواله) و به نامِ مشتری ثبت و نگه‌داری می‌شود؛ وقتی مشتری بعداً پول داد: «💰 تسویه» در دفترِ او.'],
+      ['۵) پولِ مشتری و برداشت از سرمایه', 'کادرِ «مشتری باید بدهد» ریالِ لازم، یوانِ مشتری و یوانِ مازادِ شرکت را نشان می‌دهد. «ریالِ مشتری» پیش‌فرض = کمینه‌یِ این مبلغ و جمعِ واریزی‌هایِ تیک‌خورده. اگر کمتر بود، کمبود در «💼 برداشت از سرمایه‌یِ شرکت» نوشته می‌شود و به نامِ مشتری ثبت و نگه‌داری می‌شود؛ وقتی مشتری بعداً پول داد: «💰 تسویه» در دفترِ او.'],
       ['مصرف', 'وقتی برایِ او پیش‌فاکتور/فاکتور و خریدِ مربوط ثبت شد، از همین یوان مصرف می‌شود. برداشتن یا انتقال: دفترِ تأمین‌کننده ← ردیفِ حواله ← «✏️ ← 🔁 انتقال».']]],
     'reserve': ['رزروِ پولِ شرکت برایِ مشتری (مدیریتِ رزروها)', 'دکمه‌یِ «🔖 رزروِ یوان» در ثبتِ سریع — بخشی از یوانِ یک حواله (از پولِ شرکت) را به نامِ یک مشتری می‌گذارد.', [
       ['۱) حواله', 'حواله‌ای را انتخاب کنید که «💼 پولِ مازادِ شرکت» دارد. بالایِ فرم نوشته می‌شود این حواله نزدِ کدام تأمین‌کننده است. اگر مازاد ثبت نشده، «نمایشِ همه‌یِ حواله‌ها» را بزنید؛ ریالِ وصل‌نشده به مشتری با رزرو جزوِ مازاد می‌شود.'],
@@ -6036,7 +6046,7 @@ async function openCustomerHoldModal(){
   const pickedTotal = ()=>pays.filter(p=>picked.has(p.id)).reduce((s,p)=>s+Number(p.freeRial||0),0);
   const totalT = ()=>rows.reduce((s,r)=>s+num(r.amount),0);
   const rates = ()=>{ const H = num($('#chRate').value), Ac = num($('#chRateC').value); return {H, A: Ac>0 ? Ac : H}; };
-  const needN = ()=>{ const {H,A} = rates(); return (H>0 && A>0) ? (totalT()/H)*A : totalT(); };   // آنچه مشتری باید بدهد = Y × A
+  const needN = ()=>totalT();   // ⚠️ (۱۴۰۵/۰۷/۲۳) مشتری همان ریالی را می‌دهد که ما حواله می‌کنیم؛ یوانِ او = ریال ÷ نرخِ اعلامی، یوانِ تأمین‌کننده = ریال ÷ نرخِ حواله
   const cMax = ()=>Math.min(needN(), pickedTotal());
   const cNow = ()=>{ if(!cEdited) return Math.round(cMax()); return num($('#chC').value); };
   // ── ردیف‌هایِ حسابِ بانکی ──
@@ -6106,9 +6116,9 @@ async function openCustomerHoldModal(){
   function refresh(){
     if(!document.body.contains(backdrop)) return;
     const c = $('#chCustIn').value.trim(), s = $('#chSupIn').value.trim(), {H, A} = rates(), Ac = num($('#chRateC').value);
-    // پیش‌فرضِ مبلغِ بانک (تا وقتی دست نزده‌اید): پولِ تیک‌خورده‌یِ مشتری × H ÷ A  (تک‌ردیف)
+    // پیش‌فرضِ مبلغِ بانک (تا وقتی دست نزده‌اید): کلِ پولِ تیک‌خورده‌یِ مشتری (تک‌ردیف)
     if(rowsAuto && rows.length===1 && H>0 && pickedTotal()>0.5){
-      const v = Math.round(pickedTotal()*H/A); if(num(rows[0].amount) !== v){ rows[0].amount = String(v); const inp = backdrop.querySelector('[data-cr-amt="0"]'); if(inp) inp.value = fmt(v,0); }
+      const v = Math.round(pickedTotal()); if(num(rows[0].amount) !== v){ rows[0].amount = String(v); const inp = backdrop.querySelector('[data-cr-amt="0"]'); if(inp) inp.value = fmt(v,0); }
     }
     const T = totalT(), L = cNow(), N = needN(), errs = problems();
     const S = (H>0 && A>0) ? Math.round(Math.max(N - L, 0) * H / A) : 0;
@@ -6119,17 +6129,18 @@ async function openCustomerHoldModal(){
       const used = rows.reduce((t,x)=>String(x.account)===k ? t+num(x.amount) : t, 0), after = bankBal[k]-used;
       el.innerHTML = `مانده‌یِ بانک: ${fmt(bankBal[k],0)} ← پس از این حواله: <b style="color:${after<0?'var(--danger)':'inherit'}">${fmt(after,0)}</b>`; });
     $('#chTot').innerHTML = T>0 ? `ما به تأمین‌کننده می‌دهیم: <b>${fmtRial(T)}</b>${H>0?` ÷ ${fmt(H,0)} = <b>${fmtYuan(T/H)}</b>`:''}` : '';
+    const pyY = (H>0 && A>0) ? T/H - T/A : 0;   // یوانِ مازاد = سودِ اختلافِ نرخ
     $('#chNeed').innerHTML = (T>0 && H>0) ? `<div style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:rgba(46,109,164,.07);font-size:12px;line-height:1.9">
-        مشتری باید بدهد: <b>${fmtYuan(T/H)} × ${fmt(A,0)} = ${fmtRial(N)}</b>${Math.abs(N-T)>0.5 ? ` · سودِ ما (اختلافِ نرخ) = <b>${fmtRial(N-T)}</b>${N<T?' <span style="color:var(--danger)">⚠️ زیان</span>':''} — در بانک می‌ماند` : ''}</div>` : '';
+        مشتری باید بدهد: <b>${fmtRial(T)}</b> ÷ ${fmt(A,0)} = <b>${fmtYuan(T/A)}</b> یوانِ مشتری${pyY>0.0001 ? `<br>💰 یوانِ مازادِ شرکت (سودِ اختلافِ نرخ) = ${fmtYuan(T/H)} − ${fmtYuan(T/A)} = <b>${fmtYuan(pyY)}</b> — نزدِ تأمین‌کننده با نامِ «سودِ اختلافِ نرخ» ثبت می‌شود` : ''}${pyY<-0.0001 ? ' <span style="color:var(--danger)">⚠️ نرخِ اعلامی از نرخِ حواله کمتر است (زیان)</span>' : ''}</div>` : '';
     if(!cEdited) $('#chC').value = L>0 ? fmt(L,0) : '';
     $('#chS').value = S>0 ? fmt(S,0) : '';
     let html = '';
     if(c && s && T>0 && H>0 && L>0){
-      const yC = L/A, heldRial = Math.min(T, Math.round(L*H/A) + S), profit = Math.round(L - L*H/A);
+      const yC = L/A, heldRial = Math.min(T, Math.round(L*H/A) + S), profit = Math.round(((T/H) - (T/A))*H);
       html = `<div style="padding:8px 10px;border:1px dashed var(--border);border-radius:8px;line-height:1.95"><div style="font-weight:700">با «ثبت» این اتفاق می‌افتد:</div>
         ۱) حواله‌یِ تازه به «${fxc_esc(s)}»: ${fmtRial(T)} ÷ ${fmt(H,0)} = <b>${fmtYuan(T/H)}</b> (از ${rows.filter(r=>num(r.amount)>0).length} ردیفِ بانکی).<br>
         ۲) ${fmtRial(L)} از واریزی‌هایِ راکدِ «${fxc_esc(c)}» (قدیمی‌ترین اول) به این حواله لینک می‌شود. یوانِ او = ${fmtRial(L)} ÷ ${fmt(A,0)}${Ac>0?' (نرخِ اعلامی)':''} = <b>${fmtYuan(yC)}</b>.<br>
-        ${Math.abs(profit)>0 ? `۳) سودِ اختلافِ نرخ: <b>${fmtRial(profit)}</b> (ریالِ مشتری − ریالی که برایِ یوانِ او به تأمین‌کننده رفت).<br>` : ''}
+        ${Math.abs(profit)>0 ? `۳) 💰 سودِ اختلافِ نرخ: <b>${fmtYuan(T/H - T/A)}</b> (≈ ${fmtRial(profit)}) یوانِ مازادِ شرکت نزدِ «${fxc_esc(s)}» — در حسابِ تأمین‌کننده با نامِ «سودِ اختلافِ نرخ» دیده می‌شود.<br>` : ''}
         ${S>0 ? `۴) برداشت از سرمایه‌یِ شرکت: <b>${fmtRial(S)}</b> (${fmtYuan(S/H)}) → «💼 پولِ شرکت برایِ ${fxc_esc(c)}» (فقط مدیریت می‌بیند؛ وقتی مشتری پولش را داد، با «💰 تسویه» به حسابش می‌رود).<br>` : ''}
         ۵) نزدِ «${fxc_esc(s)}» برایِ «${fxc_esc(c)}» <b>${fmtYuan(heldRial/H)} نگه‌داری</b> می‌شود؛ فاکتورهایِ ${fxc_esc(s)} را تسویه نمی‌کند. هر وقت برایِ او پیش‌فاکتور/فاکتور و خریدِ مربوط ثبت شد، از همین یوان مصرف می‌شود.
         <div style="color:var(--ink-soft)">به حواله‌هایِ قبلی دست نمی‌زند.</div></div>`;
@@ -6154,12 +6165,12 @@ async function openCustomerHoldModal(){
     const cust = $('#chCustIn').value.trim(); let sup = $('#chSupIn').value.trim();
     const {H, A} = rates(), Ac = num($('#chRateC').value), date = $('#chDate').value.trim(), note = $('#chNote').value.trim();
     const contribs = rows.filter(r=>num(r.amount)>0).map(r=>({account: r.account||null, rial_amount: Math.round(num(r.amount))}));
-    const T = contribs.reduce((s,x)=>s+x.rial_amount,0), L = Math.round(cNow()), N = (T/H)*A;
+    const T = contribs.reduce((s,x)=>s+x.rial_amount,0), L = Math.round(cNow()), N = T;
     const S = Math.min(Math.round(Math.max(N - L, 0) * H / A), T);
     const similar = (typeof findSimilarExistingName === 'function') ? findSimilarExistingName(sup, supNames) : null;
     if(similar && similar !== sup && confirm(`⚠️ تأمین‌کننده‌ای با نامِ خیلی مشابه («${similar}») از قبل هست. منظورتان همان است؟\n«تأیید» = بله، «${similar}».\n«انصراف» = نه، «${sup}» نامِ تازه است.`)) sup = similar;
     const heldRial = Math.min(T, Math.round(L*H/A) + S);
-    if(!confirm(`حواله‌یِ تازه به «${sup}»: ${fmt(T,0)} ریال ÷ ${fmt(H,0)} = ${fmt(T/H,4)} یوان.\nپولِ «${cust}» (لینک به واریزی‌هایِ راکد): ${fmt(L,0)} ریال${Ac>0&&A!==H?` (نرخِ اعلامی ${fmt(A,0)} ⇒ ${fmt(L/A,4)} یوان)`:''}${S>0?`\nبرداشت از سرمایه‌یِ شرکت: ${fmt(S,0)} ریال`:''}\nنزدِ «${sup}» برایِ او ${fmt(heldRial/H,4)} یوان نگه‌داری شود؟`)) return;
+    if(!confirm(`حواله‌یِ تازه به «${sup}»: ${fmt(T,0)} ریال ÷ ${fmt(H,0)} = ${fmt(T/H,4)} یوان.\nپولِ «${cust}» (لینک به واریزی‌هایِ راکد): ${fmt(L,0)} ریال${Ac>0&&A!==H?` (نرخِ اعلامی ${fmt(A,0)} ⇒ ${fmt(L/A,4)} یوان)`:''}${S>0?`\nبرداشت از سرمایه‌یِ شرکت: ${fmt(S,0)} ریال`:''}${Math.abs(T/H-T/A)>0.0001?`\nیوانِ مازادِ شرکت (سودِ اختلافِ نرخ): ${fmt(T/H-T/A,4)} یوان`:''}\nنزدِ «${sup}» برایِ او ${fmt(heldRial/H,4)} یوان نگه‌داری شود؟`)) return;
     $('#chSave').disabled = true;
     // تخصیص از واریزی‌هایِ تیک‌خورده، قدیمی‌ترین اول
     let rem = L; const allocs = [];
