@@ -6161,7 +6161,7 @@ async function openCustomerHoldModal(prefCustomer){
         ۵) نزدِ «${fxc_esc(s)}» برایِ «${fxc_esc(c)}» <b>${fmtYuan(heldRial/H)} نگه‌داری</b> می‌شود؛ فاکتورهایِ ${fxc_esc(s)} را تسویه نمی‌کند. هر وقت برایِ او پیش‌فاکتور/فاکتور و خریدِ مربوط ثبت شد، از همین یوان مصرف می‌شود.
         <div style="color:var(--ink-soft)">به حواله‌هایِ قبلی دست نمی‌زند.</div></div>`;
       const partial = pays.filter(p=>picked.has(p.id) && Number(p.freeRial) < Number(p.rialAmount)-0.5);
-      if(Ac>0 && Math.abs(A-H)>0.001 && partial.length) html += `<div style="color:var(--ink-soft);margin-top:4px">ℹ️ ${partial.length} واریزیِ تیک‌خورده قبلاً بخشی‌اش خرج شده؛ نرخِ اعلامی روی کلِ آن واریزی ذخیره می‌شود.</div>`;
+      if(Ac>0 && Math.abs(A-H)>0.001 && partial.length) html += `<div style="color:var(--ink-soft);margin-top:4px">ℹ️ ${partial.length} واریزیِ تیک‌خورده قبلاً بخشی‌اش خرج شده؛ نرخِ اعلامی روی کلِ آن واریزی ذخیره می‌شود، ولی بخشی که قبلاً «از موجودیِ شرکت» فروخته شده با نرخِ فروشِ خودش می‌ماند.</div>`;
     }
     $('#chSum').innerHTML = html + (errs.length ? `<div style="color:var(--danger);margin-top:6px">⚠️ ${[...new Set(errs)].join('<br>⚠️ ')}</div>` : '');
     $('#chSave').disabled = !!errs.length;
