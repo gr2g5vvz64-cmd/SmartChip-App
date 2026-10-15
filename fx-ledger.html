@@ -227,7 +227,7 @@
   .main{ flex:1; min-width:0; padding:28px 32px 60px; }
   .page-head{ margin-bottom:22px; }
   .page-title{ font-size:21px; font-weight:800; margin:0 0 4px; }
-  .fx-note{ font-size:10.5px; color:var(--ink-soft); font-weight:400; margin-top:3px; white-space:normal; max-width:200px; }
+  .fx-note{ font-size:10.5px; color:var(--ink-soft); font-weight:400; margin-top:3px; white-space:normal; max-width:260px; line-height:1.5; }
   .fx-docid{ font-size:10px; color:var(--ink-soft); opacity:.75; font-weight:600; direction:ltr; margin-top:2px; }
   .page-desc{ font-size:13px; color:var(--ink-soft); margin:0; }
 
@@ -2849,7 +2849,7 @@ async function renderHawales(main, skipLoad){
             return `<tr data-hawale-row="${h.id}">
             <td class="num"><span class="status-chip closed" style="font-weight:800">#${h.id}</span></td>
             <td class="date-cell">${h.date}</td>
-            <td><strong>${h.supplier_name}</strong>${h.note?`<div class="fx-note">📝 ${fxc_esc(h.note)}</div>`:''}${Number(h.own_rial)>0?`<div class="fx-note">💼 از پولِ مازادِ خودمان: ${fmtRial(h.own_rial)}</div>`:''}${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
+            <td style="min-width:170px"><strong>${h.supplier_name}</strong>${h.note?`<div class="fx-note">📝 ${fxc_esc(h.note)}</div>`:''}${Number(h.own_rial)>0?`<div class="fx-note">💼 از پولِ مازادِ خودمان: ${fmtRial(h.own_rial)}</div>`:''}${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
               const acc = state.accounts.find(a=>a.id===c.account);
               return `<div style="font-size:11px">${acc?acc.displayName:(state.directAccountId && c.account===state.directAccountId ? '🏧 مستقیم از مشتری به صراف' : '⚠️ منبعِ نامعلوم')}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
