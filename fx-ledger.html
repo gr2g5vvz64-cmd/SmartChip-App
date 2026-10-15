@@ -227,6 +227,7 @@
   .main{ flex:1; min-width:0; padding:28px 32px 60px; }
   .page-head{ margin-bottom:22px; }
   .page-title{ font-size:21px; font-weight:800; margin:0 0 4px; }
+  .fx-note{ font-size:10.5px; color:var(--ink-soft); font-weight:400; margin-top:3px; white-space:normal; max-width:200px; }
   .fx-docid{ font-size:10px; color:var(--ink-soft); opacity:.75; font-weight:600; direction:ltr; margin-top:2px; }
   .page-desc{ font-size:13px; color:var(--ink-soft); margin:0; }
 
@@ -993,7 +994,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.23-6';
+const FX_BUILD = '1405.07.23-7';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -1778,7 +1779,7 @@ async function renderCustomerLedger(main, cachedData){
             return filteredOrders.length===0 ? `<tr class="empty-row"><td colspan="10">${customerOrdersSearchQuery?'چیزی پیدا نشد':'هنوز فاکتوری ثبت نشده'}</td></tr>` :
             filteredOrders.map(o=>`<tr>
             <td>${o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور'}</td>
-            <td class="num">${o.invoiceNo||'—'}<div class="fx-docid" title="شمارهٔ سیستمیِ پیش‌فاکتور — در تحلیل‌ها با همین شماره ارجاع می‌دهم">#${o.orderId}</div></td>
+            <td class="num">${o.invoiceNo||'—'}<div class="fx-docid" title="شمارهٔ سیستمیِ پیش‌فاکتور — در تحلیل‌ها با همین شماره ارجاع می‌دهم">#${o.id}</div>${o.note?`<div class="fx-note">${fxc_esc(o.note)}</div>`:''}</td>
             <td class="date-cell">${o.date}</td>
             <td class="num">${fmtYuan(o.yuanAmount)}</td>
             <td class="num">${fmtYuan(o.remainingYuan)}</td>
@@ -2848,7 +2849,7 @@ async function renderHawales(main, skipLoad){
             return `<tr data-hawale-row="${h.id}">
             <td class="num"><span class="status-chip closed" style="font-weight:800">#${h.id}</span></td>
             <td class="date-cell">${h.date}</td>
-            <td><strong>${h.supplier_name}</strong>${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
+            <td><strong>${h.supplier_name}</strong>${h.note?`<div class="fx-note">📝 ${fxc_esc(h.note)}</div>`:''}${Number(h.own_rial)>0?`<div class="fx-note">💼 از پولِ مازادِ خودمان: ${fmtRial(h.own_rial)}</div>`:''}${h.affectsLockedOrder?' <span class="tag danger" title="این حواله به مشتری‌ای با فاکتورِ قفل‌شده مرتبط است — با احتیاط ویرایش کنید">🔒</span>':''}</td>
             <td>${h.contributions.map(c=>{
               const acc = state.accounts.find(a=>a.id===c.account);
               return `<div style="font-size:11px">${acc?acc.displayName:(state.directAccountId && c.account===state.directAccountId ? '🏧 مستقیم از مشتری به صراف' : '⚠️ منبعِ نامعلوم')}: <span class="num">${fmt(c.rial_amount,0)}</span></div>`;
