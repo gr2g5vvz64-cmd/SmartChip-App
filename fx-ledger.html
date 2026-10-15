@@ -333,6 +333,8 @@
   .modal.modal-xl{ max-width:1080px; }
   .form-grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
   @media(max-width:700px){ .modal.modal-landscape{ max-width:420px; } .modal.modal-xl{ max-width:96vw; } .form-grid-3{ grid-template-columns:1fr; } }
+  /* ⚠️ (۱۴۰۵/۰۷/۲۳) فرمِ «نگه‌داریِ یوان» در موبایل: ستون‌ها زیرِ هم، ردیفِ بانک بدونِ سرریز */
+  @media(max-width:700px){ .chold-modal .form-row{ grid-template-columns:1fr; } .chold-modal #chRows .contrib-row{ grid-template-columns:1fr auto; } .chold-modal #chRows .contrib-row select{ grid-column:1/-1; min-width:0; } .chold-modal #chRows .contrib-row input{ min-width:0; width:100%; } .chold-modal select, .chold-modal input{ max-width:100%; } }
   .contrib-row{ display:grid; grid-template-columns:2fr 1fr auto; gap:8px; align-items:center; margin-bottom:6px; }
   /* ⚠️ (۱۴۰۵/۰۷/۱۴) ردیفِ «منبعِ ریالِ حواله»: مشتری | مانده‌یِ ریاليِ دستِ ما | مبلغِ این حواله | ✕ */
   .split-row{ display:grid; grid-template-columns:2fr 1.5fr 1.4fr auto; gap:8px; align-items:center; margin-bottom:6px; }
@@ -6014,7 +6016,7 @@ async function openCustomerHoldModal(prefCustomer){
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `
-    <div class="modal" style="max-width:900px">
+    <div class="modal chold-modal" style="max-width:900px">
       <h3>🏦 نگه‌داریِ پولِ مشتری نزدِ تأمین‌کننده <button class="icon-btn" type="button" data-help="cust-hold" title="راهنمایِ این پنجره" style="font-size:11px">❓ راهنما</button></h3>
       <p class="page-desc">مشتری پول داده و می‌گوید: «در حسابم نزدِ یکی از تأمین‌کننده‌هایت در چین نگه‌دار تا برایِ پیش‌فاکتور یا فاکتورِ بعدی از آن برداشت شود». این فرم یک <b>حواله‌یِ تازه</b> می‌زند و <b>یوانِ مشتری را به نامِ او نزدِ تأمین‌کننده نگه‌داری</b> می‌کند. ربطی به حواله‌هایِ قبلی ندارد.</p>
       <datalist id="chCust">${custNames.map(n=>`<option value="${fxc_esc(n)}"></option>`).join('')}</datalist>
