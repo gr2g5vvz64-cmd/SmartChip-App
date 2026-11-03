@@ -994,7 +994,7 @@ function fxFingerprint(obj){
 // ⚠️ (۱۴۰۵/۰۷/۱۴) طبقِ درخواستِ صریحِ کاربر: نوارِ کناری شفاف‌تر شد — «ثبتِ سریع» جدا و رنگی در بالا، و بعد بخش‌هایِ
 // همیشه‌باز با عنوان و آیکنِ هر مورد (به‌جایِ آکاردئونِ هم‌شکل). شناسه‌ها (id) و عمل‌ها (action) همان قبلی‌اند.
 // ⚠️ شناسه‌یِ نسخه — برایِ اینکه (مخصوصاً رویِ گوشی) معلوم باشد کدام نسخه بالا آمده؛ در «❓ راهنما» پایینِ پنجره دیده می‌شود
-const FX_BUILD = '1405.07.23-8';
+const FX_BUILD = '1405.07.23-9';
 // ⚠️ (۱۴۰۵/۰۷/۲۱) «واریز مستقیم به صراف»: حسابِ مجازیِ سمتِ سرور (نباید در انتخابِ حساب‌ها یا فهرستِ حساب‌ها دیده شود)
 const FX_DIRECT_BANK = 'واریز مستقیم به صراف';
 const NAV_QUICK = [
@@ -1789,7 +1789,7 @@ async function renderCustomerLedger(main, cachedData){
             <td>${o.isLocked
               ? '<span class="status-chip closed" data-locked-row="order-'+o.id+'">🔒 قفل‌شده</span> <button class="icon-btn" data-unlock-order="'+o.id+'" style="font-size:10px">بازکردن</button><div class="fx-lockinfo" data-lockinfo="order-'+o.id+'"></div>'
               : (o.closed ? '<button class="btn btn-primary btn-sm" data-lock-order="'+o.id+'">🔒 قفل کن (ثبت در هلو)</button>' : '<span style="color:var(--ink-soft);font-size:11px">هنوز بسته نشده</span>')}</td>
-            <td><button class="icon-btn" data-edit-order="${o.id}">ویرایش</button> <button class="icon-btn" data-del-order="${o.id}">حذف</button> <button class="icon-btn" data-hist-order="${o.id}">📜</button></td>
+            <td><button class="icon-btn" data-edit-order="${o.id}">ویرایش</button> <button class="icon-btn" data-del-order="${o.id}">حذف</button> <button class="icon-btn" data-hist-order="${o.id}">📜</button> <button class="icon-btn" data-links-order="${o.id}" title="کدام واریزی‌ها و حواله‌ها به این فاکتور وصل‌اند">🔗 لینک‌ها</button></td>
           </tr>`).join('');
           })()}
         </tbody>
@@ -1832,7 +1832,7 @@ async function renderCustomerLedger(main, cachedData){
             return filteredEvents.length===0 ? `<tr class="empty-row"><td colspan="11">چیزی پیدا نشد</td></tr>` :
             fxWithMemo(filteredEvents, data.companyMoney).map(e=>`<tr${e._dim?' data-mgmt-only':''} style="${e._dim?'color:var(--dim-ink);font-style:italic;background:var(--dim-bg);':''}${e.pending?'background:var(--pend-bg)':''}">
             <td class="date-cell" style="text-align:center">${e.date}</td>
-            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${(e.id && ['order','payment','income','opening'].includes(e.type)) ? `<div class="fx-docid" title="شمارهٔ سیستمیِ این ردیف — در تحلیل‌ها با همین شماره ارجاع می‌دهم">#${e.id}</div>` : ''}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <span style="font-size:9.5px">(بدونِ اثر رویِ مانده)</span><button class="btn btn-primary btn-sm" type="button" data-settle-company style="display:block;width:auto;margin:5px auto 0;padding:4px 12px;font-size:11px;font-style:normal;white-space:nowrap" title="با واریزیِ این مشتری تسویه شود (واریزی‌ها را خودت انتخاب می‌کنی)">💰 تسویه</button>` : ''}</td>
+            <td class="col-right" style="text-align:center;max-width:110px;font-size:11px">${e.type==='order'?'📄 ':(e.type==='income'?'💵 ':(e.type==='opening'?'🏁 ':(e.type==='advance'?'':'💰 ')))}${e.desc}${e.type==='payment' ? ` <button class="icon-btn" data-links-pay="${e.id}" style="font-size:9.5px" title="این واریزی به کدام حواله و فاکتور وصل است">🔗</button>` : ''}${(e.id && ['order','payment','income','opening'].includes(e.type)) ? `<div class="fx-docid" title="شمارهٔ سیستمیِ این ردیف — در تحلیل‌ها با همین شماره ارجاع می‌دهم">#${e.id}</div>` : ''}${e.type==='opening' ? ` <button class="icon-btn" data-edit-opening="${e.id}" style="font-size:9.5px">ویرایش</button> <button class="icon-btn" data-del-opening="${e.id}" style="font-size:9.5px">حذف</button>` : ''}${e.type==='advance' ? ` <span style="font-size:9.5px">(بدونِ اثر رویِ مانده)</span><button class="btn btn-primary btn-sm" type="button" data-settle-company style="display:block;width:auto;margin:5px auto 0;padding:4px 12px;font-size:11px;font-style:normal;white-space:nowrap" title="با واریزیِ این مشتری تسویه شود (واریزی‌ها را خودت انتخاب می‌کنی)">💰 تسویه</button>` : ''}</td>
             <td class="num col-group-rial">${e.type==='order' ? (e.rial_debit!==null?fmtRial(e.rial_debit):'— (هنوز بسته نشده)') : (((e.type==='opening' || e.type==='advance') && e.rial_debit!=null) ? fmtRial(e.rial_debit) : '—')}</td>
             <td class="num col-group-rial">${(e.type==='order' || e.type==='advance') ? '—' : ((e.type==='opening' && e.rial_credit==null) ? '—' : fmtRial(e.rial_credit))}</td>
             <td class="num col-group-rial col-group-end">${fmtRial(e.runningRial)}</td>
@@ -1918,6 +1918,13 @@ async function renderCustomerLedger(main, cachedData){
       </div>`;
     document.body.appendChild(backdrop);
     backdrop.querySelector('#closeRateBreakdownBtn').addEventListener('click', ()=>backdrop.remove());
+  }));
+  main.querySelectorAll('[data-links-order]').forEach(b=>b.addEventListener('click', ()=>{
+    const o = (data.orderStatus||[]).find(x=>String(x.id)===b.dataset.linksOrder);
+    if(o) fxShowOrderLinks(o, data.paymentLinks);
+  }));
+  main.querySelectorAll('[data-links-pay]').forEach(b=>b.addEventListener('click', ()=>{
+    fxShowPaymentLinks((data.paymentLinks||[]).find(x=>String(x.id)===b.dataset.linksPay));
   }));
   main.querySelector('#customerOrdersSearchInput').addEventListener('input', (e)=>{
     customerOrdersSearchQuery = e.target.value;
@@ -2348,7 +2355,7 @@ async function renderPayments(main, skipLoad){
               <td class="num">${fmt(p.rate_at_payment,0)}</td>
               <td>${p.manual_order ? '<span class="tag danger">فاکتور #'+p.manual_order+' (دستی)</span>' : '<span class="tag neutral">خودکار (FIFO)</span>'}</td>
               <td>${linkedHawales.length ? `<span class="status-chip closed" title="${linkedHawales.map(h=>h.date+' — '+h.supplier_name).join('، ')}">✅ لینک‌شده${linkedHawales.length>1?' ('+linkedHawales.length+' حواله)':''}</span>` : '<span class="status-chip open">⏳ بدونِ حواله</span>'}</td>
-              <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button> <button class="icon-btn" data-hist-payment="${p.id}">📜</button></td>
+              <td><button class="icon-btn" data-edit-payment="${p.id}">ویرایش</button> <button class="icon-btn" data-del-payment="${p.id}">حذف</button> <button class="icon-btn" data-hist-payment="${p.id}">📜</button> <button class="icon-btn" data-links-payment="${p.id}" data-links-cust="${fxc_esc(p.customer_name)}" title="به کدام حواله و فاکتور وصل است">🔗 لینک‌ها</button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -2373,6 +2380,13 @@ async function renderPayments(main, skipLoad){
     xlsxDownload('پرداخت‌های-مشتریان.xlsx', 'پرداخت‌ها', rows);
   });
   main.querySelector('#addPaymentBtn').addEventListener('click', ()=>openPaymentModal());
+  main.querySelectorAll('[data-links-payment]').forEach(b=>b.addEventListener('click', async ()=>{
+    b.disabled = true;
+    try{
+      const d = await apiGetCustomerLedger(b.dataset.linksCust, 'hawale');
+      fxShowPaymentLinks(d && (d.paymentLinks||[]).find(x=>String(x.id)===b.dataset.linksPayment));
+    } finally { b.disabled = false; }
+  }));
   main.querySelectorAll('[data-edit-payment]').forEach(b=>b.addEventListener('click',()=>{
     const p = state.payments.find(x=>x.id==b.dataset.editPayment);
     if(isDirectPayment(p)){ const dd=(state.direct||[]).find(x=>x.paymentId==p.id); if(dd) return openDirectModal(dd); }
@@ -5978,6 +5992,43 @@ function fxWithMemo(events, cm){
   return out;
 }
 // اگر سرور هنوز views.py قدیمی را دارد (ردیفِ «advance» با اثرِ واقعی می‌فرستد)، اینجا کنار گذاشته می‌شود و مانده‌ها از نو حساب می‌شوند
+
+// ⚠️ (۱۴۰۵/۰۸/۱۲) «ریزِ لینک‌ها» — فقط نمایش: هر واریزی به کدام حواله و کدام فاکتور وصل است
+function fxLinkOrderLabel(o){ return (o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور') + (o.invoiceNo ? ' '+fxc_esc(o.invoiceNo) : '') + ' <span class="fx-docid" style="display:inline">#'+o.orderId+'</span> — '+fxc_esc(o.date||''); }
+function fxLinkHawaleLabel(h){ return '🔄 حواله <b>#'+h.hawaleId+'</b> · '+fxc_esc(h.supplier||'')+' · نرخ '+fmt(h.rate,0)+(h.fromStock?' <span class="tag">از موجودیِ شرکت</span>':'')+' · '+fmtRial(h.rial); }
+function fxShowLinksModal(title, bodyHtml){
+  const bd = document.createElement('div'); bd.className = 'modal-backdrop';
+  bd.innerHTML = '<div class="modal" style="max-width:680px"><h3>'+title+'</h3>'+bodyHtml+'<div class="modal-actions"><button class="btn btn-ghost" data-close>بستن</button></div></div>';
+  document.body.appendChild(bd);
+  bd.addEventListener('click', e=>{ if(e.target===bd || e.target.hasAttribute('data-close')) bd.remove(); });
+}
+function fxShowPaymentLinks(pl){
+  if(!pl){ showToast('اطلاعاتِ لینکِ این واریزی پیدا نشد'); return; }
+  const hs = (pl.hawales||[]).length ? pl.hawales.map(h=>'<div style="margin:4px 0">'+fxLinkHawaleLabel(h)+'</div>').join('') : '<div class="page-desc">به هیچ حواله‌ای وصل نیست (هنوز راکد).</div>';
+  const os = (pl.orders||[]).length ? '<table><thead><tr><th>فاکتور / پیش‌فاکتور</th><th>یوانی که از این واریزی پوشش داده</th><th>ریال</th></tr></thead><tbody>'
+      + pl.orders.map(o=>'<tr><td>'+fxLinkOrderLabel(o)+'</td><td class="num">'+fmtYuan(o.yuan)+'</td><td class="num">'+fmtRial(o.rial)+'</td></tr>').join('') + '</tbody></table>'
+      : '<div class="page-desc">هنوز به هیچ فاکتوری تخصیص نیافته (پولِ مشتری است ولی فاکتورِ بازی نیست، یا هنوز به حواله وصل نشده).</div>';
+  fxShowLinksModal('🔗 واریزی #'+pl.id+' — '+fxc_esc(pl.date)+' — '+fmtRial(pl.rial),
+    '<div class="section-title" style="margin-top:6px">به کدام حواله‌ها وصل است</div>'+hs
+    +(pl.pendingRial>0.5 ? '<div class="tag danger" style="margin:8px 0">⚠️ '+fmtRial(pl.pendingRial)+' هنوز به حواله لینک نشده</div>' : '')
+    +(pl.suggestedRate ? '<div class="page-desc">نرخِ پیشنهادی/اعلامی به مشتری: '+fmt(pl.suggestedRate,0)+'</div>' : '')
+    +'<div class="section-title" style="margin-top:14px">کدام فاکتورها را پوشش داده</div>'+os
+    +(pl.manualOrderId ? '<div class="page-desc">تخصیصِ دستی به فاکتور #'+pl.manualOrderId+'</div>' : '<div class="page-desc">تخصیصِ به فاکتورها: خودکار (FIFO — قدیمی‌ترین فاکتورِ باز اول).</div>'));
+}
+function fxShowOrderLinks(o, paymentLinks){
+  const map = {}; (paymentLinks||[]).forEach(p=>{ map[p.id]=p; });
+  const rows = (o.links||[]).map(l=>{
+    const pl = map[l.paymentId]; const hs = pl ? (pl.hawales||[]) : [];
+    return '<tr><td>واریزی <b>#'+l.paymentId+'</b><div class="fx-docid">'+fxc_esc(pl?pl.date:'')+'</div></td>'
+      +'<td class="num">'+fmtRial(l.rial)+'</td><td class="num">'+fmtYuan(l.yuan)+'</td>'
+      +'<td style="font-size:11px">'+(hs.length ? hs.map(h=>'🔄 #'+h.hawaleId+' '+fxc_esc(h.supplier||'')+' @'+fmt(h.rate,0)).join('<br>') : '<span class="page-desc">بدونِ حواله</span>')+'</td></tr>';
+  }).join('');
+  fxShowLinksModal('🔗 '+(o.orderType==='invoice'?'فاکتور':'پیش‌فاکتور')+' '+fxc_esc(o.invoiceNo||'')+' <span class="fx-docid" style="display:inline">#'+o.id+'</span> — '+fmtYuan(o.yuanAmount),
+    (rows ? '<table><thead><tr><th>واریزی</th><th>ریالِ این بخش</th><th>یوان</th><th>از کدام حواله</th></tr></thead><tbody>'+rows+'</tbody></table>'
+          : '<div class="page-desc">هنوز هیچ واریزی به این فاکتور تخصیص نیافته.</div>')
+    +'<div class="page-desc" style="margin-top:8px">مانده‌یِ این فاکتور: '+fmtYuan(o.remainingYuan)+'</div>');
+}
+
 function fxNormalizeCustomerLedger(data){
   if(!data || !Array.isArray(data.events) || !data.events.some(e=>e.type==='advance')) return data;
   const adv = data.events.filter(e=>e.type==='advance');
