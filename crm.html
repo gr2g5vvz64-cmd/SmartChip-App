@@ -561,6 +561,9 @@ html.m-compose .qf2-lbl{display:inline!important}
 html.m-compose .qf2-dir label{height:42px;display:flex;align-items:center;padding:0 14px!important;font-size:14px}
 html.m-compose .qf2-save{height:50px!important;font-size:16px!important;position:sticky;bottom:10px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 html.m-compose .qf2-tgl{height:42px}
+
+/* 🔴 فیلدِ الزامیِ خالی (بعد از زدنِ «ثبت مشتری») */
+.field-missing{border:2px solid #ef4444 !important;box-shadow:0 0 0 3px rgba(239,68,68,.28) !important;background:rgba(239,68,68,.07) !important}
 </style>
 <script>
   if(localStorage.getItem('smartchip_theme')==='light') document.documentElement.setAttribute('data-theme','light');
@@ -7066,6 +7069,8 @@ let _prospectNewContacts = [];
 function renderProspectCreateForm(c){
   _prospectNewContacts = [];
   _prospectNewAddresses = [];
+  _pNewShowErrors = false;
+  c.oninput = c.onchange = ()=>{ if(_pNewShowErrors) checkProspectFormValidity(); };   // با پر شدنِ هر فیلد، قرمزی‌اش برمی‌دارد
   c.innerHTML = `
     <div class="sec-title" style="margin-bottom:10px">🆕 ثبت مشتری بالقوه‌ی جدید</div>
 
@@ -7113,7 +7118,7 @@ function renderProspectCreateForm(c){
     </div>
 
     <div id="pNewMissingFields" style="font-size:10.5px;color:var(--red);margin-top:12px"></div>
-    <button class="btn btn-primary" id="pNewSubmitBtn" style="width:100%;margin-top:8px" onclick="submitNewProspect()" disabled>ثبت مشتری</button>
+    <button class="btn btn-primary" id="pNewSubmitBtn" style="width:100%;margin-top:8px" onclick="submitNewProspect()">ثبت مشتری</button>
     <div style="font-size:10px;color:var(--muted);margin-top:8px">بعد از ثبت، از «فرم جذب سریع» می‌تونی روش کار کنی (تماس، مراجعه، …).</div>
   `;
   addProspectAddressRow();
@@ -7139,15 +7144,14 @@ function onProspectCategoryChange(){
 // ⚠️ فیلدهای الزامی طبق تصمیم کاربر: فقط اسم+تلفن کافی نیست — استان، صنف،
 // و حداقل یه مخاطب با نام+همراه هم باید پر بشه تا دکمه‌ی ثبت فعال بشه.
 let _prospectWarningBlocking = false;
+let _pNewShowErrors = false;   // بعد از اولین «ثبت»ِ ناقص روشن می‌شود: فیلدهای خالی قرمز می‌شوند و با پر شدن، قرمزی برمی‌دارد
+function _pMark(el, bad){ if(el) el.classList.toggle('field-missing', !!(_pNewShowErrors && bad)); }
 function checkProspectFormValidity(){
   const btn = document.getElementById('pNewSubmitBtn');
   const missingBox = document.getElementById('pNewMissingFields');
   if(!btn) return;
-  const name = (document.getElementById('pNewName')||{}).value?.trim()||'';
-  const abbr = (document.getElementById('pNewAbbr')||{}).value?.trim()||'';
-  const phone1 = (document.getElementById('pNewPhone1')||{}).value?.trim()||'';
-  const province = (document.getElementById('pNewProvince')||{}).value?.trim()||'';
-  const category = (document.getElementById('pNewCategory')||{}).value?.trim()||'';
+  const $v = id => ((document.getElementById(id)||{}).value||'').trim();
+  const name = $v('pNewName'), abbr = $v('pNewAbbr'), phone1 = $v('pNewPhone1'), phone2 = $v('pNewPhone2'), province = $v('pNewProvince'), category = $v('pNewCategory');
   const hasValidContact = _prospectNewContacts.some(ct=>ct.name.trim() && ct.mobile.trim());
   const missing = [];
   if(!name) missing.push('نام مشتری');
@@ -7156,8 +7160,23 @@ function checkProspectFormValidity(){
   if(!province) missing.push('استان');
   if(!category) missing.push('صنف');
   if(!hasValidContact) missing.push('حداقل یک مخاطب (با نام و همراه)');
-  btn.disabled = missing.length>0 || _prospectWarningBlocking;
-  if(missingBox) missingBox.innerHTML = missing.length ? '⚠️ برای ثبت، این‌ها لازمه: '+missing.join('، ') : '';
+  // دکمه همیشه قابل‌زدن است؛ بعد از زدن، جای خالی‌ها قرمز نشان داده می‌شود
+  btn.disabled = false;
+  _pMark(document.getElementById('pNewName'), !name);
+  _pMark(document.getElementById('pNewAbbr'), !abbr);
+  _pMark(document.getElementById('pNewPhone1'), !phone1 || !isValid11DigitPhone(phone1));
+  _pMark(document.getElementById('pNewPhone2'), !!phone2 && !isValid11DigitPhone(phone2));
+  _pMark(document.getElementById('pNewProvince'), !province);
+  _pMark(document.getElementById('pNewCategory'), !category);
+  document.querySelectorAll('#pNewContactsBox tr').forEach((tr,idx)=>{
+    const ct = _prospectNewContacts[idx]; if(!ct) return;
+    const nmEl = tr.querySelector('.pc-name'), mbEl = tr.querySelector('.pc-mobile');
+    const rowTouched = !!(ct.name.trim() || ct.mobile.trim());
+    // اگر هیچ مخاطبِ کاملی نیست، ردیف‌های خالی هم قرمز می‌شوند؛ ردیفِ نیمه‌پر همیشه قرمزِ بخشِ ناقصش را می‌گیرد
+    _pMark(nmEl, !ct.name.trim() && (rowTouched || !hasValidContact));
+    _pMark(mbEl, !ct.mobile.trim() && (rowTouched || !hasValidContact));
+  });
+  if(missingBox) missingBox.innerHTML = (_pNewShowErrors && missing.length) ? '⚠️ برای ثبت، این‌ها لازمه: '+missing.join('، ') : '';
 }
 function isValid11DigitPhone(phone){
   const digits = (phone||'').replace(/\D/g,'');
@@ -7223,8 +7242,8 @@ function renderProspectContactsBox(){
       <td><select class="form-control" onchange="updateProspectContactField(${idx},'role',this.value)" style="min-width:130px">
         ${PROSPECT_CONTACT_ROLES.map(r=>`<option value="${r.key}" ${ct.role===r.key?'selected':''}>${r.label}</option>`).join('')}
       </select></td>
-      <td><input class="form-control" placeholder="نام طرف حساب *" value="${ct.name}" oninput="updateProspectContactField(${idx},'name',this.value)" style="min-width:130px"/></td>
-      <td><input class="form-control" placeholder="۱۱ رقمی *" value="${ct.mobile}" maxlength="11" oninput="updateProspectContactField(${idx},'mobile',this.value)" style="min-width:110px"/></td>
+      <td><input class="form-control pc-name" placeholder="نام طرف حساب *" value="${ct.name}" oninput="updateProspectContactField(${idx},'name',this.value)" style="min-width:130px"/></td>
+      <td><input class="form-control pc-mobile" placeholder="۱۱ رقمی *" value="${ct.mobile}" maxlength="11" oninput="updateProspectContactField(${idx},'mobile',this.value)" style="min-width:110px"/></td>
       <td><input class="form-control" placeholder="داخلی" value="${ct.extension}" style="max-width:80px" oninput="updateProspectContactField(${idx},'extension',this.value)"/></td>
       <td>${_prospectNewContacts.length>1?`<button onclick="removeProspectContactRow(${idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>`:''}</td>
     </tr>`).join('');
@@ -7331,9 +7350,16 @@ async function submitNewProspect(){
   const contacts = _prospectNewContacts.filter(ct=>ct.name.trim() && ct.mobile.trim());
   const addresses = _prospectNewAddresses.filter(a=>a.address.trim());
   if(!name || !abbr || !phone1 || !isValid11DigitPhone(phone1) || !province || !category || !contacts.length){
-    toast('⚠️ فیلدهای الزامی رو کامل کن'); checkProspectFormValidity(); return;
+    _pNewShowErrors = true; checkProspectFormValidity();
+    const firstBad = document.querySelector('#prospCreateView .field-missing');
+    if(firstBad){ firstBad.scrollIntoView({behavior:'smooth', block:'center'}); try{ firstBad.focus(); }catch(e){} }
+    toast('⚠️ جاهای قرمز رو کامل کن'); return;
   }
-  if(phone2 && !isValid11DigitPhone(phone2)){ toast('⚠️ تلفن شرکت ۲ باید ۱۱ رقمی باشه'); return; }
+  if(phone2 && !isValid11DigitPhone(phone2)){
+    _pNewShowErrors = true; checkProspectFormValidity();
+    const el = document.getElementById('pNewPhone2'); if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.focus(); }
+    toast('⚠️ تلفن شرکت ۲ باید ۱۱ رقمی باشه'); return;
+  }
   const res = await checkProspectNameDjango(name, phone1, phone2);
   const stillBlocking = (res.matches||[]).some(m=>!m.needs_management_approval || !_prospectApprovedRequestId);
   if(res.matches && res.matches.length && stillBlocking){ toast('⚠️ اول باید هشدار تکراری‌بودن رو برطرف کنی'); return; }
@@ -7360,6 +7386,7 @@ async function submitNewProspect(){
   _prospectApprovedRequestId=null;
   _prospectPendingRequestId=null;
   _prospectWarningBlocking=false;
+  _pNewShowErrors=false;
   _prospectNewContacts=[]; addProspectContactRow();
   _prospectNewAddresses=[]; addProspectAddressRow();
   checkProspectFormValidity();
