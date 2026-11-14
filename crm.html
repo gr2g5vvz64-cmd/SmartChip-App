@@ -7371,7 +7371,10 @@ function renderProspectQuickForm(c){
     <div class="dash-section" style="position:relative">
       <div class="sec-title" style="margin-bottom:12px">📞 فرم جذب سریع — ثبت تماس/فعالیت</div>
       <label class="form-label">نام مشتری (جستجو کن) *</label>
-      <input class="form-control" id="pQfSearch" oninput="searchProspectForQuickForm(this.value)" placeholder="اسم رو تایپ کن..." autocomplete="off" style="max-width:400px"/>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="form-control" id="pQfSearch" oninput="searchProspectForQuickForm(this.value)" placeholder="اسم رو تایپ کن..." autocomplete="off" style="max-width:400px;flex:1 1 220px"/>
+        <button type="button" class="btn btn-primary btn-sm" id="pQfNewBtn" onclick="goCreateProspectFromQuickForm()" style="display:none;white-space:nowrap">🆕 مشتری جدید — ساخت</button>
+      </div>
       <div id="pQfSearchAC" style="display:none;position:absolute;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;max-width:400px;width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.2)"></div>
       <div id="pQfSelectedBox" style="margin-top:14px"></div>
     </div>
@@ -7380,6 +7383,8 @@ function renderProspectQuickForm(c){
 let _pQfSelectedId=null;
 function searchProspectForQuickForm(val){
   const box = document.getElementById('pQfSearchAC');
+  const _nb = document.getElementById('pQfNewBtn');   // 🆕 دکمه‌ی «ساخت مشتری جدید» کنار فیلد (فقط وقتی اسم در هیچ لیستی نیست)
+  if(_nb) _nb.style.display='none';
   if(!val || val.trim().length<1){ box.style.display='none'; return; }
   const q = normalizeFa(val.trim());
   const qDigits = val.replace(/\D/g,'');
@@ -7408,7 +7413,16 @@ function searchProspectForQuickForm(val){
   }).map(c=>({source:'customer', name:c.name, phone:c.mobile||'', status:'old_customer', assigneeName:'', priority:String(c.priority||'').trim(), category:c.category||'', subcat:c.subcat||''}));
 
   const matches = [...prospectMatches, ...customerMatches].slice(0,12);
-  if(!matches.length){ box.style.display='none'; return; }
+  if(!matches.length){
+    // مشتری جدید است: دکمه کنار فیلد + یک ردیف در همان لیست
+    if(_nb && val.trim().length>=2){
+      _nb.style.display='';
+      _nb.textContent = '🆕 «'+val.trim().slice(0,22)+'» جدید است — ساخت مشتری';
+      box.style.display='block';
+      box.innerHTML = `<div onmousedown="goCreateProspectFromQuickForm()" style="padding:10px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--accent)">🆕 چیزی پیدا نشد — ساخت مشتری جدید با همین نام</div>`;
+    } else box.style.display='none';
+    return;
+  }
   box.style.display='block';
   box.innerHTML = matches.map((m,idx)=>`
     <div onmousedown="selectProspectForQuickForm(${idx})" data-idx="${idx}" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)">
@@ -7418,6 +7432,27 @@ function searchProspectForQuickForm(val){
         : m.status==='reserved'?`<span style="color:var(--muted);font-size:10px">(رزرو ${m.assigneeName})</span>`:'<span style="color:var(--green);font-size:10px">(آزاد)</span>'}
     </div>`).join('');
   window._pQfCurrentMatches = matches;
+}
+// 🆕 انتقال سریع از «فرم جذب سریع» به «ساخت مشتری» با همان نامی که تایپ شده (اگر عدد بود، به‌عنوان تلفن)
+function goCreateProspectFromQuickForm(){
+  const inp = document.getElementById('pQfSearch');
+  const typed = ((inp && inp.value) || '').trim();
+  if(!typed) return;
+  const ac = document.getElementById('pQfSearchAC'); if(ac) ac.style.display='none';
+  showCrmTab('prospCreate');   // فرم ساخت همان لحظه ساخته می‌شود؛ بعدش مقدارها را می‌گذاریم
+  const digits = typed.replace(/[\s\-]/g,'');
+  const isPhone = /^[0-9۰-۹]{4,}$/.test(digits);
+  const nameEl = document.getElementById('pNewName'), phEl = document.getElementById('pNewPhone1');
+  if(isPhone && phEl){
+    phEl.value = digits.replace(/[۰-۹]/g, d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    if(nameEl) nameEl.focus();
+  } else if(nameEl){
+    nameEl.value = typed;
+    const nx = document.getElementById('pNewAbbr'); if(nx) nx.focus();
+  }
+  if(typeof checkProspectNewLive==='function') checkProspectNewLive();
+  if(typeof checkProspectFormValidity==='function') checkProspectFormValidity();
+  if(typeof toast==='function') toast(isPhone ? '🆕 شماره منتقل شد — نام را کامل کن' : '🆕 نام منتقل شد — بقیه‌ی مشخصات را کامل کن');
 }
 let _pQfSelectedOldCustomer = null;
 function selectProspectForQuickForm(idx){
