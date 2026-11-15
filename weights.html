@@ -260,6 +260,31 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn,body.ro #pkgBtn{display:none!import
   .brand h1{font-size:15px}
   .foot .keys{display:none}
 }
+
+/* ⚖️ وزن‌های دیگر (تعدادِ متفاوت برایِ همین پارت) */
+.sheet td.rn{line-height:1.1}
+.sheet td.rn .xw{display:block;margin:2px auto 0;border:1px solid var(--grid-strong);background:var(--card);color:var(--muted2);border-radius:9px;font-size:9.5px;padding:1px 6px;line-height:1.3}
+.sheet td.rn .xw:hover{border-color:var(--brass);color:var(--ink)}
+.sheet td.rn .xw.has{background:var(--info);border-color:var(--info-line);color:var(--info-ink);font-weight:700}
+.xw-ov{position:fixed;inset:0;background:rgba(10,14,20,.6);z-index:60;display:none;align-items:center;justify-content:center;padding:14px}
+.xw-ov.show{display:flex}
+.xw-box{background:var(--sheet);border:1px solid var(--grid-strong);border-radius:14px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.xw-hd{padding:14px 16px;border-bottom:1px solid var(--grid);display:flex;gap:10px;align-items:center}
+.xw-hd b{font-size:14px}.xw-hd .pn{color:var(--info-ink);direction:ltr;unicode-bidi:plaintext;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.xw-x{border:0;background:none;color:var(--muted2);font-size:18px}
+.xw-bd{padding:14px 16px;overflow:auto}
+.xw-help{font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;line-height:1.8}
+.xw-row{display:grid;grid-template-columns:110px 110px 130px 1fr 28px;gap:8px;align-items:center;margin-bottom:8px}
+.xw-row.hd{font-size:10.5px;color:var(--muted2);margin-bottom:4px}
+.xw-row input,.xw-row select{width:100%;background:var(--card);border:1px solid var(--grid-strong);color:var(--ink);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;direction:ltr;text-align:left}
+.xw-row input.t{direction:rtl;text-align:right}
+.xw-row .per{grid-column:1 / -1;font-size:11px;color:var(--green-ink);margin:-3px 2px 2px}
+.xw-row .rm{border:0;background:none;color:var(--muted3);font-size:15px}.xw-row .rm:hover{color:var(--err-ink)}
+.xw-row.bad input,.xw-row input.bad{border-color:var(--err-ink);box-shadow:0 0 0 2px rgba(255,143,134,.25)}
+.xw-ft{padding:12px 16px;border-top:1px solid var(--grid);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.xw-ft .sp{flex:1}
+.xw-err{color:var(--err-ink);font-size:12px}
+@media(max-width:640px){.xw-row{grid-template-columns:1fr 1fr}.xw-row .rm{justify-self:end}.xw-row.hd{display:none}}
 </style>
 </head>
 <body>
@@ -363,6 +388,23 @@ body.ro .del,body.ro #addBtn,body.ro #dupBtn,body.ro #pkgBtn{display:none!import
   </div>
 </div>
 
+<div class="xw-ov" id="xwOv" role="dialog" aria-modal="true" aria-label="وزن‌های دیگر">
+  <div class="xw-box">
+    <div class="xw-hd"><b>⚖️ وزن‌های دیگر</b><span class="pn" id="xwPn"></span><button class="xw-x" id="xwClose" type="button" aria-label="بستن">✕</button></div>
+    <div class="xw-bd">
+      <p class="xw-help">اگر همین پارت با <b>تعدادِ متفاوت</b> وزنِ متفاوت دارد (مثلاً ریلِ ۴۰۰تایی ۱۲۰ گرم و ریلِ ۸۰۰تایی ۲۱۰ گرم)، اینجا ثبت کنید. «وزن» = وزنِ <b>کلِ همان تعداد</b> به گرم. ردیفِ اصلی و ستون‌هایش دست‌نخورده می‌ماند و Price List وقتی تعدادِ سفارش با یکی از این‌ها برابر باشد پیشنهادش می‌دهد.</p>
+      <div class="xw-row hd"><span>نوع</span><span>تعداد</span><span>وزنِ کل (g)</span><span>یادداشت</span><span></span></div>
+      <div id="xwList"></div>
+      <div class="xw-err" id="xwErr"></div>
+    </div>
+    <div class="xw-ft">
+      <button class="btn" id="xwAdd" type="button">＋ افزودنِ یک وزن</button>
+      <span class="sp"></span>
+      <button class="btn" id="xwCancel" type="button">انصراف</button>
+      <button class="btn primary" id="xwSave" type="button">ذخیره</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -633,7 +675,7 @@ function cellHtml(row, c){
 
 function rowHtml(row, idx){
   const ok = isVerified(queuedValue(row.id, 'verified') ?? row.verified);
-  return `<tr data-id="${row.id}" class="${ok ? 'ok' : ''}"><td class="rn">${idx}</td>${COLS.map(c => cellHtml(row, c)).join('')}<td class="del"><button type="button" data-del="${row.id}" title="حذفِ این ردیف" aria-label="حذفِ ردیف">🗑</button></td></tr>`;
+  return `<tr data-id="${row.id}" class="${ok ? 'ok' : ''}"><td class="rn">${idx}<button type="button" class="xw${(row.xw || []).length ? ' has' : ''}" data-xw="${row.id}" title="وزن‌های دیگر برای تعدادهای متفاوتِ همین پارت (مثلاً ریل ۴۰۰ و ریل ۸۰۰)">${(row.xw || []).length ? '×' + fa((row.xw || []).length + 1) : '＋⚖'}</button></td>${COLS.map(c => cellHtml(row, c)).join('')}<td class="del"><button type="button" data-del="${row.id}" title="حذفِ این ردیف" aria-label="حذفِ ردیف">🗑</button></td></tr>`;
 }
 
 function visibleRange(){
@@ -868,6 +910,78 @@ async function createPart(part){
     toast('✅ «' + d.row.part_number + '» اضافه شد — وزن‌هاش رو بنویسید');
   }catch(e){ toast('❌ سرور جواب نداد — قطعه اضافه نشد. دوباره امتحان کنید.', 4200); }
 }
+
+// ═══════════════════════════════ ⚖️ وزن‌های دیگر (تعدادِ متفاوت) ══════════════════════
+const XW_TYPES = [['reel', 'ریل (Reel)'], ['pack', 'سینی (Pack)'], ['tube', 'حلقه (Tube)'], ['bag', 'کیسه (BAG)'], ['box', 'جعبه (BOX)'], ['other', 'سایر']];
+const XW_MAX = 6;
+const XW = {id: 0, items: []};
+function xwNum(v){ const t = String(v ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٬,\s]/g, '').replace('٫', '.'); const n = parseFloat(t); return isFinite(n) ? n : 0; }
+function xwRender(){
+  const ro = !S.canEdit;
+  $('xwList').innerHTML = XW.items.length ? XW.items.map((it, i) => {
+    const q = xwNum(it.q), w = xwNum(it.w);
+    const per = q > 0 && w > 0 ? `وزنِ هر قطعه ≈ ${(w / q).toPrecision(4).replace(/\.?0+$/, '')} g` : '';
+    return `<div class="xw-row" data-i="${i}">
+      <select data-k="t" ${ro ? 'disabled' : ''}>${XW_TYPES.map(([k, l]) => `<option value="${k}"${it.t === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <input data-k="q" inputmode="decimal" value="${esc(it.q)}" placeholder="مثلاً 800" ${ro ? 'readonly' : ''}>
+      <input data-k="w" inputmode="decimal" value="${esc(it.w)}" placeholder="مثلاً 210" ${ro ? 'readonly' : ''}>
+      <input class="t" data-k="n" value="${esc(it.n || '')}" placeholder="یادداشت (اختیاری)" maxlength="60" ${ro ? 'readonly' : ''}>
+      ${ro ? '<span></span>' : '<button class="rm" type="button" data-rm="' + i + '" title="حذف">✕</button>'}
+      <div class="per" data-per="${i}">${per}</div></div>`;
+  }).join('') : '<p class="xw-help">هنوز وزنِ دیگری ثبت نشده.</p>';
+  $('xwAdd').style.display = ro ? 'none' : ''; $('xwSave').style.display = ro ? 'none' : '';
+  $('xwAdd').disabled = XW.items.length >= XW_MAX;
+}
+function openXw(id){
+  const row = S.byId.get(id); if (!row) return;
+  XW.id = id; XW.items = (row.xw || []).map(e => ({t: e.t || 'other', q: e.q, w: e.w, n: e.n || ''}));
+  $('xwPn').textContent = row.part_number; $('xwErr').textContent = '';
+  if (!XW.items.length && S.canEdit) XW.items.push({t: 'reel', q: '', w: '', n: ''});
+  xwRender(); $('xwOv').classList.add('show');
+  const f = $('xwList').querySelector('input[data-k="q"]'); if (f && S.canEdit) f.focus();
+}
+function closeXw(){ $('xwOv').classList.remove('show'); }
+async function saveXw(){
+  const err = $('xwErr'); err.textContent = '';
+  const items = [];
+  const seen = new Set();
+  let bad = false;
+  $('xwList').querySelectorAll('.xw-row').forEach(r => r.classList.remove('bad'));
+  XW.items.forEach((it, i) => {
+    const q = xwNum(it.q), w = xwNum(it.w), empty = !String(it.q).trim() && !String(it.w).trim() && !String(it.n || '').trim();
+    if (empty) return;                                   // ردیفِ کاملاً خالی نادیده گرفته می‌شود
+    const rowEl = $('xwList').querySelector(`.xw-row[data-i="${i}"]`);
+    const key = it.t + '|' + q;
+    if (q <= 0 || w <= 0 || seen.has(key)){ bad = true; if (rowEl) rowEl.classList.add('bad'); return; }
+    seen.add(key); items.push({t: it.t, q, w, n: (it.n || '').trim()});
+  });
+  if (bad){ err.textContent = '⚠️ تعداد و وزن باید عددِ بزرگ‌تر از صفر باشند و یک «نوع + تعداد» دوبار نیاید (ردیف‌های قرمز).'; return; }
+  const btn = $('xwSave'); btn.disabled = true;
+  try{
+    const r = await fetchT(SHEET_API + XW.id + '/', {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({extra_weights: items, _staff: S.email})});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok){ err.textContent = '❌ ' + (d.error || ('ذخیره نشد — HTTP ' + r.status)); return; }
+    const old = S.byId.get(XW.id); if (old) Object.assign(old, d.row);
+    closeXw(); renderWindow(true); toast(items.length ? `✅ ${fa(items.length)} وزنِ دیگر ذخیره شد` : '✅ وزن‌های دیگر پاک شد');
+  }catch(e){ err.textContent = '❌ سرور جواب نداد — دوباره امتحان کنید.'; }
+  finally{ btn.disabled = false; }
+}
+function initXw(){
+  $('xwClose').onclick = $('xwCancel').onclick = closeXw;
+  $('xwOv').addEventListener('mousedown', e => { if (e.target === $('xwOv')) closeXw(); });
+  $('xwAdd').onclick = () => { if (XW.items.length < XW_MAX){ XW.items.push({t: 'reel', q: '', w: '', n: ''}); xwRender(); const ins = $('xwList').querySelectorAll('input[data-k="q"]'); ins[ins.length - 1].focus(); } };
+  $('xwSave').onclick = saveXw;
+  $('xwList').addEventListener('input', e => {
+    const r = e.target.closest('.xw-row'); if (!r) return; const it = XW.items[+r.dataset.i], k = e.target.dataset.k; if (!it || !k) return;
+    it[k] = e.target.value;
+    const q = xwNum(it.q), w = xwNum(it.w);
+    r.querySelector('.per').textContent = q > 0 && w > 0 ? `وزنِ هر قطعه ≈ ${(w / q).toPrecision(4).replace(/\.?0+$/, '')} g` : '';
+  });
+  $('xwList').addEventListener('change', e => { const r = e.target.closest('.xw-row'); if (r && e.target.dataset.k === 't') XW.items[+r.dataset.i].t = e.target.value; });
+  $('xwList').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b){ XW.items.splice(+b.dataset.rm, 1); xwRender(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('xwOv').classList.contains('show')){ e.stopPropagation(); closeXw(); } }, true);
+}
+
 async function deleteRow(id){
   const row = S.byId.get(id); if (!row) return;
   if (!confirm(`ردیفِ «${row.part_number}» کامل حذف بشه؟\n(همه‌ی وزن‌هاش پاک می‌شه)`)) return;
@@ -1370,6 +1484,7 @@ function wire(){
   wireResize();
   wireDup();
   wirePkg();
+  initXw();
 
   $('fitBtn').onclick = resetWidths;
   $('exportBtn').onclick = exportXlsx;
@@ -1404,7 +1519,7 @@ function wire(){
   });
   tb.addEventListener('paste', onPaste);
   tb.addEventListener('input', e => { if (e.target.matches('textarea.pn')) fitPn(e.target); });
-  tb.addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b) deleteRow(+b.dataset.del); });
+  tb.addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b){ deleteRow(+b.dataset.del); return; } const x = e.target.closest('[data-xw]'); if (x) openXw(+x.dataset.xw); });
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey){
       const a = document.activeElement;

@@ -587,8 +587,40 @@ function pick(i){
   document.getElementById('cartonBox').style.display='block';
   document.getElementById('addBtn').textContent='🛒';
   document.getElementById('addBtn').className='add-btn';
+  autoPickExtra();
   renderWeight(ok);
   calc();
+}
+
+// ─── ⚖️ وزن‌های دیگر (تعدادِ متفاوت برایِ همین پارت؛ از وزن‌نامه: ردیف.x) ───
+const XT_FA={reel:'ریل',pack:'سینی',tube:'حلقه',bag:'کیسه',box:'جعبه',other:'بسته'};
+function extraGroups(r){
+  return ((r&&r.x)||[]).map((e,i)=>({key:'X'+i,label:(XT_FA[e.t]||'بسته')+' '+e.q,extra:e}));
+}
+function getExtra(key){
+  if(!sel||!sel.x||typeof key!=='string'||key[0]!=='X')return null;
+  return sel.x[parseInt(key.slice(1))]||null;
+}
+function orderQty(){return Math.max(parseFloat((document.getElementById('qty').value||'').replace(/,/g,''))||1,1);}
+function autoPickExtra(){   // وقتی تعدادِ سفارش دقیقاً با یکی از وزن‌هایِ ثبت‌شده برابر است، همان را انتخاب کن
+  if(!sel||!sel.x)return;
+  const q=orderQty(), i=sel.x.findIndex(e=>Number(e.q)===q);
+  if(i>=0)activeGrp='X'+i;
+}
+function extraRowsHtml(e){
+  const per=e.w/e.q;
+  return `<tr><td class="wk">تعداد</td><td class="wv">${e.q}</td></tr><tr><td class="wk">وزن کل (g)</td><td class="wv">${e.w}</td></tr><tr><td class="wk">وزن هر قطعه (g)</td><td class="wv">${+per.toPrecision(5)}</td></tr>`;
+}
+function updateXHint(){
+  const box=document.getElementById('xHint'); if(!box)return;
+  if(!sel||!sel.x||!sel.x.length||!activeGrp){box.innerHTML='';return;}
+  const q=orderQty(), hit=sel.x.findIndex(e=>Number(e.q)===q), cur=getExtra(activeGrp);
+  if(hit>=0&&activeGrp!=='X'+hit){
+    const e=sel.x[hit];
+    box.innerHTML=`<div style="margin-top:6px;font-size:10.5px;color:#fbbf24">💡 برای ${q} عدد وزنِ ثبت‌شده هست (${XT_FA[e.t]||'بسته'} ${e.q}) — <a href="#" onclick="setGrp('X${hit}');return false" style="color:var(--gold,#e5b94a);font-weight:700">استفاده</a></div>`;
+  } else if(cur&&Number(cur.q)!==q){
+    box.innerHTML=`<div style="margin-top:6px;font-size:10.5px;color:var(--muted)">ℹ️ این وزن برای ${cur.q} عدد ثبت شده؛ سفارشِ شما ${q} عدد است (وزنِ هر قطعه حساب می‌شود).</div>`;
+  } else box.innerHTML='';
 }
 
 // ─── WEIGHT RENDER ───
@@ -615,7 +647,7 @@ function renderWeight(ok){
       </table>`;
     return;
   }
-  const avail=GROUPS.filter(g=>gv(sel,g.wCol)!==null);
+  const avail=[...GROUPS.filter(g=>gv(sel,g.wCol)!==null),...extraGroups(sel)];
   if(!avail.length){
     // ستون‌های G تا V خالی — از E و F استفاده کن
     const ve=gv(sel,'e'), vf=gv(sel,'f');
@@ -642,14 +674,16 @@ function renderWeight(ok){
 function buildWeightTabs(avail){
   const ws=document.getElementById('weightSection');
   const tabs=avail.map(g=>
-    `<button class="wtb${g.key===activeGrp?' active':''}" onclick="setGrp('${g.key}')">${g.label}</button>`
+    `<button class="wtb${g.key===activeGrp?' active':''}" data-k="${g.key}" onclick="setGrp('${g.key}')">${g.label}</button>`
   ).join('');
+  const ex=getExtra(activeGrp);
   const cols=GCOLS[activeGrp]||[];
-  const trows=cols.map(c=>{
+  const trows=ex?extraRowsHtml(ex):cols.map(c=>{
     const v=gv(sel,c);
     return v!==null?`<tr><td class="wk">${COL_LABELS[c]||c}</td><td class="wv">${v}</td></tr>`:'';
   }).join('');
-  ws.innerHTML=`<div class="wtr" id="weightTabs">${tabs}</div><table class="wt" id="weightTable">${trows}</table>`;
+  ws.innerHTML=`<div class="wtr" id="weightTabs">${tabs}</div><table class="wt" id="weightTable">${trows}</table><div id="xHint"></div>`;
+  updateXHint();
 }
 
 
@@ -679,17 +713,21 @@ function setGrp(k){
   activeGrp=k; // اول activeGrp رو ست کن
   // فقط جدول و تب‌ها آپدیت کن بدون rebuild کامل
   document.querySelectorAll('.wtb').forEach(b=>{
+    if(b.dataset.k){b.classList.toggle('active', b.dataset.k===k);return;}
     const g=GROUPS.find(x=>x.label===b.textContent);
     b.classList.toggle('active', g&&g.key===k);
   });
   const cols=GCOLS[k]||[];
   const tbl=document.getElementById('weightTable');
-  if(tbl){
+  if(tbl&&getExtra(k)){
+    tbl.innerHTML=extraRowsHtml(getExtra(k));
+  } else if(tbl){
     tbl.innerHTML=cols.map(c=>{
       const v=gv(sel,c);
       return v!==null?`<tr><td class="wk">${COL_LABELS[c]||c}</td><td class="wv">${v}</td></tr>`:'';
     }).join('');
   }
+  updateXHint();
   calc(); // حالا calc با activeGrp درست حساب میکنه
 }
 
@@ -711,6 +749,8 @@ function getWeightKg(){
     return v!==null?parseFloat(v)/1000:null;
   }
   if(!activeGrp)return null;
+  const _ex=getExtra(activeGrp);
+  if(_ex&&Number(_ex.q)>0&&Number(_ex.w)>0) return (Number(_ex.w)/Number(_ex.q))/1000;   // وزنِ دیگر: وزنِ کل ÷ تعداد
   const n=c=>{const v=gv(sel,c);return v!==null&&v!==''?parseFloat(v):NaN;};
   let weightG=NaN, countInPack=NaN;
 
@@ -751,6 +791,7 @@ function getWeightKg(){
 
 // ─── CALC ───
 function calc(){
+  try{updateXHint();}catch(e){}
   const cny=parseFloat((document.getElementById('cnyRate').value||'').replace(/,/g,''))||0;
   const usd=parseFloat((document.getElementById('usdRate').value||'').replace(/,/g,''))||0;
 
